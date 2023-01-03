@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This hack allows passwords to be in a sub-directory "secrets", and
+# still visible for git.
+#
+# This is not a good setup, because `pass git status` will show
+# relative paths to `secrets/`. We need a better solution, but I
+# don't know a good one yet.
+grep -v "export GIT_CEILING_DIRECTORIES=" "$REAL_PASS" | bash -s -- "$@"
