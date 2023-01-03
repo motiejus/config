@@ -120,17 +120,20 @@ let ssh_pubkeys = {
       repository.DISABLE_MIGRATIONS = true;
       repository.DISABLE_STARS = true;
       repository.ENABLE_PUSH_CREATE_USER = true;
+      security.LOGIN_REMEMBER_DAYS = 30;
       server.ENABLE_GZIP = true;
       server.LANDING_PAGE = "/motiejus";
       service.DISABLE_REGISTRATION = true;
       service.ENABLE_TIMETRACKING = false;
       service.ENABLE_USER_HEATMAP = false;
       service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
+      session.COOKIE_SECURE = true;
     };
     #service.explore.REQUIRE_SIGNIN_VIEW = true; does not work as of writing
     extraConfig = ''
       [service.explore]
       REQUIRE_SIGNIN_VIEW = true;
+      DISABLE_USERS_PAGE = true;
     '';
   };
   users.users.git = {
