@@ -110,20 +110,27 @@ let ssh_pubkeys = {
     rootUrl = "https://git.jakstys.lt";
     httpAddress = "127.0.0.1";
     httpPort = 3000;
-    settings.admin.DISABLE_REGULAR_ORG_CREATION = true;
-    settings.api.ENABLE_SWAGGER = false;
-    settings.mirror.ENABLED = false;
-    settings.packages.ENABLED = false;
-    settings.repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
-    settings.repository.DISABLE_STARS = true;
-    settings.repository.ENABLE_PUSH_CREATE_USER = true;
-    settings.server.ENABLE_GZIP = true;
-    settings.server.LANDING_PAGE = "/motiejus";
-    settings.service.DISABLE_REGISTRATION = true;
-    settings.service.ENABLE_TIMETRACKING = false;
-    settings.service.ENABLE_USER_HEATMAP = false;
-    settings.service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
-    settings.service.explore.REQUIRE_SIGNIN_VIEW = true;
+    settings = {
+      admin.DISABLE_REGULAR_ORG_CREATION = true;
+      api.ENABLE_SWAGGER = false;
+      mirror.ENABLED = false;
+      other.SHOW_FOOTER_VERSION = false;
+      packages.ENABLED = false;
+      repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
+      repository.DISABLE_STARS = true;
+      repository.ENABLE_PUSH_CREATE_USER = true;
+      server.ENABLE_GZIP = true;
+      server.LANDING_PAGE = "/motiejus";
+      service.DISABLE_REGISTRATION = true;
+      service.ENABLE_TIMETRACKING = false;
+      service.ENABLE_USER_HEATMAP = false;
+      service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
+    };
+    #service.explore.REQUIRE_SIGNIN_VIEW = true; does not work as of writing
+    extraConfig = ''
+      [service.explore]
+      REQUIRE_SIGNIN_VIEW = true;
+    '';
   };
   users.users.git = {
     description = "Gitea Service";
