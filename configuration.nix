@@ -57,6 +57,7 @@ let ssh_pubkeys = {
     file
     htop
     ncdu
+    sqlite
     ripgrep
     binutils
     pciutils
