@@ -67,9 +67,14 @@ let ssh_pubkeys = {
 
   programs.mtr.enable = true;
 
-  services.openssh.enable = true;
-  services.openssh.passwordAuthentication = false;
-  services.openssh.permitRootLogin = "no";
+  services.openssh = {
+    enable = true;
+    passwordAuthentication = false;
+    permitRootLogin = "no";
+    extraConfig = ''
+      AcceptEnv GIT_PROTOCOL
+    '';
+  };
 
   services.locate = {
     enable = true;
@@ -95,6 +100,8 @@ let ssh_pubkeys = {
     };
   };
 
+  services.tailscale.enable = true;
+
   services.gitea = {
     enable = true;
     user = "git";
@@ -103,9 +110,20 @@ let ssh_pubkeys = {
     rootUrl = "https://git.jakstys.lt";
     httpAddress = "127.0.0.1";
     httpPort = 3000;
+    settings.admin.DISABLE_REGULAR_ORG_CREATION = true;
+    settings.api.ENABLE_SWAGGER = false;
+    settings.mirror.ENABLED = false;
+    settings.packages.ENABLED = false;
+    settings.repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
+    settings.repository.DISABLE_STARS = true;
+    settings.repository.ENABLE_PUSH_CREATE_USER = true;
+    settings.server.ENABLE_GZIP = true;
     settings.server.LANDING_PAGE = "/motiejus";
     settings.service.DISABLE_REGISTRATION = true;
-    settings.repository.ENABLE_PUSH_CREATE_USER = true;
+    settings.service.ENABLE_TIMETRACKING = false;
+    settings.service.ENABLE_USER_HEATMAP = false;
+    settings.service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
+    settings.service.explore.REQUIRE_SIGNIN_VIEW = true;
   };
   users.users.git = {
     description = "Gitea Service";
