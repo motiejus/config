@@ -117,6 +117,7 @@ let ssh_pubkeys = {
       other.SHOW_FOOTER_VERSION = false;
       packages.ENABLED = false;
       repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
+      repository.DISABLE_MIGRATIONS = true;
       repository.DISABLE_STARS = true;
       repository.ENABLE_PUSH_CREATE_USER = true;
       server.ENABLE_GZIP = true;
