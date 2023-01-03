@@ -103,7 +103,9 @@ let ssh_pubkeys = {
     rootUrl = "https://git.jakstys.lt";
     httpAddress = "127.0.0.1";
     httpPort = 3000;
+    settings.server.LANDING_PAGE = "/motiejus";
     settings.service.DISABLE_REGISTRATION = true;
+    settings.repository.ENABLE_PUSH_CREATE_USER = true;
   };
   users.users.git = {
     description = "Gitea Service";
