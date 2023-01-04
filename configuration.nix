@@ -149,7 +149,6 @@ let ssh_pubkeys = {
         service.ENABLE_USER_HEATMAP = false;
         service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
         session.COOKIE_SECURE = true;
-        "service.explore".REQUIRE_SIGNIN_VIEW = true;
         "service.explore".DISABLE_USERS_PAGE = true;
       };
     };
