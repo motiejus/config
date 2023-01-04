@@ -32,6 +32,7 @@ let ssh_pubkeys = {
 
   services.zfs.autoScrub.enable = true;
   services.zfs.trim.enable = true;
+  services.zfs.expandOnBoot = "all";
 
   networking.hostName = "hel1-a";
   time.timeZone = "UTC";
@@ -158,6 +159,8 @@ let ssh_pubkeys = {
   programs.mosh.enable = true;
   networking.firewall.allowedTCPPorts = [ 80 443 ];
   networking.firewall.allowedUDPPorts = [ 443 ];
+  # tailscale insists on this
+  networking.firewall.checkReversePath = "loose";
 
   system.copySystemConfiguration = true;
 
