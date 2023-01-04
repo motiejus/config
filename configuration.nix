@@ -13,39 +13,42 @@ let ssh_pubkeys = {
       /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
     ];
 
-  boot.initrd.network.enable = true;
-  boot.initrd.network.ssh = {
+  boot.initrd.network = {
     enable = true;
-    port = 22;
-    authorizedKeys = builtins.attrValues ssh_pubkeys;
-    hostKeys = [ "/etc/secrets/initrd/ssh_host_ed25519_key" ];
+    ssh = {
+      enable = true;
+      port = 22;
+      authorizedKeys = builtins.attrValues ssh_pubkeys;
+      hostKeys = [ "/etc/secrets/initrd/ssh_host_ed25519_key" ];
+    };
   };
 
-  services.zfs.autoSnapshot = {
-    enable = true;
-    frequent = 0;
-    hourly = 24;
-    daily = 7;
-    weekly = 0;
-    monthly = 0;
+  security.sudo = {
+    wheelNeedsPassword = false;
+    execWheelOnly = true;
   };
 
-  services.zfs.autoScrub.enable = true;
-  services.zfs.trim.enable = true;
-  services.zfs.expandOnBoot = "all";
-
-  networking.hostName = "hel1-a";
   time.timeZone = "UTC";
 
-  users.users.motiejus = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" ];
-  };
-  users.users.motiejus.openssh.authorizedKeys.keys = [ ssh_pubkeys.motiejus ];
-  users.mutableUsers = false;
+  users = {
+    mutableUsers = false;
 
-  security.sudo.wheelNeedsPassword = false;
-  security.sudo.execWheelOnly = true;
+    users = {
+      git = {
+        description = "Gitea Service";
+        home = "/var/lib/gitea";
+        useDefaultShell = true;
+        group = "gitea";
+        isSystemUser = true;
+      };
+
+      motiejus = {
+        isNormalUser = true;
+        extraGroups = [ "wheel" ];
+        openssh.authorizedKeys.keys = [ ssh_pubkeys.motiejus ];
+      };
+    };
+  };
 
   environment.systemPackages = with pkgs; [
     jq
@@ -67,114 +70,124 @@ let ssh_pubkeys = {
   ];
 
   programs.mtr.enable = true;
+  programs.mosh.enable = true;
 
-  services.openssh = {
-    enable = true;
-    passwordAuthentication = false;
-    permitRootLogin = "no";
-    extraConfig = ''
-      AcceptEnv GIT_PROTOCOL
-    '';
-  };
+  services = {
+    zfs = {
+      autoSnapshot = {
+        enable = true;
+        frequent = 0;
+        hourly = 24;
+        daily = 7;
+        weekly = 0;
+        monthly = 0;
+      };
 
-  services.locate = {
-    enable = true;
-    locate = pkgs.plocate;
-    localuser = null;
-  };
-
-  services.headscale = {
-    enable = true;
-    serverUrl = "https://vpn.jakstys.lt";
-    openIdConnect = {
-      issuer = "https://git.jakstys.lt/";
-      clientId = "1c5fe796-452c-458d-b295-71a9967642fc";
-      clientSecretFile = "/var/src/secrets/headscale/oidc_client_secret";
+      autoScrub.enable = true;
+      trim.enable = true;
+      expandOnBoot = "all";
     };
-    settings = {
-      ip_prefixes = [ "100.89.176.0/20" ];
-      dns_config = {
-        nameservers = [ "1.1.1.1" "8.8.4.4" ];
-        magic_dns = true;
-        base_domain = "jakst";
+
+    openssh = {
+      enable = true;
+      passwordAuthentication = false;
+      permitRootLogin = "no";
+      extraConfig = ''
+        AcceptEnv GIT_PROTOCOL
+      '';
+    };
+
+    locate = {
+      enable = true;
+      locate = pkgs.plocate;
+      localuser = null;
+    };
+
+    headscale = {
+      enable = true;
+      serverUrl = "https://vpn.jakstys.lt";
+      openIdConnect = {
+        issuer = "https://git.jakstys.lt/";
+        clientId = "1c5fe796-452c-458d-b295-71a9967642fc";
+        clientSecretFile = "/var/src/secrets/headscale/oidc_client_secret";
+      };
+      settings = {
+        ip_prefixes = [ "100.89.176.0/20" ];
+        dns_config = {
+          nameservers = [ "1.1.1.1" "8.8.4.4" ];
+          magic_dns = true;
+          base_domain = "jakst";
+        };
+      };
+    };
+
+    tailscale.enable = true;
+
+    gitea = {
+      enable = true;
+      user = "git";
+      database.user = "git";
+      domain = "git.jakstys.lt";
+      rootUrl = "https://git.jakstys.lt";
+      httpAddress = "127.0.0.1";
+      httpPort = 3000;
+      settings = {
+        admin.DISABLE_REGULAR_ORG_CREATION = true;
+        api.ENABLE_SWAGGER = false;
+        mirror.ENABLED = false;
+        other.SHOW_FOOTER_VERSION = false;
+        packages.ENABLED = false;
+        repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
+        repository.DISABLE_MIGRATIONS = true;
+        repository.DISABLE_STARS = true;
+        repository.ENABLE_PUSH_CREATE_USER = true;
+        security.LOGIN_REMEMBER_DAYS = 30;
+        server.ENABLE_GZIP = true;
+        server.LANDING_PAGE = "/motiejus";
+        service.DISABLE_REGISTRATION = true;
+        service.ENABLE_TIMETRACKING = false;
+        service.ENABLE_USER_HEATMAP = false;
+        service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
+        session.COOKIE_SECURE = true;
+        "service.explore".REQUIRE_SIGNIN_VIEW = true;
+        "service.explore".DISABLE_USERS_PAGE = true;
+      };
+    };
+
+    caddy = {
+      enable = true;
+      email = "motiejus+acme@jakstys.lt";
+      virtualHosts."vpn.jakstys.lt".extraConfig = ''
+        reverse_proxy 127.0.0.1:8080
+      '';
+      virtualHosts."git.jakstys.lt".extraConfig = ''
+        reverse_proxy 127.0.0.1:3000
+      '';
+    };
+  };
+
+  networking = {
+    hostName = "hel1-a";
+    firewall = {
+      allowedTCPPorts = [ 80 443 ];
+      allowedUDPPorts = [ 443 ];
+      checkReversePath = "loose"; # tailscale insists on this
+    };
+  };
+
+  system = {
+    copySystemConfiguration = true;
+    autoUpgrade.enable = true;
+    autoUpgrade = {
+      allowReboot = true;
+      rebootWindow = {
+        lower = "00:00";
+        upper = "00:30";
       };
     };
   };
 
-  services.tailscale.enable = true;
-
-  services.gitea = {
-    enable = true;
-    user = "git";
-    database.user = "git";
-    domain = "git.jakstys.lt";
-    rootUrl = "https://git.jakstys.lt";
-    httpAddress = "127.0.0.1";
-    httpPort = 3000;
-    settings = {
-      admin.DISABLE_REGULAR_ORG_CREATION = true;
-      api.ENABLE_SWAGGER = false;
-      mirror.ENABLED = false;
-      other.SHOW_FOOTER_VERSION = false;
-      packages.ENABLED = false;
-      repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
-      repository.DISABLE_MIGRATIONS = true;
-      repository.DISABLE_STARS = true;
-      repository.ENABLE_PUSH_CREATE_USER = true;
-      security.LOGIN_REMEMBER_DAYS = 30;
-      server.ENABLE_GZIP = true;
-      server.LANDING_PAGE = "/motiejus";
-      service.DISABLE_REGISTRATION = true;
-      service.ENABLE_TIMETRACKING = false;
-      service.ENABLE_USER_HEATMAP = false;
-      service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
-      session.COOKIE_SECURE = true;
-    };
-    #service.explore.REQUIRE_SIGNIN_VIEW = true; does not work as of writing
-    extraConfig = ''
-      [service.explore]
-      REQUIRE_SIGNIN_VIEW = true;
-      DISABLE_USERS_PAGE = true;
-    '';
-  };
-  users.users.git = {
-    description = "Gitea Service";
-    home = "/var/lib/gitea";
-    useDefaultShell = true;
-    group = "gitea";
-    isSystemUser = true;
-  };
-
-  services.caddy = {
-    enable = true;
-    email = "motiejus+acme@jakstys.lt";
-    virtualHosts."vpn.jakstys.lt".extraConfig = ''
-      reverse_proxy 127.0.0.1:8080
-    '';
-    virtualHosts."git.jakstys.lt".extraConfig = ''
-      reverse_proxy 127.0.0.1:3000
-    '';
-  };
-
-  programs.mosh.enable = true;
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
-  networking.firewall.allowedUDPPorts = [ 443 ];
-  # tailscale insists on this
-  networking.firewall.checkReversePath = "loose";
-
-  system.copySystemConfiguration = true;
-
-  system.autoUpgrade.enable = true;
-  system.autoUpgrade = {
-    allowReboot = true;
-    rebootWindow = {
-      lower = "00:00";
-      upper = "00:30";
-    };
-  };
-
-  # do not change
-  system.stateVersion = "22.11"; # Did you read the comment?
-
+  # Do not change
+  system.stateVersion = "22.11";
 }
 
