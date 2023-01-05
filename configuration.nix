@@ -70,22 +70,25 @@ let ssh_pubkeys = {
   ];
 
   programs.mtr.enable = true;
-  programs.mosh.enable = true;
 
   services = {
     zfs = {
-      autoSnapshot = {
-        enable = true;
-        frequent = 0;
-        hourly = 24;
-        daily = 7;
-        weekly = 0;
-        monthly = 0;
-      };
-
       autoScrub.enable = true;
       trim.enable = true;
       expandOnBoot = "all";
+    };
+
+    sanoid = {
+      enable = true;
+      templates.prod = {
+        hourly = 24;
+        daily = 7;
+        autosnap = true;
+        autoprune = true;
+      };
+      datasets."rpool/nixos/home".use_template = [ "prod" ];
+      datasets."rpool/nixos/var".use_template = [ "prod" ];
+      extraArgs = [ "--verbose" ];
     };
 
     openssh = {
