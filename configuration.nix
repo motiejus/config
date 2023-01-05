@@ -87,8 +87,8 @@ let ssh_pubkeys = {
         autoprune = true;
         post_snapshot_script = "/var/src/snaplink";
       };
-      datasets."rpool/nixos/home".use_template = [ "prod" ];
-      datasets."rpool/nixos/var".use_template = [ "prod" ];
+      datasets."/home".use_template = [ "prod" ];
+      datasets."/var".use_template = [ "prod" ];
       extraArgs = [ "--verbose" ];
     };
 

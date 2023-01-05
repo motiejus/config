@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-_fatal() { >&2 echo "ERROR: $*"; exit 1; }
-mountpoint=$(zfs list -H -t filesystem -o mountpoint "$SANOID_TARGET")
-[[ -n "$mountpoint" ]] || _fatal "expected non-empty $SANOID_TARGET"
-snap_path="$mountpoint/.zfs/snapshot/$SANOID_SNAPNAME"
-[[ -d "$snap_path" ]] || _fatal "expected to find a directory in $snap_path"
-link_path="$mountpoint/.snapshot-latest"
+snap_path="$SANOID_TARGET/.zfs/snapshot/$SANOID_SNAPNAME"
+[[ -d "$snap_path" ]] || {
+    >&2 echo "expected to find a directory in $snap_path"
+    exit 1
+}
+link_path="$SANOID_TARGET/.snapshot-latest"
 ln -sf "$snap_path" "$link_path"
 >&2 printf "successfully created %s -> %s\n" "$link_path" "$snap_path"
