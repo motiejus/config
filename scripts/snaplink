@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 snap_path="$SANOID_TARGET/.zfs/snapshot/$SANOID_SNAPNAME"
-[[ -d "$snap_path" ]] || {
-    >&2 echo "expected to find a directory in $snap_path"
-    exit 1
-}
+[[ -d "$snap_path" ]] || { >&2 echo "expected directory $snap_path"; exit 1; }
 link_path="$SANOID_TARGET/.snapshot-latest"
 ln -sf "$snap_path" "$link_path"
 >&2 printf "successfully created %s -> %s\n" "$link_path" "$snap_path"
