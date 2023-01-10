@@ -113,7 +113,7 @@ let ssh_pubkeys = {
       openIdConnect = {
         issuer = "https://git.jakstys.lt/";
         clientId = "1c5fe796-452c-458d-b295-71a9967642fc";
-        clientSecretFile = "/var/src/secrets/headscale/oidc_client_secret";
+        clientSecretFile = "/var/lib/headscale/oidc_client_secret"; # https://github.com/juanfont/headscale/pull/1127
       };
       settings = {
         ip_prefixes = [ "100.89.176.0/20" ];
