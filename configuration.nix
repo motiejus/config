@@ -88,7 +88,6 @@ let ssh_pubkeys = {
       };
       datasets."rpool/nixos/home".use_template = [ "prod" ];
       datasets."rpool/nixos/var/lib".use_template = [ "prod" ];
-      extraArgs = [ "--verbose" ];
     };
 
     openssh = {
