@@ -70,6 +70,30 @@ let ssh_pubkeys = {
   ];
 
   programs.mtr.enable = true;
+  programs.ssh.knownHosts = {
+    "vno1-oh2.servers.jakst" = {
+        extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINCJxdEkgQ3U0XxqDibk0g3iV+FG423Yk8hj6VAIOpT5";
+    };
+    "hel1-a.servers.jakst" = {
+        extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt"];
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
+    };
+    "hel1-b.servers.jakst" = {
+        extraHostNames = ["hel1-b.jakstys.lt" "jakstys.lt"];
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINCJxdEkgQ3U0XxqDibk0g3iV+FG423Yk8hj6VAIOpT5";
+    };
+    "mtwork.motiejus.jakst" = {
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
+    };
+    "zh2769.rsync.net" = {
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
+    };
+
+    "github.com" = {
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+    };
+  };
 
   services = {
     zfs = {
