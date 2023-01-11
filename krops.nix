@@ -9,9 +9,6 @@ let
     {
       nixpkgs.symlink = "/root/.nix-defexpr/channels/nixos";
       nixos-config.file = toString ./configuration.nix;
-
-      # TODO: how to make this nix-managed?
-      snaplink.file = toString ./scripts/snaplink;
       secrets.pass = {
         dir = toString ./secrets;
         name = "hel1-a";
