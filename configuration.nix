@@ -112,6 +112,27 @@ let ssh_pubkeys = {
       };
       datasets."rpool/nixos/home".use_template = [ "prod" ];
       datasets."rpool/nixos/var/lib".use_template = [ "prod" ];
+      extraArgs = [ "--verbose" ];
+    };
+
+    restic.backups = {
+      var_lib = {
+        paths = ["/var/lib/.snapshot-latest/gitea" "/var/lib/.snapshot-latest/headscale"];
+        repository = "sftp:zh2769@zh2769.rsync.net:hel1-a.servers.jakst/var_lib";
+        initialize = true;
+        passwordFile = "/var/src/secrets/restic/password";
+        backupPrepareCommand = ''
+          mkdir -p /var/lib/.snapshot-latest
+          ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name /var/lib | sort | tail -1) /var/lib/.snapshot-latest
+        '';
+        backupCleanupCommand = ''
+          ${pkgs.util-linux}/bin/umount /var/lib/.snapshot-latest
+        '';
+        timerConfig = {
+          OnCalendar = "00:05";
+          RandomizedDelaySec = "1h";
+        };
+      };
     };
 
     openssh = {
