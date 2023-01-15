@@ -121,6 +121,10 @@ let ssh_pubkeys = {
         repository = "sftp:zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
         initialize = true;
         passwordFile = "/var/src/secrets/restic/password";
+        pruneOpts = [
+          "--keep-daily 7"
+          "--keep-weekly 5"
+        ];
         backupPrepareCommand = ''
           set -euo pipefail
           ${pkgs.util-linux}/bin/umount /var/lib/.snapshot-latest || :
