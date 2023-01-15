@@ -166,7 +166,10 @@ let ssh_pubkeys = {
         clientSecretFile = "/var/lib/headscale/oidc_client_secret"; # https://github.com/juanfont/headscale/pull/1127
       };
       settings = {
-        ip_prefixes = [ "100.89.176.0/20" ];
+        ip_prefixes = [
+          "100.89.176.0/20"
+          "fd7a:115c:a1e0:59b0::/64"
+        ];
         dns_config = {
           nameservers = [ "1.1.1.1" "8.8.4.4" ];
           magic_dns = true;
