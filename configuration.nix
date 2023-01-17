@@ -219,32 +219,39 @@ let ssh_pubkeys = {
       virtualHosts."git.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:3000
       '';
-      virtualHosts."beta.jakstys.lt".extraConfig = ''
-        header /_/* Cache-Control "public, max-age=31536000, immutable"
-        root * /var/www/jakstys.lt
-        file_server {
-          precompressed br gzip
-        }
+      virtualHosts."beta.jakstys.lt" = {
+        logFormat = ''
+            output file ${config.services.caddy.logDir}/access-beta.jakstys.lt.log {
+              roll_disabled
+            }
+        '';
+        extraConfig = ''
+          header /_/* Cache-Control "public, max-age=31536000, immutable"
+          root * /var/www/jakstys.lt
+          file_server {
+            precompressed br gzip
+          }
 
-        @matrixMatch {
-          path /.well-known/matrix/client
-          path /.well-known/matrix/server
-        }
-        header @matrixMatch Content-Type application/json
-        header @matrixMatch Access-Control-Allow-Origin *
-        header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+          @matrixMatch {
+            path /.well-known/matrix/client
+            path /.well-known/matrix/server
+          }
+          header @matrixMatch Content-Type application/json
+          header @matrixMatch Access-Control-Allow-Origin *
+          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
 
-        handle /.well-known/matrix/client {
-          respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-        }
-        handle /.well-known/matrix/server {
-          respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-        }
+          handle /.well-known/matrix/client {
+            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+          }
+          handle /.well-known/matrix/server {
+            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+          }
 
-        handle /_matrix/* {
-          reverse_proxy http://hel1-b.servers.jakst:8088
-        }
-      '';
+          handle /_matrix/* {
+            reverse_proxy http://hel1-b.servers.jakst:8088
+          }
+        '';
+      };
     };
 
     logrotate = {
@@ -259,7 +266,7 @@ let ssh_pubkeys = {
           compressext = ".zst";
           compressoptions = "--long -19";
           uncompresscmd = "${pkgs.zstd}/bin/unzstd";
-          postrotate = "${pkgs.systemd}/bin/systemctl reload caddy";
+          postrotate = "${pkgs.systemd}/bin/systemctl restart caddy";
         };
       };
     };
