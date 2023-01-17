@@ -296,8 +296,8 @@ let
     autoUpgrade = {
       allowReboot = true;
       rebootWindow = {
-        lower = "00:00";
-        upper = "00:30";
+        lower = "01:00";
+        upper = "01:30";
       };
     };
   };
