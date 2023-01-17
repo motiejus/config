@@ -2,9 +2,11 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
-let ssh_pubkeys = {
+let
+  snapshot_dirs = [ "/var" "/var/lib" ];
+  ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
 }; in {
@@ -111,13 +113,18 @@ let ssh_pubkeys = {
         autoprune = true;
       };
       datasets."rpool/nixos/home".use_template = [ "prod" ];
+      datasets."rpool/nixos/var".use_template = [ "prod" ];
       datasets."rpool/nixos/var/lib".use_template = [ "prod" ];
       extraArgs = [ "--verbose" ];
     };
 
     restic.backups = {
-      var_lib = {
-        paths = ["/var/lib/.snapshot-latest/gitea" "/var/lib/.snapshot-latest/headscale"];
+      var = {
+        paths = [
+            "/var/lib/.snapshot-latest/gitea"
+            "/var/lib/.snapshot-latest/headscale"
+            "/var/.snapshot-latest/log/caddy/access-beta.jakstys.lt.log-*.zst"
+        ];
         repository = "sftp:zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
         initialize = true;
         passwordFile = "/var/src/secrets/restic/password";
@@ -127,16 +134,18 @@ let ssh_pubkeys = {
         ];
         backupPrepareCommand = ''
           set -euo pipefail
-          ${pkgs.util-linux}/bin/umount /var/lib/.snapshot-latest || :
-          mkdir -p /var/lib/.snapshot-latest
-          ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name /var/lib | sort | tail -1) /var/lib/.snapshot-latest
-        '';
+          '' + lib.concatMapStringsSep "\n" (e: ''
+            ${pkgs.util-linux}/bin/umount ${e}/.snapshot-latest || :
+            mkdir -p ${e}/.snapshot-latest
+            ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${e} | sort | tail -1) ${e}/.snapshot-latest
+          '') snapshot_dirs;
         backupCleanupCommand = ''
           set -euo pipefail
-          ${pkgs.util-linux}/bin/umount /var/lib/.snapshot-latest
-        '';
+          '' + lib.concatMapStringsSep "\n" (e: ''
+            ${pkgs.util-linux}/bin/umount ${e}/.snapshot-latest
+          '') snapshot_dirs;
         timerConfig = {
-          OnCalendar = "00:05";
+          OnCalendar = "00:10";
           RandomizedDelaySec = "1h";
         };
       };
