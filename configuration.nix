@@ -335,9 +335,19 @@ in {
   };
 
   # TODO static snapshots
-  #systemd.services."make-snapshot-dirs" = {
-  #  requiredBy = 
-  #};
+  systemd.services."make-snapshot-dirs" = let
+    vals = builtins.attrValues backup_paths;
+    mountpoints = builtins.catAttrs "mountpoint" vals;
+    unique_mountpoints = lib.unique mountpoints;
+  in {
+    description = "prepare snapshot directories for backups";
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
+      RemainAfterExit = true;
+    };
+  };
 
   # Do not change
   system.stateVersion = "22.11";
