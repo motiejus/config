@@ -22,7 +22,7 @@ let
 
   umountLatest = ({mountpoint, ...}:
     ''set -euo pipefail
-    "${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest"
+    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
     ''
   );
 
@@ -39,8 +39,8 @@ let
     var_log = {
       mountpoint = "/var/log";
       zfs_name = "rpool/nixos/var/log";
-      paths = [ "/var/log/.snapshot-latest/caddy/" ];
-      patterns = [ "access-beta.jakstys.lt.log-*.zst" ];
+      paths = [ "/var/log/.snapshot-latest/" ];
+      patterns = [ "+ caddy/access-beta.jakstys.lt.log-*.zst" ];
       backup_at = "*-*-* 00:10:00";
     };
   };
@@ -164,12 +164,13 @@ in {
         name = name;
         value = {
           doInit = true;
-          repo = "zh2769@zh2769.rsync.net:borg/hel1-a.servers.jakst";
+          repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
           encryption = {
             mode = "repokey-blake2";
             passCommand = "cat /var/src/secrets/borgbackup/password";
           };
           paths = value.paths;
+          extraArgs = "--remote-path=borg1";
           compression = "auto,lzma";
           startAt = "*-*-* 00:05:00";
           readWritePaths = [ rwpath ];
