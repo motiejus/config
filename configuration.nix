@@ -5,14 +5,47 @@
 { config, pkgs, lib, ... }:
 
 let
-  snapshot_dirs = {
-    "/var/log" = "rpool/nixos/var/log";
-    "/var/lib" = "rpool/nixos/var/lib";
-  };
+
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
-}; in {
+};
+
+  mountLatest = ({mountpoint, zfs_name}:
+    ''
+    set -euo pipefail
+    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest || : &>/dev/null
+    mkdir -p ${mountpoint}/.snapshot-latest
+    ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
+    ''
+  );
+
+  umountLatest = ({mountpoint, ...}:
+    ''set -euo pipefail
+    "${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest"
+    ''
+  );
+
+  backup_paths = {
+    var_lib = {
+      mountpoint = "/var/lib";
+      zfs_name = "rpool/nixos/var/lib";
+      paths = [
+        "/var/lib/.snapshot-latest/gitea"
+        "/var/lib/.snapshot-latest/headscale"
+      ];
+      backup_at = "*-*-* 00:05:00";
+    };
+    var_log = {
+      mountpoint = "/var/log";
+      zfs_name = "rpool/nixos/var/log";
+      paths = [ "/var/log/.snapshot-latest/caddy/" ];
+      patterns = [ "access-beta.jakstys.lt.log-*.zst" ];
+      backup_at = "*-*-* 00:10:00";
+    };
+  };
+
+in {
   imports =
     [
       /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
@@ -65,6 +98,7 @@ let
     lsof
     file
     htop
+    mosh
     #ncdu
     sqlite
     ripgrep
@@ -115,42 +149,36 @@ let
         autosnap = true;
         autoprune = true;
       };
-      datasets."rpool/nixos/home".use_template = [ "prod" ];
-      datasets."rpool/nixos/var/log".use_template = [ "prod" ];
-      datasets."rpool/nixos/var/lib".use_template = [ "prod" ];
+      datasets = lib.mapAttrs' (name: value: {
+          name = value.zfs_name;
+          value = { use_template = ["prod"]; };
+        }) backup_paths;
       extraArgs = [ "--verbose" ];
     };
 
-    restic.backups = {
-      var = {
-        paths = [
-            "/var/lib/.snapshot-latest/gitea"
-            "/var/lib/.snapshot-latest/headscale"
-            "/var/log/.snapshot-latest/caddy/access-beta.jakstys.lt.log-*.zst"
-        ];
-        repository = "sftp:zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
-        initialize = true;
-        passwordFile = "/var/src/secrets/restic/password";
-        pruneOpts = [
-          "--keep-daily 7"
-        ];
-        backupPrepareCommand = let
-          prepLines = lib.mapAttrsToList (name: value: ''
-            ${pkgs.util-linux}/bin/umount ${name}/.snapshot-latest || : &>/dev/null
-            mkdir -p ${name}/.snapshot-latest
-            ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${value} | sort | tail -1) ${name}/.snapshot-latest
-          '') snapshot_dirs;
-          in "set -euo pipefail\n" + lib.concatStringsSep "\n" prepLines;
-        backupCleanupCommand = let
-          cleanupLines = lib.mapAttrsToList (name: value: "${pkgs.util-linux}/bin/umount ${name}/.snapshot-latest") snapshot_dirs;
-          cleanupString = lib.concatStringsSep "\n" cleanupLines;
-          in "set -euo pipefail\n" + cleanupString;
-        timerConfig = {
-          OnCalendar = "00:10";
-          RandomizedDelaySec = "1h";
+    borgbackup.jobs = lib.mapAttrs' (name: value:
+      let
+        snapshot = { mountpoint = value.mountpoint; zfs_name = value.zfs_name; };
+        rwpath = value.mountpoint + "/.snapshot-latest";
+      in {
+        name = name;
+        value = {
+          doInit = true;
+          repo = "zh2769@zh2769.rsync.net:borg/hel1-a.servers.jakst";
+          encryption = {
+            mode = "repokey-blake2";
+            passCommand = "cat /var/src/secrets/borgbackup/password";
+          };
+          paths = value.paths;
+          compression = "auto,lzma";
+          startAt = "*-*-* 00:05:00";
+          readWritePaths = [ rwpath ];
+          preHook = mountLatest snapshot;
+          postHook = umountLatest snapshot;
+        } // lib.optionalAttrs (value ? patterns) {
+          patterns = value.patterns;
         };
-      };
-    };
+      }) backup_paths;
 
     openssh = {
       enable = true;
@@ -305,6 +333,10 @@ let
       };
     };
   };
+
+  #systemd.services."make-snapshot-dirs" = {
+  #  requiredBy = 
+  #};
 
   # Do not change
   system.stateVersion = "22.11";
