@@ -34,13 +34,16 @@ let
         "/var/lib/.snapshot-latest/gitea"
         "/var/lib/.snapshot-latest/headscale"
       ];
-      backup_at = "*-*-* 00:05:00";
+      backup_at = "*-*-* *:01:00";
     };
     var_log = {
       mountpoint = "/var/log";
       zfs_name = "rpool/nixos/var/log";
       paths = [ "/var/log/.snapshot-latest/" ];
-      patterns = [ "+ caddy/access-beta.jakstys.lt.log-*.zst" ];
+      patterns = [
+        "+ caddy/access-beta.jakstys.lt.log-*.zst"
+        "- *"
+      ];
       backup_at = "*-*-* 00:10:00";
     };
   };
@@ -164,7 +167,7 @@ in {
         name = name;
         value = {
           doInit = true;
-          repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
+          repo = "zh2769@zh2769.rsync.net:borg";
           encryption = {
             mode = "repokey-blake2";
             passCommand = "cat /var/src/secrets/borgbackup/password";
@@ -172,10 +175,16 @@ in {
           paths = value.paths;
           extraArgs = "--remote-path=borg1";
           compression = "auto,lzma";
-          startAt = "*-*-* 00:05:00";
+          startAt = value.backup_at;
           readWritePaths = [ rwpath ];
           preHook = mountLatest snapshot;
           postHook = umountLatest snapshot;
+          prune.keep = {
+            within = "1d";
+            daily = 7;
+            weekly = 4;
+            monthly = 3;
+          };
         } // lib.optionalAttrs (value ? patterns) {
           patterns = value.patterns;
         };
