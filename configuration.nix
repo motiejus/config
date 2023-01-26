@@ -98,7 +98,6 @@ in {
     lsof
     file
     htop
-    mosh
     #ncdu
     sqlite
     ripgrep
@@ -109,6 +108,7 @@ in {
   ];
 
   programs.mtr.enable = true;
+  programs.mosh.enable = true;
   programs.ssh.knownHosts = {
     "vno1-oh2.servers.jakst" = {
         extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
@@ -334,6 +334,7 @@ in {
     };
   };
 
+  # TODO static snapshots
   #systemd.services."make-snapshot-dirs" = {
   #  requiredBy = 
   #};
