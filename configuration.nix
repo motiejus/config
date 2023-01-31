@@ -39,9 +39,9 @@ let
     var_log = {
       mountpoint = "/var/log";
       zfs_name = "rpool/nixos/var/log";
-      paths = [ "/var/log/.snapshot-latest/" ];
+      paths = [ "/var/log/.snapshot-latest/caddy/" ];
       patterns = [
-        "+ caddy/access-beta.jakstys.lt.log-*.zst"
+        "+ /var/log/.snapshot-latest/caddy/access-beta.jakstys.lt.log-*.zst"
         "- *"
       ];
       backup_at = "*-*-* 00:10:00";
