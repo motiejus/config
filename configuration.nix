@@ -346,6 +346,7 @@ in {
 
   networking = {
     hostName = "hel1-a";
+    domain = "jakstys.lt";
     firewall = {
       allowedTCPPorts = [ 80 443 ];
       allowedUDPPorts = [ 443 ];
