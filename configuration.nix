@@ -5,7 +5,7 @@
 { config, pkgs, lib, ... }:
 
 let
-
+  tailscale_subnet4 = "100.89.176.0/20";
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
@@ -107,6 +107,7 @@ in {
     binutils
     pciutils
     headscale
+    mailutils
     nixos-option
   ];
 
@@ -215,7 +216,7 @@ in {
       };
       settings = {
         ip_prefixes = [
-          "100.89.176.0/20"
+          tailscale_subnet4
           "fd7a:115c:a1e0:59b0::/64"
         ];
         dns_config = {
@@ -302,6 +303,26 @@ in {
       };
     };
 
+    postfix = {
+      enable = true;
+      enableSmtp = true;
+      networks = [ "127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet4 ];
+      hostname = "hel1-a.jakstys.lt";
+      relayHost = "smtp.sendgrid.net";
+      relayPort = 587;
+      mapFiles = {
+        sasl_passwd = "/var/src/secrets/postfix/sasl_passwd";
+      };
+      extraConfig = ''
+        smtp_sasl_auth_enable = yes
+        smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+        smtp_sasl_security_options = noanonymous
+        smtp_sasl_tls_security_options = noanonymous
+        smtp_tls_security_level = encrypt
+        header_size_limit = 4096000
+      '';
+    };
+
     logrotate = {
       settings = {
         "/var/log/caddy/access-beta.jakstys.lt.log" = {
@@ -344,7 +365,6 @@ in {
     };
   };
 
-  # TODO static snapshots
   systemd.services."make-snapshot-dirs" = let
     vals = builtins.attrValues backup_paths;
     mountpoints = builtins.catAttrs "mountpoint" vals;
