@@ -365,6 +365,12 @@ in {
     };
   };
 
+  nix.gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
+  };
+
   systemd.services."make-snapshot-dirs" = let
     vals = builtins.attrValues backup_paths;
     mountpoints = builtins.catAttrs "mountpoint" vals;
