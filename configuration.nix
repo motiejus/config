@@ -116,7 +116,7 @@ in {
   programs.ssh.knownHosts = {
     "vno1-oh2.servers.jakst" = {
         extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINCJxdEkgQ3U0XxqDibk0g3iV+FG423Yk8hj6VAIOpT5";
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
     };
     "hel1-a.servers.jakst" = {
         extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt"];
