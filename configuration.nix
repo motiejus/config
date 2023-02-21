@@ -243,18 +243,32 @@ in {
         mirror.ENABLED = false;
         other.SHOW_FOOTER_VERSION = false;
         packages.ENABLED = false;
-        repository.DEFAULT_REPO_UNITS = "repo.code,repo.releases";
-        repository.DISABLE_MIGRATIONS = true;
-        repository.DISABLE_STARS = true;
-        repository.ENABLE_PUSH_CREATE_USER = true;
+        repository = {
+          DEFAULT_REPO_UNITS = "repo.code,repo.releases";
+          DISABLE_MIGRATIONS = true;
+          DISABLE_STARS = true;
+          ENABLE_PUSH_CREATE_USER = true;
+        };
         security.LOGIN_REMEMBER_DAYS = 30;
-        server.ENABLE_GZIP = true;
-        server.LANDING_PAGE = "/motiejus";
-        service.DISABLE_REGISTRATION = true;
-        service.ENABLE_TIMETRACKING = false;
-        service.ENABLE_USER_HEATMAP = false;
-        service.SHOW_MILESTONES_DASHBOARD_PAGE = false;
-        session.COOKIE_SECURE = true;
+        server = {
+          ENABLE_GZIP = true;
+          LANDING_PAGE = "/motiejus";
+        };
+        service = {
+          DISABLE_REGISTRATION = true;
+          ENABLE_TIMETRACKING = false;
+          ENABLE_USER_HEATMAP = false;
+          SHOW_MILESTONES_DASHBOARD_PAGE = false;
+          COOKIE_SECURE = true;
+        };
+        # TODO: does not work with 1.7.4, getting error
+        # in the UI when testing the email sending workflow.
+        #mailer = {
+        #    ENABLED = true;
+        #    MAILER_TYPE = "sendmail";
+        #    FROM = "<noreply@jakstys.lt>";
+        #    SENDMAIL_PATH = "${pkgs.system-sendmail}/bin/sendmail";
+        #};
         "service.explore".DISABLE_USERS_PAGE = true;
       };
     };
