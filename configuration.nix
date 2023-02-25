@@ -406,11 +406,8 @@ in {
     };
 
     # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
-    "unit-status-mail@" = {
-      description = "Send an email on unit failure";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = pkgs.writeShellScript "unit-status-mail" ''
+    "unit-status-mail@" = let
+      script = pkgs.writeShellScript "unit-status-mail" ''
           MAILTO="motiejus+alerts@jakstys.lt"
           UNIT=$1
           EXTRA=""
@@ -429,12 +426,17 @@ in {
 
           echo -e "Status mail sent to: $MAILTO for unit: $UNIT"
           '';
+    in {
+      description = "Send an email on unit failure";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = ''${script} "%I" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
       };
     };
   } // lib.mapAttrs' (name: value: {
       name = "borgbackup-job-${name}";
       value = {
-        serviceConfig.OnFailure = "unit-status-mail@${name}.service";
+        unitConfig.OnFailure = "unit-status-mail@borgbackup-job-${name}.service";
       };
     }) backup_paths;
 
