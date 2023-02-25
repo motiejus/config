@@ -14,7 +14,7 @@ let
   mountLatest = ({mountpoint, zfs_name}:
     ''
     set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest || : &>/dev/null
+    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
     mkdir -p ${mountpoint}/.snapshot-latest
     ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
     ''
@@ -132,11 +132,9 @@ in {
     "zh2769.rsync.net" = {
         publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
     };
-
     "github.com" = {
         publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
     };
-
     "git.sr.ht" = {
         publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
     };
@@ -414,7 +412,7 @@ in {
           for e in "''${@:2}"; do
             EXTRA+="$e"$'\n'
           done
-          UNITSTATUS=$(${pkgs.systemd}/bin/systemctl status $UNIT)
+          UNITSTATUS=$(${pkgs.systemd}/bin/systemctl status "$UNIT")
           ${pkgs.postfix}/bin/sendmail $MAILTO <<EOF
           Subject:Status mail for unit: $UNIT
 
