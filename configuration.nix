@@ -168,7 +168,7 @@ in {
         name = name;
         value = {
           doInit = true;
-          repo = "zh2769@zh2769.rsync.net:borg";
+          repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
           encryption = {
             mode = "repokey-blake2";
             passCommand = "cat /var/src/secrets/borgbackup/password";
