@@ -375,6 +375,7 @@ in {
     autoUpgrade.enable = true;
     autoUpgrade = {
       allowReboot = true;
+      dates = "01:00";
       rebootWindow = {
         lower = "01:00";
         upper = "01:30";
