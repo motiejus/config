@@ -386,19 +386,53 @@ in {
       options = "--delete-older-than 14d";
   };
 
-  systemd.services."make-snapshot-dirs" = let
-    vals = builtins.attrValues backup_paths;
-    mountpoints = builtins.catAttrs "mountpoint" vals;
-    unique_mountpoints = lib.unique mountpoints;
-  in {
-    description = "prepare snapshot directories for backups";
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
-      RemainAfterExit = true;
+  systemd.services = {
+    "make-snapshot-dirs" = let
+      vals = builtins.attrValues backup_paths;
+      mountpoints = builtins.catAttrs "mountpoint" vals;
+      unique_mountpoints = lib.unique mountpoints;
+    in {
+      description = "prepare snapshot directories for backups";
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
+        RemainAfterExit = true;
+      };
     };
-  };
+
+    # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
+    "unit-status-mail@" = {
+      description = "Send an email on unit failure";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = pkgs.writeShellScript "unit-status-mail" ''
+          MAILTO="motiejus+alerts@jakstys.lt"
+          UNIT=$1
+          EXTRA=""
+          for e in "''${@:2}"; do
+            EXTRA+="$e"$'\n'
+          done
+          UNITSTATUS=$(${pkgs.systemd}/bin/systemctl status $UNIT)
+          ${pkgs.postfix}/bin/sendmail $MAILTO <<EOF
+          Subject:Status mail for unit: $UNIT
+
+          Status report for unit: $UNIT
+          $EXTRA
+
+          $UNITSTATUS
+          EOF
+
+          echo -e "Status mail sent to: $MAILTO for unit: $UNIT"
+          '';
+      };
+    };
+  } // lib.mapAttrs' (name: value: {
+      name = "borgbackup-job-${name}";
+      value = {
+        serviceConfig.OnFailure = "unit-status-mail@${name}.service";
+      };
+    }) backup_paths;
 
   # Do not change
   system.stateVersion = "22.11";
