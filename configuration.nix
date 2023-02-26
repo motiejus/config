@@ -5,6 +5,7 @@
 { config, pkgs, lib, ... }:
 
 let
+  gitea_uidgid = 995;
   tailscale_subnet4 = "100.89.176.0/20";
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
@@ -74,6 +75,8 @@ in {
   users = {
     mutableUsers = false;
 
+    groups.gitea.gid = gitea_uidgid;
+
     users = {
       git = {
         description = "Gitea Service";
@@ -81,11 +84,13 @@ in {
         useDefaultShell = true;
         group = "gitea";
         isSystemUser = true;
+        uid = gitea_uidgid;
       };
 
       motiejus = {
         isNormalUser = true;
         extraGroups = [ "wheel" ];
+        uid = 1000;
         openssh.authorizedKeys.keys = [ ssh_pubkeys.motiejus ];
       };
     };
