@@ -12,6 +12,7 @@ let
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
 };
 
+
   mountLatest = ({mountpoint, zfs_name}:
     ''
     set -euo pipefail
@@ -54,6 +55,19 @@ in {
     [
       /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
     ];
+
+  #nixpkgs.overlays = [ (self: super: {} ) ];
+
+  nixpkgs.overlays = [ (self: super: {
+    systemd = super.systemd.overrideAttrs (old: {
+      patches = (old.patches or []) ++ [
+        (super.fetchpatch {
+          url = "https://github.com/systemd/systemd/commit/e7f64b896201da4a11da158c35865604cf02062f.patch";
+          sha256 = "sha256-AvBkrD9n5ux1o167yKg1eJK8C300vBS/ks3Gbvy5vjw=";
+        })
+      ];
+    });
+  } ) ];
 
   boot.initrd.network = {
     enable = true;
@@ -289,6 +303,9 @@ in {
       virtualHosts."git.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:3000
       '';
+      virtualHosts."turn.jakstys.lt".extraConfig = ''
+        redir https://jakstys.lt
+      '';
       virtualHosts."beta.jakstys.lt" = {
         logFormat = ''
             output file ${config.services.caddy.logDir}/access-beta.jakstys.lt.log {
@@ -322,6 +339,11 @@ in {
           }
         '';
       };
+    };
+
+    coturn = {
+      enable = true;
+      static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
     };
 
     postfix = {
@@ -409,6 +431,20 @@ in {
       };
     };
 
+    coturn = let
+      cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt/";
+    in {
+      unitConfig.ConditionPathExists = [
+        "${cert_dir}/turn.jakstys.lt.key"
+        "${cert_dir}/turn.jakstys.lt.crt"
+      ];
+      serviceConfig.LoadCredential = [
+        "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
+        "tls-key:${cert_dir}/turn.jakstys.lt.key"
+        "tls-cert:${cert_dir}/turn.jakstys.lt.crt"
+      ];
+    };
+
     # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
     "unit-status-mail@" = let
       script = pkgs.writeShellScript "unit-status-mail" ''
@@ -443,6 +479,7 @@ in {
         unitConfig.OnFailure = "unit-status-mail@borgbackup-job-${name}.service";
       };
     }) backup_paths;
+
 
   # Do not change
   system.stateVersion = "22.11";
