@@ -398,6 +398,7 @@ in {
       allowedTCPPorts = [ 80 443 3478 5349 ];
       allowedUDPPorts = [ 443 ];
       allowedUDPPortRanges = [ { from = 49152; to = 49999; } ]; # coturn
+      logRefusedConnections = false;
       checkReversePath = "loose"; # tailscale insists on this
     };
   };
