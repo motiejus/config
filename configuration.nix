@@ -6,27 +6,13 @@
 
 let
   gitea_uidgid = 995;
+
   tailscale_subnet4 = "100.89.176.0/20";
+
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
 };
-
-
-  mountLatest = ({mountpoint, zfs_name}:
-    ''
-    set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
-    mkdir -p ${mountpoint}/.snapshot-latest
-    ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
-    ''
-  );
-
-  umountLatest = ({mountpoint, ...}:
-    ''set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
-    ''
-  );
 
   backup_paths = {
     var_lib = {
@@ -49,6 +35,24 @@ let
       backup_at = "*-*-* 00:10:00";
     };
   };
+
+  turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
+
+  # functions
+  mountLatest = ({mountpoint, zfs_name}:
+    ''
+    set -euo pipefail
+    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
+    mkdir -p ${mountpoint}/.snapshot-latest
+    ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
+    ''
+  );
+
+  umountLatest = ({mountpoint, ...}:
+    ''set -euo pipefail
+    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
+    ''
+  );
 
 in {
   imports =
@@ -450,22 +454,33 @@ in {
       };
     };
 
-    coturn = let
-      cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
-    in {
+    coturn = {
       preStart = ''
         ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
         ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
       '';
       unitConfig.ConditionPathExists = [
-        "${cert_dir}/turn.jakstys.lt.key"
-        "${cert_dir}/turn.jakstys.lt.crt"
+        "${turn_cert_dir}/turn.jakstys.lt.key"
+        "${turn_cert_dir}/turn.jakstys.lt.crt"
       ];
       serviceConfig.LoadCredential = [
         "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
-        "tls-key.pem:${cert_dir}/turn.jakstys.lt.key"
-        "tls-cert.pem:${cert_dir}/turn.jakstys.lt.crt"
+        "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
+        "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
       ];
+    };
+
+    cert-watcher = {
+      description = "Restart coturn when tls key/cert changes";
+      wantedBy = ["multi-user.target"];
+      unitConfig = {
+        StartLimitIntervalSec = 10;
+        StartLimitBurst = 5;
+      };
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
+      };
     };
 
     # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
@@ -503,6 +518,16 @@ in {
       };
     }) backup_paths;
 
+
+  systemd.paths = {
+    cert-watcher = {
+      wantedBy = ["multi-user.target"];
+      pathConfig = {
+        PathChanged = "${turn_cert_dir}/turn.jakstys.lt.crt";
+        Unit = "cert-watcher.service";
+      };
+    };
+  };
 
   # Do not change
   system.stateVersion = "22.11";
