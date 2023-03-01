@@ -120,6 +120,7 @@ in {
     lsof
     file
     htop
+    ipset
     #ncdu
     sqlite
     ripgrep
@@ -282,6 +283,7 @@ in {
           SHOW_MILESTONES_DASHBOARD_PAGE = false;
           COOKIE_SECURE = true;
         };
+        log.LEVEL = "Error";
         # TODO: does not work with 1.7.4, getting error
         # in the UI when testing the email sending workflow.
         #mailer = {
@@ -386,6 +388,17 @@ in {
         };
       };
     };
+
+    sshguard = {
+      enable = true;
+      blocktime = 900;
+      whitelist = [
+        "192.168.0.0/16"
+        tailscale_subnet4
+        "88.223.105.24" # vno1 home
+      ];
+    };
+
   };
 
   # TODO: compress static stuff
