@@ -525,6 +525,9 @@ in {
         ExecStart = ''${script} "%I" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
       };
     };
+
+    zfs-scrub.unitConfig.OnFailure = "unit-status-mail@zfs-scrub.service";
+
   } // lib.mapAttrs' (name: value: {
       name = "borgbackup-job-${name}";
       value = {
