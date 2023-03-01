@@ -439,10 +439,10 @@ in {
     autoUpgrade.enable = true;
     autoUpgrade = {
       allowReboot = true;
-      dates = "01:00";
+      dates = "23:30";
       rebootWindow = {
-        lower = "01:00";
-        upper = "01:30";
+        lower = "23:30";
+        upper = "03:00";
       };
     };
   };
