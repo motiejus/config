@@ -344,6 +344,8 @@ in {
     coturn = {
       enable = true;
       static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
+      min-port = 49152;
+      max-port = 49999;
       cert = "/run/coturn/tls-cert.pem";
       pkey = "/run/coturn/tls-key.pem";
     };
@@ -393,8 +395,9 @@ in {
     hostName = "hel1-a";
     domain = "jakstys.lt";
     firewall = {
-      allowedTCPPorts = [ 80 443 ];
+      allowedTCPPorts = [ 80 443 3478 5349 ];
       allowedUDPPorts = [ 443 ];
+      allowedUDPPortRanges = [ { from = 49152; to = 49999; } ]; # coturn
       checkReversePath = "loose"; # tailscale insists on this
     };
   };
