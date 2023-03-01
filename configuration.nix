@@ -344,6 +344,8 @@ in {
     coturn = {
       enable = true;
       static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
+      cert = "/run/coturn/tls-cert.pem";
+      pkey = "/run/coturn/tls-key.pem";
     };
 
     postfix = {
@@ -432,16 +434,20 @@ in {
     };
 
     coturn = let
-      cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt/";
+      cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
     in {
+      preStart = ''
+        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
+        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
+      '';
       unitConfig.ConditionPathExists = [
         "${cert_dir}/turn.jakstys.lt.key"
         "${cert_dir}/turn.jakstys.lt.crt"
       ];
       serviceConfig.LoadCredential = [
         "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
-        "tls-key:${cert_dir}/turn.jakstys.lt.key"
-        "tls-cert:${cert_dir}/turn.jakstys.lt.crt"
+        "tls-key.pem:${cert_dir}/turn.jakstys.lt.key"
+        "tls-cert.pem:${cert_dir}/turn.jakstys.lt.crt"
       ];
     };
 
