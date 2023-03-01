@@ -7,7 +7,10 @@
 let
   gitea_uidgid = 995;
 
-  tailscale_subnet4 = "100.89.176.0/20";
+  tailscale_subnet = {
+      cidr = "100.89.176.0/20";
+      range = "100.89.176.0-100.89.191.255";
+  };
 
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
@@ -242,7 +245,7 @@ in {
       };
       settings = {
         ip_prefixes = [
-          tailscale_subnet4
+          tailscale_subnet.cidr
           "fd7a:115c:a1e0:59b0::/64"
         ];
         dns_config = {
@@ -354,12 +357,18 @@ in {
       max-port = 49999;
       cert = "/run/coturn/tls-cert.pem";
       pkey = "/run/coturn/tls-key.pem";
+      extraConfig = ''
+        denied-peer-ip=10.0.0.0-10.255.255.255
+        denied-peer-ip=192.168.0.0-192.168.255.255
+        denied-peer-ip=172.16.0.0-172.31.255.255
+        denied-peer-ip=${tailscale_subnet.range}
+      '';
     };
 
     postfix = {
       enable = true;
       enableSmtp = true;
-      networks = [ "127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet4 ];
+      networks = [ "127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet.cidr ];
       hostname = "hel1-a.jakstys.lt";
       relayHost = "smtp.sendgrid.net";
       relayPort = 587;
@@ -398,7 +407,7 @@ in {
       blocktime = 900;
       whitelist = [
         "192.168.0.0/16"
-        tailscale_subnet4
+        tailscale_subnet.cidr
         "88.223.105.24" # vno1 home
       ];
     };
@@ -412,9 +421,14 @@ in {
     hostName = "hel1-a";
     domain = "jakstys.lt";
     firewall = {
-      allowedTCPPorts = [ 80 443 3478 5349 ];
+      allowedTCPPorts = [
+        80 443
+        3478 5349 5350 # coturn
+      ];
       allowedUDPPorts = [ 443 ];
-      allowedUDPPortRanges = [ { from = 49152; to = 49999; } ]; # coturn
+      allowedUDPPortRanges = [
+        { from = 49152; to = 49999; } # coturn
+      ];
       logRefusedConnections = false;
       checkReversePath = "loose"; # tailscale insists on this
     };
