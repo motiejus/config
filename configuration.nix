@@ -352,12 +352,15 @@ in {
 
     coturn = {
       enable = true;
-      static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
+      no-tcp-relay = true;
       min-port = 49152;
       max-port = 49999;
       cert = "/run/coturn/tls-cert.pem";
       pkey = "/run/coturn/tls-key.pem";
+      static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
       extraConfig = ''
+        verbose
+        no-multicast-peers
         denied-peer-ip=10.0.0.0-10.255.255.255
         denied-peer-ip=192.168.0.0-192.168.255.255
         denied-peer-ip=172.16.0.0-172.31.255.255
@@ -420,15 +423,15 @@ in {
   networking = {
     hostName = "hel1-a";
     domain = "jakstys.lt";
-    firewall = {
+    firewall = let
+      coturn = with config.services.coturn; [ { from = min-port; to = max-port; } ];
+    in {
       allowedTCPPorts = [
         80 443
         3478 5349 5350 # coturn
       ];
       allowedUDPPorts = [ 443 ];
-      allowedUDPPortRanges = [
-        { from = 49152; to = 49999; } # coturn
-      ];
+      allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
       checkReversePath = "loose"; # tailscale insists on this
     };
