@@ -345,6 +345,7 @@ in {
           }
 
           handle /_matrix/* {
+            encode gzip
             reverse_proxy http://hel1-b.servers.jakst:8088
           }
         '';
@@ -353,9 +354,10 @@ in {
 
     coturn = {
       enable = true;
-      no-tcp-relay = true;
       min-port = 49152;
       max-port = 49999;
+      no-tcp-relay = true;
+      realm = "turn.jakstys.lt";
       cert = "/run/coturn/tls-cert.pem";
       pkey = "/run/coturn/tls-key.pem";
       static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
@@ -460,13 +462,8 @@ in {
     postfix = {
       enable = true;
       enableSmtp = true;
-      networks = [
-        "127.0.0.1/8"
-        "[::ffff:127.0.0.0]/104"
-        "[::1]/128"
-        tailscale_subnet.cidr
-      ];
-      hostname = "hel1-a.jakstys.lt";
+      networks = [ "127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet.cidr ];
+      hostname = "${config.networking.hostName}.${config.networking.domain}";
       relayHost = "smtp.sendgrid.net";
       relayPort = 587;
       mapFiles = {
@@ -581,6 +578,23 @@ in {
       ];
     };
 
+    #matrix-synapse = {
+    #  enable = true;
+    #  settings.server_name = config.networking.domain;
+    #  settings.listeners = [
+    #    { port = 8008;
+    #      bind_addresses = [ "::1" ];
+    #      type = "http";
+    #      tls = false;
+    #      x_forwarded = true;
+    #      resources = [ {
+    #        names = [ "client" "federation" ];
+    #        compress = false;
+    #      } ];
+    #    }
+    #  ];
+    #};
+
     cert-watcher = {
       description = "Restart coturn when tls key/cert changes";
       wantedBy = ["multi-user.target"];
@@ -624,6 +638,7 @@ in {
     };
 
     zfs-scrub.unitConfig.OnFailure = "unit-status-mail@zfs-scrub.service";
+    nixos-upgrade.unitConfig.OnFailure = "unit-status-mail@nixos-upgrade.service";
 
   } // lib.mapAttrs' (name: value: {
       name = "borgbackup-job-${name}";
