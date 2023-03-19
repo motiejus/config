@@ -377,7 +377,6 @@ in {
     # - turn_shared_secret
     # TODO:
     # app_service_config_files
-    # signing_key_path
     matrix-synapse = {
       enable = true;
       settings = {
@@ -563,6 +562,16 @@ in {
         "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
         "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
         "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
+      ];
+    };
+
+    matrix-synapse = {
+      preStart = ''
+        mkdir -p /run/matrix-synapse/
+        ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
+      '';
+      serviceConfig.LoadCredential = [
+        "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
       ];
     };
 
