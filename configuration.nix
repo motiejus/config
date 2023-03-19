@@ -378,39 +378,15 @@ in {
     # TODO:
     # app_service_config_files
     # signing_key_path
-    # settings.allow_device_name_lookup_over_federation = false;
-    # allow_profile_lookup_over_federation = false;
-    # email = {
-    #   smtp_host = "127.0.0.1";
-    #   smtp_port = 25;
-    #   notf_for_new_users = false;
-    #   notif_from = "Jakstys %(app)s homeserver <noreply@jakstys.lt>";
-    # };
-    # include_profile_data_on_invite = false;
-    # password_config.enabled = true;
-    # require_auth_for_profile_requests = true;
-    # thumbnail_sizes = [
-    #   { width =  32; height =  32; method =  "crop"; }
-    #   { width =  96; height =  96; method =  "crop"; }
-    #   { width = 320; height = 240; method = "scale"; }
-    #   { width = 640; height = 480; method = "scale"; }
-    #   { width = 800; height = 600; method = "scale"; }
-    # ];
-    # user_directory = {
-    #   enabled = true;
-    #   search_all_users = false;
-    #   prefer_local_users = true;
-    # };
-    # 
     matrix-synapse = {
-      enable = false;
+      enable = true;
       settings = {
         server_name = "jakstys.lt";
         admin_contact = "motiejus@jakstys.lt";
         enable_registration = false;
         report_stats = true;
         signing_key_path = "/run/matrix-synapse/jakstys.lt.signing.key";
-        log_config = lib.writeTextFile "log.config" ''
+        log_config = pkgs.writeText "log.config" ''
           version: 1
           formatters:
             precise:
@@ -428,17 +404,6 @@ in {
           disable_existing_loggers: false
         '';
         public_baseurl = "https://jakstys.lt/";
-        listeners = [{
-          port = 8008;
-          bind_address = "127.0.0.1";
-          type = "http";
-          tls = false;
-          x_forwarded = true;
-          resources = [
-            { type = "client"; compress = false; }
-            { type = "federation"; compress = false; }
-          ];
-        }];
         database.name = "sqlite3";
         url_preview_enabled = false;
         max_upload_size = "50M";
@@ -456,6 +421,29 @@ in {
         federation_rc_sleep_delay = 500;
         federation_rc_reject_limit = 50;
         federation_rc_concurrent = 3;
+        allow_profile_lookup_over_federation = false;
+        thumbnail_sizes = [
+          { width =  32; height =  32; method =  "crop"; }
+          { width =  96; height =  96; method =  "crop"; }
+          { width = 320; height = 240; method = "scale"; }
+          { width = 640; height = 480; method = "scale"; }
+          { width = 800; height = 600; method = "scale"; }
+        ];
+        user_directory = {
+          enabled = true;
+          search_all_users = false;
+          prefer_local_users = true;
+        };
+        allow_device_name_lookup_over_federation = false;
+        email = {
+          smtp_host = "127.0.0.1";
+          smtp_port = 25;
+          notf_for_new_users = false;
+          notif_from = "Jakstys %(app)s homeserver <noreply@jakstys.lt>";
+        };
+        include_profile_data_on_invite = false;
+        password_config.enabled = true;
+        require_auth_for_profile_requests = true;
       };
     };
 
@@ -577,23 +565,6 @@ in {
         "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
       ];
     };
-
-    #matrix-synapse = {
-    #  enable = true;
-    #  settings.server_name = config.networking.domain;
-    #  settings.listeners = [
-    #    { port = 8008;
-    #      bind_addresses = [ "::1" ];
-    #      type = "http";
-    #      tls = false;
-    #      x_forwarded = true;
-    #      resources = [ {
-    #        names = [ "client" "federation" ];
-    #        compress = false;
-    #      } ];
-    #    }
-    #  ];
-    #};
 
     cert-watcher = {
       description = "Restart coturn when tls key/cert changes";
