@@ -371,11 +371,6 @@ in {
       '';
     };
 
-    # TODO secrets:
-    # - registration_shared_secret
-    # - macaroon_secret_key
-    # - turn_shared_secret
-    # TODO:
     # app_service_config_files
     matrix-synapse = {
       enable = true;
@@ -385,6 +380,7 @@ in {
         enable_registration = false;
         report_stats = true;
         signing_key_path = "/run/matrix-synapse/jakstys.lt.signing.key";
+        extraConfigFiles = [ "/run/matrix-synapse/secrets.yaml" ];
         log_config = pkgs.writeText "log.config" ''
           version: 1
           formatters:
@@ -569,9 +565,15 @@ in {
       preStart = ''
         mkdir -p /run/matrix-synapse/
         ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
+        cat > /run/matrix-synapse/secrets.yaml <<EOF
+        registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
+        macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
+        EOF
       '';
       serviceConfig.LoadCredential = [
         "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
+        "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
+        "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
       ];
     };
 
