@@ -374,7 +374,7 @@ in {
 
     # app_service_config_files
     matrix-synapse = {
-      enable = true;
+      enable = false;
       settings = {
         server_name = "jakstys.lt";
         admin_contact = "motiejus@jakstys.lt";
