@@ -130,6 +130,7 @@ in {
     ipset
     #ncdu
     sqlite
+    parted
     vimv-rs
     ripgrep
     binutils
