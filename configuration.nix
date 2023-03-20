@@ -564,7 +564,7 @@ in {
 
     matrix-synapse = {
       preStart = ''
-        mkdir -p /run/matrix-synapse/
+        umask 077
         ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
         cat > /run/matrix-synapse/secrets.yaml <<EOF
         registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
@@ -575,6 +575,9 @@ in {
         "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
         "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
         "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
+      ];
+      tmpfiles.rules = [
+        "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
       ];
     };
 
