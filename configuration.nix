@@ -374,7 +374,7 @@ in {
 
     # app_service_config_files
     matrix-synapse = {
-      enable = false;
+      enable = true;
       settings = {
         server_name = "jakstys.lt";
         admin_contact = "motiejus@jakstys.lt";
@@ -531,6 +531,10 @@ in {
       options = "--delete-older-than 14d";
   };
 
+  systemd.tmpfiles.rules = [
+    "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
+  ];
+
   systemd.services = {
     "make-snapshot-dirs" = let
       vals = builtins.attrValues backup_paths;
@@ -562,22 +566,22 @@ in {
       ];
     };
 
-    matrix-synapse = {
-      preStart = ''
-        umask 077
-        ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
-        cat > /run/matrix-synapse/secrets.yaml <<EOF
-        registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
-        macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
-        EOF
-      '';
+    matrix-synapse = let
+      # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
+      secretsScript = pkgs.writeShellScript "write-secrets" ''
+          umask 077
+          ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
+          cat > /run/matrix-synapse/secrets.yaml <<EOF
+          registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
+          macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
+          EOF
+          '';
+    in {
+      serviceConfig.ExecStartPre = [ ""  secretsScript ];
       serviceConfig.LoadCredential = [
         "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
         "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
         "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
-      ];
-      tmpfiles.rules = [
-        "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
       ];
     };
 
