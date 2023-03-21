@@ -501,6 +501,8 @@ in {
         @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
         @             NS    ns1.jakstys.lt.
         @             NS    ns2.jakstys.lt.
+        @         600 A     ${ips.hel1b}
+        www       600 A     ${ips.hel1b}
         ns1           A     ${ips.vno1}
         ns2           A     ${ips.hel1a}
         beta          A     ${ips.hel1a}
@@ -512,12 +514,20 @@ in {
         hel1-a        A     ${ips.hel1a}
         hel1-b        A     ${ips.hel1b}
         vno1          A     ${ips.vno1}
-        www           A     ${ips.vno1}
         resolver  10  A     ${ips.hel1b}
+        @             MX     10 aspmx.l.google.com.
+        @             MX     20 alt1.aspmx.l.google.com.
+        @             MX     20 alt2.aspmx.l.google.com.
+        @             MX     30 aspmx2.googlemail.com.
+        @             MX     30 aspmx3.googlemail.com.
         '';
     in {
       enable = true;
       extraConfig = ''
+      server:
+        listen: 0.0.0.0@53
+        listen: ::@53
+        version: 42
       zone:
         - domain: jakstys.lt
           file: ${jakstysLTZone}
