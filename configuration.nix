@@ -20,6 +20,7 @@ let
       paths = [
         "/var/lib/.snapshot-latest/gitea"
         "/var/lib/.snapshot-latest/headscale"
+        "/var/lib/.snapshot-latest/matrix-synapse"
       ];
       backup_at = "*-*-* *:01:00";
     };
