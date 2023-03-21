@@ -8,6 +8,12 @@ let
       range = "100.89.176.0-100.89.191.255";
   };
 
+  ips = {
+    vno1 = "88.223.105.24";
+    hel1a = "65.21.7.119";
+    hel1b = "95.217.10.210";
+  };
+
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
@@ -118,6 +124,7 @@ in {
     jq
     vim
     git
+    dig
     tmux
     tree
     wget
@@ -483,8 +490,39 @@ in {
       whitelist = [
         "192.168.0.0/16"
         tailscale_subnet.cidr
-        "88.223.105.24" # vno1 home
+        ips.vno1
       ];
+    };
+
+    knot = let
+      jakstysLTZone = pkgs.writeText "jakstys.lt.zone" ''
+        $ORIGIN jakstys.lt.
+        $TTL 86400
+        @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
+        @             NS    ns1.jakstys.lt.
+        @             NS    ns2.jakstys.lt.
+        ns1           A     ${ips.vno1}
+        ns2           A     ${ips.hel1a}
+        beta          A     ${ips.hel1a}
+        turn          A     ${ips.hel1a}
+        vpn           A     ${ips.hel1a}
+        git           A     ${ips.hel1a}
+        auth          A     ${ips.hel1a}
+        dl            A     ${ips.vno1}
+        hel1-a        A     ${ips.hel1a}
+        hel1-b        A     ${ips.hel1b}
+        vno1          A     ${ips.vno1}
+        www           A     ${ips.vno1}
+        resolver  10  A     ${ips.hel1b}
+        '';
+    in {
+      enable = true;
+      extraConfig = ''
+      zone:
+        - domain: jakstys.lt
+          file: ${jakstysLTZone}
+          semantic-checks: on
+      '';
     };
 
   };
@@ -499,10 +537,11 @@ in {
       coturn = with config.services.coturn; [ { from = min-port; to = max-port; } ];
     in {
       allowedTCPPorts = [
+        53
         80 443
         3478 5349 5350 # coturn
       ];
-      allowedUDPPorts = [ 443 ];
+      allowedUDPPorts = [ 53 443 ];
       allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
       checkReversePath = "loose"; # tailscale insists on this
@@ -566,6 +605,7 @@ in {
     matrix-synapse = let
       # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
       secretsScript = pkgs.writeShellScript "write-secrets" ''
+          set -euo pipefail
           umask 077
           ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
           cat > /run/matrix-synapse/secrets.yaml <<EOF
@@ -600,6 +640,7 @@ in {
     # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
     "unit-status-mail@" = let
       script = pkgs.writeShellScript "unit-status-mail" ''
+          set -e
           MAILTO="motiejus+alerts@jakstys.lt"
           UNIT=$1
           EXTRA=""
