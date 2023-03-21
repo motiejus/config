@@ -570,6 +570,7 @@ in {
           cat > /run/matrix-synapse/secrets.yaml <<EOF
           registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
           macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
+          turn_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/turn_shared_secret)"
           EOF
           '';
     in {
@@ -578,6 +579,7 @@ in {
         "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
         "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
         "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
+        "turn_shared_secret:/var/src/secrets/turn/static-auth-secret"
       ];
     };
 
