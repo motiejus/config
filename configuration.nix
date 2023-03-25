@@ -351,7 +351,7 @@ in {
 
           handle /_matrix/* {
             encode gzip
-            reverse_proxy http://hel1-b.servers.jakst:8088
+            reverse_proxy http://hel1-b.servers.jakst:8008
           }
         '';
       };
