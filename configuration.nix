@@ -35,7 +35,7 @@ let
       zfs_name = "rpool/nixos/var/log";
       paths = [ "/var/log/.snapshot-latest/caddy/" ];
       patterns = [
-        "+ /var/log/.snapshot-latest/caddy/access-beta.jakstys.lt.log-*.zst"
+        "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
         "- *"
       ];
       backup_at = "*-*-* 00:10:00";
@@ -321,9 +321,12 @@ in {
       virtualHosts."turn.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
       '';
-      virtualHosts."beta.jakstys.lt" = {
+      virtualHosts."www.jakstys.lt".extraConfig = ''
+        redir https://jakstys.lt
+      '';
+      virtualHosts."jakstys.lt" = {
         logFormat = ''
-            output file ${config.services.caddy.logDir}/access-beta.jakstys.lt.log {
+            output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
               roll_disabled
             }
         '';
@@ -469,7 +472,7 @@ in {
 
     logrotate = {
       settings = {
-        "/var/log/caddy/access-beta.jakstys.lt.log" = {
+        "/var/log/caddy/access-jakstys.lt.log" = {
           rotate = 60;
           frequency = "daily";
           dateext = true;
@@ -501,8 +504,8 @@ in {
         @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
         @             NS    ns1.jakstys.lt.
         @             NS    ns2.jakstys.lt.
-        @         600 A     ${ips.hel1b}
-        www       600 A     ${ips.hel1b}
+        @         600 A     ${ips.hel1a}
+        www       600 A     ${ips.hel1a}
         ns1           A     ${ips.vno1}
         ns2           A     ${ips.hel1a}
         beta          A     ${ips.hel1a}
