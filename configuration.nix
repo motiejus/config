@@ -28,7 +28,7 @@ let
         "/var/lib/.snapshot-latest/headscale"
         "/var/lib/.snapshot-latest/matrix-synapse"
       ];
-      backup_at = "*-*-* *:01:00";
+      backup_at = "*-*-* 01:01:00";
     };
     var_log = {
       mountpoint = "/var/log";
@@ -38,7 +38,7 @@ let
         "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
         "- *"
       ];
-      backup_at = "*-*-* 00:10:00";
+      backup_at = "*-*-* 00:01:00";
     };
   };
 
