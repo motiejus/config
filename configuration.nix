@@ -354,7 +354,7 @@ in {
 
           handle /_matrix/* {
             encode gzip
-            reverse_proxy http://hel1-b.servers.jakst:8008
+            reverse_proxy http://127.0.0.1:8008
           }
         '';
       };
@@ -554,7 +554,10 @@ in {
         80 443
         3478 5349 5350 # coturn
       ];
-      allowedUDPPorts = [ 53 443 ];
+      allowedUDPPorts = [
+        53 443
+        41641
+      ];
       allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
       checkReversePath = "loose"; # tailscale insists on this
