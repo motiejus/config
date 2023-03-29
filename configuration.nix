@@ -66,7 +66,6 @@ in {
       /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
     ];
 
-  #nixpkgs.overlays = [ (self: super: {} ) ];
 
   nixpkgs.overlays = [ (self: super: {
     systemd = super.systemd.overrideAttrs (old: {
@@ -89,17 +88,17 @@ in {
     };
   };
 
-  security.sudo = {
-    wheelNeedsPassword = false;
-    execWheelOnly = true;
+  security = {
+    sudo = {
+      wheelNeedsPassword = false;
+      execWheelOnly = true;
+    };
   };
 
   time.timeZone = "UTC";
 
   users = {
     mutableUsers = false;
-
-    groups.gitea.gid = gitea_uidgid;
 
     users = {
       git = {
@@ -118,66 +117,99 @@ in {
         openssh.authorizedKeys.keys = [ ssh_pubkeys.motiejus ];
       };
     };
+
+    groups.gitea.gid = gitea_uidgid;
   };
 
-  environment.systemPackages = with pkgs; [
-    jq
-    vim
-    git
-    dig
-    tmux
-    tree
-    wget
-    lsof
-    file
-    htop
-    ipset
-    #ncdu
-    sqlite
-    parted
-    vimv-rs
-    ripgrep
-    binutils
-    pciutils
-    headscale
-    mailutils
-    nixos-option
-  ];
+  environment = {
+    systemPackages = with pkgs; [
+      jq
+      git
+      dig
+      wget
+      tree
+      lsof
+      file
+      tmux
+      htop
+      #ncdu
+      nmap
+      ipset
+      p7zip
+      pwgen
+      parted
+      sqlite
+      direnv
+      vimv-rs
+      openssl
+      ripgrep
+      bsdgames
+      binutils
+      moreutils
+      headscale
+      mailutils
+      nixos-option
+      graphicsmagick
+    ];
+    variables = {
+      EDITOR = "nvim";
+    };
+  };
 
-  programs.mtr.enable = true;
-  programs.mosh.enable = true;
-  programs.ssh.knownHosts = {
-    "vno1-oh2.servers.jakst" = {
-        extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+  programs = {
+    mtr.enable = true;
+    mosh.enable = true;
+    neovim = {
+      enable = true;
+      defaultEditor = true;
     };
-    "hel1-a.servers.jakst" = {
-        extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
-    };
-    "hel1-b.servers.jakst" = {
-        extraHostNames = ["hel1-b.jakstys.lt" "jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINCJxdEkgQ3U0XxqDibk0g3iV+FG423Yk8hj6VAIOpT5";
-    };
-    "mtwork.motiejus.jakst" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
-    };
-    "zh2769.rsync.net" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
-    };
-    "github.com" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
-    };
-    "git.sr.ht" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
+
+    ssh.knownHosts = {
+      "vno1-oh2.servers.jakst" = {
+          extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+      };
+      "hel1-a.servers.jakst" = {
+          extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt" ];
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
+      };
+      "mtwork.motiejus.jakst" = {
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
+      };
+      "zh2769.rsync.net" = {
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
+      };
+      "github.com" = {
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+      };
+      "git.sr.ht" = {
+          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
+      };
     };
   };
 
   services = {
+    tailscale.enable = true;
+
     zfs = {
       autoScrub.enable = true;
       trim.enable = true;
       expandOnBoot = "all";
+    };
+
+    openssh = {
+      enable = true;
+      passwordAuthentication = false;
+      permitRootLogin = "no";
+      extraConfig = ''
+        AcceptEnv GIT_PROTOCOL
+      '';
+    };
+
+    locate = {
+      enable = true;
+      locate = pkgs.plocate;
+      localuser = null;
     };
 
     sanoid = {
@@ -226,20 +258,6 @@ in {
         };
       }) backup_paths;
 
-    openssh = {
-      enable = true;
-      passwordAuthentication = false;
-      permitRootLogin = "no";
-      extraConfig = ''
-        AcceptEnv GIT_PROTOCOL
-      '';
-    };
-
-    locate = {
-      enable = true;
-      locate = pkgs.plocate;
-      localuser = null;
-    };
 
     headscale = {
       enable = true;
@@ -261,8 +279,6 @@ in {
         };
       };
     };
-
-    tailscale.enable = true;
 
     gitea = {
       enable = true;
@@ -379,7 +395,7 @@ in {
       '';
     };
 
-    # app_service_config_files
+    # TODO: app_service_config_files
     matrix-synapse = {
       enable = true;
       settings = {
@@ -540,8 +556,6 @@ in {
 
   };
 
-  # TODO: compress static stuff
-  #${pkgs.findutils}/bin/find ${pkgs.gitea.data} -name '*.css' -exec ${pkgs.brotli}/bin/brotli {} \+
 
   networking = {
     hostName = "hel1-a";
@@ -577,10 +591,13 @@ in {
     };
   };
 
-  nix.gc = {
+  nix = {
+    gc = {
       automatic = true;
       dates = "daily";
       options = "--delete-older-than 14d";
+    };
+    extraOptions = "experimental-features = nix-command flakes";
   };
 
   systemd.tmpfiles.rules = [
