@@ -612,7 +612,7 @@ in {
       ];
       allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
-      checkReversePath = "loose"; # tailscale insists on this
+      checkReversePath = "loose"; # for tailscale
     };
   };
 
