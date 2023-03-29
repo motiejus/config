@@ -66,7 +66,6 @@ in {
       /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
     ];
 
-
   nixpkgs.overlays = [ (self: super: {
     systemd = super.systemd.overrideAttrs (old: {
       patches = (old.patches or []) ++ [
@@ -579,7 +578,6 @@ in {
   };
 
   system = {
-    copySystemConfiguration = true;
     autoUpgrade.enable = true;
     autoUpgrade = {
       allowReboot = true;
