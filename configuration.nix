@@ -62,7 +62,8 @@ let
 in {
   imports =
     [
-      /etc/nixos/hardware-configuration.nix /etc/nixos/zfs.nix
+      ./hardware-configuration.nix
+      ./zfs.nix
     ];
 
   nixpkgs.overlays = [ (self: super: {
