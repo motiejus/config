@@ -11,7 +11,6 @@ let
   ips = {
     vno1 = "88.223.107.21";
     hel1a = "65.21.7.119";
-    hel1b = "95.217.10.210";
   };
 
   ssh_pubkeys = {
@@ -28,7 +27,7 @@ let
         "/var/lib/.snapshot-latest/headscale"
         "/var/lib/.snapshot-latest/matrix-synapse"
       ];
-      backup_at = "*-*-* 01:01:00";
+      backup_at = "*-*-* 00:11:00";
     };
     var_log = {
       mountpoint = "/var/log";
@@ -38,7 +37,7 @@ let
         "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
         "- *"
       ];
-      backup_at = "*-*-* 00:01:00";
+      backup_at = "*-*-* 00:10:00";
     };
   };
 
@@ -148,6 +147,7 @@ in {
       headscale
       mailutils
       nixos-option
+      unixtools.xxd
       graphicsmagick
     ];
     variables = {
@@ -519,8 +519,8 @@ in {
         @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
         @             NS    ns1.jakstys.lt.
         @             NS    ns2.jakstys.lt.
-        @         600 A     ${ips.hel1a}
-        www       600 A     ${ips.hel1a}
+        @             A     ${ips.hel1a}
+        www           A     ${ips.hel1a}
         ns1           A     ${ips.vno1}
         ns2           A     ${ips.hel1a}
         beta          A     ${ips.hel1a}
@@ -530,9 +530,7 @@ in {
         auth          A     ${ips.hel1a}
         dl            A     ${ips.vno1}
         hel1-a        A     ${ips.hel1a}
-        hel1-b        A     ${ips.hel1b}
         vno1          A     ${ips.vno1}
-        resolver  10  A     ${ips.hel1b}
         @             MX     10 aspmx.l.google.com.
         @             MX     20 alt1.aspmx.l.google.com.
         @             MX     20 alt2.aspmx.l.google.com.
@@ -578,12 +576,13 @@ in {
   };
 
   system = {
+    # TODO: run the upgrades after the backup service is complete
     autoUpgrade.enable = true;
     autoUpgrade = {
       allowReboot = true;
-      dates = "23:30";
+      dates = "01:00";
       rebootWindow = {
-        lower = "23:30";
+        lower = "01:00";
         upper = "03:00";
       };
     };
