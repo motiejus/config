@@ -27,7 +27,7 @@
         ];
       };
 
-      deploy.nodes.example = {
+      deploy.nodes.hel1-a = {
         hostname = "hel1-a.servers.jakst";
         profiles = {
           system = {
@@ -46,8 +46,7 @@
     in {
       devShells.default = with pkgs;
         mkShell {
-          name = "rules_nixpkgs_shell";
-          packages = [bash];
+          packages = [deploy-rs.packages.x86_64-linux.deploy-rs];
         };
 
       formatter = pkgs.alejandra;
