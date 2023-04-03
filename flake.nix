@@ -35,6 +35,16 @@
     };
 
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
-  };
+  }
+  // flake-utils.lib.eachDefaultSystem (system:
+    let
+      pkgs = import nixpkgs { inherit system; };
+    in
+    {
+      devShells.default = with pkgs; mkShell {
+        name = "rules_nixpkgs_shell";
+        packages = [ bash ];
+      };
+    });
 }
 
