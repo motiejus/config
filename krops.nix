@@ -15,12 +15,13 @@ let
       };
     }
   ];
-
 in {
   hel1a = pkgs.krops.writeDeploy "deploy-hel1a" {
     source = source;
-    target = lib.mkTarget "motiejus@hel1-a.jakstys.lt" // {
-      sudo = true;
-    };
+    target =
+      lib.mkTarget "motiejus@hel1-a.jakstys.lt"
+      // {
+        sudo = true;
+      };
   };
 }

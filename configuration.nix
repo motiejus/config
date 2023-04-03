@@ -1,11 +1,14 @@
-{ config, pkgs, lib, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   gitea_uidgid = 995;
 
   tailscale_subnet = {
-      cidr = "100.89.176.0/20";
-      range = "100.89.176.0-100.89.191.255";
+    cidr = "100.89.176.0/20";
+    range = "100.89.176.0-100.89.191.255";
   };
 
   ips = {
@@ -16,7 +19,7 @@ let
   ssh_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
     vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
-};
+  };
 
   backup_paths = {
     var_lib = {
@@ -32,7 +35,7 @@ let
     var_log = {
       mountpoint = "/var/log";
       zfs_name = "rpool/nixos/var/log";
-      paths = [ "/var/log/.snapshot-latest/caddy/" ];
+      paths = ["/var/log/.snapshot-latest/caddy/"];
       patterns = [
         "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
         "- *"
@@ -44,38 +47,43 @@ let
   turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
 
   # functions
-  mountLatest = ({mountpoint, zfs_name}:
-    ''
-    set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
-    mkdir -p ${mountpoint}/.snapshot-latest
-    ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
-    ''
-  );
-
-  umountLatest = ({mountpoint, ...}:
-    ''set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
+  mountLatest = (
+    {
+      mountpoint,
+      zfs_name,
+    }: ''
+      set -euo pipefail
+      ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
+      mkdir -p ${mountpoint}/.snapshot-latest
+      ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
     ''
   );
 
+  umountLatest = (
+    {mountpoint, ...}: ''      set -euo pipefail
+          ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
+    ''
+  );
 in {
-  imports =
-    [
-      ./hardware-configuration.nix
-      ./zfs.nix
-    ];
+  imports = [
+    ./hardware-configuration.nix
+    ./zfs.nix
+  ];
 
-  nixpkgs.overlays = [ (self: super: {
-    systemd = super.systemd.overrideAttrs (old: {
-      patches = (old.patches or []) ++ [
-        (super.fetchpatch {
-          url = "https://github.com/systemd/systemd/commit/e7f64b896201da4a11da158c35865604cf02062f.patch";
-          sha256 = "sha256-AvBkrD9n5ux1o167yKg1eJK8C300vBS/ks3Gbvy5vjw=";
-        })
-      ];
-    });
-  } ) ];
+  nixpkgs.overlays = [
+    (self: super: {
+      systemd = super.systemd.overrideAttrs (old: {
+        patches =
+          (old.patches or [])
+          ++ [
+            (super.fetchpatch {
+              url = "https://github.com/systemd/systemd/commit/e7f64b896201da4a11da158c35865604cf02062f.patch";
+              sha256 = "sha256-AvBkrD9n5ux1o167yKg1eJK8C300vBS/ks3Gbvy5vjw=";
+            })
+          ];
+      });
+    })
+  ];
 
   boot.initrd.network = {
     enable = true;
@@ -83,7 +91,7 @@ in {
       enable = true;
       port = 22;
       authorizedKeys = builtins.attrValues ssh_pubkeys;
-      hostKeys = [ "/etc/secrets/initrd/ssh_host_ed25519_key" ];
+      hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
     };
   };
 
@@ -111,9 +119,9 @@ in {
 
       motiejus = {
         isNormalUser = true;
-        extraGroups = [ "wheel" ];
+        extraGroups = ["wheel"];
         uid = 1000;
-        openssh.authorizedKeys.keys = [ ssh_pubkeys.motiejus ];
+        openssh.authorizedKeys.keys = [ssh_pubkeys.motiejus];
       };
     };
 
@@ -166,24 +174,24 @@ in {
 
     ssh.knownHosts = {
       "vno1-oh2.servers.jakst" = {
-          extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+        extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
       };
       "hel1-a.servers.jakst" = {
-          extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt" ];
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
+        extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
       };
       "mtwork.motiejus.jakst" = {
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
       };
       "zh2769.rsync.net" = {
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
       };
       "github.com" = {
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
       };
       "git.sr.ht" = {
-          publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
+        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
       };
     };
   };
@@ -220,20 +228,25 @@ in {
         autosnap = true;
         autoprune = true;
       };
-      datasets = lib.mapAttrs' (name: value: {
+      datasets =
+        lib.mapAttrs' (name: value: {
           name = value.zfs_name;
-          value = { use_template = ["prod"]; };
-        }) backup_paths;
-      extraArgs = [ "--verbose" ];
+          value = {use_template = ["prod"];};
+        })
+        backup_paths;
+      extraArgs = ["--verbose"];
     };
 
-    borgbackup.jobs = lib.mapAttrs' (name: value:
-      let
-        snapshot = { mountpoint = value.mountpoint; zfs_name = value.zfs_name; };
-        rwpath = value.mountpoint + "/.snapshot-latest";
-      in {
-        name = name;
-        value = {
+    borgbackup.jobs = lib.mapAttrs' (name: value: let
+      snapshot = {
+        mountpoint = value.mountpoint;
+        zfs_name = value.zfs_name;
+      };
+      rwpath = value.mountpoint + "/.snapshot-latest";
+    in {
+      name = name;
+      value =
+        {
           doInit = true;
           repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
           encryption = {
@@ -244,7 +257,7 @@ in {
           extraArgs = "--remote-path=borg1";
           compression = "auto,lzma";
           startAt = value.backup_at;
-          readWritePaths = [ rwpath ];
+          readWritePaths = [rwpath];
           preHook = mountLatest snapshot;
           postHook = umountLatest snapshot;
           prune.keep = {
@@ -253,11 +266,11 @@ in {
             weekly = 4;
             monthly = 3;
           };
-        } // lib.optionalAttrs (value ? patterns) {
+        }
+        // lib.optionalAttrs (value ? patterns) {
           patterns = value.patterns;
         };
-      }) backup_paths;
-
+    }) backup_paths;
 
     headscale = {
       enable = true;
@@ -273,7 +286,7 @@ in {
           "fd7a:115c:a1e0:59b0::/64"
         ];
         dns_config = {
-          nameservers = [ "1.1.1.1" "8.8.4.4" ];
+          nameservers = ["1.1.1.1" "8.8.4.4"];
           magic_dns = true;
           base_domain = "jakst";
         };
@@ -342,9 +355,9 @@ in {
       '';
       virtualHosts."jakstys.lt" = {
         logFormat = ''
-            output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
-              roll_disabled
-            }
+          output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
+            roll_disabled
+          }
         '';
         extraConfig = ''
           header /_/* Cache-Control "public, max-age=31536000, immutable"
@@ -404,7 +417,7 @@ in {
         enable_registration = false;
         report_stats = true;
         signing_key_path = "/run/matrix-synapse/jakstys.lt.signing.key";
-        extraConfigFiles = [ "/run/matrix-synapse/secrets.yaml" ];
+        extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
         log_config = pkgs.writeText "log.config" ''
           version: 1
           formatters:
@@ -442,11 +455,31 @@ in {
         federation_rc_concurrent = 3;
         allow_profile_lookup_over_federation = false;
         thumbnail_sizes = [
-          { width =  32; height =  32; method =  "crop"; }
-          { width =  96; height =  96; method =  "crop"; }
-          { width = 320; height = 240; method = "scale"; }
-          { width = 640; height = 480; method = "scale"; }
-          { width = 800; height = 600; method = "scale"; }
+          {
+            width = 32;
+            height = 32;
+            method = "crop";
+          }
+          {
+            width = 96;
+            height = 96;
+            method = "crop";
+          }
+          {
+            width = 320;
+            height = 240;
+            method = "scale";
+          }
+          {
+            width = 640;
+            height = 480;
+            method = "scale";
+          }
+          {
+            width = 800;
+            height = 600;
+            method = "scale";
+          }
         ];
         user_directory = {
           enabled = true;
@@ -469,7 +502,7 @@ in {
     postfix = {
       enable = true;
       enableSmtp = true;
-      networks = [ "127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet.cidr ];
+      networks = ["127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet.cidr];
       hostname = "${config.networking.hostName}.${config.networking.domain}";
       relayHost = "smtp.sendgrid.net";
       relayPort = 587;
@@ -537,37 +570,44 @@ in {
         @             MX     20 alt2.aspmx.l.google.com.
         @             MX     30 aspmx2.googlemail.com.
         @             MX     30 aspmx3.googlemail.com.
-        '';
+      '';
     in {
       enable = true;
       extraConfig = ''
-      server:
-        listen: 0.0.0.0@53
-        listen: ::@53
-        version: 42
-      zone:
-        - domain: jakstys.lt
-          file: ${jakstysLTZone}
-          semantic-checks: on
+        server:
+          listen: 0.0.0.0@53
+          listen: ::@53
+          version: 42
+        zone:
+          - domain: jakstys.lt
+            file: ${jakstysLTZone}
+            semantic-checks: on
       '';
     };
-
   };
-
 
   networking = {
     hostName = "hel1-a";
     domain = "jakstys.lt";
     firewall = let
-      coturn = with config.services.coturn; [ { from = min-port; to = max-port; } ];
+      coturn = with config.services.coturn; [
+        {
+          from = min-port;
+          to = max-port;
+        }
+      ];
     in {
       allowedTCPPorts = [
         53
-        80 443
-        3478 5349 5350 # coturn
+        80
+        443
+        3478
+        5349
+        5350 # coturn
       ];
       allowedUDPPorts = [
-        53 443
+        53
+        443
         41641
       ];
       allowedUDPPortRanges = coturn;
@@ -602,40 +642,41 @@ in {
     "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
   ];
 
-  systemd.services = {
-    "make-snapshot-dirs" = let
-      vals = builtins.attrValues backup_paths;
-      mountpoints = builtins.catAttrs "mountpoint" vals;
-      unique_mountpoints = lib.unique mountpoints;
-    in {
-      description = "prepare snapshot directories for backups";
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
-        RemainAfterExit = true;
+  systemd.services =
+    {
+      "make-snapshot-dirs" = let
+        vals = builtins.attrValues backup_paths;
+        mountpoints = builtins.catAttrs "mountpoint" vals;
+        unique_mountpoints = lib.unique mountpoints;
+      in {
+        description = "prepare snapshot directories for backups";
+        wantedBy = ["multi-user.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
+          RemainAfterExit = true;
+        };
       };
-    };
 
-    coturn = {
-      preStart = ''
-        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
-        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
-      '';
-      unitConfig.ConditionPathExists = [
-        "${turn_cert_dir}/turn.jakstys.lt.key"
-        "${turn_cert_dir}/turn.jakstys.lt.crt"
-      ];
-      serviceConfig.LoadCredential = [
-        "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
-        "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
-        "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
-      ];
-    };
+      coturn = {
+        preStart = ''
+          ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
+          ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
+        '';
+        unitConfig.ConditionPathExists = [
+          "${turn_cert_dir}/turn.jakstys.lt.key"
+          "${turn_cert_dir}/turn.jakstys.lt.crt"
+        ];
+        serviceConfig.LoadCredential = [
+          "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
+          "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
+          "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
+        ];
+      };
 
-    matrix-synapse = let
-      # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
-      secretsScript = pkgs.writeShellScript "write-secrets" ''
+      matrix-synapse = let
+        # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
+        secretsScript = pkgs.writeShellScript "write-secrets" ''
           set -euo pipefail
           umask 077
           ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
@@ -644,33 +685,33 @@ in {
           macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
           turn_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/turn_shared_secret)"
           EOF
-          '';
-    in {
-      serviceConfig.ExecStartPre = [ "" secretsScript ];
-      serviceConfig.LoadCredential = [
-        "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
-        "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
-        "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
-        "turn_shared_secret:/var/src/secrets/turn/static-auth-secret"
-      ];
-    };
-
-    cert-watcher = {
-      description = "Restart coturn when tls key/cert changes";
-      wantedBy = ["multi-user.target"];
-      unitConfig = {
-        StartLimitIntervalSec = 10;
-        StartLimitBurst = 5;
+        '';
+      in {
+        serviceConfig.ExecStartPre = ["" secretsScript];
+        serviceConfig.LoadCredential = [
+          "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
+          "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
+          "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
+          "turn_shared_secret:/var/src/secrets/turn/static-auth-secret"
+        ];
       };
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
-      };
-    };
 
-    # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
-    "unit-status-mail@" = let
-      script = pkgs.writeShellScript "unit-status-mail" ''
+      cert-watcher = {
+        description = "Restart coturn when tls key/cert changes";
+        wantedBy = ["multi-user.target"];
+        unitConfig = {
+          StartLimitIntervalSec = 10;
+          StartLimitBurst = 5;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
+        };
+      };
+
+      # https://northernlightlabs.se/2014-07-05/systemd-status-mail-on-unit-failure.html
+      "unit-status-mail@" = let
+        script = pkgs.writeShellScript "unit-status-mail" ''
           set -e
           MAILTO="motiejus+alerts@jakstys.lt"
           UNIT=$1
@@ -689,25 +730,25 @@ in {
           EOF
 
           echo -e "Status mail sent to: $MAILTO for unit: $UNIT"
-          '';
-    in {
-      description = "Send an email on unit failure";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = ''${script} "%I" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
+        '';
+      in {
+        description = "Send an email on unit failure";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = ''${script} "%I" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
+        };
       };
-    };
 
-    zfs-scrub.unitConfig.OnFailure = "unit-status-mail@zfs-scrub.service";
-    nixos-upgrade.unitConfig.OnFailure = "unit-status-mail@nixos-upgrade.service";
-
-  } // lib.mapAttrs' (name: value: {
+      zfs-scrub.unitConfig.OnFailure = "unit-status-mail@zfs-scrub.service";
+      nixos-upgrade.unitConfig.OnFailure = "unit-status-mail@nixos-upgrade.service";
+    }
+    // lib.mapAttrs' (name: value: {
       name = "borgbackup-job-${name}";
       value = {
         unitConfig.OnFailure = "unit-status-mail@borgbackup-job-${name}.service";
       };
-    }) backup_paths;
-
+    })
+    backup_paths;
 
   systemd.paths = {
     cert-watcher = {
@@ -722,4 +763,3 @@ in {
   # Do not change
   system.stateVersion = "22.11";
 }
-
