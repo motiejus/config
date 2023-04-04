@@ -635,7 +635,10 @@ in {
       dates = "daily";
       options = "--delete-older-than 14d";
     };
-    extraOptions = "experimental-features = nix-command flakes";
+    extraOptions = ''
+      experimental-features = nix-command flakes
+      trusted-users = motiejus
+    '';
   };
 
   systemd.tmpfiles.rules = [
