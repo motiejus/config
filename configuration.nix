@@ -429,9 +429,9 @@ in {
               formatter: precise
           loggers:
               synapse.storage.SQL:
-                  level: INFO
+                  level: WARN
           root:
-              level: INFO
+              level: WARN
               handlers: [console]
           disable_existing_loggers: false
         '';
