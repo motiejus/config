@@ -5,9 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11-small";
     flake-utils.url = "github:numtide/flake-utils";
 
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-    agenix.inputs.darwin.follows = "";
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
@@ -24,7 +23,7 @@
   outputs = {
     self,
     nixpkgs,
-    agenix,
+    sops-nix,
     deploy-rs,
     flake-utils,
   }: let
@@ -38,12 +37,7 @@
           ./hardware-configuration.nix
           ./zfs.nix
 
-          agenix.nixosModules.default
-
-          #{
-          #  age.secrets.zfs-passphrase.file = ./secrets/hel1-a/zfs-passphrase.age;
-          #  age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
-          #}
+          sops-nix.nixosModules.sops
         ];
       };
 
@@ -67,10 +61,10 @@
       devShells.default = with pkgs;
         mkShell {
           packages = [
-              pkgs.rage
-              pkgs.age-plugin-yubikey
-              agenix.packages.${system}.agenix
-              deploy-rs.packages.${system}.deploy-rs
+            pkgs.age
+            pkgs.ssh-to-age
+	    pkgs.sops
+            deploy-rs.packages.${system}.deploy-rs
           ];
         };
 

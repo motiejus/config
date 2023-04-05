@@ -1,0 +1,14 @@
+keys:
+  - &motiejus 5F6B7A8A92A260A437049BEB6F133A0C1C2848D7
+  - &server_hel1a age1wxwfy32jwskgzudzc8kvvx4uya5kr6lc5vp03y07ly0wpe3jk9gqqree6q
+creation_rules:
+  - path_regex: secrets/[^/]+\.yaml$
+    key_groups:
+    - pgp:
+      - *motiejus
+  - path_regex: secrets/hel1-a/[^/]+\.yaml$
+    key_groups:
+    - pgp:
+      - *motiejus
+      age:
+      - *server_hel1a

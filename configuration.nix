@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  sops-nix,
   ...
 }: let
   gitea_uidgid = 995;
@@ -68,6 +69,8 @@ in {
   imports = [
     ./hardware-configuration.nix
     ./zfs.nix
+    #<sops-nix/modules/sops>
+    sops-nix.nixosModules.sops
   ];
 
   nixpkgs.overlays = [
