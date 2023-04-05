@@ -602,14 +602,15 @@ in {
         53
         80
         443
-        3478
-        5349
-        5350 # coturn
+        3478 # headscale
+        5349 # turn
+        5350 # turn
       ];
       allowedUDPPorts = [
         53
         443
-        41641
+        3478 # headscale
+        41641 # tailscale
       ];
       allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
