@@ -6,5 +6,6 @@ let
   systems = [ hel1-a ];
 in
 {
-  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [ motiejus hel1-a ];
+  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [ hel1-a ] ++ users;
+  "secrets/hel1-a/borgbackup/password.age".publicKeys = [ hel1-a ] ++ users;
 }
