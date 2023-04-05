@@ -11,7 +11,6 @@
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
     deploy-rs.inputs.utils.follows = "flake-utils";
-
   };
 
   nixConfig = {
@@ -26,7 +25,7 @@
     sops-nix,
     deploy-rs,
     flake-utils,
-  }: let
+  } @ inputs: let
     myData = import ./data.nix;
   in
     {
@@ -36,9 +35,9 @@
           ./configuration.nix
           ./hardware-configuration.nix
           ./zfs.nix
-
-          sops-nix.nixosModules.sops
         ];
+
+        specialArgs = inputs;
       };
 
       deploy.nodes.hel1-a = {
@@ -63,7 +62,7 @@
           packages = [
             pkgs.age
             pkgs.ssh-to-age
-	    pkgs.sops
+            pkgs.sops
             deploy-rs.packages.${system}.deploy-rs
           ];
         };

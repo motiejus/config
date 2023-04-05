@@ -69,7 +69,6 @@ in {
   imports = [
     ./hardware-configuration.nix
     ./zfs.nix
-    #<sops-nix/modules/sops>
     sops-nix.nixosModules.sops
   ];
 
@@ -104,7 +103,6 @@ in {
       execWheelOnly = true;
     };
   };
-
 
   time.timeZone = "UTC";
 
