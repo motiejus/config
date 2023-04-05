@@ -604,14 +604,14 @@ in {
         53
         80
         443
-        3478 # headscale
+        3478 # turn/headscale
         5349 # turn
         5350 # turn
       ];
       allowedUDPPorts = [
         53
         443
-        3478 # headscale
+        3478 # turn
         41641 # tailscale
       ];
       allowedUDPPortRanges = coturn;
