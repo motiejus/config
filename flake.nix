@@ -15,6 +15,7 @@
     deploy-rs.inputs.utils.follows = "flake-utils";
 
     flake-utils.url = "github:numtide/flake-utils";
+
   };
 
   outputs = {
@@ -22,7 +23,9 @@
     nixpkgs,
     deploy-rs,
     flake-utils,
-  }:
+  }: let
+    myData = import ./data.nix;
+  in
     {
       nixosConfigurations.hel1-a = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
