@@ -280,6 +280,7 @@ in {
         clientId = "1c5fe796-452c-458d-b295-71a9967642fc";
         clientSecretFile = "/var/lib/headscale/oidc_client_secret"; # https://github.com/juanfont/headscale/pull/1127
       };
+      logLevel = "warn";
       settings = {
         ip_prefixes = [
           tailscale_subnet.cidr
@@ -431,7 +432,7 @@ in {
               synapse.storage.SQL:
                   level: WARN
           root:
-              level: WARN
+              level: ERROR
               handlers: [console]
           disable_existing_loggers: false
         '';
