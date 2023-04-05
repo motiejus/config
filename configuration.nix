@@ -253,7 +253,8 @@ in {
             repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
             encryption = {
               mode = "repokey-blake2";
-              passCommand = "cat ${config.age.secrets.borgbackup-password.path}";
+              #passCommand = "cat ${config.age.secrets.borgbackup-password.path}";
+              passCommand = "cat /var/src/secrets/borgbackup/password";
             };
             paths = value.paths;
             extraArgs = "--remote-path=borg1";

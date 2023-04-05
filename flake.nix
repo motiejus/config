@@ -40,10 +40,10 @@
 
           agenix.nixosModules.default
 
-          {
-            age.secrets.zfs-passphrase.file = ./secrets/hel1-a/zfs-passphrase.age;
-            age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
-          }
+          #{
+          #  age.secrets.zfs-passphrase.file = ./secrets/hel1-a/zfs-passphrase.age;
+          #  age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
+          #}
         ];
       };
 
