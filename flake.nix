@@ -39,6 +39,11 @@
           ./zfs.nix
 
           agenix.nixosModules.default
+
+          {
+            #age.secrets.zfs-passphrase.file = ./secrets/hel1-a/zfs-passphrase.age;
+            age.secrets.x.file = ./secrets/hel1-a/zfs-passphrase.age;
+          }
         ];
       };
 
@@ -62,7 +67,8 @@
       devShells.default = with pkgs;
         mkShell {
           packages = [
-              pkgs.age
+              pkgs.rage
+              pkgs.age-plugin-yubikey
               agenix.packages.${system}.agenix
               deploy-rs.packages.${system}.deploy-rs
           ];
