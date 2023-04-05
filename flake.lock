@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "agenix": {
+      "inputs": {
+        "darwin": [],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1680281360,
+        "narHash": "sha256-XdLTgAzjJNDhAG2V+++0bHpSzfvArvr2pW6omiFfEJk=",
+        "owner": "ryantm",
+        "repo": "agenix",
+        "rev": "e64961977f60388dd0b49572bb0fc453b871f896",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ryantm",
+        "repo": "agenix",
+        "type": "github"
+      }
+    },
     "deploy-rs": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -73,6 +94,7 @@
     },
     "root": {
       "inputs": {
+        "agenix": "agenix",
         "deploy-rs": "deploy-rs",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
