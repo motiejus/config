@@ -237,40 +237,42 @@ in {
       extraArgs = ["--verbose"];
     };
 
-    borgbackup.jobs = lib.mapAttrs' (name: value: let
-      snapshot = {
-        mountpoint = value.mountpoint;
-        zfs_name = value.zfs_name;
-      };
-      rwpath = value.mountpoint + "/.snapshot-latest";
-    in {
-      name = name;
-      value =
-        {
-          doInit = true;
-          repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
-          encryption = {
-            mode = "repokey-blake2";
-            passCommand = "cat /var/src/secrets/borgbackup/password";
-          };
-          paths = value.paths;
-          extraArgs = "--remote-path=borg1";
-          compression = "auto,lzma";
-          startAt = value.backup_at;
-          readWritePaths = [rwpath];
-          preHook = mountLatest snapshot;
-          postHook = umountLatest snapshot;
-          prune.keep = {
-            within = "1d";
-            daily = 7;
-            weekly = 4;
-            monthly = 3;
-          };
-        }
-        // lib.optionalAttrs (value ? patterns) {
-          patterns = value.patterns;
+    borgbackup.jobs =
+      lib.mapAttrs' (name: value: let
+        snapshot = {
+          mountpoint = value.mountpoint;
+          zfs_name = value.zfs_name;
         };
-    }) backup_paths;
+        rwpath = value.mountpoint + "/.snapshot-latest";
+      in {
+        name = name;
+        value =
+          {
+            doInit = true;
+            repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
+            encryption = {
+              mode = "repokey-blake2";
+              passCommand = "cat /var/src/secrets/borgbackup/password";
+            };
+            paths = value.paths;
+            extraArgs = "--remote-path=borg1";
+            compression = "auto,lzma";
+            startAt = value.backup_at;
+            readWritePaths = [rwpath];
+            preHook = mountLatest snapshot;
+            postHook = umountLatest snapshot;
+            prune.keep = {
+              within = "1d";
+              daily = 7;
+              weekly = 4;
+              monthly = 3;
+            };
+          }
+          // lib.optionalAttrs (value ? patterns) {
+            patterns = value.patterns;
+          };
+      })
+      backup_paths;
 
     headscale = {
       enable = true;
