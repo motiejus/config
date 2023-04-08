@@ -57,10 +57,8 @@ let
       nixpkgs.config = { allowBroken = true; };
 
       isoImage.isoBaseName = lib.mkForce "nixos-yubikey";
-      # Uncomment this to disable compression and speed up image creation time
-      #isoImage.squashfsCompression = "gzip -Xcompression-level 1";
 
-      boot.kernelPackages = linuxPackages_latest;
+      boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
       # Always copytoram so that, if the image is booted from, e.g., a
       # USB stick, nothing is mistakenly written to persistent storage.
       boot.kernelParams = [ "copytoram" ];
