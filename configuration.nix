@@ -2,7 +2,6 @@
   config,
   pkgs,
   lib,
-  #sops-nix,
   ...
 }: let
   gitea_uidgid = 995;
@@ -61,20 +60,13 @@
   );
 
   umountLatest = (
-    {mountpoint, ...}: ''      set -euo pipefail
-          ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
-    ''
+    {mountpoint, ...}: ''exec ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest''
   );
 in {
   imports = [
     ./hardware-configuration.nix
     ./zfs.nix
-    #sops-nix.nixosModules.sops
   ];
-
-  #sops.defaultSopsFile = ./hosts/hel1-a/secrets.yaml;
-  #sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-  #sops.secrets.borgbackup-password = {};
 
   nixpkgs.overlays = [
     (self: super: {
@@ -258,7 +250,6 @@ in {
             repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
             encryption = {
               mode = "repokey-blake2";
-              #passCommand = "cat ${config.sops.secrets.borgbackup-password.path}";
               passCommand = "cat /var/src/secrets/borgbackup/password";
             };
             paths = value.paths;
