@@ -5,8 +5,9 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11-small";
     flake-utils.url = "github:numtide/flake-utils";
 
-    sops-nix.url = "github:Mic92/sops-nix";
-    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs";
+    agenix.inputs.darwin.follows = "";
 
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
@@ -21,7 +22,7 @@
   outputs = {
     self,
     nixpkgs,
-    sops-nix,
+    agenix,
     deploy-rs,
     flake-utils,
   } @ inputs: let
@@ -59,9 +60,12 @@
       devShells.default = with pkgs;
         mkShell {
           packages = [
-            pkgs.age
+            pkgs.rage
             pkgs.ssh-to-age
-            pkgs.sops
+            pkgs.age-plugin-yubikey
+
+            agenix.packages.${system}.agenix
+
             deploy-rs.packages.${system}.deploy-rs
           ];
         };
