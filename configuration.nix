@@ -506,7 +506,12 @@ in {
     postfix = {
       enable = true;
       enableSmtp = true;
-      networks = ["127.0.0.1/8" "[::ffff:127.0.0.0]/104" "[::1]/128" tailscale_subnet.cidr];
+      networks = [
+        "127.0.0.1/8"
+        "[::ffff:127.0.0.0]/104"
+        "[::1]/128"
+        tailscale_subnet.cidr
+      ];
       hostname = "${config.networking.hostName}.${config.networking.domain}";
       relayHost = "smtp.sendgrid.net";
       relayPort = 587;
