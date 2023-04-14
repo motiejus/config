@@ -9,10 +9,8 @@ in {
   mj = {
     stateVersion = "23.05";
     timeZone = "UTC";
+    stubPasswords = true;
   };
-
-  users.users.vm.isSystemUser = true;
-  users.users.vm.initialPassword = "test";
 
   environment = {
     systemPackages = with pkgs; [
@@ -24,6 +22,7 @@ in {
   services = {
     nsd = {
       enable = true;
+      interfaces = [ "0.0.0.0" "::" ];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };

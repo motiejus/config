@@ -1,3 +1,64 @@
-{
-  pubkeys = {}; # TODO
+rec {
+  ips = {
+    vno1 = "88.223.107.21";
+    hel1a = "65.21.7.119";
+  };
+
+  ssh_pubkeys = {
+    motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
+    vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
+  };
+
+  systems = {
+    "vno1-oh2.servers.jakst" = {
+      extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+    };
+    "hel1-a.servers.jakst" = {
+      extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
+    };
+    "mtwork.motiejus.jakst" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
+    };
+    "zh2769.rsync.net" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
+    };
+    "github.com" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+    };
+    "git.sr.ht" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
+    };
+  };
+
+  tailscale_subnet = {
+    cidr = "100.89.176.0/20";
+    range = "100.89.176.0-100.89.191.255";
+  };
+
+  jakstysLTZone = ''
+    $ORIGIN jakstys.lt.
+    $TTL 86400
+    @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
+    @             NS    ns1.jakstys.lt.
+    @             NS    ns2.jakstys.lt.
+    @             A     ${ips.hel1a}
+    www           A     ${ips.hel1a}
+    ns1           A     ${ips.vno1}
+    ns2           A     ${ips.hel1a}
+    beta          A     ${ips.hel1a}
+    turn          A     ${ips.hel1a}
+    vpn           A     ${ips.hel1a}
+    git           A     ${ips.hel1a}
+    auth          A     ${ips.hel1a}
+    dl            A     ${ips.vno1}
+    hel1-a        A     ${ips.hel1a}
+    vno1          A     ${ips.vno1}
+    @             MX    10 aspmx.l.google.com.
+    @             MX    20 alt1.aspmx.l.google.com.
+    @             MX    20 alt2.aspmx.l.google.com.
+    @             MX    30 aspmx2.googlemail.com.
+    @             MX    30 aspmx3.googlemail.com.
+  '';
 }

@@ -33,5 +33,4 @@
   boot.loader.grub.devices = [
     "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_9233346"
   ];
-  users.users.root.initialHashedPassword = "$6$oXLEcliXQJloPkrW$Or3O2tLdpLMs4s4gyn2hJlvMjm0S7zLlFlQCOx.S3fdLKxyFjQFaLhPZXJPluZ7iYrB65JSdT0ESluFwgJwLi.";
 }

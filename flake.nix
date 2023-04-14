@@ -49,12 +49,27 @@
       nixosConfigurations.hel1-a = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ./configuration.nix
-          ./hardware-configuration.nix
-          ./zfs.nix
+          ./hosts/hel1-a/configuration.nix
+          ./hosts/hel1-a/hardware-configuration.nix
+          ./hosts/hel1-a/zfs.nix
+
+          ./modules
+
+          agenix.nixosModules.default
+
+          {
+            age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
+            age.secrets.sasl-passwd.file = ./secrets/hel1-a/postfix/sasl_passwd.age;
+            age.secrets.turn-static-auth-secret.file = ./secrets/hel1-a/turn/static_auth_secret.age;
+            age.secrets.synapse-jakstys-signing-key.file = ./secrets/hel1-a/synapse/jakstys_lt_signing_key.age;
+            age.secrets.synapse-registration-shared-secret.file = ./secrets/hel1-a/synapse/registration_shared_secret.age;
+            age.secrets.synapse-macaroon-secret-key.file = ./secrets/hel1-a/synapse/macaroon_secret_key.age;
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+          }
         ];
 
-        specialArgs = inputs;
+        specialArgs = {inherit myData;} // inputs;
       };
 
       deploy.nodes.hel1-a = {

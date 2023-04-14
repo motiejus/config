@@ -2,25 +2,10 @@
   config,
   pkgs,
   lib,
+  agenix,
+  myData,
   ...
 }: let
-  gitea_uidgid = 995;
-
-  tailscale_subnet = {
-    cidr = "100.89.176.0/20";
-    range = "100.89.176.0-100.89.191.255";
-  };
-
-  ips = {
-    vno1 = "88.223.107.21";
-    hel1a = "65.21.7.119";
-  };
-
-  ssh_pubkeys = {
-    motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
-    vno1_root = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMiWb7yeSeuFCMZWarKJD6ZSxIlpEHbU++MfpOIy/2kh";
-  };
-
   backup_paths = {
     var_lib = {
       mountpoint = "/var/lib";
@@ -45,6 +30,7 @@
   };
 
   turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
+  gitea_uidgid = 995;
 
   # functions
   mountLatest = (
@@ -72,40 +58,30 @@ in {
     enable = true;
     ssh = {
       enable = true;
-      port = 22;
-      authorizedKeys = builtins.attrValues ssh_pubkeys;
+      authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
       hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
     };
   };
 
-  security = {
-    sudo = {
-      wheelNeedsPassword = false;
-      execWheelOnly = true;
+  mj = {
+    stateVersion = "22.11";
+    timeZone = "UTC";
+
+    base.initrd = {
+      enable = true;
+      authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
+      hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
     };
   };
 
-  time.timeZone = "UTC";
-
   users = {
-    mutableUsers = false;
-
-    users = {
-      git = {
-        description = "Gitea Service";
-        home = "/var/lib/gitea";
-        useDefaultShell = true;
-        group = "gitea";
-        isSystemUser = true;
-        uid = gitea_uidgid;
-      };
-
-      motiejus = {
-        isNormalUser = true;
-        extraGroups = ["wheel"];
-        uid = 1000;
-        openssh.authorizedKeys.keys = [ssh_pubkeys.motiejus];
-      };
+    users.git = {
+      description = "Gitea Service";
+      home = "/var/lib/gitea";
+      useDefaultShell = true;
+      group = "gitea";
+      isSystemUser = true;
+      uid = gitea_uidgid;
     };
 
     groups.gitea.gid = gitea_uidgid;
@@ -113,16 +89,9 @@ in {
 
   environment = {
     systemPackages = with pkgs; [
-      jq
       git
-      dig
-      wget
-      tree
-      lsof
-      file
       tmux
       htop
-      rage
       #ncdu
       nmap
       ipset
@@ -135,55 +104,24 @@ in {
       tcpdump
       vimv-rs
       openssl
-      ripgrep
       bsdgames
-      binutils
-      moreutils
       headscale
       mailutils
       nixos-option
-      unixtools.xxd
       graphicsmagick
     ];
-    variables = {
-      EDITOR = "nvim";
-    };
-  };
-
-  programs = {
-    mtr.enable = true;
-    mosh.enable = true;
-    neovim = {
-      enable = true;
-      defaultEditor = true;
-    };
-
-    ssh.knownHosts = {
-      "vno1-oh2.servers.jakst" = {
-        extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
-      };
-      "hel1-a.servers.jakst" = {
-        extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
-      };
-      "mtwork.motiejus.jakst" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvNuABV5KXmh6rmS+R50XeJ9/V+Sgpuc1DrlYXW2bQb";
-      };
-      "zh2769.rsync.net" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
-      };
-      "github.com" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
-      };
-      "git.sr.ht" = {
-        publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMZvRd4EtM7R+IHVMWmDkVU3VLQTSwQDSAvW0t2Tkj60";
-      };
-    };
   };
 
   services = {
     tailscale.enable = true;
+
+    nsd = {
+      enable = true;
+      interfaces = [ "0.0.0.0" "::" ];
+      zones = {
+        "jakstys.lt.".data = myData.jakstysLTZone;
+      };
+    };
 
     zfs = {
       autoScrub.enable = true;
@@ -192,11 +130,6 @@ in {
     };
 
     openssh = {
-      enable = true;
-      settings = {
-        PermitRootLogin = "no";
-        PasswordAuthentication = false;
-      };
       extraConfig = ''
         AcceptEnv GIT_PROTOCOL
       '';
@@ -240,7 +173,7 @@ in {
             repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
             encryption = {
               mode = "repokey-blake2";
-              passCommand = "cat /var/src/secrets/borgbackup/password";
+              passCommand = "cat ${config.age.secrets.borgbackup-password.path}";
             };
             paths = value.paths;
             extraArgs = "--remote-path=borg1";
@@ -267,7 +200,7 @@ in {
       settings = {
         server_url = "https://vpn.jakstys.lt";
         ip_prefixes = [
-          tailscale_subnet.cidr
+          myData.tailscale_subnet.cidr
           "fd7a:115c:a1e0:59b0::/64"
         ];
         log.level = "warn";
@@ -407,7 +340,7 @@ in {
         denied-peer-ip=10.0.0.0-10.255.255.255
         denied-peer-ip=192.168.0.0-192.168.255.255
         denied-peer-ip=172.16.0.0-172.31.255.255
-        denied-peer-ip=${tailscale_subnet.range}
+        denied-peer-ip=${myData.tailscale_subnet.range}
       '';
     };
 
@@ -419,7 +352,7 @@ in {
         admin_contact = "motiejus@jakstys.lt";
         enable_registration = false;
         report_stats = true;
-        signing_key_path = "/run/matrix-synapse/jakstys.lt.signing.key";
+        signing_key_path = "/run/matrix-synapse/jakstys_lt_signing_key";
         extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
         log_config = pkgs.writeText "log.config" ''
           version: 1
@@ -509,13 +442,13 @@ in {
         "127.0.0.1/8"
         "[::ffff:127.0.0.0]/104"
         "[::1]/128"
-        tailscale_subnet.cidr
+        myData.tailscale_subnet.cidr
       ];
       hostname = "${config.networking.hostName}.${config.networking.domain}";
       relayHost = "smtp.sendgrid.net";
       relayPort = 587;
       mapFiles = {
-        sasl_passwd = "/var/src/secrets/postfix/sasl_passwd";
+        sasl_passwd = config.age.secrets.sasl-passwd.path;
       };
       extraConfig = ''
         smtp_sasl_auth_enable = yes
@@ -549,51 +482,9 @@ in {
       blocktime = 900;
       whitelist = [
         "192.168.0.0/16"
-        tailscale_subnet.cidr
-        ips.vno1
+        myData.tailscale_subnet.cidr
+        myData.ips.vno1
       ];
-    };
-
-    knot = let
-      jakstysLTZone = pkgs.writeText "jakstys.lt.zone" ''
-        $ORIGIN jakstys.lt.
-        $TTL 86400
-        @                 SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
-        @                 NS    ns1.jakstys.lt.
-        @                 NS    ns2.jakstys.lt.
-        @                 A     ${ips.hel1a}
-        www               A     ${ips.hel1a}
-        ns1               A     ${ips.vno1}
-        ns2               A     ${ips.hel1a}
-        beta              A     ${ips.hel1a}
-        turn              A     ${ips.hel1a}
-        vpn               A     ${ips.hel1a}
-        git               A     ${ips.hel1a}
-        auth              A     ${ips.hel1a}
-        dl                A     ${ips.vno1}
-        fwmine            A     ${ips.hel1a}
-        hel1-a            A     ${ips.hel1a}
-        vno1              A     ${ips.vno1}
-        recordrecap       A     ${ips.hel1a}
-        www.recordrecap   A     ${ips.hel1a}
-        @                MX     10 aspmx.l.google.com.
-        @                MX     20 alt1.aspmx.l.google.com.
-        @                MX     20 alt2.aspmx.l.google.com.
-        @                MX     30 aspmx2.googlemail.com.
-        @                MX     30 aspmx3.googlemail.com.
-      '';
-    in {
-      enable = true;
-      extraConfig = ''
-        server:
-          listen: 0.0.0.0@53
-          listen: ::@53
-          version: 42
-        zone:
-          - domain: jakstys.lt
-            file: ${jakstysLTZone}
-            semantic-checks: on
-      '';
     };
   };
 
@@ -683,7 +574,7 @@ in {
           "${turn_cert_dir}/turn.jakstys.lt.crt"
         ];
         serviceConfig.LoadCredential = [
-          "static-auth-secret:/var/src/secrets/turn/static-auth-secret"
+          "static-auth-secret:${config.age.secrets.turn-static-auth-secret.path}"
           "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
           "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
         ];
@@ -704,7 +595,7 @@ in {
         secretsScript = pkgs.writeShellScript "write-secrets" ''
           set -euo pipefail
           umask 077
-          ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys.lt.signing.key /run/matrix-synapse/jakstys.lt.signing.key
+          ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
           cat > /run/matrix-synapse/secrets.yaml <<EOF
           registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
           macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
@@ -714,10 +605,10 @@ in {
       in {
         serviceConfig.ExecStartPre = ["" secretsScript];
         serviceConfig.LoadCredential = [
-          "jakstys.lt.signing.key:/var/src/secrets/synapse/jakstys.lt.signing.key"
-          "registration_shared_secret:/var/src/secrets/synapse/registration_shared_secret"
-          "macaroon_secret_key:/var/src/secrets/synapse/macaroon_secret_key"
-          "turn_shared_secret:/var/src/secrets/turn/static-auth-secret"
+          "jakstys_lt_signing_key:${config.age.secrets.synapse-jakstys-signing-key.path}"
+          "registration_shared_secret:${config.age.secrets.synapse-registration-shared-secret.path}"
+          "macaroon_secret_key:${config.age.secrets.synapse-macaroon-secret-key.path}"
+          "turn_shared_secret:${config.age.secrets.turn-static-auth-secret.path}"
         ];
       };
 
@@ -784,7 +675,4 @@ in {
       };
     };
   };
-
-  # Do not change
-  system.stateVersion = "22.11";
 }
