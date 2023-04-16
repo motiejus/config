@@ -689,6 +689,16 @@ in {
         ];
       };
 
+      headscale = {
+        unitConfig.StartLimitIntervalSec = "5m";
+
+        # Allow restarts for up to a minute. A start
+        # itself may take a while, thus the window of restart
+        # is higher.
+        unitConfig.StartLimitBurst = 50;
+        serviceConfig.RestartSec = 1;
+      };
+
       matrix-synapse = let
         # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
         secretsScript = pkgs.writeShellScript "write-secrets" ''
