@@ -154,7 +154,6 @@ in {
       moreutils
       headscale
       mailutils
-      ssh-to-age
       nixos-option
       unixtools.xxd
       graphicsmagick
