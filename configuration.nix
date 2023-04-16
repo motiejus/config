@@ -137,6 +137,7 @@ in {
       file
       tmux
       htop
+      rage
       #ncdu
       nmap
       ipset
