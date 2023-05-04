@@ -355,6 +355,9 @@ in {
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
       '';
+      virtualHosts."fwmine.jakstys.lt".extraConfig = ''
+        reverse_proxy fwmine.motiejus.jakst:8080
+      '';
       virtualHosts."jakstys.lt" = {
         logFormat = ''
           output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
@@ -573,6 +576,7 @@ in {
         git           A     ${ips.hel1a}
         auth          A     ${ips.hel1a}
         dl            A     ${ips.vno1}
+        fwmine        A     ${ips.hel1a}
         hel1-a        A     ${ips.hel1a}
         vno1          A     ${ips.vno1}
         @             MX     10 aspmx.l.google.com.
