@@ -343,6 +343,12 @@ in {
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
+      virtualHosts."fuckaudiorecordings.com".extraConfig = ''
+        reverse_proxy vno1-oh2.servers.jakst:8088
+      '';
+      virtualHosts."www.fuckaudiorecordings.com".extraConfig = ''
+        redir https://fuckaudiorecordings.com
+      '';
       virtualHosts."vpn.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:8080
       '';
