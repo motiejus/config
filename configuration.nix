@@ -343,11 +343,11 @@ in {
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
-      virtualHosts."fuckaudiorecordings.com".extraConfig = ''
-        reverse_proxy vno1-oh2.servers.jakst:8088
+      virtualHosts."recordrecap.jakstys.lt".extraConfig = ''
+        reverse_proxy vno1-oh2.servers.jakst:8080
       '';
-      virtualHosts."www.fuckaudiorecordings.com".extraConfig = ''
-        redir https://fuckaudiorecordings.com
+      virtualHosts."www.recordrecap.jakstys.lt".extraConfig = ''
+        redir https://recordrecap.jakstys.lt
       '';
       virtualHosts."vpn.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:8080
@@ -585,22 +585,12 @@ in {
         fwmine        A     ${ips.hel1a}
         hel1-a        A     ${ips.hel1a}
         vno1          A     ${ips.vno1}
+        recordrecap   A     ${ips.hel1a}
         @             MX     10 aspmx.l.google.com.
         @             MX     20 alt1.aspmx.l.google.com.
         @             MX     20 alt2.aspmx.l.google.com.
         @             MX     30 aspmx2.googlemail.com.
         @             MX     30 aspmx3.googlemail.com.
-      '';
-      fuckAudioZone = pkgs.writeText "fuckaudiorecordings.com.zone" ''
-        $ORIGIN fuckaudiorecordings.com.
-        $TTL 86400
-        @             SOA   ns1.fuckaudiorecordings.com. postmaster.jakstys.lt. (2023032100 86400 86400 86400 86400)
-        @             NS    ns1.fuckaudiorecordings.com.
-        @             NS    ns2.fuckaudiorecordings.com.
-        @             A     ${ips.hel1a}
-        www           A     ${ips.hel1a}
-        ns1           A     ${ips.vno1}
-        ns2           A     ${ips.hel1a}
       '';
     in {
       enable = true;
@@ -612,9 +602,6 @@ in {
         zone:
           - domain: jakstys.lt
             file: ${jakstysLTZone}
-            semantic-checks: on
-          - domain: fuckaudiorecordings.com
-            file: ${fuckAudioZone}
             semantic-checks: on
       '';
     };
