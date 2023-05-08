@@ -585,6 +585,17 @@ in {
         @             MX     30 aspmx2.googlemail.com.
         @             MX     30 aspmx3.googlemail.com.
       '';
+      fuckAudioZone = pkgs.writeText "fuckaudiorecordings.com.zone" ''
+        $ORIGIN fuckaudiorecordings.com.
+        $TTL 86400
+        @             SOA   ns1.fuckaudiorecordings.com. postmaster.jakstys.lt. (2023032100 86400 86400 86400 86400)
+        @             NS    ns1.fuckaudiorecordings.com.
+        @             NS    ns2.fuckaudiorecordings.com.
+        @             A     ${ips.hel1a}
+        www           A     ${ips.hel1a}
+        ns1           A     ${ips.vno1}
+        ns2           A     ${ips.hel1a}
+      '';
     in {
       enable = true;
       extraConfig = ''
@@ -595,6 +606,9 @@ in {
         zone:
           - domain: jakstys.lt
             file: ${jakstysLTZone}
+            semantic-checks: on
+          - domain: fuckaudiorecordings.com
+            file: ${fuckAudioZone}
             semantic-checks: on
       '';
     };
