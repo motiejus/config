@@ -141,6 +141,7 @@ in {
       #ncdu
       nmap
       ipset
+      ngrep
       p7zip
       pwgen
       parted
