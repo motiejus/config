@@ -146,6 +146,7 @@ in {
       parted
       sqlite
       direnv
+      tcpdump
       vimv-rs
       openssl
       ripgrep
