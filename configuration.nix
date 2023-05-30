@@ -68,21 +68,6 @@ in {
     ./zfs.nix
   ];
 
-  nixpkgs.overlays = [
-    (self: super: {
-      systemd = super.systemd.overrideAttrs (old: {
-        patches =
-          (old.patches or [])
-          ++ [
-            (super.fetchpatch {
-              url = "https://github.com/systemd/systemd/commit/e7f64b896201da4a11da158c35865604cf02062f.patch";
-              sha256 = "sha256-AvBkrD9n5ux1o167yKg1eJK8C300vBS/ks3Gbvy5vjw=";
-            })
-          ];
-      });
-    })
-  ];
-
   boot.initrd.network = {
     enable = true;
     ssh = {
@@ -208,8 +193,10 @@ in {
 
     openssh = {
       enable = true;
-      passwordAuthentication = false;
-      permitRootLogin = "no";
+      settings = {
+        PermitRootLogin = "no";
+        PasswordAuthentication = false;
+      };
       extraConfig = ''
         AcceptEnv GIT_PROTOCOL
       '';
@@ -277,22 +264,22 @@ in {
 
     headscale = {
       enable = true;
-      serverUrl = "https://vpn.jakstys.lt";
-      openIdConnect = {
-        issuer = "https://git.jakstys.lt/";
-        clientId = "1c5fe796-452c-458d-b295-71a9967642fc";
-        clientSecretFile = "/var/lib/headscale/oidc_client_secret"; # https://github.com/juanfont/headscale/pull/1127
-      };
-      logLevel = "warn";
       settings = {
+        server_url = "https://vpn.jakstys.lt";
         ip_prefixes = [
           tailscale_subnet.cidr
           "fd7a:115c:a1e0:59b0::/64"
         ];
+        log.level = "warn";
         dns_config = {
           nameservers = ["1.1.1.1" "8.8.4.4"];
           magic_dns = true;
           base_domain = "jakst";
+        };
+        oidc = {
+          issuer = "https://git.jakstys.lt/";
+          client_id = "1c5fe796-452c-458d-b295-71a9967642fc";
+          client_secret_path = "/var/lib/headscale/oidc_client_secret"; # TODO move to secrets
         };
       };
     };
@@ -301,10 +288,6 @@ in {
       enable = true;
       user = "git";
       database.user = "git";
-      domain = "git.jakstys.lt";
-      rootUrl = "https://git.jakstys.lt";
-      httpAddress = "127.0.0.1";
-      httpPort = 3000;
       settings = {
         admin.DISABLE_REGULAR_ORG_CREATION = true;
         api.ENABLE_SWAGGER = false;
@@ -321,6 +304,10 @@ in {
         server = {
           ENABLE_GZIP = true;
           LANDING_PAGE = "/motiejus";
+          ROOT_URL = "https://git.jakstys.lt";
+          HTTP_ADDR = "127.0.0.1";
+          HTTP_PORT = 3000;
+          DOMAIN = "git.jakstys.lt";
         };
         service = {
           DISABLE_REGISTRATION = true;
