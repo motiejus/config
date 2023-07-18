@@ -117,7 +117,7 @@ in {
 
     nsd = {
       enable = true;
-      interfaces = [ "0.0.0.0" "::" ];
+      interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };

@@ -8,6 +8,7 @@
   imports = [
     ./sshd
     ./initrd
+    ./snapshot
   ];
 
   options.mj = {
@@ -51,11 +52,17 @@
     };
 
     users = let
-      withPasswordFile = file: attrs: (if config.mj.stubPasswords then {
-        initialPassword = "live";
-      } else {
-        passwordFile = file;
-      }) // attrs;
+      withPasswordFile = file: attrs:
+        (
+          if config.mj.stubPasswords
+          then {
+            initialPassword = "live";
+          }
+          else {
+            passwordFile = file;
+          }
+        )
+        // attrs;
     in {
       mutableUsers = false;
 
@@ -67,7 +74,7 @@
           openssh.authorizedKeys.keys = [myData.ssh_pubkeys.motiejus];
         };
 
-        root = withPasswordFile config.age.secrets.root-passwd-hash.path { };
+        root = withPasswordFile config.age.secrets.root-passwd-hash.path {};
       };
     };
 
