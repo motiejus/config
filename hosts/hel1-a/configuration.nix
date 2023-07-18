@@ -67,10 +67,16 @@ in {
     stateVersion = "22.11";
     timeZone = "UTC";
 
-    base.initrd = {
-      enable = true;
-      authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
-      hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
+    base = {
+      initrd = {
+        enable = true;
+        authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
+        hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
+      };
+      snapshot = {
+        enable = true;
+        mountpoints = ["/var/lib" "/var/log"];
+      };
     };
   };
 
@@ -139,23 +145,6 @@ in {
       enable = true;
       locate = pkgs.plocate;
       localuser = null;
-    };
-
-    sanoid = {
-      enable = true;
-      templates.prod = {
-        hourly = 24;
-        daily = 7;
-        autosnap = true;
-        autoprune = true;
-      };
-      datasets =
-        lib.mapAttrs' (name: value: {
-          name = value.zfs_name;
-          value = {use_template = ["prod"];};
-        })
-        backup_paths;
-      extraArgs = ["--verbose"];
     };
 
     borgbackup.jobs =

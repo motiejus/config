@@ -10,16 +10,6 @@ in {
     stateVersion = "23.05";
     timeZone = "UTC";
     stubPasswords = true;
-
-    base.snapshot = {
-      enable = true;
-      pools = {
-        var_lib = {
-          mountpoint = "/var/lib";
-          zfs_name = "rpool/nixos/var/lib";
-        };
-      };
-    };
   };
 
   environment = {

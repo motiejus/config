@@ -3,44 +3,43 @@
   lib,
   myData,
   ...
-}:
-with lib; {
+}: {
   options.mj.base.snapshot = {
-    enable = mkEnableOption "Enable zfs snapshots";
+    enable = lib.mkEnableOption "Enable zfs snapshots";
 
-    pools = mkOption {
+    mountpoints = lib.mkOption {
       default = {};
-      type = with types;
-        attrsOf (submodule (
-          {...}: {
-            options = {
-              mountpoint = mkOption {type = str;};
-              zfs_name = mkOption {type = str;};
-              #paths = mkOption { type = listOf str; };
-              #backup_at = mkOption { type = str; };
-            };
-          }
-        ));
+      type = with lib.types; listOf str;
     };
   };
 
-  config = with config.mj.base.snapshot;
-    mkIf enable {
-      sanoid = {
-        enable = true;
-        templates.prod = {
-          hourly = 24;
-          daily = 7;
-          autosnap = true;
-          autoprune = true;
-        };
-        datasets =
-          lib.mapAttrs' (name: value: {
-            name = value.zfs_name;
+  config = lib.mkIf config.mj.base.snapshot.enable {
+    services.sanoid = {
+      enable = true;
+      templates.prod = {
+        hourly = 24;
+        daily = 7;
+        autosnap = true;
+        autoprune = true;
+      };
+      extraArgs = ["--verbose"];
+      datasets = let
+        fs_zfs = lib.filterAttrs (n: v: v.fsType == "zfs") config.fileSystems;
+        mountpoint2fs =
+          builtins.listToAttrs
+          (map (mountpoint: {
+              name = mountpoint;
+              value = builtins.getAttr mountpoint fs_zfs;
+            })
+            config.mj.base.snapshot.mountpoints);
+        s_datasets =
+          lib.mapAttrs' (mountpoint: fs: {
+            name = fs.device;
             value = {use_template = ["prod"];};
           })
-          pools;
-        extraArgs = ["--verbose"];
-      };
+          mountpoint2fs;
+      in
+        s_datasets;
     };
+  };
 }
