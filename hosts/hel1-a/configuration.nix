@@ -77,6 +77,30 @@ in {
         enable = true;
         mountpoints = ["/var/lib" "/var/log"];
       };
+
+      zfsborg = {
+        enable = true;
+        repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
+        passwdPath = config.age.secrets.borgbackup-password.path;
+        mountpoints = {
+          "/var/lib" = {
+            paths = [
+              "/var/lib/.snapshot-latest/gitea"
+              "/var/lib/.snapshot-latest/headscale"
+              "/var/lib/.snapshot-latest/matrix-synapse"
+            ];
+            backup_at = "*-*-* 00:11:00";
+          };
+          "/var/log" = {
+            paths = ["/var/log/.snapshot-latest/caddy/"];
+            patterns = [
+              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
+              "- *"
+            ];
+            backup_at = "*-*-* 00:10:00";
+          };
+        };
+      };
     };
   };
 
@@ -146,43 +170,6 @@ in {
       locate = pkgs.plocate;
       localuser = null;
     };
-
-    borgbackup.jobs =
-      lib.mapAttrs' (name: value: let
-        snapshot = {
-          mountpoint = value.mountpoint;
-          zfs_name = value.zfs_name;
-        };
-        rwpath = value.mountpoint + "/.snapshot-latest";
-      in {
-        name = name;
-        value =
-          {
-            doInit = true;
-            repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
-            encryption = {
-              mode = "repokey-blake2";
-              passCommand = "cat ${config.age.secrets.borgbackup-password.path}";
-            };
-            paths = value.paths;
-            extraArgs = "--remote-path=borg1";
-            compression = "auto,lzma";
-            startAt = value.backup_at;
-            readWritePaths = [rwpath];
-            preHook = mountLatest snapshot;
-            postHook = umountLatest snapshot;
-            prune.keep = {
-              within = "1d";
-              daily = 7;
-              weekly = 4;
-              monthly = 3;
-            };
-          }
-          // lib.optionalAttrs (value ? patterns) {
-            patterns = value.patterns;
-          };
-      })
-      backup_paths;
 
     headscale = {
       enable = true;
@@ -539,20 +526,6 @@ in {
 
   systemd.services =
     {
-      "make-snapshot-dirs" = let
-        vals = builtins.attrValues backup_paths;
-        mountpoints = builtins.catAttrs "mountpoint" vals;
-        unique_mountpoints = lib.unique mountpoints;
-      in {
-        description = "prepare snapshot directories for backups";
-        wantedBy = ["multi-user.target"];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = builtins.map (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest") unique_mountpoints;
-          RemainAfterExit = true;
-        };
-      };
-
       coturn = {
         preStart = ''
           ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem

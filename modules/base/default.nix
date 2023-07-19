@@ -9,6 +9,7 @@
     ./sshd
     ./initrd
     ./snapshot
+    ./zfsborg
   ];
 
   options.mj = {
