@@ -19,7 +19,7 @@ in {
     enable = lib.mkEnableOption "backup zfs snapshots with borg";
 
     repo = lib.mkOption {type = str;};
-    passwdPath = lib.mkOption {type = str;};
+    passwordPath = lib.mkOption {type = str;};
 
     mountpoints = lib.mkOption {
       default = {};
@@ -68,7 +68,7 @@ in {
             repo = config.mj.base.zfsborg.repo;
             encryption = {
               mode = "repokey-blake2";
-              passCommand = "cat ${config.mj.base.zfsborg.passwdPath}";
+              passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
             };
             paths = attrs.paths;
             extraArgs = "--remote-path=borg1";

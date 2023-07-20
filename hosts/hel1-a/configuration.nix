@@ -19,6 +19,11 @@ in {
     timeZone = "UTC";
 
     base = {
+      users.passwd = {
+        root.passwordFile = config.age.secrets.root-passwd-hash.path;
+        motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
+      };
+
       initrd = {
         enable = true;
         authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
@@ -32,7 +37,7 @@ in {
       zfsborg = {
         enable = true;
         repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
-        passwdPath = config.age.secrets.borgbackup-password.path;
+        passwordPath = config.age.secrets.borgbackup-password.path;
         mountpoints = {
           "/var/lib" = {
             paths = [

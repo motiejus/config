@@ -10,24 +10,21 @@
     ./snapshot
     ./sshd
     ./unitstatus
+    ./users
     ./zfsborg
   ];
 
-  options.mj = {
+  options.mj = with lib.types; {
     stateVersion = lib.mkOption {
-      type = lib.types.str;
+      type = str;
       example = "22.11";
       description = "The NixOS state version to use for this system";
     };
+
     timeZone = lib.mkOption {
-      type = lib.types.str;
+      type = str;
       example = "Europe/Vilnius";
       description = "Time zone for this system";
-    };
-
-    stubPasswords = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
     };
   };
 
@@ -60,33 +57,6 @@
       sudo = {
         wheelNeedsPassword = false;
         execWheelOnly = true;
-      };
-    };
-
-    users = let
-      withPasswordFile = file: attrs:
-        (
-          if config.mj.stubPasswords
-          then {
-            initialPassword = "live";
-          }
-          else {
-            passwordFile = file;
-          }
-        )
-        // attrs;
-    in {
-      mutableUsers = false;
-
-      users = {
-        motiejus = withPasswordFile config.age.secrets.motiejus-passwd-hash.path {
-          isNormalUser = true;
-          extraGroups = ["wheel"];
-          uid = 1000;
-          openssh.authorizedKeys.keys = [myData.ssh_pubkeys.motiejus];
-        };
-
-        root = withPasswordFile config.age.secrets.root-passwd-hash.path {};
       };
     };
 

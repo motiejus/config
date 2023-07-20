@@ -9,7 +9,10 @@ in {
   mj = {
     stateVersion = "23.05";
     timeZone = "UTC";
-    stubPasswords = true;
+
+    base.users.passwd = {
+      root.initialPassword = "live";
+    };
   };
 
   environment = {
