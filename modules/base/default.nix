@@ -6,9 +6,10 @@
   ...
 }: {
   imports = [
-    ./sshd
     ./initrd
     ./snapshot
+    ./sshd
+    ./unitstatus
     ./zfsborg
   ];
 

@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  myData,
   ...
 }: let
   mountLatest = mountpoint: zfs_name: ''
@@ -16,27 +15,26 @@
     exec ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
   '';
 in {
-  options.mj.base.zfsborg = {
+  options.mj.base.zfsborg = with lib.types; {
     enable = lib.mkEnableOption "backup zfs snapshots with borg";
 
-    repo = with lib.types; lib.mkOption {type = str;};
-    passwdPath = with lib.types; lib.mkOption {type = str;};
+    repo = lib.mkOption {type = str;};
+    passwdPath = lib.mkOption {type = str;};
 
     mountpoints = lib.mkOption {
       default = {};
-      type = with lib.types;
-        attrsOf (submodule (
-          {...}: {
-            options = {
-              paths = lib.mkOption {type = listOf path;};
-              patterns = lib.mkOption {
-                type = listOf str;
-                default = [];
-              };
-              backup_at = lib.mkOption {type = str;};
+      type = attrsOf (submodule (
+        {...}: {
+          options = {
+            paths = lib.mkOption {type = listOf path;};
+            patterns = lib.mkOption {
+              type = listOf str;
+              default = [];
             };
-          }
-        ));
+            backup_at = lib.mkOption {type = str;};
+          };
+        }
+      ));
     };
   };
 
