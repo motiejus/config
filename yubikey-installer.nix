@@ -60,6 +60,8 @@ let
       nixpkgs.config = {allowBroken = true;};
 
       isoImage.isoBaseName = lib.mkForce "nixos-yubikey";
+      # Uncomment this to disable compression and speed up image creation time
+      isoImage.squashfsCompression = "gzip -Xcompression-level 1";
 
       boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
       # Always copytoram so that, if the image is booted from, e.g., a
@@ -93,11 +95,12 @@ let
         yubikey-personalization
         yubikey-personalization-gui
         yubico-piv-tool
-        yubioath-desktop
+        yubioath-flutter
 
         # Testing
         ent
-        (haskell.lib.justStaticExecutables haskellPackages.hopenpgp-tools)
+        # does not compile as of 2023-07-20
+        #(haskell.lib.justStaticExecutables haskellPackages.hopenpgp-tools)
 
         # Password generation tools
         diceware
