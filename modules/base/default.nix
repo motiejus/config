@@ -1,6 +1,5 @@
 {
   config,
-  myData,
   lib,
   pkgs,
   ...
