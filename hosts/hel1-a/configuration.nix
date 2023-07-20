@@ -8,37 +8,11 @@
 }: let
   turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
   gitea_uidgid = 995;
-
-  # functions
-  mountLatest = (
-    {
-      mountpoint,
-      zfs_name,
-    }: ''
-      set -euo pipefail
-      ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
-      mkdir -p ${mountpoint}/.snapshot-latest
-      ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
-    ''
-  );
-
-  umountLatest = (
-    {mountpoint, ...}: ''exec ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest''
-  );
 in {
   imports = [
     ./hardware-configuration.nix
     ./zfs.nix
   ];
-
-  boot.initrd.network = {
-    enable = true;
-    ssh = {
-      enable = true;
-      authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
-      hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
-    };
-  };
 
   mj = {
     stateVersion = "22.11";
@@ -82,7 +56,6 @@ in {
       unitstatus = {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
-        # see TODO in base/unitstatus/default.nix
         units = ["zfs-scrub" "nixos-upgrade"];
       };
     };
@@ -101,30 +74,12 @@ in {
     groups.gitea.gid = gitea_uidgid;
   };
 
-  environment = {
-    systemPackages = with pkgs; [
-      git
-      tmux
-      htop
-      #ncdu
-      nmap
-      ipset
-      ngrep
-      p7zip
-      pwgen
-      parted
-      sqlite
-      direnv
-      tcpdump
-      vimv-rs
-      openssl
-      bsdgames
-      headscale
-      mailutils
-      nixos-option
-      graphicsmagick
-    ];
-  };
+  environment.systemPackages = with pkgs; [
+    headscale
+    mailutils
+    nixos-option
+    graphicsmagick
+  ];
 
   services = {
     tailscale.enable = true;
@@ -227,9 +182,6 @@ in {
       email = "motiejus+acme@jakstys.lt";
       virtualHosts."recordrecap.jakstys.lt".extraConfig = ''
         reverse_proxy vno1-oh2.servers.jakst:8080
-      '';
-      virtualHosts."www.recordrecap.jakstys.lt".extraConfig = ''
-        redir https://recordrecap.jakstys.lt
       '';
       virtualHosts."vpn.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:8080
@@ -477,31 +429,6 @@ in {
       logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
-  };
-
-  system = {
-    # TODO: run the upgrades after the backup service is complete
-    autoUpgrade.enable = true;
-    autoUpgrade = {
-      allowReboot = true;
-      dates = "01:00";
-      rebootWindow = {
-        lower = "01:00";
-        upper = "03:00";
-      };
-    };
-  };
-
-  nix = {
-    gc = {
-      automatic = true;
-      dates = "daily";
-      options = "--delete-older-than 14d";
-    };
-    extraOptions = ''
-      experimental-features = nix-command flakes
-      trusted-users = motiejus
-    '';
   };
 
   systemd.tmpfiles.rules = [

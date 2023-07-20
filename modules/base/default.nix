@@ -42,7 +42,17 @@
       ];
     };
 
-    nix.settings.experimental-features = ["nix-command" "flakes"];
+    nix = {
+      gc = {
+        automatic = true;
+        dates = "daily";
+        options = "--delete-older-than 14d";
+      };
+      settings = {
+        experimental-features = ["nix-command" "flakes"];
+        trusted-users = ["motiejus"];
+      };
+    };
 
     system.stateVersion = config.mj.stateVersion;
 
@@ -87,18 +97,23 @@
         pv # pipe viewer for progressbars in pipes
         bat # "bat - cat with wings", cat|less with language highlight
         duf # nice disk usage output
+        git
+        tmux
+        htop
         file # file duh
         host # look up host info
         tree # tree duh
         lsof # lsof yay
         rage # encrypt-decrypt
-        #ncdu # disk usage navigator
+        ncdu # disk usage navigator
         pwgen
+        parted
         sqlite
         direnv
         ripgrep
         vimv-rs
         nix-top # nix-top is a top for what nix is doing
+        bsdgames
         binutils
         moreutils
         unixtools.xxd
@@ -106,10 +121,13 @@
         # networking
         dig
         nmap
+        ngrep
         wget
         curl
         whois
         ipset
+        openssl
+        tcpdump
         testssl
         dnsutils
         speedtest-cli

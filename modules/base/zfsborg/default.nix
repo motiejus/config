@@ -59,36 +59,35 @@ in {
     in
       assert fs.fsType == "zfs";
       assert lib.assertMsg
-          config.mj.base.unitstatus.enable
-          "config.mj.base.unitstatus.enable must be true";
-        {
-          name = lib.strings.sanitizeDerivationName mountpoint;
-          value =
-            {
-              doInit = true;
-              repo = config.mj.base.zfsborg.repo;
-              encryption = {
-                mode = "repokey-blake2";
-                passCommand = "cat ${config.mj.base.zfsborg.passwdPath}";
-              };
-              paths = attrs.paths;
-              extraArgs = "--remote-path=borg1";
-              compression = "auto,lzma";
-              startAt = attrs.backup_at;
-              readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
-              preHook = mountLatest mountpoint fs.device;
-              postHook = umountLatest mountpoint;
-              prune.keep = {
-                within = "1d";
-                daily = 7;
-                weekly = 4;
-                monthly = 3;
-              };
-            }
-            // lib.optionalAttrs (attrs ? patterns) {
-              patterns = attrs.patterns;
+      config.mj.base.unitstatus.enable
+      "config.mj.base.unitstatus.enable must be true"; {
+        name = lib.strings.sanitizeDerivationName mountpoint;
+        value =
+          {
+            doInit = true;
+            repo = config.mj.base.zfsborg.repo;
+            encryption = {
+              mode = "repokey-blake2";
+              passCommand = "cat ${config.mj.base.zfsborg.passwdPath}";
             };
-        })
+            paths = attrs.paths;
+            extraArgs = "--remote-path=borg1";
+            compression = "auto,lzma";
+            startAt = attrs.backup_at;
+            readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
+            preHook = mountLatest mountpoint fs.device;
+            postHook = umountLatest mountpoint;
+            prune.keep = {
+              within = "1d";
+              daily = 7;
+              weekly = 4;
+              monthly = 3;
+            };
+          }
+          // lib.optionalAttrs (attrs ? patterns) {
+            patterns = attrs.patterns;
+          };
+      })
     config.mj.base.zfsborg.mountpoints;
 
     mj.base.unitstatus.units = let
