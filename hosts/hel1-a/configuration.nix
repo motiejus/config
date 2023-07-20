@@ -6,29 +6,6 @@
   myData,
   ...
 }: let
-  backup_paths = {
-    var_lib = {
-      mountpoint = "/var/lib";
-      zfs_name = "rpool/nixos/var/lib";
-      paths = [
-        "/var/lib/.snapshot-latest/gitea"
-        "/var/lib/.snapshot-latest/headscale"
-        "/var/lib/.snapshot-latest/matrix-synapse"
-      ];
-      backup_at = "*-*-* 00:11:00";
-    };
-    var_log = {
-      mountpoint = "/var/log";
-      zfs_name = "rpool/nixos/var/log";
-      paths = ["/var/log/.snapshot-latest/caddy/"];
-      patterns = [
-        "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
-        "- *"
-      ];
-      backup_at = "*-*-* 00:10:00";
-    };
-  };
-
   turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
   gitea_uidgid = 995;
 
@@ -106,7 +83,7 @@ in {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
         # see TODO in base/unitstatus/default.nix
-        #units = ["zfs-scrub"];
+        units = ["zfs-scrub" "nixos-upgrade"];
       };
     };
   };
@@ -531,79 +508,68 @@ in {
     "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
   ];
 
-  systemd.services =
-    {
-      coturn = {
-        preStart = ''
-          ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
-          ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
-        '';
-        unitConfig.ConditionPathExists = [
-          "${turn_cert_dir}/turn.jakstys.lt.key"
-          "${turn_cert_dir}/turn.jakstys.lt.crt"
-        ];
-        serviceConfig.LoadCredential = [
-          "static-auth-secret:${config.age.secrets.turn-static-auth-secret.path}"
-          "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
-          "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
-        ];
-      };
+  systemd.services = {
+    coturn = {
+      preStart = ''
+        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
+        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
+      '';
+      unitConfig.ConditionPathExists = [
+        "${turn_cert_dir}/turn.jakstys.lt.key"
+        "${turn_cert_dir}/turn.jakstys.lt.crt"
+      ];
+      serviceConfig.LoadCredential = [
+        "static-auth-secret:${config.age.secrets.turn-static-auth-secret.path}"
+        "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
+        "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
+      ];
+    };
 
-      headscale = {
-        unitConfig.StartLimitIntervalSec = "5m";
+    headscale = {
+      unitConfig.StartLimitIntervalSec = "5m";
 
-        # Allow restarts for up to a minute. A start
-        # itself may take a while, thus the window of restart
-        # is higher.
-        unitConfig.StartLimitBurst = 50;
-        serviceConfig.RestartSec = 1;
-      };
+      # Allow restarts for up to a minute. A start
+      # itself may take a while, thus the window of restart
+      # is higher.
+      unitConfig.StartLimitBurst = 50;
+      serviceConfig.RestartSec = 1;
+    };
 
-      matrix-synapse = let
-        # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
-        secretsScript = pkgs.writeShellScript "write-secrets" ''
-          set -euo pipefail
-          umask 077
-          ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
-          cat > /run/matrix-synapse/secrets.yaml <<EOF
-          registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
-          macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
-          turn_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/turn_shared_secret)"
-          EOF
-        '';
-      in {
-        serviceConfig.ExecStartPre = ["" secretsScript];
-        serviceConfig.LoadCredential = [
-          "jakstys_lt_signing_key:${config.age.secrets.synapse-jakstys-signing-key.path}"
-          "registration_shared_secret:${config.age.secrets.synapse-registration-shared-secret.path}"
-          "macaroon_secret_key:${config.age.secrets.synapse-macaroon-secret-key.path}"
-          "turn_shared_secret:${config.age.secrets.turn-static-auth-secret.path}"
-        ];
-      };
+    matrix-synapse = let
+      # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
+      secretsScript = pkgs.writeShellScript "write-secrets" ''
+        set -euo pipefail
+        umask 077
+        ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
+        cat > /run/matrix-synapse/secrets.yaml <<EOF
+        registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
+        macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
+        turn_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/turn_shared_secret)"
+        EOF
+      '';
+    in {
+      serviceConfig.ExecStartPre = ["" secretsScript];
+      serviceConfig.LoadCredential = [
+        "jakstys_lt_signing_key:${config.age.secrets.synapse-jakstys-signing-key.path}"
+        "registration_shared_secret:${config.age.secrets.synapse-registration-shared-secret.path}"
+        "macaroon_secret_key:${config.age.secrets.synapse-macaroon-secret-key.path}"
+        "turn_shared_secret:${config.age.secrets.turn-static-auth-secret.path}"
+      ];
+    };
 
-      cert-watcher = {
-        description = "Restart coturn when tls key/cert changes";
-        wantedBy = ["multi-user.target"];
-        unitConfig = {
-          StartLimitIntervalSec = 10;
-          StartLimitBurst = 5;
-        };
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
-        };
+    cert-watcher = {
+      description = "Restart coturn when tls key/cert changes";
+      wantedBy = ["multi-user.target"];
+      unitConfig = {
+        StartLimitIntervalSec = 10;
+        StartLimitBurst = 5;
       };
-
-      zfs-scrub.unitConfig.OnFailure = "unit-status-mail@zfs-scrub.service";
-      nixos-upgrade.unitConfig.OnFailure = "unit-status-mail@nixos-upgrade.service";
-    }
-    // lib.mapAttrs' (name: value: {
-      name = "borgbackup-job-${name}";
-      value = {
-        unitConfig.OnFailure = "unit-status-mail@borgbackup-job-${name}.service";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
       };
-    })
-    backup_paths;
+    };
+  };
 
   systemd.paths = {
     cert-watcher = {
