@@ -5,7 +5,8 @@ let
   motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
 
   hel1-a = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
-  systems = [hel1-a];
+  vno1-oh2 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+  systems = [hel1-a vno1-oh2];
 in {
   "secrets/hel1-a/borgbackup/password.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/postfix/sasl_passwd.age".publicKeys = [hel1-a] ++ motiejus;
@@ -14,6 +15,6 @@ in {
   "secrets/hel1-a/synapse/registration_shared_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/macaroon_secret_key.age".publicKeys = [hel1-a] ++ motiejus;
 
-  "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/root_passwd_hash.age".publicKeys = [hel1-a] ++ motiejus;
+  "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
+  "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
 }
