@@ -36,15 +36,15 @@
     myData = import ./data.nix;
   in
     {
-      nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          ./hosts/vm/configuration.nix
-          ./modules
-        ];
+      #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
+      #  system = "x86_64-linux";
+      #  modules = [
+      #    ./hosts/vm/configuration.nix
+      #    ./modules
+      #  ];
 
-        specialArgs = {inherit myData;} // inputs;
-      };
+      #  specialArgs = {inherit myData;} // inputs;
+      #};
 
       nixosConfigurations.hel1-a = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -72,6 +72,24 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
+      nixosConfigurations.vno1-oh2 = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/vno1-oh2/configuration.nix
+
+          ./modules
+
+          agenix.nixosModules.default
+
+          {
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+          }
+        ];
+
+        specialArgs = {inherit myData;} // inputs;
+      };
+
       deploy.nodes.hel1-a = {
         hostname = "hel1-a.servers.jakst";
         profiles = {
@@ -79,6 +97,18 @@
             sshUser = "motiejus";
             path =
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.hel1-a;
+            user = "root";
+          };
+        };
+      };
+
+      deploy.nodes.vno1-oh2 = {
+        hostname = "192.168.189.1";
+        profiles = {
+          system = {
+            sshUser = "root";
+            path =
+              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
           };
         };
