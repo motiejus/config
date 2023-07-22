@@ -106,7 +106,7 @@
         hostname = "192.168.189.1";
         profiles = {
           system = {
-            sshUser = "root";
+            sshUser = "motiejus";
             path =
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
