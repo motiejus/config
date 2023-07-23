@@ -4,8 +4,8 @@ let
   motiejus_bk1 = "age1kyehn8yr9tfu3w0z4d9p9qrj0tjjh92ljxmz2nyr6xnm7y8kpv5spwwc9n";
   motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
 
-  hel1-a = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
-  vno1-oh2 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+  hel1-a = (import ./data.nix).hosts."hel1-a.servers.jakst".publicKey;
+  vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   systems = [hel1-a vno1-oh2];
 in {
   # hel1-a + motiejus
@@ -20,12 +20,7 @@ in {
   # vno1-oh2 + motiejus
   "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
 
-  # all hosts + motiejus
+  # everywhere + motiejus
   "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
   "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
-
-  host_pubkeys = {
-    "hel1-a.servers.jakst" = hel1-a;
-    "vno1-oh2.servers.jakst" = vno1-oh2;
-  };
 }

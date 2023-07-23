@@ -11,11 +11,11 @@ rec {
   hosts = {
     "vno1-oh2.servers.jakst" = {
       extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
-      publicKey = (import ./secrets.nix).host_pubkeys."vno1-oh2.servers.jakst";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
     };
     "hel1-a.servers.jakst" = {
       extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
-      publicKey = (import ./secrets.nix).host_pubkeys."hel1-a.servers.jakst";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
