@@ -36,25 +36,25 @@ rec {
   jakstysLTZone = ''
     $ORIGIN jakstys.lt.
     $TTL 86400
-    @             SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
-    @             NS    ns1.jakstys.lt.
-    @             NS    ns2.jakstys.lt.
-    @             A     ${ips.hel1a}
-    www           A     ${ips.hel1a}
-    ns1           A     ${ips.vno1}
-    ns2           A     ${ips.hel1a}
-    beta          A     ${ips.hel1a}
-    turn          A     ${ips.hel1a}
-    vpn           A     ${ips.hel1a}
-    git           A     ${ips.hel1a}
-    auth          A     ${ips.hel1a}
-    dl            A     ${ips.vno1}
-    hel1-a        A     ${ips.hel1a}
-    vno1          A     ${ips.vno1}
-    @             MX    10 aspmx.l.google.com.
-    @             MX    20 alt1.aspmx.l.google.com.
-    @             MX    20 alt2.aspmx.l.google.com.
-    @             MX    30 aspmx2.googlemail.com.
-    @             MX    30 aspmx3.googlemail.com.
+    @                       SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
+    @                       NS    ns1.jakstys.lt.
+    @                       NS    ns2.jakstys.lt.
+    @               600     A     ${ips.hel1a}
+    www             600     A     ${ips.hel1a}
+    ns1                     A     ${ips.vno1}
+    ns2                     A     ${ips.hel1a}
+    turn                    A     ${ips.hel1a}
+    vpn                     A     ${ips.hel1a}
+    git                     A     ${ips.hel1a}
+    auth                    A     ${ips.hel1a}
+    dl                      A     ${ips.vno1}
+    fwmine                  A     ${ips.hel1a}
+    hel1-a                  A     ${ips.hel1a}
+    vno1                    A     ${ips.vno1}
+    @                      MX     10 aspmx.l.google.com.
+    @                      MX     20 alt1.aspmx.l.google.com.
+    @                      MX     20 alt2.aspmx.l.google.com.
+    @                      MX     30 aspmx2.googlemail.com.
+    @                      MX     30 aspmx3.googlemail.com.
   '';
 }
