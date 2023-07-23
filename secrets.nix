@@ -20,4 +20,9 @@ in {
 
   "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
   "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
+
+  host_pubkeys = {
+    "hel1-a.servers.jakst" = hel1-a;
+    "vno1-oh2.servers.jakst" = vno1-oh2;
+  };
 }

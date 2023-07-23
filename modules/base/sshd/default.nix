@@ -13,6 +13,6 @@
       };
     };
     programs.mosh.enable = true;
-    programs.ssh.knownHosts = myData.systems;
+    programs.ssh.knownHosts = myData.hosts;
   };
 }

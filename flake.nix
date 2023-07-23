@@ -58,14 +58,16 @@
           agenix.nixosModules.default
 
           {
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            age.secrets.zfs-passphrase.vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
+
             age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
             age.secrets.sasl-passwd.file = ./secrets/hel1-a/postfix/sasl_passwd.age;
             age.secrets.turn-static-auth-secret.file = ./secrets/hel1-a/turn/static_auth_secret.age;
             age.secrets.synapse-jakstys-signing-key.file = ./secrets/hel1-a/synapse/jakstys_lt_signing_key.age;
             age.secrets.synapse-registration-shared-secret.file = ./secrets/hel1-a/synapse/registration_shared_secret.age;
             age.secrets.synapse-macaroon-secret-key.file = ./secrets/hel1-a/synapse/macaroon_secret_key.age;
-            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
           }
         ];
 
@@ -84,6 +86,7 @@
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            age.secrets.zfs-passphrase.hel1-a.file = ./secrets/hel1-a/zfs-passphrase.age;
           }
         ];
 
@@ -103,7 +106,7 @@
       };
 
       deploy.nodes.vno1-oh2 = {
-        hostname = "192.168.189.1";
+        hostname = "vno1-oh2.servers.jakst";
         profiles = {
           system = {
             sshUser = "motiejus";
