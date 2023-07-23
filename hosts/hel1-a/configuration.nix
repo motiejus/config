@@ -26,7 +26,7 @@ in {
 
       initrd = {
         enable = true;
-        authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
+        authorizedKeys = builtins.attrValues myData.people_pubkeys;
         hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
       };
       snapshot = {

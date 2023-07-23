@@ -8,16 +8,19 @@ let
   vno1-oh2 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
   systems = [hel1-a vno1-oh2];
 in {
+  # hel1-a + motiejus
   "secrets/hel1-a/borgbackup/password.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/postfix/sasl_passwd.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/turn/static_auth_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/jakstys_lt_signing_key.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/registration_shared_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/macaroon_secret_key.age".publicKeys = [hel1-a] ++ motiejus;
-
-  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
   "secrets/vno1-oh2/zfs-passphrase.age".publicKeys = [hel1-a] ++ motiejus;
 
+  # vno1-oh2 + motiejus
+  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
+
+  # all hosts + motiejus
   "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
   "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
 

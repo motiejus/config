@@ -17,7 +17,9 @@
       ];
       sshUnlock = {
         enable = true;
-        authorizedKeys = builtins.attrValues myData.ssh_pubkeys;
+        authorizedKeys =
+          (builtins.attrValues myData.people_pubkeys)
+          ++ [myData.hosts."hel1-a.servers.jakst".publicKey];
       };
     };
   };

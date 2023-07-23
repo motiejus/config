@@ -33,7 +33,7 @@
             isNormalUser = true;
             extraGroups = ["wheel"];
             uid = 1000;
-            openssh.authorizedKeys.keys = [myData.ssh_pubkeys.motiejus];
+            openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
           }
           // lib.filterAttrs (n: v: v != null) passwd.motiejus or {};
 
