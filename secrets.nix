@@ -15,6 +15,9 @@ in {
   "secrets/hel1-a/synapse/registration_shared_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/macaroon_secret_key.age".publicKeys = [hel1-a] ++ motiejus;
 
+  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
+  "secrets/vno1-oh2/zfs-passphrase.age".publicKeys = [hel1-a] ++ motiejus;
+
   "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
   "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
 }
