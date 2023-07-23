@@ -26,7 +26,9 @@ in {
 
       initrd = {
         enable = true;
-        authorizedKeys = builtins.attrValues myData.people_pubkeys;
+        authorizedKeys =
+          (builtins.attrValues myData.people_pubkeys)
+          ++ [myData.hosts."vno1-oh2.servers.jakst".publicKey];
         hostKeys = ["/etc/secrets/initrd/ssh_host_ed25519_key"];
       };
       snapshot = {
