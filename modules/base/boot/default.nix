@@ -156,14 +156,13 @@ in {
             ];
             authorizedKeys = cfg.sshUnlock.authorizedKeys;
           };
-          # FIXME vendored change by motiejus
-          #postCommands = ''
-          #  tee -a /root/.profile >/dev/null <<EOF
-          #  if zfs load-key rpool/nixos; then
-          #     pkill zfs
-          #  fi
-          #  exit
-          #  EOF'';
+          postCommands = ''
+            tee -a /root/.profile >/dev/null <<EOF
+            if zfs load-key rpool/nixos; then
+               pkill zfs
+            fi
+            exit
+            EOF'';
         };
       };
     })
