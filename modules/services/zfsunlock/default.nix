@@ -4,7 +4,13 @@
   pkgs,
   ...
 }: let
-  unlock = { sshEndpoint, pingEndpoint, remotePubkey, pwFile, pingTimeoutSec}: let
+  unlock = {
+    sshEndpoint,
+    pingEndpoint,
+    remotePubkey,
+    pwFile,
+    pingTimeoutSec,
+  }: let
     timeoutStr = builtins.toString pingTimeoutSec;
   in ''
     # if host is reachable via "pingEndpoint", which, we presume is
@@ -31,7 +37,10 @@ in {
           options = {
             sshEndpoint = lib.mkOption {type = str;};
             pingEndpoint = lib.mkOption {type = str;};
-            pingTimeoutSec = lib.mkOption {type = int; default = 20;};
+            pingTimeoutSec = lib.mkOption {
+              type = int;
+              default = 20;
+            };
             remotePubkey = lib.mkOption {type = str;};
             pwFile = lib.mkOption {type = path;};
             startAt = lib.mkOption {type = either str (listOf str);};
@@ -42,29 +51,34 @@ in {
   };
 
   config = lib.mkIf config.mj.services.zfsunlock.enable {
-    systemd.services = lib.mapAttrs'
-      (name: cfg:
-        lib.nameValuePair "zfsunlock-${name}" {
-          description = "zfsunlock service for ${name}";
-          script = unlock (builtins.removeAttrs cfg ["startAt"]);
-          serviceConfig = {
-            User = "root";
-            ProtectSystem = "strict";
-          };
-        }
-      ) config.mj.services.zfsunlock.targets;
+    systemd.services =
+      lib.mapAttrs'
+      (
+        name: cfg:
+          lib.nameValuePair "zfsunlock-${name}" {
+            description = "zfsunlock service for ${name}";
+            script = unlock (builtins.removeAttrs cfg ["startAt"]);
+            serviceConfig = {
+              User = "root";
+              ProtectSystem = "strict";
+            };
+          }
+      )
+      config.mj.services.zfsunlock.targets;
 
-    systemd.timers = lib.mapAttrs'
-      (name: cfg:
-        lib.nameValuePair "zfsunlock-${name}" {
-          description = "zfsunlock timer for ${name}";
-          wantedBy = [ "timers.target" ];
-          timerConfig = {
-            OnCalendar = cfg.startAt;
-          };
-          after = [ "network-online.target" ];
-        }
-      ) config.mj.services.zfsunlock.targets;
-
+    systemd.timers =
+      lib.mapAttrs'
+      (
+        name: cfg:
+          lib.nameValuePair "zfsunlock-${name}" {
+            description = "zfsunlock timer for ${name}";
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnCalendar = cfg.startAt;
+            };
+            after = ["network-online.target"];
+          }
+      )
+      config.mj.services.zfsunlock.targets;
   };
 }

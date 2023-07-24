@@ -402,7 +402,7 @@ in {
       whitelist = [
         "192.168.0.0/16"
         myData.tailscale_subnet.cidr
-        myData.ips.vno1
+        myData.hosts."vno1-oh2.servers.jakst".publicIP
       ];
     };
   };

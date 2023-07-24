@@ -1,9 +1,4 @@
 rec {
-  ips = {
-    vno1 = "88.223.107.21";
-    hel1a = "65.21.7.119";
-  };
-
   people_pubkeys = {
     motiejus = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC+qpaaD+FCYPcUU1ONbw/ff5j0xXu5DNvp/4qZH/vOYwG13uDdfI5ISYPs8zNaVcFuEDgNxWorVPwDw4p6+1JwRLlhO4J/5tE1w8Gt6C7y76LRWnp0rCdva5vL3xMozxYIWVOAiN131eyirV2FdOaqTwPy4ouNMmBFbibLQwBna89tbFMG/jwR7Cxt1I6UiYOuCXIocI5YUbXlsXoK9gr5yBRoTjl2OfH2itGYHz9xQCswvatmqrnteubAbkb6IUFYz184rnlVntuZLwzM99ezcG4v8/485gWkotTkOgQIrGNKgOA7UNKpQNbrwdPAMugqfSTo6g8fEvy0Q+6OXdxw5X7en2TJE+BLVaXp4pVMdOAzKF0nnssn64sRhsrUtFIjNGmOWBOR2gGokaJcM6x9R72qxucuG5054pSibs32BkPEg6Qzp+Bh77C3vUmC94YLVg6pazHhLroYSP1xQjfOvXyLxXB1s9rwJcO+s4kqmInft2weyhfaFE0Bjcoc+1/dKuQYfPCPSB//4zvktxTXud80zwWzMy91Q4ucRrHTBz3PrhO8ys74aSGnKOiG3ccD3HbaT0Ff4qmtIwHcAjrnNlINAcH/A2mpi0/2xA7T8WpFnvgtkQbcMF0kEKGnNS5ULZXP/LC8BlLXxwPdqTzvKikkTb661j4PhJhinhVwnQ==";
   };
@@ -12,10 +7,13 @@ rec {
     "vno1-oh2.servers.jakst" = {
       extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
+      publicIP = "88.223.107.21";
     };
     "hel1-a.servers.jakst" = {
       extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
+      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
+      publicIP = "65.21.7.119";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
@@ -33,24 +31,27 @@ rec {
     range = "100.89.176.0-100.89.191.255";
   };
 
-  jakstysLTZone = ''
+  jakstysLTZone = let
+    hel1a = hosts."hel1-a.servers.jakst".publicIP;
+    vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+  in ''
     $ORIGIN jakstys.lt.
     $TTL 86400
     @                       SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
     @                       NS    ns1.jakstys.lt.
     @                       NS    ns2.jakstys.lt.
-    @               600     A     ${ips.hel1a}
-    www             600     A     ${ips.hel1a}
-    ns1                     A     ${ips.vno1}
-    ns2                     A     ${ips.hel1a}
-    turn                    A     ${ips.hel1a}
-    vpn                     A     ${ips.hel1a}
-    git                     A     ${ips.hel1a}
-    auth                    A     ${ips.hel1a}
-    dl                      A     ${ips.vno1}
-    fwmine                  A     ${ips.hel1a}
-    hel1-a                  A     ${ips.hel1a}
-    vno1                    A     ${ips.vno1}
+    @               600     A     ${hel1a}
+    www             600     A     ${hel1a}
+    ns1                     A     ${vno1}
+    ns2                     A     ${hel1a}
+    turn                    A     ${hel1a}
+    vpn                     A     ${hel1a}
+    git                     A     ${hel1a}
+    auth                    A     ${hel1a}
+    dl                      A     ${vno1}
+    fwmine                  A     ${hel1a}
+    hel1-a                  A     ${hel1a}
+    vno1                    A     ${vno1}
     @                      MX     10 aspmx.l.google.com.
     @                      MX     20 alt1.aspmx.l.google.com.
     @                      MX     20 alt2.aspmx.l.google.com.
