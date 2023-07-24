@@ -10,9 +10,10 @@
     # if host is reachable via "pingEndpoint", which, we presume is
     # VPN (which implies the rootfs has been unlocked for VPN to work),
     # exit successfully.
-    ${pkgs.iputils}/bin/ping -W ${timeoutStr} -c 1 ${pingEndpoint} && exit 0
+    ${pkgs.iputils}/bin/ping -q -W ${timeoutStr} -c 1 ${pingEndpoint} && exit 0
 
     exec ${pkgs.openssh}/bin/ssh \
+        -q \
         -i /etc/ssh/ssh_host_ed25519_key \
         -o UserKnownHostsFile=none \
         -o GlobalKnownHostsFile=/dev/null \
