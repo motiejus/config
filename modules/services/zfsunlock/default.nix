@@ -19,7 +19,6 @@
     ${pkgs.iputils}/bin/ping -q -W ${timeoutStr} -c 1 ${pingEndpoint} && exit 0
 
     exec ${pkgs.openssh}/bin/ssh \
-        -q \
         -i /etc/ssh/ssh_host_ed25519_key \
         -o UserKnownHostsFile=none \
         -o GlobalKnownHostsFile=/dev/null \

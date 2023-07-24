@@ -7,7 +7,7 @@ rec {
     "vno1-oh2.servers.jakst" = {
       extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
-      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
+      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKns3+EIPqKeoB5OIxANIkppb5ICOmkW8X1DOKJPeRWr";
       publicIP = "88.223.107.21";
     };
     "hel1-a.servers.jakst" = {
