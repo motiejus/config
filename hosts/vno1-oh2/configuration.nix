@@ -65,6 +65,8 @@
     };
   };
 
+  nix.settings.trusted-users = ["updaterbot"];
+
   services = {
     tailscale.enable = true;
 
