@@ -124,6 +124,7 @@
     in {
       devShells.default = with pkgs;
         mkShell {
+          LOCALE_ARCHIVE = "${glibcLocales}/lib/locale/locale-archive";
           packages = [
             pkgs.rage
             pkgs.ssh-to-age
