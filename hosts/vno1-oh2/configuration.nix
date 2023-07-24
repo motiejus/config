@@ -34,6 +34,17 @@
         motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
       };
     };
+
+    services.zfsunlock = {
+      enable = true;
+      targets."hel1-a.servers.jakst" = {
+         sshEndpoint = myData.ips.hel1a;
+         pingEndpoint = "hel1-a.servers.jakst";
+         remotePubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
+         pwFile = config.age.secrets.zfs-passphrase-hel1-a.path;
+         startAt = "*-*-* *:00/5:00";
+      };
+    };
   };
 
   services = {
