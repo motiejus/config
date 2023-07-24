@@ -7,7 +7,6 @@
   ...
 }: let
   turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
-  gitea_uidgid = 995;
 in {
   imports = [
     ./hardware-configuration.nix
@@ -82,16 +81,21 @@ in {
   };
 
   users = {
-    users.git = {
-      description = "Gitea Service";
-      home = "/var/lib/gitea";
-      useDefaultShell = true;
-      group = "gitea";
-      isSystemUser = true;
-      uid = gitea_uidgid;
+    users = {
+      git = {
+        description = "Gitea Service";
+        home = "/var/lib/gitea";
+        useDefaultShell = true;
+        group = "gitea";
+        isSystemUser = true;
+        uid = myData.uidgid.gitea;
+      };
+
     };
 
-    groups.gitea.gid = gitea_uidgid;
+    groups = {
+      gitea.gid = myData.uidgid.gitea;
+    };
   };
 
   environment.systemPackages = with pkgs; [

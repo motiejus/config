@@ -47,6 +47,24 @@
     };
   };
 
+  users = {
+    users = {
+      updaterbot = {
+        description = "Dear Updater Bot";
+        home = "/var/lib/updaterbot";
+        useDefaultShell = true;
+        group = "updaterbot";
+        isSystemUser = true;
+        createHome = true;
+        uid = myData.uidgid.updaterbot;
+      };
+    };
+
+    groups = {
+      updaterbot.gid = myData.uidgid.updaterbot;
+    };
+  };
+
   services = {
     tailscale.enable = true;
 
