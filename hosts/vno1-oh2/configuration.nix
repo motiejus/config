@@ -49,6 +49,7 @@
 
   users = {
     users = {
+      # TODO: git config --global user.email bot@jakstys.lt
       updaterbot = {
         description = "Dear Updater Bot";
         home = "/var/lib/updaterbot";
