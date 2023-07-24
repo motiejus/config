@@ -18,6 +18,19 @@ in {
     stateVersion = "22.11";
     timeZone = "UTC";
 
+    services = {
+      zfsunlock = {
+        enable = true;
+        targets."vno1-oh2.servers.jakst" = {
+          sshEndpoint = myData.hosts."vno1-oh2.servers.jakst".publicIP;
+          pingEndpoint = "vno1-oh2.servers.jakst";
+          remotePubkey = myData.hosts."vno1-oh2.servers.jakst".initrdPubKey;
+          pwFile = config.age.secrets.zfs-passphrase-vno1-oh2.path;
+          startAt = "*-*-* *:00/5:00";
+        };
+      };
+    };
+
     base = {
       users.passwd = {
         root.passwordFile = config.age.secrets.root-passwd-hash.path;
