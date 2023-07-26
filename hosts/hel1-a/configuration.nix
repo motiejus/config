@@ -65,7 +65,6 @@ in {
       unitstatus = {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
-        units = ["nixos-upgrade"];
       };
     };
 
