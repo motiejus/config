@@ -18,9 +18,10 @@ in {
 
   # vno1-oh2 + motiejus
   "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
+  "secrets/vno1-oh2/borgbackup/password.age".publicKeys = [vno1-oh2] ++ motiejus;
 
   # everywhere + motiejus
-  "secrets/motiejus_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
-  "secrets/root_passwd_hash.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
-  "secrets/postfix_sasl_passwd.age".publicKeys = [hel1-a vno1-oh2] ++ motiejus;
+  "secrets/motiejus_passwd_hash.age".publicKeys = systems ++ motiejus;
+  "secrets/root_passwd_hash.age".publicKeys = systems ++ motiejus;
+  "secrets/postfix_sasl_passwd.age".publicKeys = systems ++ motiejus;
 }

@@ -84,11 +84,12 @@
           agenix.nixosModules.default
 
           {
-            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.zfs-passphrase-hel1-a.file = ./secrets/hel1-a/zfs-passphrase.age;
+
+            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            age.secrets.borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
           }
         ];
 

@@ -40,6 +40,20 @@
         mountpoints = ["/home"];
       };
 
+      zfsborg = {
+        enable = true;
+        passwordPath = config.age.secrets.borgbackup-password.path;
+        mountpoints = {
+          "/home" = {
+            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+            paths = [
+              "/home/.snapshot-latest/motiejus/annex2"
+            ];
+            backup_at = "*-*-* 00:05:00";
+          };
+        };
+      };
+
       unitstatus = {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
