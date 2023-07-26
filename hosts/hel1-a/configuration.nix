@@ -90,7 +90,6 @@ in {
         isSystemUser = true;
         uid = myData.uidgid.gitea;
       };
-
     };
 
     groups = {
@@ -426,7 +425,7 @@ in {
 
   networking = {
     hostName = "hel1-a";
-    domain = "jakstys.lt";
+    domain = "servers.jakst";
     firewall = let
       coturn = with config.services.coturn; [
         {

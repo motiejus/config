@@ -16,12 +16,22 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKns3+EIPqKeoB5OIxANIkppb5ICOmkW8X1DOKJPeRWr";
       publicIP = "88.223.107.21";
+      jakstIP = "100.89.176.4";
     };
     "hel1-a.servers.jakst" = {
       extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
       publicIP = "65.21.7.119";
+      jakstIP = "100.89.176.3";
+    };
+    "fwmine.motiejus.jakst" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIPi4N6NhUjAwZNSbi/Eb9zliZtrCzNEHmKb4UGRsJqF";
+      jakstIP = "100.89.176.6";
+    };
+    "mxp10.motiejus.jakst" = {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIy9IR7Jq3hRZ5JgwfmeCgSKFrdgujnZt79uxDPVi3tu";
+      jakstIP = "100.89.176.1";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";

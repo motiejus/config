@@ -35,6 +35,13 @@
       };
     };
 
+    services.syncthing = {
+      enable = true;
+      dataDir = "/home/motiejus/";
+      user = "motiejus";
+      group = "users";
+    };
+
     services.zfsunlock = {
       enable = true;
       targets."hel1-a.servers.jakst" = {
@@ -89,7 +96,7 @@
   networking = {
     hostId = "f9117e1b";
     hostName = "vno1-oh2";
-    domain = "jakstys.lt";
+    domain = "servers.jakst";
     defaultGateway = "192.168.189.4";
     nameservers = ["192.168.189.4"];
     interfaces.enp3s0.ipv4.addresses = [
