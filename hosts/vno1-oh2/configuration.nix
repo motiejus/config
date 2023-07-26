@@ -49,6 +49,7 @@
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
               "/home/.snapshot-latest/motiejus/annex2"
+              "/home/.snapshot-latest/motiejus/.config/syncthing"
             ];
             backup_at = "*-*-* 00:05:00";
           };
