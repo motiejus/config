@@ -99,8 +99,11 @@
         ngrep
         wget
         curl
+        btop
+        iftop
         whois
         ipset
+        jnettop
         openssl
         tcpdump
         testssl
