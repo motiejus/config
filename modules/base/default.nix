@@ -10,6 +10,7 @@
     ./fileSystems
     ./snapshot
     ./sshd
+    ./sshguard
     ./unitstatus
     ./users
     ./zfs
@@ -130,6 +131,14 @@
       neovim = {
         enable = true;
         defaultEditor = true;
+      };
+    };
+
+    services = {
+      locate = {
+        enable = true;
+        locate = pkgs.plocate;
+        localuser = null;
       };
     };
   };

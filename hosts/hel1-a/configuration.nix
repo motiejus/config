@@ -127,12 +127,6 @@ in {
       '';
     };
 
-    locate = {
-      enable = true;
-      locate = pkgs.plocate;
-      localuser = null;
-    };
-
     headscale = {
       enable = true;
       settings = {
@@ -385,16 +379,6 @@ in {
           postrotate = "${pkgs.systemd}/bin/systemctl restart caddy";
         };
       };
-    };
-
-    sshguard = {
-      enable = true;
-      blocktime = 900;
-      whitelist = [
-        "192.168.0.0/16"
-        myData.tailscale_subnet.cidr
-        myData.hosts."vno1-oh2.servers.jakst".publicIP
-      ];
     };
   };
 
