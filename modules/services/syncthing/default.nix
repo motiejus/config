@@ -43,6 +43,7 @@ in {
             "fwmine".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
             "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
             "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
+            "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
           })
           // {};
 
@@ -91,6 +92,11 @@ in {
             devices = ["fwmine" "mxp10"];
             id = "tg94v-cqcwr";
             label = "music";
+          };
+          "${config.services.syncthing.dataDir}/irenos" = {
+            devices = ["KrekenavosNamai"];
+            id = "wuwai-qkcqj";
+            label = "Irenos";
           };
         };
       };
