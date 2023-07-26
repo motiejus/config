@@ -105,7 +105,6 @@ in {
 
   environment.systemPackages = with pkgs; [
     headscale
-    mailutils
     nixos-option
     graphicsmagick
   ];

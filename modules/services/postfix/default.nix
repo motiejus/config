@@ -2,6 +2,7 @@
   config,
   lib,
   myData,
+  pkgs,
   ...
 }: {
   options.mj.services.postfix = with lib.types; {
@@ -10,6 +11,9 @@
   };
 
   config = lib.mkIf config.mj.services.postfix.enable {
+
+    environment.systemPackages = [pkgs.mailutils];
+
     services.postfix = {
       enable = true;
       enableSmtp = true;
