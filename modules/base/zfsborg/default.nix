@@ -8,7 +8,7 @@
     set -euo pipefail
     ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
     mkdir -p ${mountpoint}/.snapshot-latest
-    ${pkgs.util-linux}/bin/mount -t zfs $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
+    ${pkgs.util-linux}/bin/mount -t zfs -o ro $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
   '';
 
   umountLatest = mountpoint: ''
