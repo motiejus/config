@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [
+    ./postfix
     ./syncthing
     ./zfsunlock
   ];
