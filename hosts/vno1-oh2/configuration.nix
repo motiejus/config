@@ -43,6 +43,7 @@
       zfsborg = {
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;
+        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
         mountpoints = {
           "/home" = {
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
