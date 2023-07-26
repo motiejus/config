@@ -15,10 +15,12 @@
     services.sshguard = {
       enable = true;
       blocktime = 900;
-      whitelist = [
-        "192.168.0.0/16"
-        myData.tailscale_subnet.cidr
-      ] ++ (lib.catAttrs "publicIP" (lib.attrValues myData.hosts));
+      whitelist =
+        [
+          "192.168.0.0/16"
+          myData.tailscale_subnet.cidr
+        ]
+        ++ (lib.catAttrs "publicIP" (lib.attrValues myData.hosts));
     };
   };
 }

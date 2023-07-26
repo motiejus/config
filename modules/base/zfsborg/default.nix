@@ -19,7 +19,10 @@ in {
     enable = lib.mkEnableOption "backup zfs snapshots with borg";
 
     passwordPath = lib.mkOption {type = str;};
-    sshKeyPath = lib.mkOption {type = nullOr path; default = null;};
+    sshKeyPath = lib.mkOption {
+      type = nullOr path;
+      default = null;
+    };
 
     mountpoints = lib.mkOption {
       default = {};
@@ -87,7 +90,8 @@ in {
           }
           // lib.optionalAttrs (attrs ? patterns) {
             patterns = attrs.patterns;
-          } // lib.optionalAttrs (config.mj.base.zfsborg.sshKeyPath != null) {
+          }
+          // lib.optionalAttrs (config.mj.base.zfsborg.sshKeyPath != null) {
             environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
           };
       })
