@@ -18,7 +18,6 @@ in {
   options.mj.base.zfsborg = with lib.types; {
     enable = lib.mkEnableOption "backup zfs snapshots with borg";
 
-    repo = lib.mkOption {type = str;};
     passwordPath = lib.mkOption {type = str;};
 
     mountpoints = lib.mkOption {
@@ -26,6 +25,7 @@ in {
       type = attrsOf (submodule (
         {...}: {
           options = {
+            repo = lib.mkOption {type = str;};
             paths = lib.mkOption {type = listOf path;};
             patterns = lib.mkOption {
               type = listOf str;
@@ -65,7 +65,7 @@ in {
         value =
           {
             doInit = true;
-            repo = config.mj.base.zfsborg.repo;
+            repo = attrs.repo;
             encryption = {
               mode = "repokey-blake2";
               passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";

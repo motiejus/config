@@ -50,24 +50,25 @@ in {
 
       zfsborg = {
         enable = true;
-        repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst";
         passwordPath = config.age.secrets.borgbackup-password.path;
         mountpoints = {
           "/var/lib" = {
+            repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/headscale"
               "/var/lib/.snapshot-latest/matrix-synapse"
             ];
-            backup_at = "*-*-* 00:11:00";
+            backup_at = "*-*-* 00:05:00";
           };
           "/var/log" = {
+            repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst-var_log";
             paths = ["/var/log/.snapshot-latest/caddy/"];
             patterns = [
               "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
-            backup_at = "*-*-* 00:10:00";
+            backup_at = "*-*-* 00:01:00";
           };
         };
       };
