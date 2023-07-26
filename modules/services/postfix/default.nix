@@ -11,7 +11,6 @@
   };
 
   config = lib.mkIf config.mj.services.postfix.enable {
-
     environment.systemPackages = [pkgs.mailutils];
 
     services.postfix = {
@@ -38,6 +37,5 @@
         header_size_limit = 4096000
       '';
     };
-
   };
 }

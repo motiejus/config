@@ -29,6 +29,7 @@
     timeZone = "Europe/Vilnius";
 
     base = {
+      zfs.enable = true;
       users.passwd = {
         root.passwordFile = config.age.secrets.root-passwd-hash.path;
         motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
@@ -37,6 +38,12 @@
       snapshot = {
         enable = true;
         mountpoints = ["/home"];
+      };
+
+      unitstatus = {
+        enable = true;
+        email = "motiejus+alerts@jakstys.lt";
+        units = ["nixos-upgrade"];
       };
     };
 
@@ -96,12 +103,6 @@
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };
-    };
-
-    zfs = {
-      autoScrub.enable = true;
-      trim.enable = true;
-      expandOnBoot = "all";
     };
   };
 

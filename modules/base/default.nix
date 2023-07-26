@@ -12,6 +12,7 @@
     ./sshd
     ./unitstatus
     ./users
+    ./zfs
     ./zfsborg
   ];
 

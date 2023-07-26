@@ -17,25 +17,9 @@ in {
     stateVersion = "22.11";
     timeZone = "UTC";
 
-    services = {
-      postfix = {
-        enable = true;
-        saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      };
-
-      zfsunlock = {
-        enable = true;
-        targets."vno1-oh2.servers.jakst" = {
-          sshEndpoint = myData.hosts."vno1-oh2.servers.jakst".publicIP;
-          pingEndpoint = "vno1-oh2.servers.jakst";
-          remotePubkey = myData.hosts."vno1-oh2.servers.jakst".initrdPubKey;
-          pwFile = config.age.secrets.zfs-passphrase-vno1-oh2.path;
-          startAt = "*-*-* *:00/5:00";
-        };
-      };
-    };
-
     base = {
+      zfs.enable = true;
+
       users.passwd = {
         root.passwordFile = config.age.secrets.root-passwd-hash.path;
         motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
@@ -81,7 +65,25 @@ in {
       unitstatus = {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
-        units = ["zfs-scrub" "nixos-upgrade"];
+        units = ["nixos-upgrade"];
+      };
+    };
+
+    services = {
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
+
+      zfsunlock = {
+        enable = true;
+        targets."vno1-oh2.servers.jakst" = {
+          sshEndpoint = myData.hosts."vno1-oh2.servers.jakst".publicIP;
+          pingEndpoint = "vno1-oh2.servers.jakst";
+          remotePubkey = myData.hosts."vno1-oh2.servers.jakst".initrdPubKey;
+          pwFile = config.age.secrets.zfs-passphrase-vno1-oh2.path;
+          startAt = "*-*-* *:00/5:00";
+        };
       };
     };
   };
@@ -118,12 +120,6 @@ in {
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };
-    };
-
-    zfs = {
-      autoScrub.enable = true;
-      trim.enable = true;
-      expandOnBoot = "all";
     };
 
     openssh = {
