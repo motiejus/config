@@ -7,6 +7,7 @@
   imports = [
     ./postfix
     ./syncthing
+    ./updaterbot
     ./zfsunlock
   ];
 }

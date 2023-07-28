@@ -63,6 +63,11 @@
     };
 
     services = {
+      updaterbot = {
+        enable = true;
+        uidgid = myData.uidgid.updaterbot;
+      };
+
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
@@ -87,27 +92,6 @@
       };
     };
   };
-
-  users = {
-    users = {
-      # TODO: git config --global user.email bot@jakstys.lt
-      updaterbot = {
-        description = "Dear Updater Bot";
-        home = "/var/lib/updaterbot";
-        useDefaultShell = true;
-        group = "updaterbot";
-        isSystemUser = true;
-        createHome = true;
-        uid = myData.uidgid.updaterbot;
-      };
-    };
-
-    groups = {
-      updaterbot.gid = myData.uidgid.updaterbot;
-    };
-  };
-
-  nix.settings.trusted-users = ["updaterbot"];
 
   services = {
     tailscale.enable = true;
