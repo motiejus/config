@@ -78,6 +78,11 @@ in {
             id = "d3hur-cbzyw";
             label = "Pictures";
           };
+          "${config.services.syncthing.dataDir}/annex2/M-R" = {
+            devices = ["fwmine" "rzj-744P2PE" "mxp10"];
+            id = "evgn9-ahngz";
+            label = "M-R";
+          };
           "${config.services.syncthing.dataDir}/stud-cache" = {
             devices = ["fwmine"];
             id = "2kq7n-jqzxj";
