@@ -26,6 +26,14 @@
         authorizedKeys = config.mj.base.initrd.authorizedKeys;
         hostKeys = config.mj.base.initrd.hostKeys;
       };
+      postCommands = ''
+        tee -a /root/.profile >/dev/null <<EOF
+        if zfs load-key rpool/nixos; then
+           pkill zfs
+        fi
+        exit
+        EOF'';
+    };
     };
   };
 }
