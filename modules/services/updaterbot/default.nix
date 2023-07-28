@@ -58,13 +58,20 @@
           ${pkgs.git}/bin/git reset --hard origin/main
         fi
 
-        export PATH=$PATH:${pkgs.git}/bin
+        export PATH=$PATH:${pkgs.git}/bin:${pkgs.nix}/bin
         ${pkgs.nix}/bin/nix flake update --accept-flake-config --commit-lock-file
         ${pkgs.git}/bin/git push origin main
 
-        exec ${pkgs.nix}/bin/nix run .#deploy-rs ${deployDerivations}
+        export PATH=$PATH:${pkgs.openssh}/bin
+        exec ${pkgs.nix}/bin/nix run .#deploy-rs -- ${deployDerivations}
       '';
     };
+
+    #systemd.timers.updaterbot = {
+    #  description = "updaterbot timer";
+    #  wantedBy = ["timers.target"];
+    #  timerConfig.OnCalendar = "";
+    #};
 
     mj.base.unitstatus.units = ["updaterbot"];
 
