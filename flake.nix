@@ -97,7 +97,7 @@
       };
 
       deploy.nodes.hel1-a = {
-        hostname = "hel1-a.servers.jakst";
+        hostname = myData.hosts."hel1-a.servers.jakst".jakstIP;
         profiles = {
           system = {
             sshUser = "motiejus";
@@ -109,7 +109,7 @@
       };
 
       deploy.nodes.vno1-oh2 = {
-        hostname = "vno1-oh2.servers.jakst";
+        hostname = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
         profiles = {
           system = {
             sshUser = "motiejus";
@@ -125,6 +125,11 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
+
+      apps.deploy-rs = {
+        type = "app";
+        program = "${deploy-rs.packages."${system}".default}/bin/deploy";
+      };
       devShells.default = with pkgs;
         mkShell {
           packages = [
