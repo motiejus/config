@@ -111,14 +111,14 @@
       deploy.nodes.vno1-oh2 = {
         hostname = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
         profiles = {
+          #updaterbot = {
+          #  sshUser = "updaterbot";
+          #  path =
+          #    deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+          #  user = "root";
+          #};
           system = {
             sshUser = "motiejus";
-            path =
-              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
-            user = "root";
-          };
-          updaterbot = {
-            sshUser = "updaterbot";
             path =
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
