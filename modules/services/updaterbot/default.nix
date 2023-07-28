@@ -59,11 +59,13 @@
           ${pkgs.git}/bin/git reset --hard origin/main
         fi
 
-        export PATH=$PATH:${pkgs.git}/bin:${pkgs.nix}/bin
+        OLD_PATH=$PATH
+        export PATH=$PATH:${pkgs.git}/bin
         ${pkgs.nix}/bin/nix flake update --accept-flake-config --commit-lock-file
         ${pkgs.git}/bin/git push origin main
+        export PATH=$OLD_PATH
 
-        export PATH=$PATH:${pkgs.openssh}/bin
+        export PATH=$PATH:${pkgs.openssh}/bin:${pkgs.nix}/bin
         exec ${pkgs.nix}/bin/nix run .#deploy-rs -- ${deployDerivations}
       '';
     };
