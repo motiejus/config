@@ -64,7 +64,7 @@
 
     services = {
       updaterbot = {
-        enable = true;
+        enableMaster = true;
         uidgid = myData.uidgid.updaterbot;
         repo = "git@git.jakstys.lt:motiejus/config";
         deployDerivations = [".#vno1-oh2"];

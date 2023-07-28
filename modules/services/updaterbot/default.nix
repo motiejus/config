@@ -5,13 +5,14 @@
   ...
 }: {
   options.mj.services.updaterbot = with lib.types; {
-    enable = lib.mkEnableOption "Enable system updater";
+    enableMaster = lib.mkEnableOption "Enable system updater orchestrator";
+    enableDeployer = lib.mkEnableOption "Enable system updater deployer";
     deployDerivations = lib.mkOption {type = listOf str;};
     uidgid = lib.mkOption {type = int;};
     repo = lib.mkOption {type = str;};
   };
 
-  config = lib.mkIf config.mj.services.updaterbot.enable {
+  config = lib.mkIf config.mj.services.updaterbot.enableMaster {
     users = {
       users = {
         # TODO: git config --global user.email updaterbot@jakstys.lt

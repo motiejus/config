@@ -117,6 +117,12 @@
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
           };
+          updaterbot = {
+            sshUser = "updaterbot";
+            path =
+              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+            user = "root";
+          };
         };
       };
 
@@ -125,7 +131,6 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
-
       apps.deploy-rs = {
         type = "app";
         program = "${deploy-rs.packages."${system}".default}/bin/deploy";
