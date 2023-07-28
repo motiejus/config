@@ -41,7 +41,7 @@
           description = "Send an email on unit failure";
           serviceConfig = {
             Type = "simple";
-            ExecStart = ''${script} "%I" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
+            ExecStart = ''${script} "%i" "Hostname: %H" "Machine ID: %m" "Boot ID: %b" '';
           };
         };
       }
