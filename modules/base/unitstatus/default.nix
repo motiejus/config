@@ -25,7 +25,7 @@
             for e in "''${@:2}"; do
               EXTRA+="$e"$'\n'
             done
-            UNITSTATUS=$(${pkgs.systemd}/bin/systemctl status "$UNIT")
+            UNITSTATUS=$(${pkgs.systemd}/bin/systemctl status "$UNIT" || :)
             ${pkgs.postfix}/bin/sendmail $MAILTO <<EOF
             Subject:Status mail for unit: $UNIT
 
