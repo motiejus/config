@@ -45,29 +45,26 @@
             deployDerivationsStr = builtins.concatStringsSep " " deployDerivations;
           in ''
             set -x
-            OLD_PATH=$PATH
-            export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
+            export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
+
+            export GIT_SSH_COMMAND="ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
             if [[ ! -d config ]]; then
-              ${pkgs.git}/bin/git clone ${repo} config
+              git clone ${repo} config
               cd config
             else
               cd config
-              ${pkgs.git}/bin/git fetch origin
-              ${pkgs.git}/bin/git reset --hard origin/main
+              git fetch origin
+              git reset --hard origin/main
             fi
 
-            export PATH=$PATH:${pkgs.git}/bin
-            ${pkgs.nix}/bin/nix flake update --accept-flake-config --commit-lock-file
-            export PATH=$OLD_PATH
+            nix flake update --accept-flake-config --commit-lock-file
 
-            export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
-            ${pkgs.nix}/bin/nix run .#deploy-rs -- \
+            nix run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --targets ${deployDerivationsStr}
-            export PATH=$OLD_PATH
 
-            exec ${pkgs.git}/bin/git push origin main
+            git push origin main
           '';
         };
 
