@@ -100,6 +100,7 @@
           };
         };
         users.groups.deployerbot-follower.gid = uidgid;
+        nix.settings.trusted-users = ["deployerbot-follower"];
       })
   ];
 }
