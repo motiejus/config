@@ -43,7 +43,6 @@
           script = let
             deployDerivationsStr = builtins.concatStringsSep " " deployDerivations;
           in ''
-            set -x
             export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
             if [[ ! -d config ]]; then
               ${pkgs.git}/bin/git clone ${repo} config
