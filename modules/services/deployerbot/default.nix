@@ -61,13 +61,13 @@
             export PATH=$OLD_PATH
 
             export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
-            exec ${pkgs.nix}/bin/nix run .#deploy-rs -- \
+            ${pkgs.nix}/bin/nix run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --targets ${deployDerivationsStr}
             export PATH=$OLD_PATH
 
-            ${pkgs.git}/bin/git push origin main
+            exec ${pkgs.git}/bin/git push origin main
           '';
         };
 
