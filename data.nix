@@ -48,6 +48,7 @@ rec {
   tailscale_subnet = {
     cidr = "100.89.176.0/20";
     range = "100.89.176.0-100.89.191.255";
+    pattern = "100.89.176.?"; # until we have more hosts
   };
 
   jakstysLTZone = let

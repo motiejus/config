@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }: {
   options.mj.services.deployerbot.main = with lib.types; {
@@ -95,7 +96,9 @@
             isSystemUser = true;
             createHome = true;
             uid = uidgid;
-            openssh.authorizedKeys.keys = [publicKey];
+            openssh.authorizedKeys.keys = let
+              restrictedPubKey = "from=\"${myData.tailscale_subnet.pattern}\" " + publicKey;
+            in [restrictedPubKey];
           };
         };
         users.groups.deployerbot-follower.gid = uidgid;
