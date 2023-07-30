@@ -45,6 +45,7 @@
             deployDerivationsStr = builtins.concatStringsSep " " deployDerivations;
           in ''
             set -x
+            OLD_PATH=$PATH
             export GIT_SSH_COMMAND="${pkgs.openssh}/bin/ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
             if [[ ! -d config ]]; then
               ${pkgs.git}/bin/git clone ${repo} config
@@ -55,12 +56,10 @@
               ${pkgs.git}/bin/git reset --hard origin/main
             fi
 
-            OLD_PATH=$PATH
             export PATH=$PATH:${pkgs.git}/bin
             ${pkgs.nix}/bin/nix flake update --accept-flake-config --commit-lock-file
             export PATH=$OLD_PATH
 
-            OLD_PATH=$PATH
             export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
             exec ${pkgs.nix}/bin/nix run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
