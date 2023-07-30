@@ -3,7 +3,8 @@ rec {
     motiejus = 1000;
 
     gitea = 995;
-    updaterbot = 501;
+    updaterbot-deployer = 501;
+    updaterbot-deployee = 502;
   };
 
   people_pubkeys = {

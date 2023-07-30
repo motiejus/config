@@ -63,11 +63,19 @@
     };
 
     services = {
-      updaterbot = {
-        enableMaster = true;
-        uidgid = myData.uidgid.updaterbot;
-        repo = "git@git.jakstys.lt:motiejus/config";
-        deployDerivations = [".#vno1-oh2"];
+      deployerbot = {
+        main = {
+          enable = true;
+          uidgid = myData.uidgid.updaterbot-deployer;
+          repo = "git@git.jakstys.lt:motiejus/config";
+          deployDerivations = [".#vno1-oh2"];
+        };
+
+        follower = {
+          enable = true;
+          uidgid = myData.uidgid.updaterbot-deployee;
+          publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
+        };
       };
 
       postfix = {

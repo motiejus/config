@@ -5,9 +5,9 @@
   ...
 }: {
   imports = [
+    ./deployerbot
     ./postfix
     ./syncthing
-    ./updaterbot
     ./zfsunlock
   ];
 }
