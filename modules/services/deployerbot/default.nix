@@ -64,7 +64,7 @@
             exec ${pkgs.nix}/bin/nix run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
-              ${deployDerivationsStr}
+              --targets ${deployDerivationsStr}
           '';
         };
 
