@@ -51,7 +51,7 @@
               "/home/.snapshot-latest/motiejus/annex2"
               "/home/.snapshot-latest/motiejus/.config/syncthing"
             ];
-            backup_at = "*-*-* 00:05:00";
+            backup_at = "*-*-* 00:05:00 UTC";
           };
         };
       };
