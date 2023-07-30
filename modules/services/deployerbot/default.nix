@@ -58,14 +58,17 @@
             OLD_PATH=$PATH
             export PATH=$PATH:${pkgs.git}/bin
             ${pkgs.nix}/bin/nix flake update --accept-flake-config --commit-lock-file
-            ${pkgs.git}/bin/git push origin main
             export PATH=$OLD_PATH
 
+            OLD_PATH=$PATH
             export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
             exec ${pkgs.nix}/bin/nix run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --targets ${deployDerivationsStr}
+            export PATH=$OLD_PATH
+
+            ${pkgs.git}/bin/git push origin main
           '';
         };
 
