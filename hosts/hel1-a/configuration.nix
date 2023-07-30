@@ -69,6 +69,13 @@ in {
     };
 
     services = {
+      deployerbot = {
+        follower = {
+          enable = true;
+          uidgid = myData.uidgid.updaterbot-deployee;
+          publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
+        };
+      };
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
