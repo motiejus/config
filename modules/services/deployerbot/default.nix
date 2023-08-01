@@ -71,13 +71,10 @@
         systemd.timers.deployerbot = {
           description = "deployerbot-main timer";
           wantedBy = ["timers.target"];
-          # such nixpkgs commits:
-          #
-          #     Merge release-23.05 into staging-next-23.05
-          #
-          # happen at around 00:15 UTC. This is *probably* what
-          # we want to follow.
-          timerConfig.OnCalendar = "*-*-* 00:30:00 UTC";
+          # 15:38 UTC was the latest merge that I have observed since
+          # making the commit by looking at 3 commits of this repo.
+          # Let's try to be optimistic.
+          timerConfig.OnCalendar = "*-*-* 16:00:00 UTC";
         };
 
         mj.base.unitstatus.units = ["deployerbot"];
