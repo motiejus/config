@@ -35,6 +35,7 @@
 
         systemd.services.deployerbot = {
           description = "Update all known systems";
+          environment = {TZ = "UTC";};
           serviceConfig = {
             Type = "oneshot";
             User = "deployerbot-main";
@@ -74,7 +75,7 @@
           # 15:38 UTC was the latest merge that I have observed since
           # making the commit by looking at 3 commits of this repo.
           # Let's try to be optimistic.
-          timerConfig.OnCalendar = "*-*-* 16:00:00 UTC";
+          timerConfig.OnCalendar = "*-*-* 23:30:00 UTC";
         };
 
         mj.base.unitstatus.units = ["deployerbot"];
