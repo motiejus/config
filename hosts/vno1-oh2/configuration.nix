@@ -64,7 +64,7 @@
 
     services = {
       # TODO move to grafana service lib
-      friendlyport.ports = [
+      friendlyport.vpn.ports = [
         myData.ports.grafana
         myData.ports.prometheus
         myData.ports.exporters.node
@@ -119,12 +119,14 @@
         enable = true;
         datasources.settings = {
           apiVersion = 1;
-          datasources = [{
-            name = "Prometheus";
-            type = "prometheus";
-            access = "proxy";
-            url = "http://127.0.0.1:${toString config.services.prometheus.port}";
-          }];
+          datasources = [
+            {
+              name = "Prometheus";
+              type = "prometheus";
+              access = "proxy";
+              url = "http://127.0.0.1:${toString config.services.prometheus.port}";
+            }
+          ];
         };
       };
       settings = {
@@ -148,14 +150,16 @@
         };
       };
 
-      scrapeConfigs = [
+      scrapeConfigs = let
+        port = builtins.toString myData.ports.exporters.node;
+      in [
         {
           job_name = "${config.networking.hostName}.${config.networking.domain}";
-          static_configs = [
-            {
-              targets = ["127.0.0.1:${toString config.services.prometheus.exporters.node.port}"];
-            }
-          ];
+          static_configs = [{targets = ["127.0.0.1:${port}"];}];
+        }
+        {
+          job_name = "hel1-a.servers.jakst";
+          static_configs = [{targets = ["${myData.hosts."hel1-a.servers.jakst".jakstIP}:${port}"];}];
         }
       ];
     };
