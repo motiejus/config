@@ -2,7 +2,7 @@
   description = "motiejus/config";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05-small";
     flake-utils.url = "github:numtide/flake-utils";
 
     # TODO: called with unexpected argument 'home-manager'
