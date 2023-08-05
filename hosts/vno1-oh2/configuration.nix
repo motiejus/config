@@ -106,6 +106,12 @@
   services = {
     tailscale.enable = true;
 
+    #grafana = {
+    #  enable = true;
+    #  domain = "vno1-oh2.servers.jakst"; # TODO tailscale service?
+    #  addr = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
+    #};
+
     nsd = {
       enable = true;
       interfaces = ["0.0.0.0" "::"];

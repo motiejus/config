@@ -6,6 +6,7 @@
 }: {
   imports = [
     ./deployerbot
+    ./friendlyport
     ./postfix
     ./syncthing
     ./zfsunlock
