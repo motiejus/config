@@ -143,7 +143,7 @@
       exporters = {
         node = {
           enable = true;
-          enabledCollectors = ["systemd"];
+          enabledCollectors = ["systemd" "processes"];
           port = myData.ports.exporters.node;
         };
       };
