@@ -63,6 +63,9 @@
     };
 
     services = {
+      # TODO move to grafana service lib
+      friendlyport.ports = [myData.ports.grafana];
+
       deployerbot = {
         main = {
           enable = true;
@@ -106,11 +109,40 @@
   services = {
     tailscale.enable = true;
 
-    #grafana = {
-    #  enable = true;
-    #  domain = "vno1-oh2.servers.jakst"; # TODO tailscale service?
-    #  addr = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
-    #};
+    grafana = {
+      enable = true;
+      settings = {
+        server = {
+          # TODO tailscale service?
+          domain = "${config.networking.hostName}.${config.networking.domain}";
+          http_addr = myData.hosts."${config.networking.hostName}.${config.networking.domain}".jakstIP;
+          http_port = myData.ports.grafana;
+        };
+      };
+    };
+
+    prometheus = {
+      enable = true;
+      port = myData.ports.prometheus;
+      exporters = {
+        node = {
+          enable = true;
+          enabledCollectors = ["systemd"];
+          port = myData.ports.exporters.node;
+        };
+      };
+
+      scrapeConfigs = [
+        {
+          job_name = "${config.networking.hostName}.${config.networking.domain}";
+          static_configs = [
+            {
+              targets = ["127.0.0.1:${toString config.services.prometheus.exporters.node.port}"];
+            }
+          ];
+        }
+      ];
+    };
 
     nsd = {
       enable = true;
