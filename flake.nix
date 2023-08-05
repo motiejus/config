@@ -135,7 +135,7 @@
             pkgs.rage
             pkgs.ssh-to-age
             pkgs.age-plugin-yubikey
-            pkgs.borgbackup
+            #pkgs.borgbackup
 
             agenix.packages.${system}.agenix
 
