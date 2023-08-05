@@ -64,7 +64,11 @@
 
     services = {
       # TODO move to grafana service lib
-      friendlyport.ports = [myData.ports.grafana];
+      friendlyport.ports = [
+        myData.ports.grafana
+        myData.ports.prometheus
+        myData.ports.exporters.node
+      ];
 
       deployerbot = {
         main = {
