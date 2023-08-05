@@ -94,8 +94,6 @@ in {
     };
   };
 
-  programs.sysdig.enable = true;
-
   users = {
     users = {
       git = {

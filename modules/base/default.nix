@@ -131,6 +131,7 @@
 
     programs = {
       mtr.enable = true;
+      sysdig.enable = true;
       neovim = {
         enable = true;
         defaultEditor = true;
