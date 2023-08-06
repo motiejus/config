@@ -151,6 +151,11 @@
         };
       };
 
+      globalConfig = {
+        scrape_interval = "15s";
+        evaluation_interval = "15s";
+      };
+
       scrapeConfigs = let
         port = builtins.toString myData.ports.exporters.node;
       in [
