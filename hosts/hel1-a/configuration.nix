@@ -157,11 +157,6 @@ in {
           nameservers = ["1.1.1.1" "8.8.4.4"];
           magic_dns = true;
           base_domain = "jakst";
-          extra_records = {
-            name = "grafana.jakst";
-            type = "A";
-            value = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
-          };
         };
         oidc = {
           issuer = "https://git.jakstys.lt/";
