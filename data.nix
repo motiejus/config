@@ -81,8 +81,7 @@ rec {
     hel1-a                       A     ${hel1a}
     vno1                         A     ${vno1}
     grafana                      A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.grafana  CNAME     _acme.grafana.jakstys.lt.
-    _acme.grafana                A     ${vno1}
+    _acme-challenge.grafana     NS     _acme.grafana.jakstys.lt.
     @                           MX     10 aspmx.l.google.com.
     @                           MX     20 alt1.aspmx.l.google.com.
     @                           MX     20 alt2.aspmx.l.google.com.

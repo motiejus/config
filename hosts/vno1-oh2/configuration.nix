@@ -175,6 +175,12 @@
       interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
+        "_acme-challenge.grafana.jakstys.lt".data = ''
+          $ORIGIN _acme-challenge.grafana.jakstys.lt.
+          $TTL 60
+          @      SOA   _acme-challenge.grafana.jakstys.lt. motiejus.jakstys.lt. (2023080700 600 600 600 600)
+          @      TXT   foo1
+        '';
       };
     };
   };
