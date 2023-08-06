@@ -175,11 +175,12 @@
       interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
-        "_acme.grafana.jakstys.lt".data = ''
-          $ORIGIN _acme.grafana.jakstys.lt.
+        "_acme-endpoint.grafana.jakstys.lt".data = ''
+          $ORIGIN _acme-endpoint.grafana.jakstys.lt.
           $TTL 60
-          @      SOA   _acme.grafana.jakstys.lt. motiejus.jakstys.lt. (2023080701 600 600 600 600)
-          @      TXT   foo1
+          @      SOA   _acme-endpoint.grafana.jakstys.lt. motiejus.jakstys.lt. (2023080702 600 600 600 600)
+          @      TXT   foo2
+          ns      NS   ${myData.hosts."vno1-oh2.servers.jakst".publicIP}
         '';
       };
     };

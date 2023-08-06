@@ -80,12 +80,16 @@ rec {
     fwmine                       A     ${hel1a}
     hel1-a                       A     ${hel1a}
     vno1                         A     ${vno1}
-    grafana                      A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.grafana     NS     _acme.grafana.jakstys.lt.
+
     @                           MX     10 aspmx.l.google.com.
     @                           MX     20 alt1.aspmx.l.google.com.
     @                           MX     20 alt2.aspmx.l.google.com.
     @                           MX     30 aspmx2.googlemail.com.
     @                           MX     30 aspmx3.googlemail.com.
+
+    grafana                   600     A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.grafana   600 CNAME     _acme-endpoint.grafana
+    _acme-endpoint.grafana    600    NS     ns._acme-endpoint.grafana
+    ns._acme-endpoint.grafana 600     A     ${vno1}
   '';
 }
