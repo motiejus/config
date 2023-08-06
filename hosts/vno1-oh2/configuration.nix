@@ -197,5 +197,11 @@
         prefixLength = 24;
       }
     ];
+    firewall = {
+      allowedUDPPorts = [ 53 ];
+      allowedTCPPorts = [ 53 ];
+      logRefusedConnections = false;
+      checkReversePath = "loose"; # for tailscale
+    };
   };
 }
