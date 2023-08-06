@@ -65,25 +65,28 @@ rec {
   in ''
     $ORIGIN jakstys.lt.
     $TTL 86400
-    @                       SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
-    @                       NS    ns1.jakstys.lt.
-    @                       NS    ns2.jakstys.lt.
-    @               600     A     ${hel1a}
-    www             600     A     ${hel1a}
-    ns1                     A     ${vno1}
-    ns2                     A     ${hel1a}
-    turn                    A     ${hel1a}
-    vpn                     A     ${hel1a}
-    git                     A     ${hel1a}
-    auth                    A     ${hel1a}
-    dl                      A     ${vno1}
-    fwmine                  A     ${hel1a}
-    hel1-a                  A     ${hel1a}
-    vno1                    A     ${vno1}
-    @                      MX     10 aspmx.l.google.com.
-    @                      MX     20 alt1.aspmx.l.google.com.
-    @                      MX     20 alt2.aspmx.l.google.com.
-    @                      MX     30 aspmx2.googlemail.com.
-    @                      MX     30 aspmx3.googlemail.com.
+    @                            SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
+    @                            NS    ns1.jakstys.lt.
+    @                            NS    ns2.jakstys.lt.
+    @               600          A     ${hel1a}
+    www             600          A     ${hel1a}
+    ns1                          A     ${vno1}
+    ns2                          A     ${hel1a}
+    turn                         A     ${hel1a}
+    vpn                          A     ${hel1a}
+    git                          A     ${hel1a}
+    auth                         A     ${hel1a}
+    dl                           A     ${vno1}
+    fwmine                       A     ${hel1a}
+    hel1-a                       A     ${hel1a}
+    vno1                         A     ${vno1}
+    grafana                      A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.grafana  CNAME     _acme.grafana.jakstys.lt.
+    _acme.grafana                A     ${vno1}
+    @                           MX     10 aspmx.l.google.com.
+    @                           MX     20 alt1.aspmx.l.google.com.
+    @                           MX     20 alt2.aspmx.l.google.com.
+    @                           MX     30 aspmx2.googlemail.com.
+    @                           MX     30 aspmx3.googlemail.com.
   '';
 }
