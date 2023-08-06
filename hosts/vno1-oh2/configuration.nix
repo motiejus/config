@@ -172,6 +172,7 @@
 
     nsd = {
       enable = true;
+      remoteControl.enable = true;
       interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
@@ -179,11 +180,25 @@
           $ORIGIN _acme-endpoint.grafana.jakstys.lt.
           $TTL 60
           @      SOA   _acme-endpoint.grafana.jakstys.lt. motiejus.jakstys.lt. (2023080702 600 600 600 600)
-          @      TXT   foo2
+          @      TXT   foo3
           ns      NS   ${myData.hosts."vno1-oh2.servers.jakst".publicIP}
         '';
       };
     };
+  };
+
+  systemd.services.nsd-control-setup = {
+    requiredBy = ["nsd.service"];
+    before = ["nsd.service"];
+    unitConfig = {
+      ConditionPathExists = "!/etc/nsd/nsd_control.key";
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      UMask = 0077;
+    };
+    path = [pkgs.nsd pkgs.openssl];
+    script = ''nsd-control-setup'';
   };
 
   networking = {
@@ -199,8 +214,8 @@
       }
     ];
     firewall = {
-      allowedUDPPorts = [ 53 ];
-      allowedTCPPorts = [ 53 ];
+      allowedUDPPorts = [53];
+      allowedTCPPorts = [53];
       logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
