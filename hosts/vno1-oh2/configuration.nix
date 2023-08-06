@@ -133,7 +133,8 @@
         server = {
           # TODO tailscale service?
           domain = "${config.networking.hostName}.${config.networking.domain}";
-          http_addr = myData.hosts."${config.networking.hostName}.${config.networking.domain}".jakstIP;
+          # NB: this was tailscale0 before, now controlled via firewall.
+          http_addr = "0.0.0.0";
           http_port = myData.ports.grafana;
         };
       };
