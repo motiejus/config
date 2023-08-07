@@ -180,6 +180,7 @@
       extraConfig = ''
         pattern:
           name: "acme"
+          zonefile: "/var/lib/nsd/zones/%s."
       '';
     };
   };
