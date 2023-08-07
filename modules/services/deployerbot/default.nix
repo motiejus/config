@@ -36,6 +36,7 @@
         systemd.services.deployerbot = {
           description = "Update all known systems";
           environment = {TZ = "UTC";};
+          path = [ pkgs.git pkgs.openssh pkgs.nix ];
           serviceConfig = {
             Type = "oneshot";
             User = "deployerbot-main";
@@ -46,8 +47,6 @@
             deployDerivationsStr = builtins.concatStringsSep " " deployDerivations;
           in ''
             set -x
-            export PATH=$PATH:${pkgs.git}/bin:${pkgs.openssh}/bin:${pkgs.nix}/bin
-
             export GIT_SSH_COMMAND="ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
             if [[ ! -d config ]]; then
               git clone ${repo} config
