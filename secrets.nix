@@ -19,6 +19,7 @@ in {
   # vno1-oh2 + motiejus
   "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
   "secrets/vno1-oh2/borgbackup/password.age".publicKeys = [vno1-oh2] ++ motiejus;
+  "secrets/letsencrypt/account.key.age".publicKeys = [vno1-oh2] ++ motiejus;
 
   # everywhere + motiejus
   "secrets/motiejus_passwd_hash.age".publicKeys = systems ++ motiejus;

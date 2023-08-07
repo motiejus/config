@@ -90,6 +90,7 @@
 
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
             age.secrets.borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
+            age.secrets.letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
           }
         ];
 
