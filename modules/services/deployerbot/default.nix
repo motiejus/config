@@ -36,7 +36,7 @@
         systemd.services.deployerbot = {
           description = "Update all known systems";
           environment = {TZ = "UTC";};
-          path = [ pkgs.git pkgs.openssh pkgs.nix ];
+          path = [pkgs.git pkgs.openssh pkgs.nix];
           serviceConfig = {
             Type = "oneshot";
             User = "deployerbot-main";
