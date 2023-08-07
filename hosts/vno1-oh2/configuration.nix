@@ -190,9 +190,7 @@
   systemd.services.nsd-control-setup = {
     requiredBy = ["nsd.service"];
     before = ["nsd.service"];
-    unitConfig = {
-      ConditionPathExists = "!/etc/nsd/nsd_control.key";
-    };
+    unitConfig.ConditionPathExists = "!/etc/nsd/nsd_control.pem";
     serviceConfig = {
       Type = "oneshot";
       UMask = 0077;
