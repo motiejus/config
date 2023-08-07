@@ -177,6 +177,10 @@
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };
+      extraConfig = ''
+        pattern:
+          name: "acme"
+      '';
     };
   };
 
