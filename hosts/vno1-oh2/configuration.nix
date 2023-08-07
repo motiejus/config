@@ -189,10 +189,10 @@
     requiredBy = ["nsd.service"];
     before = ["nsd.service"];
     unitConfig.ConditionPathExists = [
-      "!/etc/nsd/nsd_control.key"
-      "!/etc/nsd/nsd_control.pem"
-      "!/etc/nsd/nsd_server.key"
-      "!/etc/nsd/nsd_server.pem"
+      "|!/etc/nsd/nsd_control.key"
+      "|!/etc/nsd/nsd_control.pem"
+      "|!/etc/nsd/nsd_server.key"
+      "|!/etc/nsd/nsd_server.pem"
     ];
     serviceConfig = {
       Type = "oneshot";
