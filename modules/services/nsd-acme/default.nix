@@ -186,6 +186,25 @@ in {
       )
       config.mj.services.nsd-acme.zones;
 
-    mj.base.unitstatus.units = lib.mkIf config.mj.base.unitstatus.enable ["nsd-control-setup"];
+    systemd.timers =
+      lib.mapAttrs'
+      (
+        zone: cfg:
+          lib.nameValuePair "nsd-acme-${lib.strings.sanitizeDerivationName zone}" {
+            description = "nsd-acme for zone ${zone}";
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnCalendar = "*-*-* 01:30";
+            };
+            after = ["network-online.target"];
+          }
+      )
+      config.mj.services.nsd-acme.zones;
+
+    mj.base.unitstatus.units = let
+      zones = config.mj.services.nsd-acme.zones;
+      sanitized = map lib.strings.sanitizeDerivationName (lib.attrNames zones);
+    in
+      lib.mkIf config.mj.base.unitstatus.enable (["nsd-control-setup"] ++ map (n: "nsd-acme-${n}") sanitized);
   };
 }
