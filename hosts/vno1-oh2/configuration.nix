@@ -74,6 +74,7 @@
         enable = true;
         zones."grafana.jakstys.lt" = {
           accountKey = config.age.secrets.letsencrypt-account-key.path;
+          staging = true;
         };
       };
 
