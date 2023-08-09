@@ -70,6 +70,14 @@
         myData.ports.exporters.node
       ];
 
+      nsd-acme = {
+        enable = true;
+        zones."grafana.jakstys.lt" = {
+          accountKey = config.age.secrets.letsencrypt-account-key.path;
+          staging = true;
+        };
+      };
+
       deployerbot = {
         main = {
           enable = true;
@@ -172,34 +180,11 @@
 
     nsd = {
       enable = true;
-      remoteControl.enable = true;
       interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
       };
-      extraConfig = ''
-        pattern:
-          name: "acme"
-          zonefile: "/var/lib/nsd/zones/%s."
-      '';
     };
-  };
-
-  systemd.services.nsd-control-setup = {
-    requiredBy = ["nsd.service"];
-    before = ["nsd.service"];
-    unitConfig.ConditionPathExists = [
-      "|!/etc/nsd/nsd_control.key"
-      "|!/etc/nsd/nsd_control.pem"
-      "|!/etc/nsd/nsd_server.key"
-      "|!/etc/nsd/nsd_server.pem"
-    ];
-    serviceConfig = {
-      Type = "oneshot";
-      UMask = 0077;
-    };
-    path = [pkgs.nsd pkgs.openssl];
-    script = ''nsd-control-setup'';
   };
 
   networking = {
