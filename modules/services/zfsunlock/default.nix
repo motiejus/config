@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  unlock = {
+  mkUnlock = {
     sshEndpoint,
     pingEndpoint,
     remotePubkey,
@@ -56,7 +56,7 @@ in {
         name: cfg:
           lib.nameValuePair "zfsunlock-${name}" {
             description = "zfsunlock service for ${name}";
-            script = unlock (builtins.removeAttrs cfg ["startAt"]);
+            script = mkUnlock (builtins.removeAttrs cfg ["startAt"]);
             serviceConfig = {
               User = "root";
               ProtectSystem = "strict";
