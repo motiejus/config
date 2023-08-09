@@ -123,18 +123,18 @@ in {
             path = [pkgs.openssh pkgs.nsd];
             preStart = ''
               mkdir -p "$STATE_DIRECTORY/private"
-              ln -sf "$CREDENTIALS_DIRECTORY/letsenctypt-account.key" \
+              ln -sf "$CREDENTIALS_DIRECTORY/letsencrypt-account-key" \
                 "$STATE_DIRECTORY/private/key.pem"
             '';
             serviceConfig = {
               ExecStart = let
                 hook = mkHook zone;
-                days = "--days ${builtins.toString cfg.days}";
+                days = builtins.toString cfg.days;
                 staging =
                   if cfg.staging
                   then "--staging"
                   else "";
-              in "${pkgs.uacme} --verbose --days ${days} --hook ${hook} ${staging} issue ${zone}";
+              in "${pkgs.uacme}/bin/uacme -c \"$STATE_DIRECTORY\" --verbose --days ${days} --hook ${hook} ${staging} issue ${zone}";
               DynamicUser = "yes";
               StateDirectory = "nsd-acme/${sanitized}";
               RuntimeDirectory = "nsd-acme/${sanitized}";
@@ -145,7 +145,7 @@ in {
                 "nsd_control.pem:${rc.controlCertFile}"
                 "nsd_server.key:${rc.serverKeyFile}"
                 "nsd_server.pem:${rc.serverCertFile}"
-                "letsencrypt-account.key:${cfg.accountKey}"
+                "letsencrypt-account-key:${cfg.accountKey}"
               ];
             };
           }
