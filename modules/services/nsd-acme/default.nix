@@ -143,6 +143,7 @@ in {
               StateDirectory = "nsd-acme/${sanitized}";
               LoadCredential = ["letsencrypt-account-key:${cfg.accountKey}"];
               ReadWritePaths = ["/var/lib/nsd/acmezones"];
+              SuccessExitStatus = [0 1];
 
               # from nixos/modules/security/acme/default.nix
               ProtectSystem = "strict";
