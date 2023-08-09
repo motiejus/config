@@ -91,5 +91,10 @@ rec {
     _acme-challenge.grafana   600 CNAME     _acme-endpoint.grafana
     _acme-endpoint.grafana    600    NS     ns._acme-endpoint.grafana
     ns._acme-endpoint.grafana 600     A     ${vno1}
+
+    grafana1                   600     A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.grafana1   600 CNAME     _acme-endpoint.grafana1
+    _acme-endpoint.grafana1    600    NS     ns._acme-endpoint.grafana1
+    ns._acme-endpoint.grafana1 600     A     ${vno1}
   '';
 }

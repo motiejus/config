@@ -7,22 +7,14 @@
   mkHook = zone: let
     rc = config.services.nsd.remoteControl;
     fullZone = "_acme-endpoint.${zone}";
-    nsdconf = ''"$RUNTIME_DIRECTORY"/nsd.conf'';
   in
     pkgs.writeShellScript "nsd-acme-hook" ''
-      set -euo pipefail
+      set -xeuo pipefail
       METHOD=$1
       TYPE=$2
       AUTH=$5
       NOW=$(date +%y%m%d%H%M)
-      DIR="/var/lib/nsd/zones"
-
-      sed \
-        -e "s~${rc.controlKeyFile}~$CREDENTIALS_DIRECTORY/nsd_control.key~" \
-        -e "s~${rc.controlCertFile}~$CREDENTIALS_DIRECTORY/nsd_control.pem~" \
-        -e "s~${rc.serverKeyFile}~$CREDENTIALS_DIRECTORY/nsd_server.key~" \
-        -e "s~${rc.serverCertFile}~$CREDENTIALS_DIRECTORY/nsd_server.pem~" \
-        /etc/nsd/nsd.conf > ${nsdconf}
+      DIR="/var/lib/nsd/acmezones"
 
       [ "$TYPE" != "dns-01" ] && { echo "Skipping $TYPE"; exit 1; }
 
@@ -37,25 +29,27 @@
 
       cleanup() {
           nsd-control delzone ${fullZone}
-          rm -f "$DIR/${fullZone}.acme"
+          rm -f "$DIR/${fullZone}.zone"
       }
+
+      mkdir -p "$DIR"
 
       case "$METHOD" in
           begin)
               echo "Deleting previous ${fullZone} if exists ..."
-              nsd-control -c ${nsdconf} delzone ${fullZone} || :
-              write_zone > "$DIR/${fullZone}.acme"
+              nsd-control delzone ${fullZone} || :
+              write_zone > "$DIR/${fullZone}.zone"
 
               echo "Activating ${fullZone}"
-              nsd-control -c ${nsdconf} addzone ${fullZone} acme
+              nsd-control addzone ${fullZone} acme
               ;;
           done)
               echo "ACME request successful, cleaning up"
               cleanup
               ;;
           failed)
-              echo "ACME request failed, cleaning up"
-              cleanup
+              echo "ACME request failed, not cleaning up"
+              #cleanup
               ;;
       esac
     '';
@@ -89,8 +83,12 @@ in {
     services.nsd.extraConfig = ''
       pattern:
         name: "acme"
-        zonefile: "/var/lib/nsd/zones/%s.acme"
+        zonefile: "/var/lib/nsd/acmezones/%s.zone"
     '';
+
+    systemd.tmpfiles.rules = [
+      "d /var/lib/nsd/acmezones 0755 nsd nsd -"
+    ];
 
     systemd.services =
       {
@@ -108,8 +106,11 @@ in {
           serviceConfig = {
             Type = "oneshot";
             UMask = 0077;
-            ExecStart = "${pkgs.nsd}/bin/nsd-control-setup";
           };
+          script = ''
+            ${pkgs.nsd}/bin/nsd-control-setup
+            chown nsd:nsd /etc/nsd/nsd_{control,server}.{key,pem}
+          '';
           path = [pkgs.openssl];
         };
       }
@@ -122,9 +123,9 @@ in {
             description = "dns-01 acme update for ${zone}";
             path = [pkgs.openssh pkgs.nsd];
             preStart = ''
-              mkdir -p "$STATE_DIRECTORY/private"
+              mkdir -p "$STATE_DIRECTORY/${sanitized}/private"
               ln -sf "$CREDENTIALS_DIRECTORY/letsencrypt-account-key" \
-                "$STATE_DIRECTORY/private/key.pem"
+                "$STATE_DIRECTORY/${sanitized}/private/key.pem"
             '';
             serviceConfig = {
               ExecStart = let
@@ -134,18 +135,50 @@ in {
                   if cfg.staging
                   then "--staging"
                   else "";
-              in "${pkgs.uacme}/bin/uacme -c \"$STATE_DIRECTORY\" --verbose --days ${days} --hook ${hook} ${staging} issue ${zone}";
-              DynamicUser = "yes";
+              in "${pkgs.uacme}/bin/uacme -c \${STATE_DIRECTORY} --verbose --days ${days} --hook ${hook} ${staging} issue ${zone}";
+
+              UMask = "0022";
+              User = "nsd";
+              Group = "nsd";
               StateDirectory = "nsd-acme/${sanitized}";
-              RuntimeDirectory = "nsd-acme/${sanitized}";
-              LoadCredential = let
-                rc = config.services.nsd.remoteControl;
-              in [
-                "nsd_control.key:${rc.controlKeyFile}"
-                "nsd_control.pem:${rc.controlCertFile}"
-                "nsd_server.key:${rc.serverKeyFile}"
-                "nsd_server.pem:${rc.serverCertFile}"
-                "letsencrypt-account-key:${cfg.accountKey}"
+              LoadCredential = ["letsencrypt-account-key:${cfg.accountKey}"];
+              ReadWritePaths = ["/var/lib/nsd/acmezones"];
+
+              # from nixos/modules/security/acme/default.nix
+              ProtectSystem = "strict";
+              PrivateTmp = true;
+              CapabilityBoundingSet = [""];
+              DevicePolicy = "closed";
+              LockPersonality = true;
+              MemoryDenyWriteExecute = true;
+              NoNewPrivileges = true;
+              PrivateDevices = true;
+              ProtectClock = true;
+              ProtectHome = true;
+              ProtectHostname = true;
+              ProtectControlGroups = true;
+              ProtectKernelLogs = true;
+              ProtectKernelModules = true;
+              ProtectKernelTunables = true;
+              ProtectProc = "invisible";
+              ProcSubset = "pid";
+              RemoveIPC = true;
+              # "cannot get devices"
+              #RestrictAddressFamilies = [
+              #  "AF_INET"
+              #  "AF_INET6"
+              #];
+              RestrictNamespaces = true;
+              RestrictRealtime = true;
+              RestrictSUIDSGID = true;
+              SystemCallArchitectures = "native";
+              SystemCallFilter = [
+                # 1. allow a reasonable set of syscalls
+                "@system-service @resources"
+                # 2. and deny unreasonable ones
+                "~@privileged"
+                # 3. then allow the required subset within denied groups
+                "@chown"
               ];
             };
           }
