@@ -72,9 +72,9 @@
 
       nsd-acme = {
         enable = true;
-        zones."grafana1.jakstys.lt" = {
+        zones."grafana.jakstys.lt" = {
           accountKey = config.age.secrets.letsencrypt-account-key.path;
-          staging = true;
+          staging = false;
         };
       };
 

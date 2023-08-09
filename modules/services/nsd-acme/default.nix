@@ -9,7 +9,7 @@
     fullZone = "_acme-endpoint.${zone}";
   in
     pkgs.writeShellScript "nsd-acme-hook" ''
-      set -xeuo pipefail
+      set -euo pipefail
       METHOD=$1
       TYPE=$2
       AUTH=$5
@@ -48,8 +48,8 @@
               cleanup
               ;;
           failed)
-              echo "ACME request failed, not cleaning up"
-              #cleanup
+              echo "ACME request failed, cleaning up"
+              cleanup
               ;;
       esac
     '';
@@ -123,9 +123,9 @@ in {
             description = "dns-01 acme update for ${zone}";
             path = [pkgs.openssh pkgs.nsd];
             preStart = ''
-              mkdir -p "$STATE_DIRECTORY/${sanitized}/private"
+              mkdir -p "$STATE_DIRECTORY/private"
               ln -sf "$CREDENTIALS_DIRECTORY/letsencrypt-account-key" \
-                "$STATE_DIRECTORY/${sanitized}/private/key.pem"
+                "$STATE_DIRECTORY/private/key.pem"
             '';
             serviceConfig = {
               ExecStart = let
