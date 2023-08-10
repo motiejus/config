@@ -37,6 +37,7 @@
           description = "Update all known systems";
           environment = {TZ = "UTC";};
           path = [pkgs.git pkgs.openssh pkgs.nix];
+          restartIfChanged = false;
           serviceConfig = {
             Type = "oneshot";
             User = "deployerbot-main";
