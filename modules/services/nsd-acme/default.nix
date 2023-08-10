@@ -16,7 +16,7 @@
       NOW=$(date +%y%m%d%H%M)
       DIR="/var/lib/nsd/acmezones"
 
-      [ "$TYPE" != "dns-01" ] && { echo "Skipping $TYPE"; exit 1; }
+      [ "$TYPE" != "dns-01" ] && { exit 1; }
 
       write_zone() {
           cat <<EOF
@@ -36,19 +36,14 @@
 
       case "$METHOD" in
           begin)
-              echo "Deleting previous ${fullZone} if exists ..."
               nsd-control delzone ${fullZone} || :
               write_zone > "$DIR/${fullZone}.zone"
-
-              echo "Activating ${fullZone}"
               nsd-control addzone ${fullZone} acme
               ;;
           done)
-              echo "ACME request successful, cleaning up"
               cleanup
               ;;
           failed)
-              echo "ACME request failed, cleaning up"
               cleanup
               ;;
       esac
@@ -86,9 +81,7 @@ in {
         zonefile: "/var/lib/nsd/acmezones/%s.zone"
     '';
 
-    systemd.tmpfiles.rules = [
-      "d /var/lib/nsd/acmezones 0755 nsd nsd -"
-    ];
+    systemd.tmpfiles.rules = ["d /var/lib/nsd/acmezones 0755 nsd nsd -"];
 
     systemd.services =
       {
@@ -203,7 +196,7 @@ in {
       lib.mkIf config.mj.base.unitstatus.enable
       (
         ["nsd-control-setup"]
-        ++ map (n: "nsd-acme-${n}")
+        ++ map (z: "nsd-acme-${z}")
         (lib.attrNames config.mj.services.nsd-acme.zones)
       );
   };
