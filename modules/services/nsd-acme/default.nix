@@ -116,10 +116,8 @@ in {
       }
       // lib.mapAttrs'
       (
-        zone: cfg: let
-          sanitized = lib.strings.sanitizeDerivationName zone;
-        in
-          lib.nameValuePair "nsd-acme-${sanitized}" {
+        zone: cfg:
+          lib.nameValuePair "nsd-acme-${zone}" {
             description = "dns-01 acme update for ${zone}";
             path = [pkgs.openssh pkgs.nsd];
             preStart = ''
@@ -140,7 +138,7 @@ in {
               UMask = "0022";
               User = "nsd";
               Group = "nsd";
-              StateDirectory = "nsd-acme/${sanitized}";
+              StateDirectory = "nsd-acme/${zone}";
               LoadCredential = ["letsencrypt-account-key:${cfg.accountKey}"];
               ReadWritePaths = ["/var/lib/nsd/acmezones"];
               SuccessExitStatus = [0 1];
@@ -190,7 +188,7 @@ in {
       lib.mapAttrs'
       (
         zone: cfg:
-          lib.nameValuePair "nsd-acme-${lib.strings.sanitizeDerivationName zone}" {
+          lib.nameValuePair "nsd-acme-${zone}" {
             description = "nsd-acme for zone ${zone}";
             wantedBy = ["timers.target"];
             timerConfig = {
@@ -201,10 +199,12 @@ in {
       )
       config.mj.services.nsd-acme.zones;
 
-    mj.base.unitstatus.units = let
-      zones = config.mj.services.nsd-acme.zones;
-      sanitized = map lib.strings.sanitizeDerivationName (lib.attrNames zones);
-    in
-      lib.mkIf config.mj.base.unitstatus.enable (["nsd-control-setup"] ++ map (n: "nsd-acme-${n}") sanitized);
+    mj.base.unitstatus.units =
+      lib.mkIf config.mj.base.unitstatus.enable
+      (
+        ["nsd-control-setup"]
+        ++ map (n: "nsd-acme-${n}")
+        (lib.attrNames config.mj.services.nsd-acme.zones)
+      );
   };
 }
