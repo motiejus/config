@@ -159,9 +159,13 @@
         };
         users.auto_assign_org = true;
         users.auto_assign_org_role = "Editor";
+
+        # https://github.com/grafana/grafana/issues/70203#issuecomment-1612823390
         auth.oauth_allow_insecure_email_lookup = true;
+
         "auth.generic_oauth" = {
           enabled = true;
+          auto_login = true;
           client_id = "5349c113-467d-4b95-a61b-264f2d844da8";
           client_secret = "$__file{/run/grafana/oidc-secret}";
           auth_url = "https://git.jakstys.lt/login/oauth/authorize";
