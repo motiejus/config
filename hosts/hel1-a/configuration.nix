@@ -158,8 +158,10 @@
         };
         oidc = {
           issuer = "https://git.jakstys.lt/";
-          client_id = "1c5fe796-452c-458d-b295-71a9967642fc";
-          client_secret_path = "/var/lib/headscale/oidc_client_secret"; # TODO move to secrets
+          client_id = "e25c15ea-41ca-4bf0-9ebf-2be9f2d1ccea";
+          # TODO https://github.com/NixOS/nixpkgs/pull/249101/files
+          #client_secret_path = "\${CREDENTIALS_DIRECTORY}/oidc-client-secret";
+          client_secret_path = "/run/credentials/headscale.service/oidc-client-secret";
         };
       };
     };
@@ -402,6 +404,9 @@
       # is higher.
       unitConfig.StartLimitBurst = 50;
       serviceConfig.RestartSec = 1;
+      serviceConfig.LoadCredential = [
+        "oidc-client-secret:${config.age.secrets.headscale-client-oidc.path}"
+      ];
     };
 
     matrix-synapse = let
