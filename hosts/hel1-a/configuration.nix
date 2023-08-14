@@ -407,7 +407,7 @@
     matrix-synapse = let
       # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
       secretsScript = pkgs.writeShellScript "write-secrets" ''
-        set -euo pipefail
+        set -xeuo pipefail
         umask 077
         ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
         cat > /run/matrix-synapse/secrets.yaml <<EOF
