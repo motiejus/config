@@ -63,8 +63,9 @@
     };
 
     services = {
-      # TODO move to grafana service lib
       friendlyport.vpn.ports = [
+        80
+        443
         myData.ports.grafana
         myData.ports.prometheus
         myData.ports.exporters.node
@@ -120,6 +121,18 @@
 
   services = {
     tailscale.enable = true;
+
+    caddy = {
+      enable = true;
+      acmeCA = null;
+      virtualHosts."grafana.jakstys.lt" = {
+        extraConfig = ''
+          encode gzip
+          reverse_proxy 127.0.0.1:3000
+          tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+        '';
+      };
+    };
 
     grafana = {
       enable = true;
@@ -187,6 +200,48 @@
     };
   };
 
+  systemd.services = {
+    caddy = let
+      grafanaZone = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+    in {
+      unitConfig.ConditionPathExists = [
+        grafanaZone.certFile
+        grafanaZone.keyFile
+      ];
+      serviceConfig.LoadCredential = [
+        "grafana.jakstys.lt-cert.pem:${grafanaZone.certFile}"
+        "grafana.jakstys.lt-key.pem:${grafanaZone.keyFile}"
+      ];
+      after = ["nsd-acme-grafana.jakstys.lt.service"];
+      wants = ["nsd-acme-grafana.jakstys.lt.service"];
+    };
+
+    cert-watcher = {
+      description = "Restart caddy when tls keys/certs change";
+      wantedBy = ["multi-user.target"];
+      unitConfig = {
+        StartLimitIntervalSec = 10;
+        StartLimitBurst = 5;
+      };
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.systemd}/bin/systemctl restart caddy.service";
+      };
+    };
+  };
+
+  systemd.paths = {
+    cert-watcher = {
+      wantedBy = ["multi-user.target"];
+      pathConfig = {
+        PathChanged = [
+          config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
+        ];
+        Unit = "cert-watcher.service";
+      };
+    };
+  };
+
   networking = {
     hostId = "f9117e1b";
     hostName = "vno1-oh2";
@@ -200,8 +255,8 @@
       }
     ];
     firewall = {
-      allowedUDPPorts = [53];
-      allowedTCPPorts = [53];
+      allowedUDPPorts = [53 80 443];
+      allowedTCPPorts = [53 80 443];
       logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };

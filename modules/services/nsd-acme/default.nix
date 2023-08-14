@@ -55,7 +55,7 @@ in {
     zones = lib.mkOption {
       default = {};
       type = attrsOf (submodule (
-        {...}: {
+        {name, ...}: {
           options = {
             accountKey = lib.mkOption {type = path;};
             days = lib.mkOption {
@@ -65,6 +65,17 @@ in {
             staging = lib.mkOption {
               type = bool;
               default = false;
+            };
+
+            # Warning: paths here are here to be read from. Changing them will
+            # not place the files somewhere else.
+            certFile = lib.mkOption {
+              type = str;
+              default = "/var/lib/nsd-acme/${name}/${name}/cert.pem";
+            };
+            keyFile = lib.mkOption {
+              type = str;
+              default = "/var/lib/nsd-acme/${name}/private/${name}/key.pem";
             };
           };
         }
