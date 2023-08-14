@@ -127,7 +127,6 @@
       acmeCA = null;
       virtualHosts."grafana.jakstys.lt" = {
         extraConfig = ''
-          encode gzip
           reverse_proxy 127.0.0.1:3000
           tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
         '';
@@ -152,9 +151,9 @@
       };
       settings = {
         server = {
-          # TODO tailscale service?
-          domain = "${config.networking.hostName}.${config.networking.domain}";
-          # NB: this was tailscale0 before, now controlled via firewall.
+          domain = "grafana.jakstys.lt";
+          root_url = "https://grafana.jakstys.lt";
+          enable_gzip = true;
           http_addr = "0.0.0.0";
           http_port = myData.ports.grafana;
         };
