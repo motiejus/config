@@ -157,6 +157,8 @@
           http_addr = "0.0.0.0";
           http_port = myData.ports.grafana;
         };
+        users.auto_assign_org = true;
+        users.auto_assign_org_role = "Editor";
         auth.oauth_allow_insecure_email_lookup = true;
         "auth.generic_oauth" = {
           enabled = true;
