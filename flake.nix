@@ -64,7 +64,6 @@
 
             age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-            age.secrets.turn-static-auth-secret.file = ./secrets/hel1-a/turn/static_auth_secret.age;
             age.secrets.synapse-jakstys-signing-key.file = ./secrets/hel1-a/synapse/jakstys_lt_signing_key.age;
             age.secrets.synapse-registration-shared-secret.file = ./secrets/hel1-a/synapse/registration_shared_secret.age;
             age.secrets.synapse-macaroon-secret-key.file = ./secrets/hel1-a/synapse/macaroon_secret_key.age;

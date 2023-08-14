@@ -5,9 +5,7 @@
   agenix,
   myData,
   ...
-}: let
-  turn_cert_dir = "/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/turn.jakstys.lt";
-in {
+}: {
   imports = [
     ./hardware-configuration.nix
     ./zfs.nix
@@ -223,9 +221,6 @@ in {
       virtualHosts."git.jakstys.lt".extraConfig = ''
         reverse_proxy 127.0.0.1:3000
       '';
-      virtualHosts."turn.jakstys.lt".extraConfig = ''
-        redir https://jakstys.lt
-      '';
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
       '';
@@ -271,25 +266,6 @@ in {
       };
     };
 
-    coturn = {
-      enable = true;
-      min-port = 49152;
-      max-port = 49999;
-      no-tcp-relay = true;
-      realm = "turn.jakstys.lt";
-      cert = "/run/coturn/tls-cert.pem";
-      pkey = "/run/coturn/tls-key.pem";
-      static-auth-secret-file = "\${CREDENTIALS_DIRECTORY}/static-auth-secret";
-      extraConfig = ''
-        verbose
-        no-multicast-peers
-        denied-peer-ip=10.0.0.0-10.255.255.255
-        denied-peer-ip=192.168.0.0-192.168.255.255
-        denied-peer-ip=172.16.0.0-172.31.255.255
-        denied-peer-ip=${myData.tailscale_subnet.range}
-      '';
-    };
-
     # TODO: app_service_config_files
     matrix-synapse = {
       enable = true;
@@ -321,13 +297,6 @@ in {
         database.name = "sqlite3";
         url_preview_enabled = false;
         max_upload_size = "50M";
-        turn_allow_guests = false;
-        turn_uris = [
-          "turn:turn.jakstys.lt:3487?transport=udp"
-          "turn:turn.jakstys.lt:3487?transport=tcp"
-          "turns:turn.jakstys.lt:5349?transport=udp"
-          "turns:turn.jakstys.lt:5349?transport=tcp"
-        ];
         rc_messages_per_second = 0.2;
         rc_message_burst_count = 10.0;
         federation_rc_window_size = 1000;
@@ -402,29 +371,19 @@ in {
   networking = {
     hostName = "hel1-a";
     domain = "servers.jakst";
-    firewall = let
-      coturn = with config.services.coturn; [
-        {
-          from = min-port;
-          to = max-port;
-        }
-      ];
-    in {
+    firewall = {
       allowedTCPPorts = [
         53
         80
         443
-        3478 # turn/headscale
-        5349 # turn
-        5350 # turn
+        3478 # headscale
       ];
       allowedUDPPorts = [
         53
         443
-        3478 # turn
+        3478 # headscale
         41641 # tailscale
       ];
-      allowedUDPPortRanges = coturn;
       logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
@@ -435,22 +394,6 @@ in {
   ];
 
   systemd.services = {
-    coturn = {
-      preStart = ''
-        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-key.pem /run/coturn/tls-key.pem
-        ln -sf ''${CREDENTIALS_DIRECTORY}/tls-cert.pem /run/coturn/tls-cert.pem
-      '';
-      unitConfig.ConditionPathExists = [
-        "${turn_cert_dir}/turn.jakstys.lt.key"
-        "${turn_cert_dir}/turn.jakstys.lt.crt"
-      ];
-      serviceConfig.LoadCredential = [
-        "static-auth-secret:${config.age.secrets.turn-static-auth-secret.path}"
-        "tls-key.pem:${turn_cert_dir}/turn.jakstys.lt.key"
-        "tls-cert.pem:${turn_cert_dir}/turn.jakstys.lt.crt"
-      ];
-    };
-
     headscale = {
       unitConfig.StartLimitIntervalSec = "5m";
 
@@ -470,7 +413,6 @@ in {
         cat > /run/matrix-synapse/secrets.yaml <<EOF
         registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
         macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
-        turn_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/turn_shared_secret)"
         EOF
       '';
     in {
@@ -479,31 +421,8 @@ in {
         "jakstys_lt_signing_key:${config.age.secrets.synapse-jakstys-signing-key.path}"
         "registration_shared_secret:${config.age.secrets.synapse-registration-shared-secret.path}"
         "macaroon_secret_key:${config.age.secrets.synapse-macaroon-secret-key.path}"
-        "turn_shared_secret:${config.age.secrets.turn-static-auth-secret.path}"
       ];
     };
 
-    cert-watcher = {
-      description = "Restart coturn when tls key/cert changes";
-      wantedBy = ["multi-user.target"];
-      unitConfig = {
-        StartLimitIntervalSec = 10;
-        StartLimitBurst = 5;
-      };
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.systemd}/bin/systemctl restart coturn.service";
-      };
-    };
-  };
-
-  systemd.paths = {
-    cert-watcher = {
-      wantedBy = ["multi-user.target"];
-      pathConfig = {
-        PathChanged = "${turn_cert_dir}/turn.jakstys.lt.crt";
-        Unit = "cert-watcher.service";
-      };
-    };
   };
 }

@@ -10,7 +10,6 @@ let
 in {
   # hel1-a + motiejus
   "secrets/hel1-a/borgbackup/password.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/hel1-a/turn/static_auth_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/jakstys_lt_signing_key.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/registration_shared_secret.age".publicKeys = [hel1-a] ++ motiejus;
   "secrets/hel1-a/synapse/macaroon_secret_key.age".publicKeys = [hel1-a] ++ motiejus;
