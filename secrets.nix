@@ -7,21 +7,31 @@ let
   hel1-a = (import ./data.nix).hosts."hel1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   systems = [hel1-a vno1-oh2];
-in {
-  # hel1-a + motiejus
-  "secrets/hel1-a/borgbackup/password.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/hel1-a/synapse/jakstys_lt_signing_key.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/hel1-a/synapse/registration_shared_secret.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/hel1-a/synapse/macaroon_secret_key.age".publicKeys = [hel1-a] ++ motiejus;
-  "secrets/vno1-oh2/zfs-passphrase.age".publicKeys = [hel1-a] ++ motiejus;
 
-  # vno1-oh2 + motiejus
-  "secrets/hel1-a/zfs-passphrase.age".publicKeys = [vno1-oh2] ++ motiejus;
-  "secrets/vno1-oh2/borgbackup/password.age".publicKeys = [vno1-oh2] ++ motiejus;
-  "secrets/letsencrypt/account.key.age".publicKeys = [vno1-oh2] ++ motiejus;
-
-  # everywhere + motiejus
-  "secrets/motiejus_passwd_hash.age".publicKeys = systems ++ motiejus;
-  "secrets/root_passwd_hash.age".publicKeys = systems ++ motiejus;
-  "secrets/postfix_sasl_passwd.age".publicKeys = systems ++ motiejus;
-}
+  mk = auth:
+    listToAttrs (
+      map (keyName: {
+        name = key;
+        value = {publicKeys = auth;};
+      })
+      keys
+    );
+in
+  {}
+  // mk ([hel1-a] ++ motiejus) [
+    "secrets/hel1-a/borgbackup/password.age"
+    "secrets/hel1-a/synapse/jakstys_lt_signing_key.age"
+    "secrets/hel1-a/synapse/registration_shared_secret.age"
+    "secrets/hel1-a/synapse/macaroon_secret_key.age"
+    "secrets/vno1-oh2/zfs-passphrase.age"
+  ]
+  // mk ([vno1-oh2] ++ motiejus) [
+    "secrets/hel1-a/zfs-passphrase.age"
+    "secrets/vno1-oh2/borgbackup/password.age"
+    "secrets/letsencrypt/account.key.age"
+  ]
+  // mk (systems ++ motiejus) [
+    "secrets/motiejus_passwd_hash.age"
+    "secrets/root_passwd_hash.age"
+    "secrets/postfix_sasl_passwd.age"
+  ]

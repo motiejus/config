@@ -423,6 +423,5 @@
         "macaroon_secret_key:${config.age.secrets.synapse-macaroon-secret-key.path}"
       ];
     };
-
   };
 }
