@@ -29,6 +29,7 @@ in
   // mk ([vno1-oh2] ++ motiejus) [
     "secrets/hel1-a/zfs-passphrase.age"
     "secrets/vno1-oh2/borgbackup/password.age"
+    "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
   ]
   // mk (systems ++ motiejus) [

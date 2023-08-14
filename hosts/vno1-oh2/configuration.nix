@@ -157,6 +157,16 @@
           http_addr = "0.0.0.0";
           http_port = myData.ports.grafana;
         };
+        auth.oauth_allow_insecure_email_lookup = true;
+        "auth.generic_oauth" = {
+          enabled = true;
+          client_id = "5349c113-467d-4b95-a61b-264f2d844da8";
+          client_secret = "$__file{/run/grafana/oidc-secret}";
+          auth_url = "https://git.jakstys.lt/login/oauth/authorize";
+          api_url = "https://git.jakstys.lt/login/oauth/userinfo";
+          token_url = "https://git.jakstys.lt/login/oauth/access_token";
+        };
+        feature_toggles.accessTokenExpirationCheck = true;
       };
     };
 
@@ -213,6 +223,14 @@
       ];
       after = ["nsd-acme-grafana.jakstys.lt.service"];
       wants = ["nsd-acme-grafana.jakstys.lt.service"];
+    };
+
+    grafana = {
+      preStart = "ln -sf $CREDENTIALS_DIRECTORY/oidc /run/grafana/oidc-secret";
+      serviceConfig = {
+        RuntimeDirectory = "grafana";
+        LoadCredential = ["oidc:${config.age.secrets.grafana-oidc.path}"];
+      };
     };
 
     cert-watcher = {
