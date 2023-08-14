@@ -8,17 +8,18 @@ let
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   systems = [hel1-a vno1-oh2];
 
-  mk = auth:
-    listToAttrs (
+  mk = auth: keyNames:
+    builtins.listToAttrs (
       map (keyName: {
-        name = key;
+        name = keyName;
         value = {publicKeys = auth;};
       })
-      keys
+      keyNames
     );
 in
   {}
   // mk ([hel1-a] ++ motiejus) [
+    "secrets/hel1-a/headscale/oidc_client_secret2.age"
     "secrets/hel1-a/borgbackup/password.age"
     "secrets/hel1-a/synapse/jakstys_lt_signing_key.age"
     "secrets/hel1-a/synapse/registration_shared_secret.age"
