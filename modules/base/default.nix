@@ -91,6 +91,7 @@
         bsdgames
         binutils
         moreutils
+        perf-tools
         unixtools.xxd
 
         # networking
