@@ -7,9 +7,9 @@ Flakes:
 
     $ nix build .#deploy.nodes.hel1-a.profiles.system.path
 
-VM:
+Other:
 
-    $ nix build .#nixosConfigurations.vm.config.system.build.vm
+    $ nix build .#nixosConfigurations.vno1-rp3b.config.system.build.toplevel
 
 Encoding host-only secrets
 --------------------------
