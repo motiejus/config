@@ -82,6 +82,8 @@
     libraspberrypi
   ];
 
+  nixpkgs.hostPlatform = "aarch64-linux";
+
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
