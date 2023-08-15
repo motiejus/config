@@ -147,7 +147,7 @@
           system = {
             sshUser = "root";
             path =
-              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
+              deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
             user = "root";
           };
         };
