@@ -13,7 +13,7 @@
   hardware.enableRedistributableFirmware = true;
 
   boot.initrd.availableKernelModules = ["usbhid"];
-  boot.initrd.kernelModules = [];
+  boot.initrd.kernelModules = ["vc4" "bcm2835_dma" "i2c_bcm2835"];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.kernelModules = [];
   boot.extraModulePackages = [];
@@ -73,6 +73,14 @@
 
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
+
+  boot.loader.raspberryPi.firmwareConfig = ''
+    dtparam=audio=on
+  '';
+
+  environment.systemPackages = with pkgs; [
+    libraspberrypi
+  ];
 
   security.rtkit.enable = true;
   services.pipewire = {
