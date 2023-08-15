@@ -99,17 +99,6 @@
       };
 
       nixosConfigurations.vno1-rp3b = nixpkgs.lib.nixosSystem {
-        # unstable
-        #pkgs = import nixpkgs {
-        #  hostPlatform.config = "aarch64-linux";
-        #  buildPlatform.config = "x86_64-linux";
-        #};
-
-        pkgs = import nixpkgs {
-          system = "x86_64-linux";
-          crossSystem = "aarch64-linux";
-        };
-
         modules = [
           ./hosts/vno1-rp3b/configuration.nix
 
