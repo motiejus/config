@@ -151,17 +151,17 @@
         };
       };
 
-      deploy.nodes.vno1-rp3b = {
-        hostname = "192.168.189.66";
-        profiles = {
-          system = {
-            sshUser = "root";
-            path =
-              deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
-            user = "root";
-          };
-        };
-      };
+      #deploy.nodes.vno1-rp3b = {
+      #  hostname = "192.168.189.66";
+      #  profiles = {
+      #    system = {
+      #      sshUser = "root";
+      #      path =
+      #        deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
+      #      user = "root";
+      #    };
+      #  };
+      #};
 
       checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
     }
