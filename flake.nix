@@ -98,6 +98,25 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
+      nixosConfigurations.vno1-rp3b = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          ./hosts/vno1-rp3b/configuration.nix
+
+          ./modules
+
+          agenix.nixosModules.default
+
+          {
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+          }
+        ];
+
+        specialArgs = {inherit myData;} // inputs;
+      };
+
       deploy.nodes.hel1-a = {
         hostname = myData.hosts."hel1-a.servers.jakst".jakstIP;
         profiles = {
@@ -117,6 +136,18 @@
             sshUser = "motiejus";
             path =
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+            user = "root";
+          };
+        };
+      };
+
+      deploy.nodes.vno1-rp3b = {
+        hostname = "192.168.189.66";
+        profiles = {
+          system = {
+            sshUser = "root";
+            path =
+              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
             user = "root";
           };
         };

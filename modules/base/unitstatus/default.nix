@@ -9,7 +9,10 @@
   options.mj.base.unitstatus = with lib.types; {
     enable = lib.mkEnableOption "alert by email on unit failure";
     email = lib.mkOption {type = str;};
-    units = lib.mkOption {type = listOf str;};
+    units = lib.mkOption {
+      type = listOf str;
+      default = [];
+    };
   };
 
   config = lib.mkIf config.mj.base.unitstatus.enable {
