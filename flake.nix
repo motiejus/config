@@ -106,8 +106,8 @@
         #};
 
         pkgs = import nixpkgs {
-          system = "aarch64-linux";
-          crossSystem = "x86_64-linux";
+          system = "x86_64-linux";
+          crossSystem = "aarch64-linux";
         };
 
         modules = [
