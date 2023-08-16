@@ -55,7 +55,7 @@
     domain = "servers.jakst";
     defaultGateway = "192.168.189.4";
     nameservers = ["192.168.189.4"];
-    interfaces.enp3s0.ipv4.addresses = [
+    interfaces.enu1u1u1.ipv4.addresses = [
       {
         address = "192.168.189.5";
         prefixLength = 24;
