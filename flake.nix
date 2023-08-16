@@ -141,7 +141,7 @@
       };
 
       deploy.nodes.vno1-rp3b = {
-        hostname = "192.168.189.66";
+        hostname = "192.168.189.5";
         profiles = {
           system = {
             sshUser = "motiejus";
