@@ -73,6 +73,11 @@
     pulse.enable = true;
   };
 
+  users.extraUsers.kodi.isNormalUser = true;
+  services.cage.user = "kodi";
+  services.cage.program = "${pkgs.kodi-wayland}/bin/kodi-standalone";
+  services.cage.enable = true;
+
   networking = {
     hostId = "4bd17751";
     hostName = "vno1-rp3b";
@@ -86,8 +91,8 @@
       }
     ];
     firewall = {
-      allowedUDPPorts = [];
-      allowedTCPPorts = [];
+      allowedUDPPorts = [myData.ports.kodi];
+      allowedTCPPorts = [myData.ports.kodi];
       logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
@@ -104,6 +109,7 @@
 
   environment.systemPackages = with pkgs; [
     libraspberrypi
+    (kodi.passthru.withPackages (kodiPkgs: [kodiPkgs.youtube]))
   ];
 
   nixpkgs.hostPlatform = "aarch64-linux";

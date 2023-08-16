@@ -13,6 +13,7 @@ rec {
     exporters = {
       node = 9002;
     };
+    kodi = 8080;
   };
 
   people_pubkeys = {
