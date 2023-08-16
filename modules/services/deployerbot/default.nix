@@ -60,10 +60,11 @@
 
             nix flake update --accept-flake-config --commit-lock-file
 
-            nix run .#deploy-rs -- \
+            nix --accept-flake-config run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
-              --targets ${deployDerivationsStr}
+              --targets ${deployDerivationsStr} -- \
+                --accept-flake-config
 
             git push origin main
           '';
