@@ -45,6 +45,14 @@
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
+      deployerbot = {
+        follower = {
+          enable = true;
+          uidgid = myData.uidgid.updaterbot-deployee;
+          publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
+        };
+      };
+
       friendlyport.vpn.ports = [
         myData.ports.exporters.node
       ];
