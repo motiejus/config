@@ -28,6 +28,7 @@ rec {
       jakstIP = "100.89.176.4";
     };
     "vno1-rp3b.servers.jakst" = rec {
+      extraHostNames = [jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
       jakstIP = "100.89.176.2";
     };
