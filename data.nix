@@ -29,7 +29,7 @@ rec {
     };
     "vno1-rp3b.servers.jakst" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
-      jakstIP = "100.89.176.7";
+      jakstIP = "100.89.176.2";
     };
     "hel1-a.servers.jakst" = rec {
       extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt" publicIP jakstIP];

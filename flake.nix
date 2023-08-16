@@ -141,7 +141,7 @@
       };
 
       deploy.nodes.vno1-rp3b = {
-        hostname = "192.168.189.5";
+        hostname = myData.hosts."vno1-rp3b.servers.jakst".jakstIP;
         profiles = {
           system = {
             sshUser = "motiejus";
