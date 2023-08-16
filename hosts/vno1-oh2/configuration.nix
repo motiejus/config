@@ -205,6 +205,10 @@
           job_name = "hel1-a.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."hel1-a.servers.jakst".jakstIP}:${port}"];}];
         }
+        {
+          job_name = "vno1-rp3b.servers.jakst";
+          static_configs = [{targets = ["${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${port}"];}];
+        }
       ];
     };
 

@@ -44,10 +44,26 @@
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
+
+      friendlyport.vpn.ports = [
+        myData.ports.exporters.node
+      ];
     };
   };
 
+  services.prometheus.exporters.node = {
+    enable = true;
+    enabledCollectors = ["systemd" "processes"];
+    port = myData.ports.exporters.node;
+  };
   services.tailscale.enable = true;
+
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+  };
 
   networking = {
     hostId = "4bd17751";
@@ -85,10 +101,4 @@
   nixpkgs.hostPlatform = "aarch64-linux";
 
   security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
 }
