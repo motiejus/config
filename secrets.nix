@@ -6,7 +6,8 @@ let
 
   hel1-a = (import ./data.nix).hosts."hel1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
-  systems = [hel1-a vno1-oh2];
+  vno1-rp3b = (import ./data.nix).hosts."vno1-rp3b.servers.jakst".publicKey;
+  systems = [hel1-a vno1-oh2 vno1-rp3b];
 
   mk = auth: keyNames:
     builtins.listToAttrs (
