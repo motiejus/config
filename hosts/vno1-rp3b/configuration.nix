@@ -85,6 +85,12 @@
   services.cage.user = "kodi";
   services.cage.program = "${pkgs.kodi-wayland}/bin/kodi-standalone";
   services.cage.enable = true;
+  nixpkgs.config.kodi.enableAdvancedLauncher = true;
+
+  environment.systemPackages = with pkgs; [
+    libraspberrypi
+    #(kodi.passthru.withPackages (kodiPkgs: [kodiPkgs.youtube]))
+  ];
 
   networking = {
     hostId = "4bd17751";
@@ -105,11 +111,6 @@
       checkReversePath = "loose"; # for tailscale
     };
   };
-
-  environment.systemPackages = with pkgs; [
-    libraspberrypi
-    (kodi.passthru.withPackages (kodiPkgs: [kodiPkgs.youtube]))
-  ];
 
   nixpkgs.hostPlatform = "aarch64-linux";
 
