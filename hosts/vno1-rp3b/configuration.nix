@@ -15,7 +15,7 @@
   boot.initrd.availableKernelModules = ["usbhid"];
   boot.initrd.kernelModules = ["vc4" "bcm2835_dma" "i2c_bcm2835"];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
-  boot.kernelParams = ["cma=320M"]
+  boot.kernelParams = ["cma=320M"];
   boot.kernelModules = [];
   boot.extraModulePackages = [];
   boot.loader.grub.enable = false;
