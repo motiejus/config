@@ -153,7 +153,7 @@
         log.level = "warn";
         dns_config = {
           nameservers = ["1.1.1.1" "8.8.4.4"];
-          magic_dns = true;
+          magic_dns = false;
           base_domain = "jakst";
         };
         oidc = {
