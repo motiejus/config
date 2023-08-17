@@ -82,14 +82,31 @@
   };
 
   users.extraUsers.kodi.isNormalUser = true;
-  #services.cage.user = "kodi";
-  #services.cage.program = "${pkgs.kodi-wayland}/bin/kodi-standalone";
-  #services.cage.enable = true;
-  nixpkgs.config.kodi.enableAdvancedLauncher = true;
+  services.cage.user = "kodi";
+  services.cage.program = let
+    kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
+      kodiPkgs.youtube
+    ]);
+  in "${kodi-wayland}/bin/kodi-standalone";
+  services.cage.enable = true;
+
+  #services.greetd = {
+  #  enable = true;
+  #  settings = rec {
+  #    initial_session = let
+  #      kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
+  #        kodiPkgs.youtube
+  #      ]);
+  #    in {
+  #      command = "${kodi-wayland}/bin/kodi-standalone";
+  #      user = "kodi";
+  #    };
+  #    default_session = initial_session;
+  #  };
+  #};
 
   environment.systemPackages = with pkgs; [
     libraspberrypi
-    #(kodi.passthru.withPackages (kodiPkgs: [kodiPkgs.youtube]))
   ];
 
   networking = {
