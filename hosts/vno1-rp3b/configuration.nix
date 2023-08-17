@@ -17,6 +17,14 @@
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.kernelModules = [];
   boot.extraModulePackages = [];
+  boot.loader.grub.enable = false;
+  boot.loader.generic-extlinux-compatible.enable = true;
+
+  boot.loader.raspberryPi.firmwareConfig = ''
+    dtparam=audio=on
+    gpu_mem=96
+  '';
+  powerManagement.cpuFreqGovernor = "ondemand";
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/44444444-4444-4444-8888-888888888888";
@@ -104,15 +112,6 @@
       checkReversePath = "loose"; # for tailscale
     };
   };
-
-  powerManagement.cpuFreqGovernor = "ondemand";
-
-  boot.loader.grub.enable = false;
-  boot.loader.generic-extlinux-compatible.enable = true;
-
-  boot.loader.raspberryPi.firmwareConfig = ''
-    dtparam=audio=on
-  '';
 
   environment.systemPackages = with pkgs; [
     libraspberrypi
