@@ -22,7 +22,7 @@
 
   boot.loader.raspberryPi.firmwareConfig = ''
     dtparam=audio=on
-    gpu_mem=96
+    gpu_mem=256
   '';
   powerManagement.cpuFreqGovernor = "ondemand";
 
