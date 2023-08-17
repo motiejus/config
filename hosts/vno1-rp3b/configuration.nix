@@ -81,18 +81,11 @@
     pulse.enable = true;
   };
 
-  services.xserver.enable = true;
-  services.xserver.desktopManager.kodi.enable = true;
-  services.xserver.displayManager.autoLogin.enable = true;
-  services.xserver.displayManager.autoLogin.user = "kodi";
-
-  # This may be needed to force Lightdm into 'autologin' mode.
-  # Setting an integer for the amount of time lightdm will wait
-  # between attempts to try to autologin again.
-  services.xserver.displayManager.lightdm.autoLogin.timeout = 3;
-
-  # Define a user account
   users.extraUsers.kodi.isNormalUser = true;
+  services.cage.user = "kodi";
+  services.cage.program = "${pkgs.kodi-wayland}/bin/kodi-standalone";
+  services.cage.enable = true;
+
   networking = {
     hostId = "4bd17751";
     hostName = "vno1-rp3b";
