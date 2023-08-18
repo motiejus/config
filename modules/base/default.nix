@@ -123,10 +123,6 @@
         brotli
         zopfli
       ];
-
-      variables = {
-        EDITOR = "nvim";
-      };
     };
 
     programs = {
@@ -134,10 +130,7 @@
 
       sysdig.enable = pkgs.stdenv.hostPlatform.system == "x86_64-linux";
 
-      neovim = {
-        enable = true;
-        defaultEditor = true;
-      };
+      vim.defaultEditor = true;
     };
 
     services = {

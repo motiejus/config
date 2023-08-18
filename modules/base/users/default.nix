@@ -6,6 +6,11 @@
   ...
 }: {
   options.mj.base.users = with lib.types; {
+    installVimPlugins = lib.mkOption {
+      type = bool;
+      default = false;
+    };
+
     passwd = lib.mkOption {
       type = attrsOf (submodule (
         {...}: {
@@ -50,6 +55,15 @@
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = "23.05";
       programs.direnv.enable = true;
+      programs.vim = {
+        enable = true;
+        plugins = lib.mkIf config.mj.base.users.installVimPlugins [
+          pkgs.vimPlugins.fugitive
+          pkgs.vimPlugins.vim-go
+          pkgs.vimPlugins.zig-vim
+        ];
+        extraConfig = builtins.readFile ./vimrc;
+      };
       programs.git = {
         enable = true;
         userEmail = "motiejus@jakstys.lt";
