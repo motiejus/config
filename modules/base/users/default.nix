@@ -6,7 +6,7 @@
   ...
 }: {
   options.mj.base.users = with lib.types; {
-    installVimPlugins = lib.mkOption {
+    devEnvironment = lib.mkOption {
       type = bool;
       default = false;
     };
@@ -57,7 +57,7 @@
       programs.direnv.enable = true;
       programs.vim = {
         enable = true;
-        plugins = lib.mkIf config.mj.base.users.installVimPlugins [
+        plugins = lib.mkIf config.mj.base.users.devEnvironment [
           pkgs.vimPlugins.fugitive
           pkgs.vimPlugins.vim-go
           pkgs.vimPlugins.zig-vim

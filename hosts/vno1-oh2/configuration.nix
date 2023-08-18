@@ -33,7 +33,7 @@
     base = {
       zfs.enable = true;
       users = {
-        installVimPlugins = true;
+        devEnvironment = true;
         passwd = {
           root.passwordFile = config.age.secrets.root-passwd-hash.path;
           motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
