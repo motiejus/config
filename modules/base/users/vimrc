@@ -37,24 +37,11 @@ if has("patch-8.1-0360")
   set diffopt+=algorithm:patience
 endif
 
-"nmap gs :rg :grep <cword>
-
 " html
 au FileType html,gohtmltmpl setlocal ts=2 sw=2 sts=2
 
 " ruby
 au BufRead,BufNewFile Vagrantfile setfiletype ruby
-
-" starlark
-au BufRead,BufNewFile *.star setfiletype python
-
-" puppet
-au BufRead,BufNewFile *.pp setfiletype puppet
-au FileType puppet setlocal ts=2 sw=2 sts=2 syntax=ruby
-au FileType puppet let g:gutentags_enabled = 1
-au FileType puppet let b:gutentags_file_list_command = 'git ls-files *.pp'
-au FileType puppet nnoremap <buffer> <C-]> :call search('\s', 'b')<cr>:call search('\w')<cr>vE<C-]>
-"au FileType puppet nnoremap <buffer> <C-]> :call search('\s', 'b')<cr>:call search('\w')<cr>:call search('[^a-z:]\|$', 's')<cr>hv`'<C-]>
 
 " puppet
 au BufRead,BufNewFile *.j2 setfiletype django
