@@ -5,15 +5,12 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
 
-    # TODO: called with unexpected argument 'home-manager'
-    #home-manager.url = "github:nix-community/home-manager/release-23.05";
-    #home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager/release-23.05";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
-    # see home-manager above
-    #agenix.inputs.home-manager.follows = "home-manager";
-    agenix.inputs.home-manager.follows = "";
+    agenix.inputs.home-manager.follows = "home-manager";
     agenix.inputs.darwin.follows = "";
 
     deploy-rs.url = "github:serokell/deploy-rs";
@@ -32,6 +29,7 @@
     agenix,
     deploy-rs,
     flake-utils,
+    home-manager,
   } @ inputs: let
     myData = import ./data.nix;
   in
