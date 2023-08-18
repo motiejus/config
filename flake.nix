@@ -54,6 +54,7 @@
           ./modules
 
           agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
 
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
@@ -80,6 +81,7 @@
           ./modules
 
           agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
 
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
@@ -103,6 +105,7 @@
           ./modules
 
           agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
 
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;

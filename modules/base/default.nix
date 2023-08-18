@@ -83,7 +83,6 @@
         parted
         sqlite
         procps
-        direnv
         ripgrep
         vimv-rs
         sysstat
