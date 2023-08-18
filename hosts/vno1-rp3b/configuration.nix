@@ -48,6 +48,8 @@
     };
 
     services = {
+      node_exporter.enable = true;
+
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
@@ -60,18 +62,9 @@
           publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
         };
       };
-
-      friendlyport.vpn.ports = [
-        myData.ports.exporters.node
-      ];
     };
   };
 
-  services.prometheus.exporters.node = {
-    enable = true;
-    enabledCollectors = ["systemd" "processes"];
-    port = myData.ports.exporters.node;
-  };
   services.tailscale.enable = true;
 
   services.pipewire = {

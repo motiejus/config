@@ -70,8 +70,9 @@
         443
         myData.ports.grafana
         myData.ports.prometheus
-        myData.ports.exporters.node
       ];
+
+      node_exporter.enable = true;
 
       nsd-acme = {
         enable = true;
@@ -181,13 +182,6 @@
     prometheus = {
       enable = true;
       port = myData.ports.prometheus;
-      exporters = {
-        node = {
-          enable = true;
-          enabledCollectors = ["systemd" "processes"];
-          port = myData.ports.exporters.node;
-        };
-      };
 
       globalConfig = {
         scrape_interval = "15s";

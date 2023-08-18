@@ -67,9 +67,7 @@
     };
 
     services = {
-      friendlyport.vpn.ports = [
-        myData.ports.exporters.node
-      ];
+      node_exporter.enable = true;
 
       deployerbot = {
         follower = {
@@ -121,12 +119,6 @@
 
   services = {
     tailscale.enable = true;
-
-    prometheus.exporters.node = {
-      enable = true;
-      enabledCollectors = ["systemd" "processes"];
-      port = myData.ports.exporters.node;
-    };
 
     nsd = {
       enable = true;
