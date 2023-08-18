@@ -51,10 +51,11 @@
     };
 
     home-manager.useGlobalPkgs = true;
-
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = "23.05";
+
       programs.direnv.enable = true;
+
       programs.vim = {
         enable = true;
         plugins = lib.mkIf config.mj.base.users.devEnvironment [
@@ -62,8 +63,12 @@
           pkgs.vimPlugins.vim-go
           pkgs.vimPlugins.zig-vim
         ];
+        settings = {
+          background = "light";
+        };
         extraConfig = builtins.readFile ./vimrc;
       };
+
       programs.git = {
         enable = true;
         userEmail = "motiejus@jakstys.lt";
@@ -74,11 +79,13 @@
           merge.conflictstyle = "diff3";
         };
       };
+
       programs.bash = {
         enable = true;
         shellAliases = {
           "l" = "echo -n ł | xclip -selection clipboard";
           "gp" = "${pkgs.git} remote | ${pkgs.parallel} --verbose git push";
+          "elho" = "echo hello1";
         };
       };
     };
