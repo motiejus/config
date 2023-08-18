@@ -128,6 +128,12 @@
     programs = {
       mtr.enable = true;
 
+      neovim = {
+        enable = true;
+        vimAlias = true;
+        defaultEditor = true;
+      };
+
       sysdig.enable = pkgs.stdenv.hostPlatform.system == "x86_64-linux";
 
       #vim.defaultEditor = true;
