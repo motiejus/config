@@ -45,6 +45,8 @@
       };
     };
 
+    home-manager.useGlobalPkgs = true;
+
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = "23.05";
       programs.direnv.enable = true;
