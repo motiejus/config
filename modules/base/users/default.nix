@@ -53,9 +53,7 @@
     home-manager.useGlobalPkgs = true;
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = "23.05";
-      home.packages = with pkgs; [
-        go
-      ];
+      home.packages = with pkgs; [go];
 
       programs.direnv.enable = true;
 

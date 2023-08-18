@@ -71,7 +71,6 @@
         bat # "bat - cat with wings", cat|less with language highlight
         duf # nice disk usage output
         git
-        tmux
         htop
         file # file duh
         host # look up host info
@@ -127,6 +126,11 @@
 
     programs = {
       mtr.enable = true;
+
+      tmux = {
+        enable = true;
+        keyMode = "vi";
+      };
 
       neovim = {
         enable = true;
