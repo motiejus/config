@@ -245,7 +245,7 @@
         "grafana.jakstys.lt-key.pem:${acme.keyFile}"
       ];
       after = ["nsd-acme-grafana.jakstys.lt.service"];
-      wants = ["nsd-acme-grafana.jakstys.lt.service"];
+      requires = ["nsd-acme-grafana.jakstys.lt.service"];
     };
 
     soju = let
@@ -263,7 +263,7 @@
         ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
       '';
       after = ["nsd-acme-irc.jakstys.lt.service"];
-      wants = ["nsd-acme-irc.jakstys.lt.service"];
+      requires = ["nsd-acme-irc.jakstys.lt.service"];
     };
 
     grafana = {
