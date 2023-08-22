@@ -11,6 +11,10 @@ Other:
 
     $ nix build .#nixosConfigurations.vno1-rp3b.config.system.build.toplevel
 
+Debug
+
+    $ nix eval .#nixosConfigurations.vno1-oh2.config.services.nsd
+
 Encoding host-only secrets
 --------------------------
 
