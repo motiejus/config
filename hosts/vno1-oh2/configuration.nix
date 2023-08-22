@@ -231,7 +231,7 @@
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";
       extraConfig = ''
-        message-store db
+        message-store fs /var/lib/soju
       '';
     };
   };
