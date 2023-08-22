@@ -223,6 +223,17 @@
         "jakstys.lt.".data = myData.jakstysLTZone;
       };
     };
+
+    soju = {
+      enable = true;
+      listen = [":${toString myData.ports.soju}"];
+      tlsCertificate = "/run/soju/cert.pem";
+      tlsCertificateKey = "/run/soju/key.pem";
+      hostName = "irc.jakstys.lt";
+      extraConfig = ''
+        message-store db;
+      '';
+    };
   };
 
   systemd.services = {
@@ -236,6 +247,25 @@
       ];
       after = ["nsd-acme-grafana.jakstys.lt.service"];
       wants = ["nsd-acme-grafana.jakstys.lt.service"];
+    };
+
+    soju = let
+      acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+    in {
+      unitConfig.ConditionPathExists = [acme.certFile acme.keyFile];
+      serviceConfig = {
+        RuntimeDirectory = "soju";
+        LoadCredential = [
+          "irc.jakstys.lt-cert.pem:${acme.certFile}"
+          "irc.jakstys.lt-key.pem:${acme.keyFile}"
+        ];
+      };
+      preStart = ''
+        ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
+        ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
+      '';
+      after = ["nsd-acme-irc.jakstys.lt.service"];
+      wants = ["nsd-acme-irc.jakstys.lt.service"];
     };
 
     grafana = {
