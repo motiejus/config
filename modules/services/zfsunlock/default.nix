@@ -79,5 +79,9 @@ in {
           }
       )
       config.mj.services.zfsunlock.targets;
+
+    mj.base.unitstatus.units =
+      map (name: "zfsunlock-${name}")
+      (builtins.attrNames config.mj.services.zfsunlock.targets);
   };
 }

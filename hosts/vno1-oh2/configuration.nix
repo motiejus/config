@@ -114,10 +114,12 @@
 
       zfsunlock = {
         enable = true;
-        targets."hel1-a.servers.jakst" = {
-          sshEndpoint = myData.hosts."hel1-a.servers.jakst".publicIP;
-          pingEndpoint = "hel1-a.servers.jakst";
-          remotePubkey = myData.hosts."hel1-a.servers.jakst".initrdPubKey;
+        targets."hel1-a.servers.jakst" = let
+          host = myData.hosts."hel1-a.servers.jakst";
+        in {
+          sshEndpoint = host.publicIP;
+          pingEndpoint = host.jakstIP;
+          remotePubkey = host.initrdPubKey;
           pwFile = config.age.secrets.zfs-passphrase-hel1-a.path;
           startAt = "*-*-* *:00/5:00";
         };

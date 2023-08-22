@@ -83,10 +83,12 @@
 
       zfsunlock = {
         enable = true;
-        targets."vno1-oh2.servers.jakst" = {
-          sshEndpoint = myData.hosts."vno1-oh2.servers.jakst".publicIP;
-          pingEndpoint = "vno1-oh2.servers.jakst";
-          remotePubkey = myData.hosts."vno1-oh2.servers.jakst".initrdPubKey;
+        targets."vno1-oh2.servers.jakst" = let
+          host = myData.hosts."vno1-oh2.servers.jakst";
+        in {
+          sshEndpoint = host.publicIP;
+          pingEndpoint = host.jakstIP;
+          remotePubkey = host.initrdPubKey;
           pwFile = config.age.secrets.zfs-passphrase-vno1-oh2.path;
           startAt = "*-*-* *:00/5:00";
         };
