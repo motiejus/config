@@ -42,7 +42,7 @@
 
       snapshot = {
         enable = true;
-        mountpoints = ["/home"];
+        mountpoints = ["/home" "/var/lib"];
       };
 
       zfsborg = {
@@ -50,6 +50,14 @@
         passwordPath = config.age.secrets.borgbackup-password.path;
         sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
         mountpoints = {
+          "/var/lib" = {
+            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
+            paths = [
+              "/var/lib/.snapshot-latest/private/soju"
+              "/var/lib/.snapshot-latest/grafana"
+            ];
+            backup_at = "*-*-* 00:01:00";
+          };
           "/home" = {
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
