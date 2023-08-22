@@ -226,7 +226,7 @@
 
     soju = {
       enable = true;
-      listen = [":${toString myData.ports.soju}"];
+      listen = ["unix+admin://" ":${toString myData.ports.soju}"];
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";
