@@ -73,6 +73,7 @@
         443
         myData.ports.grafana
         myData.ports.prometheus
+        myData.ports.soju
       ];
 
       node_exporter.enable = true;
@@ -82,6 +83,10 @@
         zones."grafana.jakstys.lt" = {
           accountKey = config.age.secrets.letsencrypt-account-key.path;
           staging = false;
+        };
+        zones."irc.jakstys.lt" = {
+          accountKey = config.age.secrets.letsencrypt-account-key.path;
+          staging = true;
         };
       };
 
@@ -222,15 +227,12 @@
 
   systemd.services = {
     caddy = let
-      grafanaZone = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+      acme = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
     in {
-      unitConfig.ConditionPathExists = [
-        grafanaZone.certFile
-        grafanaZone.keyFile
-      ];
+      unitConfig.ConditionPathExists = [acme.certFile acme.keyFile];
       serviceConfig.LoadCredential = [
-        "grafana.jakstys.lt-cert.pem:${grafanaZone.certFile}"
-        "grafana.jakstys.lt-key.pem:${grafanaZone.keyFile}"
+        "grafana.jakstys.lt-cert.pem:${acme.certFile}"
+        "grafana.jakstys.lt-key.pem:${acme.keyFile}"
       ];
       after = ["nsd-acme-grafana.jakstys.lt.service"];
       wants = ["nsd-acme-grafana.jakstys.lt.service"];

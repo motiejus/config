@@ -14,6 +14,7 @@ rec {
       node = 9002;
     };
     kodi = 8080;
+    soju = 6697;
   };
 
   people_pubkeys = {
