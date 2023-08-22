@@ -86,7 +86,7 @@
         };
         zones."irc.jakstys.lt" = {
           accountKey = config.age.secrets.letsencrypt-account-key.path;
-          staging = true;
+          staging = false;
         };
       };
 
@@ -240,7 +240,6 @@
     caddy = let
       acme = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
     in {
-      unitConfig.ConditionPathExists = [acme.certFile acme.keyFile];
       serviceConfig.LoadCredential = [
         "grafana.jakstys.lt-cert.pem:${acme.certFile}"
         "grafana.jakstys.lt-key.pem:${acme.keyFile}"
@@ -252,7 +251,6 @@
     soju = let
       acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
     in {
-      unitConfig.ConditionPathExists = [acme.certFile acme.keyFile];
       serviceConfig = {
         RuntimeDirectory = "soju";
         LoadCredential = [
