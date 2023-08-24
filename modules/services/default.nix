@@ -8,6 +8,7 @@
     ./deployerbot
     ./friendlyport
     ./gitea
+    ./headscale
     ./node_exporter
     ./nsd-acme
     ./postfix

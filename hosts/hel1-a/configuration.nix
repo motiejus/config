@@ -71,6 +71,12 @@
 
       gitea.enable = true;
 
+      headscale = {
+        enable = true;
+        clientOidcPath = config.age.secrets.headscale-client-oidc.path;
+        subnetCIDR = myData.tailscale_subnet.cidr;
+      };
+
       deployerbot = {
         follower = {
           enable = true;
@@ -99,7 +105,6 @@
   };
 
   environment.systemPackages = with pkgs; [
-    headscale
     nixos-option
     graphicsmagick
   ];
@@ -115,38 +120,11 @@
       };
     };
 
-    headscale = {
-      enable = true;
-      settings = {
-        server_url = "https://vpn.jakstys.lt";
-        ip_prefixes = [
-          myData.tailscale_subnet.cidr
-          "fd7a:115c:a1e0:59b0::/64"
-        ];
-        log.level = "warn";
-        dns_config = {
-          nameservers = ["1.1.1.1" "8.8.4.4"];
-          magic_dns = false;
-          base_domain = "jakst";
-        };
-        oidc = {
-          issuer = "https://git.jakstys.lt/";
-          client_id = "e25c15ea-41ca-4bf0-9ebf-2be9f2d1ccea";
-          # TODO https://github.com/NixOS/nixpkgs/pull/249101/files
-          #client_secret_path = "\${CREDENTIALS_DIRECTORY}/oidc-client-secret";
-          client_secret_path = "/run/credentials/headscale.service/oidc-client-secret";
-        };
-      };
-    };
-
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       virtualHosts."recordrecap.jakstys.lt".extraConfig = ''
         reverse_proxy vno1-oh2.servers.jakst:8080
-      '';
-      virtualHosts."vpn.jakstys.lt".extraConfig = ''
-        reverse_proxy 127.0.0.1:8080
       '';
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
@@ -303,12 +281,10 @@
         53
         80
         443
-        3478 # headscale
       ];
       allowedUDPPorts = [
         53
         443
-        3478 # headscale
         41641 # tailscale
       ];
       logRefusedConnections = false;
@@ -321,19 +297,6 @@
   ];
 
   systemd.services = {
-    headscale = {
-      unitConfig.StartLimitIntervalSec = "5m";
-
-      # Allow restarts for up to a minute. A start
-      # itself may take a while, thus the window of restart
-      # is higher.
-      unitConfig.StartLimitBurst = 50;
-      serviceConfig.RestartSec = 1;
-      serviceConfig.LoadCredential = [
-        "oidc-client-secret:${config.age.secrets.headscale-client-oidc.path}"
-      ];
-    };
-
     matrix-synapse = let
       # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
       secretsScript = pkgs.writeShellScript "write-secrets" ''
