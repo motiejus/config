@@ -323,7 +323,6 @@
     firewall = {
       allowedUDPPorts = [53 80 443];
       allowedTCPPorts = [53 80 443];
-      logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
   };

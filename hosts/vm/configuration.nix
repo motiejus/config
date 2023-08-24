@@ -38,7 +38,6 @@ in {
     firewall = {
       allowedTCPPorts = [53];
       allowedUDPPorts = [53];
-      logRefusedConnections = false;
     };
   };
 

@@ -107,7 +107,6 @@
     firewall = {
       allowedUDPPorts = [myData.ports.kodi];
       allowedTCPPorts = [myData.ports.kodi];
-      logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
   };

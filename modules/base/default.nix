@@ -143,6 +143,8 @@
       #vim.defaultEditor = true;
     };
 
+    networking.firewall.logRefusedConnections = false;
+
     services = {
       chrony = {
         enable = true;

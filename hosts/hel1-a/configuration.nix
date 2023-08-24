@@ -287,7 +287,6 @@
         443
         41641 # tailscale
       ];
-      logRefusedConnections = false;
       checkReversePath = "loose"; # for tailscale
     };
   };
