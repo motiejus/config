@@ -79,10 +79,9 @@ rec {
     www             600              A     ${hel1a}
     ns1                              A     ${vno1}
     ns2                              A     ${hel1a}
-    turn                             A     ${hel1a}
-    vpn                              A     ${hel1a}
-    git                              A     ${hel1a}
-    auth                             A     ${hel1a}
+    vpn             600              A     ${hel1a}
+    git             600              A     ${hel1a}
+    auth            600              A     ${hel1a}
     dl                               A     ${vno1}
     fwmine                           A     ${hel1a}
     hel1-a                           A     ${hel1a}
