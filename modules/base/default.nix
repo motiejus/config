@@ -144,6 +144,11 @@
     };
 
     services = {
+      chrony = {
+        enable = true;
+        servers = ["time.cloudflare.com"];
+      };
+
       locate = {
         enable = true;
         locate = pkgs.plocate;
