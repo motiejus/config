@@ -192,16 +192,14 @@
           SHOW_MILESTONES_DASHBOARD_PAGE = false;
           COOKIE_SECURE = true;
         };
-        log.LEVEL = "Error";
-        # TODO: does not work with 1.7.4, getting error
-        # in the UI when testing the email sending workflow.
-        #mailer = {
-        #    ENABLED = true;
-        #    MAILER_TYPE = "sendmail";
-        #    FROM = "<noreply@jakstys.lt>";
-        #    SENDMAIL_PATH = "${pkgs.system-sendmail}/bin/sendmail";
-        #};
         "service.explore".DISABLE_USERS_PAGE = true;
+        log.LEVEL = "Error";
+        mailer = {
+            ENABLED = true;
+            MAILER_TYPE = "sendmail";
+            FROM = "<noreply@jakstys.lt>";
+            SENDMAIL_PATH = "${pkgs.system-sendmail}/bin/sendmail";
+        };
       };
     };
 
