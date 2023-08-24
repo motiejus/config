@@ -75,28 +75,18 @@
   };
 
   users.extraUsers.kodi.isNormalUser = true;
-  services.cage.user = "kodi";
-  services.cage.program = let
-    kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
-      kodiPkgs.youtube
-    ]);
-  in "${kodi-wayland}/bin/kodi-standalone";
-  services.cage.enable = true;
 
-  #services.greetd = {
-  #  enable = true;
-  #  settings = rec {
-  #    initial_session = let
-  #      kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
-  #        kodiPkgs.youtube
-  #      ]);
-  #    in {
-  #      command = "${kodi-wayland}/bin/kodi-standalone";
-  #      user = "kodi";
-  #    };
-  #    default_session = initial_session;
-  #  };
-  #};
+  services.cage = {
+    user = "kodi";
+    program = let
+      kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
+        kodiPkgs.youtube
+      ]);
+    in "${kodi-wayland}/bin/kodi-standalone";
+    enable = true;
+  };
+
+  services.journald.extraConfig = "Storage=volatile";
 
   environment.systemPackages = with pkgs; [
     libraspberrypi
