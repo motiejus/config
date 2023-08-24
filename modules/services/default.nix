@@ -7,6 +7,7 @@
   imports = [
     ./deployerbot
     ./friendlyport
+    ./gitea
     ./node_exporter
     ./nsd-acme
     ./postfix
