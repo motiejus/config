@@ -166,7 +166,7 @@
 
           handle /_matrix/* {
             encode gzip
-            reverse_proxy http://127.0.0.1:8008
+            reverse_proxy http://${myData.hosts."vno1-oh2.servers.jakst".jakstIP}:${toString myData.ports.matrix-synapse}
           }
         '';
       };
