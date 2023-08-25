@@ -29,8 +29,7 @@ in
     "secrets/vno1-oh2/borgbackup/password.age"
     "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
-  ]
-  // mk ([hel1-a vno1-oh2] ++ motiejus) [
+
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"
     "secrets/synapse/macaroon_secret_key.age"

@@ -56,6 +56,7 @@
               "/var/lib/.snapshot-latest/private/soju"
               "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/grafana"
+              "/var/lib/.snapshot-latest/matrix-synapse"
             ];
             backup_at = "*-*-* 00:01:00";
           };

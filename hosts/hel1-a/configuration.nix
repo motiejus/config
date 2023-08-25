@@ -43,7 +43,6 @@
             repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/headscale"
-              "/var/lib/.snapshot-latest/matrix-synapse"
             ];
             backup_at = "*-*-* 00:05:00";
           };
@@ -84,13 +83,6 @@
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      };
-
-      matrix-synapse = {
-        enable = true;
-        signingKeyPath = config.age.secrets.synapse-jakstys-signing-key.path;
-        registrationSharedSecretPath = config.age.secrets.synapse-registration-shared-secret.path;
-        macaroonSecretKeyPath = config.age.secrets.synapse-macaroon-secret-key.path;
       };
 
       zfsunlock = {
