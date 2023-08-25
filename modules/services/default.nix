@@ -9,6 +9,7 @@
     ./friendlyport
     ./gitea
     ./headscale
+    ./matrix-synapse
     ./node_exporter
     ./nsd-acme
     ./postfix
