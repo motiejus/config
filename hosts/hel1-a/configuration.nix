@@ -120,9 +120,6 @@
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
-      virtualHosts."recordrecap.jakstys.lt".extraConfig = ''
-        reverse_proxy vno1-oh2.servers.jakst:8080
-      '';
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
       '';
