@@ -158,10 +158,48 @@
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
-      virtualHosts."grafana.jakstys.lt" = {
+      virtualHosts."grafana.jakstys.lt".extraConfig = ''
+        reverse_proxy 127.0.0.1:3000
+        tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+      '';
+      virtualHosts."www.jakstys.lt".extraConfig = ''
+        redir https://jakstys.lt
+      '';
+      virtualHosts."jakstys.lt" = {
+        logFormat = ''
+          output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
+            roll_disabled
+          }
+        '';
         extraConfig = ''
-          reverse_proxy 127.0.0.1:3000
-          tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+          header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+          header /_/* Cache-Control "public, max-age=31536000, immutable"
+
+          root * /var/www/jakstys.lt
+          file_server {
+            precompressed br gzip
+          }
+
+          @matrixMatch {
+            path /.well-known/matrix/client
+            path /.well-known/matrix/server
+          }
+          header @matrixMatch Content-Type application/json
+          header @matrixMatch Access-Control-Allow-Origin *
+          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+
+          handle /.well-known/matrix/client {
+            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+          }
+          handle /.well-known/matrix/server {
+            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+          }
+
+          handle /_matrix/* {
+            encode gzip
+            reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+          }
         '';
       };
     };

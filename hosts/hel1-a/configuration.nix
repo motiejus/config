@@ -119,11 +119,11 @@
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
-      virtualHosts."www.jakstys.lt".extraConfig = ''
-        redir https://jakstys.lt
-      '';
       virtualHosts."fwmine.jakstys.lt".extraConfig = ''
         reverse_proxy fwmine.motiejus.jakst:8080
+      '';
+      virtualHosts."www.jakstys.lt".extraConfig = ''
+        redir https://jakstys.lt
       '';
       virtualHosts."jakstys.lt" = {
         logFormat = ''
