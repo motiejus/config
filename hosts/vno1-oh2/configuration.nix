@@ -86,6 +86,8 @@
 
       node_exporter.enable = true;
 
+      gitea.enable = true;
+
       nsd-acme = {
         enable = true;
         zones."grafana.jakstys.lt" = {
