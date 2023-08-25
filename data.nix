@@ -29,7 +29,7 @@ rec {
 
   hosts = {
     "vno1-oh2.servers.jakst" = rec {
-      extraHostNames = ["dl.jakstys.lt" "vno1-oh2.jakstys.lt" publicIP jakstIP];
+      extraHostNames = ["dl.jakstys.lt" "git.jakstys.lt" "vno1-oh2.jakstys.lt" publicIP jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKns3+EIPqKeoB5OIxANIkppb5ICOmkW8X1DOKJPeRWr";
       publicIP = "88.223.107.21";
@@ -41,7 +41,7 @@ rec {
       jakstIP = "100.89.176.2";
     };
     "hel1-a.servers.jakst" = rec {
-      extraHostNames = ["hel1-a.jakstys.lt" "git.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt" publicIP jakstIP];
+      extraHostNames = ["hel1-a.jakstys.lt" "vpn.jakstys.lt" "jakstys.lt" "www.jakstys.lt" publicIP jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
       publicIP = "65.21.7.119";
@@ -86,8 +86,8 @@ rec {
     ns1                              A     ${vno1}
     ns2                              A     ${hel1a}
     vpn             600              A     ${hel1a}
-    git             600              A     ${hel1a}
-    auth            600              A     ${hel1a}
+    git             600              A     ${vno1}
+    auth            600              A     ${vno1}
     dl                               A     ${vno1}
     fwmine                           A     ${hel1a}
     hel1-a                           A     ${hel1a}
