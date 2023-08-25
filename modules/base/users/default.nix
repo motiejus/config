@@ -58,7 +58,10 @@
       programs.direnv.enable = true;
 
       programs.neovim = {
+        enable = true;
+        vimAlias = true;
         vimdiffAlias = true;
+        defaultEditor = true;
         plugins = lib.mkIf config.mj.base.users.devEnvironment [
           pkgs.vimPlugins.fugitive
           pkgs.vimPlugins.vim-go
