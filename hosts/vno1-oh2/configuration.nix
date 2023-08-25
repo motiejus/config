@@ -42,7 +42,7 @@
 
       snapshot = {
         enable = true;
-        mountpoints = ["/home" "/var/lib"];
+        mountpoints = ["/home" "/var/lib" "/var/log"];
       };
 
       zfsborg = {
@@ -57,6 +57,15 @@
               "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/grafana"
               "/var/lib/.snapshot-latest/matrix-synapse"
+            ];
+            backup_at = "*-*-* 00:01:00";
+          };
+          "/var/log" = {
+            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
+            paths = ["/var/log/.snapshot-latest/caddy/"];
+            patterns = [
+              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
+              "- *"
             ];
             backup_at = "*-*-* 00:01:00";
           };

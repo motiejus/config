@@ -46,15 +46,6 @@
             ];
             backup_at = "*-*-* 00:05:00";
           };
-          "/var/log" = {
-            repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst-var_log";
-            paths = ["/var/log/.snapshot-latest/caddy/"];
-            patterns = [
-              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
-              "- *"
-            ];
-            backup_at = "*-*-* 00:01:00";
-          };
         };
       };
 
