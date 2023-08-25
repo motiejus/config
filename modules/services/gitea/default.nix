@@ -45,7 +45,7 @@
             LANDING_PAGE = "/motiejus";
             ROOT_URL = "https://git.jakstys.lt";
             HTTP_ADDR = "127.0.0.1";
-            HTTP_PORT = 3000;
+            HTTP_PORT = myData.ports.gitea;
             DOMAIN = "git.jakstys.lt";
           };
           service = {
@@ -74,7 +74,7 @@
 
       caddy = {
         virtualHosts."git.jakstys.lt".extraConfig = ''
-          reverse_proxy 127.0.0.1:3000
+          reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
         '';
       };
     };

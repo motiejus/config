@@ -9,6 +9,7 @@ rec {
 
   ports = {
     grafana = 3000;
+    gitea = 3001;
     prometheus = 9001;
     exporters = {
       node = 9002;
