@@ -64,9 +64,9 @@
             age.secrets.headscale-client-oidc.file = ./secrets/hel1-a/headscale/oidc_client_secret2.age;
             age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-            age.secrets.synapse-jakstys-signing-key.file = ./secrets/hel1-a/synapse/jakstys_lt_signing_key.age;
-            age.secrets.synapse-registration-shared-secret.file = ./secrets/hel1-a/synapse/registration_shared_secret.age;
-            age.secrets.synapse-macaroon-secret-key.file = ./secrets/hel1-a/synapse/macaroon_secret_key.age;
+            age.secrets.synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
+            age.secrets.synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
+            age.secrets.synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
           }
         ];
 
@@ -92,6 +92,10 @@
             age.secrets.borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
             age.secrets.grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
             age.secrets.letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
+
+            age.secrets.synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
+            age.secrets.synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
+            age.secrets.synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
           }
         ];
 

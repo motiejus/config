@@ -22,9 +22,6 @@ in
   // mk ([hel1-a] ++ motiejus) [
     "secrets/hel1-a/headscale/oidc_client_secret2.age"
     "secrets/hel1-a/borgbackup/password.age"
-    "secrets/hel1-a/synapse/jakstys_lt_signing_key.age"
-    "secrets/hel1-a/synapse/registration_shared_secret.age"
-    "secrets/hel1-a/synapse/macaroon_secret_key.age"
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk ([vno1-oh2] ++ motiejus) [
@@ -32,6 +29,11 @@ in
     "secrets/vno1-oh2/borgbackup/password.age"
     "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
+  ]
+  // mk ([hel1-a vno1-oh2] ++ motiejus) [
+    "secrets/synapse/jakstys_lt_signing_key.age"
+    "secrets/synapse/registration_shared_secret.age"
+    "secrets/synapse/macaroon_secret_key.age"
   ]
   // mk (systems ++ motiejus) [
     "secrets/motiejus_passwd_hash.age"
