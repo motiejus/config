@@ -147,7 +147,7 @@
 
     caddy = {
       enable = true;
-      acmeCA = null;
+      email = "motiejus+acme@jakstys.lt";
       virtualHosts."grafana.jakstys.lt" = {
         extraConfig = ''
           reverse_proxy 127.0.0.1:3000
