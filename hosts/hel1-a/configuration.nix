@@ -291,7 +291,8 @@
 
   systemd.services = {
     matrix-synapse = let
-      # TODO https://github.com/NixOS/nixpkgs/pull/222336 replace with `preStart`
+      # I tried to move this to preStart, but it complains:
+      #   Config is missing macaroon_secret_key
       secretsScript = pkgs.writeShellScript "write-secrets" ''
         set -xeuo pipefail
         umask 077
