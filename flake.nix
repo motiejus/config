@@ -61,7 +61,6 @@
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
 
-            age.secrets.headscale-client-oidc.file = ./secrets/hel1-a/headscale/oidc_client_secret2.age;
             age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
           }
@@ -85,6 +84,7 @@
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.zfs-passphrase-hel1-a.file = ./secrets/hel1-a/zfs-passphrase.age;
 
+            age.secrets.headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
             age.secrets.borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
             age.secrets.grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;

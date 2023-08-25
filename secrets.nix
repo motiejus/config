@@ -20,7 +20,6 @@ let
 in
   {}
   // mk ([hel1-a] ++ motiejus) [
-    "secrets/hel1-a/headscale/oidc_client_secret2.age"
     "secrets/hel1-a/borgbackup/password.age"
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
@@ -29,6 +28,7 @@ in
     "secrets/vno1-oh2/borgbackup/password.age"
     "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
+    "secrets/headscale/oidc_client_secret2.age"
 
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"

@@ -53,10 +53,11 @@
           "/var/lib" = {
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "/var/lib/.snapshot-latest/private/soju"
               "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/grafana"
+              "/var/lib/.snapshot-latest/headscale"
               "/var/lib/.snapshot-latest/matrix-synapse"
+              "/var/lib/.snapshot-latest/private/soju"
             ];
             backup_at = "*-*-* 00:01:00";
           };
@@ -98,6 +99,12 @@
       node_exporter.enable = true;
 
       gitea.enable = true;
+
+      headscale = {
+        enable = true;
+        clientOidcPath = config.age.secrets.headscale-client-oidc.path;
+        subnetCIDR = myData.tailscale_subnet.cidr;
+      };
 
       nsd-acme = {
         enable = true;

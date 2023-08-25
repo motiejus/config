@@ -59,11 +59,10 @@
       node_exporter.enable = true;
 
       headscale = {
-        enable = true;
+        enable = false;
         clientOidcPath = config.age.secrets.headscale-client-oidc.path;
         subnetCIDR = myData.tailscale_subnet.cidr;
       };
-
       deployerbot = {
         follower = {
           enable = true;
