@@ -93,7 +93,7 @@ rec {
     www                              A     ${vno1}
     ns1                              A     ${vno1}
     ns2                              A     ${hel1a}
-    vpn                 60           A     ${hel1a}
+    vpn                 60           A     ${vno1}
     git                              A     ${vno1}
     auth                             A     ${vno1}
     dl                               A     ${vno1}
