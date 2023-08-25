@@ -202,6 +202,23 @@
       };
     };
 
+    logrotate = {
+      settings = {
+        "/var/log/caddy/access-jakstys.lt.log" = {
+          rotate = -1;
+          frequency = "daily";
+          dateext = true;
+          dateyesterday = true;
+          compress = true;
+          compresscmd = "${pkgs.zstd}/bin/zstd";
+          compressext = ".zst";
+          compressoptions = "--long -19";
+          uncompresscmd = "${pkgs.zstd}/bin/unzstd";
+          postrotate = "${pkgs.systemd}/bin/systemctl restart caddy";
+        };
+      };
+    };
+
     grafana = {
       enable = true;
       provision = {

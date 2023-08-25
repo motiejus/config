@@ -116,54 +116,6 @@
       };
     };
 
-    caddy = {
-      enable = true;
-      email = "motiejus+acme@jakstys.lt";
-      virtualHosts."fwmine.jakstys.lt".extraConfig = ''
-        reverse_proxy fwmine.motiejus.jakst:8080
-      '';
-      virtualHosts."www.jakstys.lt".extraConfig = ''
-        redir https://jakstys.lt
-      '';
-      virtualHosts."jakstys.lt" = {
-        logFormat = ''
-          output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
-            roll_disabled
-          }
-        '';
-        extraConfig = ''
-          header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-
-          header /_/* Cache-Control "public, max-age=31536000, immutable"
-
-          root * /var/www/jakstys.lt
-          file_server {
-            precompressed br gzip
-          }
-
-          @matrixMatch {
-            path /.well-known/matrix/client
-            path /.well-known/matrix/server
-          }
-          header @matrixMatch Content-Type application/json
-          header @matrixMatch Access-Control-Allow-Origin *
-          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
-
-          handle /.well-known/matrix/client {
-            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-          }
-          handle /.well-known/matrix/server {
-            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-          }
-
-          handle /_matrix/* {
-            encode gzip
-            reverse_proxy http://${myData.hosts."vno1-oh2.servers.jakst".jakstIP}:${toString myData.ports.matrix-synapse}
-          }
-        '';
-      };
-    };
-
     logrotate = {
       settings = {
         "/var/log/caddy/access-jakstys.lt.log" = {
