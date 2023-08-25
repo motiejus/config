@@ -252,7 +252,7 @@
     logrotate = {
       settings = {
         "/var/log/caddy/access-jakstys.lt.log" = {
-          rotate = 0;
+          rotate = -1;
           frequency = "daily";
           dateext = true;
           dateyesterday = true;
