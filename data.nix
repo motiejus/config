@@ -80,11 +80,11 @@ rec {
     @                                SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
     @                                NS    ns1.jakstys.lt.
     @                                NS    ns2.jakstys.lt.
-    @                60              A     ${vno1}
-    www              60              A     ${vno1}
+    @                                A     ${vno1}
+    www                              A     ${vno1}
     ns1                              A     ${vno1}
     ns2                              A     ${hel1a}
-    vpn             600              A     ${hel1a}
+    vpn                              A     ${hel1a}
     git                              A     ${vno1}
     auth                             A     ${vno1}
     dl                               A     ${vno1}
