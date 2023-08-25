@@ -14,13 +14,13 @@
   config = lib.mkIf config.mj.services.matrix-synapse.enable {
     services.matrix-synapse = {
       enable = true;
+      extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
       settings = {
         server_name = "jakstys.lt";
         admin_contact = "motiejus@jakstys.lt";
         enable_registration = false;
         report_stats = true;
         signing_key_path = "/run/matrix-synapse/jakstys_lt_signing_key";
-        extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
         log_config = pkgs.writeText "log.config" ''
           version: 1
           formatters:
