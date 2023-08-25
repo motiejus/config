@@ -54,6 +54,7 @@
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/private/soju"
+              "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/grafana"
             ];
             backup_at = "*-*-* 00:01:00";

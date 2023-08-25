@@ -42,7 +42,6 @@
           "/var/lib" = {
             repo = "zh2769@zh2769.rsync.net:hel1-a.servers.jakst-var_lib";
             paths = [
-              "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/headscale"
               "/var/lib/.snapshot-latest/matrix-synapse"
             ];
@@ -68,8 +67,6 @@
 
     services = {
       node_exporter.enable = true;
-
-      gitea.enable = true;
 
       headscale = {
         enable = true;
