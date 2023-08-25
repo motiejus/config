@@ -5,6 +5,11 @@ rec {
     gitea = 995;
     updaterbot-deployer = 501;
     updaterbot-deployee = 502;
+
+    # the underscore differentiates "our" user from the
+    # "upstream" user. We need a way to configure the uidgid,
+    # so creating users explicitly.
+    node_exporter = 503;
   };
 
   ports = {
