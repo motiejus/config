@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }: {
   options.mj.services.matrix-synapse = with lib.types; {
@@ -17,6 +18,25 @@
       extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
       settings = {
         server_name = "jakstys.lt";
+        listeners = [
+          {
+            bind_addresses = ["0.0.0.0"];
+            port = myData.ports.matrix-synapse;
+            type = "http";
+            tls = false;
+            x_forwarded = true;
+            resources = [
+              {
+                names = ["client"];
+                compress = true;
+              }
+              {
+                names = ["federation"];
+                compress = false;
+              }
+            ];
+          }
+        ];
         admin_contact = "motiejus@jakstys.lt";
         enable_registration = false;
         report_stats = true;

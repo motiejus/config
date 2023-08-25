@@ -83,6 +83,7 @@
         myData.ports.grafana
         myData.ports.prometheus
         myData.ports.soju
+        myData.ports.matrix-synapse
       ];
 
       node_exporter.enable = true;

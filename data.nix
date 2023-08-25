@@ -15,12 +15,11 @@ rec {
   ports = {
     grafana = 3000;
     gitea = 3001;
-    prometheus = 9001;
-    exporters = {
-      node = 9002;
-    };
-    kodi = 8080;
     soju = 6697;
+    matrix-synapse = 8008;
+    kodi = 8080;
+    prometheus = 9001;
+    exporters.node = 9002;
   };
 
   people_pubkeys = {
