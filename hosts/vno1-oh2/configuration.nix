@@ -304,6 +304,10 @@
           static_configs = [{targets = ["127.0.0.1:${port}"];}];
         }
         {
+          job_name = "fra1-a.servers.jakst";
+          static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
+        }
+        {
           job_name = "hel1-a.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."hel1-a.servers.jakst".jakstIP}:${port}"];}];
         }
