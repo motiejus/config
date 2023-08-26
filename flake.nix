@@ -83,6 +83,7 @@
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.zfs-passphrase-hel1-a.file = ./secrets/hel1-a/zfs-passphrase.age;
+            age.secrets.zfs-passphrase-fra1-a.file = ./secrets/fra1-a/zfs-passphrase.age;
 
             age.secrets.headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
@@ -128,6 +129,7 @@
           home-manager.nixosModules.home-manager
 
           {
+            age.secrets.zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;

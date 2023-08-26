@@ -51,6 +51,7 @@ rec {
     "fra1-a.servers.jakst" = rec {
       extraHostNames = ["fra1-a.jakstys.lt" publicIP jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFj9Ktw9SZQlHe/Pl5MI7PRUcCyTgZgZ0SsvWUmO0wBM";
+      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtYwVhfmdHRK8YcaRQ3JGSIOK55lEMNSPh33Z0iI+pO";
       publicIP = "168.119.184.134";
       jakstIP = "100.89.176.5";
     };

@@ -58,10 +58,31 @@
           publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
         };
       };
+
+      zfsunlock = {
+        enable = true;
+        targets."vno1-oh2.servers.jakst" = let
+          host = myData.hosts."vno1-oh2.servers.jakst";
+        in {
+          sshEndpoint = host.publicIP;
+          pingEndpoint = host.jakstIP;
+          remotePubkey = host.initrdPubKey;
+          pwFile = config.age.secrets.zfs-passphrase-vno1-oh2.path;
+          startAt = "*-*-* *:00/5:00";
+        };
+      };
     };
   };
 
   services.tailscale.enable = true;
+
+  services.nsd = {
+    enable = true;
+    interfaces = ["0.0.0.0" "::"];
+    zones = {
+      "jakstys.lt.".data = myData.jakstysLTZone;
+    };
+  };
 
   networking = {
     hostId = "bed6fa0b";
@@ -69,8 +90,8 @@
     domain = "servers.jakst";
     useDHCP = true;
     firewall = {
-      allowedUDPPorts = [];
-      allowedTCPPorts = [22];
+      allowedUDPPorts = [53];
+      allowedTCPPorts = [22 53];
       checkReversePath = "loose"; # for tailscale
     };
   };

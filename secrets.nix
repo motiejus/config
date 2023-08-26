@@ -25,6 +25,7 @@ in
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk ([vno1-oh2] ++ motiejus) [
+    "secrets/fra1-a/zfs-passphrase.age"
     "secrets/hel1-a/zfs-passphrase.age"
     "secrets/vno1-oh2/borgbackup/password.age"
     "secrets/grafana.jakstys.lt/oidc.age"
@@ -34,6 +35,9 @@ in
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"
     "secrets/synapse/macaroon_secret_key.age"
+  ]
+  // mk ([fra1-a] ++ motiejus) [
+    "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk (systems ++ motiejus) [
     "secrets/motiejus_passwd_hash.age"

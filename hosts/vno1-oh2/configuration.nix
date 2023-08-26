@@ -163,6 +163,15 @@
           pwFile = config.age.secrets.zfs-passphrase-hel1-a.path;
           startAt = "*-*-* *:00/5:00";
         };
+        targets."fra1-a.servers.jakst" = let
+          host = myData.hosts."fra1-a.servers.jakst";
+        in {
+          sshEndpoint = host.publicIP;
+          pingEndpoint = host.jakstIP;
+          remotePubkey = host.initrdPubKey;
+          pwFile = config.age.secrets.zfs-passphrase-fra1-a.path;
+          startAt = "*-*-* *:00/5:00";
+        };
       };
     };
   };
