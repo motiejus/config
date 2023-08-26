@@ -89,7 +89,7 @@ rec {
 
   jakstysLTZone = let
     hel1a = hosts."hel1-a.servers.jakst".publicIP;
-    fra1a = hosts."hel1-a.servers.jakst".publicIP;
+    fra1a = hosts."fra1-a.servers.jakst".publicIP;
     vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
   in ''
     $ORIGIN jakstys.lt.
