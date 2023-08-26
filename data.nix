@@ -100,7 +100,7 @@ rec {
     @                                A     ${vno1}
     www                              A     ${vno1}
     ns1                              A     ${vno1}
-    ns2                              A     ${hel1a}
+    ns2                              A     ${fra1a}
     vpn                              A     ${vno1}
     git                              A     ${vno1}
     auth                             A     ${vno1}
