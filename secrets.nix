@@ -22,7 +22,6 @@ in
   {}
   // mk ([hel1-a] ++ motiejus) [
     "secrets/hel1-a/borgbackup/password.age"
-    "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk ([vno1-oh2] ++ motiejus) [
     "secrets/fra1-a/zfs-passphrase.age"
@@ -36,7 +35,8 @@ in
     "secrets/synapse/registration_shared_secret.age"
     "secrets/synapse/macaroon_secret_key.age"
   ]
-  // mk ([fra1-a] ++ motiejus) [
+  # TODO make sure secrets don't repeat here.
+  // mk ([fra1-a hel1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk (systems ++ motiejus) [
