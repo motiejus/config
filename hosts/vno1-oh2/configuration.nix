@@ -123,7 +123,12 @@
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployer;
           repo = "git@git.jakstys.lt:motiejus/config";
-          deployDerivations = [".#vno1-oh2" ".#hel1-a" ".#vno1-rp3b"];
+          deployDerivations = [
+            ".#vno1-oh2"
+            ".#hel1-a"
+            ".#vno1-rp3b"
+            ".#fra1-a"
+          ];
         };
 
         follower = {

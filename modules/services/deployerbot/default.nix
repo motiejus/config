@@ -63,6 +63,7 @@
             nix --accept-flake-config run .#deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
+              --confirm-timeout 60 \
               --targets ${deployDerivationsStr} -- \
                 --accept-flake-config
 
