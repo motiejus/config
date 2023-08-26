@@ -5,9 +5,10 @@ let
   motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
 
   hel1-a = (import ./data.nix).hosts."hel1-a.servers.jakst".publicKey;
+  fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   vno1-rp3b = (import ./data.nix).hosts."vno1-rp3b.servers.jakst".publicKey;
-  systems = [hel1-a vno1-oh2 vno1-rp3b];
+  systems = [hel1-a fra1-a vno1-oh2 vno1-rp3b];
 
   mk = auth: keyNames:
     builtins.listToAttrs (

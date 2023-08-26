@@ -118,6 +118,25 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
+      nixosConfigurations.fra1-a = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./hosts/fra1-a/configuration.nix
+
+          ./modules
+
+          agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
+
+          {
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+          }
+        ];
+
+        specialArgs = {inherit myData;} // inputs;
+      };
+
       deploy.nodes.hel1-a = {
         hostname = myData.hosts."hel1-a.servers.jakst".jakstIP;
         profiles = {
@@ -149,6 +168,18 @@
             sshUser = "motiejus";
             path =
               deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno1-rp3b;
+            user = "root";
+          };
+        };
+      };
+
+      deploy.nodes.fra1-a = {
+        hostname = myData.hosts."fra1-a.servers.jakst".jakstIP;
+        profiles = {
+          system = {
+            sshUser = "motiejus";
+            path =
+              deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.fra1-a;
             user = "root";
           };
         };

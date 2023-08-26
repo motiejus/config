@@ -48,6 +48,12 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
       jakstIP = "100.89.176.2";
     };
+    "fra1-a.servers.jakst" = rec {
+      extraHostNames = ["fra1-a.jakstys.lt" publicIP jakstIP];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFj9Ktw9SZQlHe/Pl5MI7PRUcCyTgZgZ0SsvWUmO0wBM";
+      publicIP = "168.119.184.134";
+      jakstIP = "100.89.176.5";
+    };
     "hel1-a.servers.jakst" = rec {
       extraHostNames = ["hel1-a.jakstys.lt" publicIP jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
@@ -82,6 +88,7 @@ rec {
 
   jakstysLTZone = let
     hel1a = hosts."hel1-a.servers.jakst".publicIP;
+    fra1a = hosts."hel1-a.servers.jakst".publicIP;
     vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
   in ''
     $ORIGIN jakstys.lt.
@@ -99,6 +106,7 @@ rec {
     dl                               A     ${vno1}
     fwmine                           A     ${hel1a}
     hel1-a                           A     ${hel1a}
+    fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 
     @                               MX     10 aspmx.l.google.com.
