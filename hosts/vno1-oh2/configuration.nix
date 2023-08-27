@@ -178,6 +178,8 @@
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       virtualHosts."grafana.jakstys.lt".extraConfig = ''
+        @denied not remote_ip ${myData.tailscale_subnet.cidr}
+        abort @denied
         reverse_proxy 127.0.0.1:3000
         tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
       '';
