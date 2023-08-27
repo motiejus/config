@@ -4,11 +4,10 @@ let
   motiejus_bk1 = "age1kyehn8yr9tfu3w0z4d9p9qrj0tjjh92ljxmz2nyr6xnm7y8kpv5spwwc9n";
   motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
 
-  hel1-a = (import ./data.nix).hosts."hel1-a.servers.jakst".publicKey;
   fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   vno1-rp3b = (import ./data.nix).hosts."vno1-rp3b.servers.jakst".publicKey;
-  systems = [hel1-a fra1-a vno1-oh2 vno1-rp3b];
+  systems = [fra1-a vno1-oh2 vno1-rp3b];
 
   mk = auth: keyNames:
     builtins.listToAttrs (
@@ -20,12 +19,8 @@ let
     );
 in
   {}
-  // mk ([hel1-a] ++ motiejus) [
-    "secrets/hel1-a/borgbackup/password.age"
-  ]
   // mk ([vno1-oh2] ++ motiejus) [
     "secrets/fra1-a/zfs-passphrase.age"
-    "secrets/hel1-a/zfs-passphrase.age"
     "secrets/vno1-oh2/borgbackup/password.age"
     "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
@@ -36,7 +31,7 @@ in
     "secrets/synapse/macaroon_secret_key.age"
   ]
   # TODO make sure secrets don't repeat here.
-  // mk ([fra1-a hel1-a] ++ motiejus) [
+  // mk ([fra1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
   // mk (systems ++ motiejus) [

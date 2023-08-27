@@ -44,31 +44,6 @@
       #  specialArgs = {inherit myData;} // inputs;
       #};
 
-      nixosConfigurations.hel1-a = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [
-          ./hosts/hel1-a/configuration.nix
-          ./hosts/hel1-a/hardware-configuration.nix
-          ./hosts/hel1-a/zfs.nix
-
-          ./modules
-
-          agenix.nixosModules.default
-          home-manager.nixosModules.home-manager
-
-          {
-            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            age.secrets.zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
-
-            age.secrets.borgbackup-password.file = ./secrets/hel1-a/borgbackup/password.age;
-            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-          }
-        ];
-
-        specialArgs = {inherit myData;} // inputs;
-      };
-
       nixosConfigurations.vno1-oh2 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
@@ -82,7 +57,6 @@
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            age.secrets.zfs-passphrase-hel1-a.file = ./secrets/hel1-a/zfs-passphrase.age;
             age.secrets.zfs-passphrase-fra1-a.file = ./secrets/fra1-a/zfs-passphrase.age;
 
             age.secrets.headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
@@ -137,18 +111,6 @@
         ];
 
         specialArgs = {inherit myData;} // inputs;
-      };
-
-      deploy.nodes.hel1-a = {
-        hostname = myData.hosts."hel1-a.servers.jakst".jakstIP;
-        profiles = {
-          system = {
-            sshUser = "motiejus";
-            path =
-              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.hel1-a;
-            user = "root";
-          };
-        };
       };
 
       deploy.nodes.vno1-oh2 = {

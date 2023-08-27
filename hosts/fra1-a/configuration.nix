@@ -22,7 +22,6 @@
         authorizedKeys =
           (builtins.attrValues myData.people_pubkeys)
           ++ [
-            myData.hosts."hel1-a.servers.jakst".publicKey
             myData.hosts."vno1-oh2.servers.jakst".publicKey
           ];
       };

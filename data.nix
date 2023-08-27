@@ -55,13 +55,6 @@ rec {
       publicIP = "168.119.184.134";
       jakstIP = "100.89.176.5";
     };
-    "hel1-a.servers.jakst" = rec {
-      extraHostNames = ["hel1-a.jakstys.lt" publicIP jakstIP];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF6Wd2lKrpP2Gqul10obMo2dc1xKaaLv0I4FAnfIaFKu";
-      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEzt0eaSRTAfM2295x4vACEd5VFqVeYJPV/N9ZUq+voP";
-      publicIP = "65.21.7.119";
-      jakstIP = "100.89.176.3";
-    };
     "fwmine.motiejus.jakst" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIPi4N6NhUjAwZNSbi/Eb9zliZtrCzNEHmKb4UGRsJqF";
       jakstIP = "100.89.176.6";
@@ -88,7 +81,6 @@ rec {
   };
 
   jakstysLTZone = let
-    hel1a = hosts."hel1-a.servers.jakst".publicIP;
     fra1a = hosts."fra1-a.servers.jakst".publicIP;
     vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
   in ''
@@ -105,8 +97,6 @@ rec {
     git                              A     ${vno1}
     auth                             A     ${vno1}
     dl                               A     ${vno1}
-    fwmine                           A     ${hel1a}
-    hel1-a                           A     ${hel1a}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 

@@ -6,7 +6,6 @@
 }: {
   imports = [
     ./boot
-    ./initrd
     ./fileSystems
     ./snapshot
     ./sshd

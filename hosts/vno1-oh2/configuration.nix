@@ -19,7 +19,7 @@
         enable = true;
         authorizedKeys =
           (builtins.attrValues myData.people_pubkeys)
-          ++ [myData.hosts."hel1-a.servers.jakst".publicKey];
+          ++ [myData.hosts."fra1-a.servers.jakst".publicKey];
       };
     };
   };
@@ -125,7 +125,6 @@
           repo = "git@git.jakstys.lt:motiejus/config";
           deployDerivations = [
             ".#vno1-oh2"
-            ".#hel1-a"
             ".#vno1-rp3b"
             ".#fra1-a"
           ];
@@ -159,15 +158,6 @@
 
       zfsunlock = {
         enable = true;
-        targets."hel1-a.servers.jakst" = let
-          host = myData.hosts."hel1-a.servers.jakst";
-        in {
-          sshEndpoint = host.publicIP;
-          pingEndpoint = host.jakstIP;
-          remotePubkey = host.initrdPubKey;
-          pwFile = config.age.secrets.zfs-passphrase-hel1-a.path;
-          startAt = "*-*-* *:00/5:00";
-        };
         targets."fra1-a.servers.jakst" = let
           host = myData.hosts."fra1-a.servers.jakst";
         in {
@@ -311,10 +301,6 @@
         {
           job_name = "fra1-a.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "hel1-a.servers.jakst";
-          static_configs = [{targets = ["${myData.hosts."hel1-a.servers.jakst".jakstIP}:${port}"];}];
         }
         {
           job_name = "vno1-rp3b.servers.jakst";
