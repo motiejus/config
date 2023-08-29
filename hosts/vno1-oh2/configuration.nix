@@ -186,6 +186,13 @@
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
       '';
+      virtualHosts."dl.jakstys.lt".extraConfig = ''
+        root * /var/www/dl
+        file_server browse {
+          hide .stfolder
+        }
+        encode gzip
+      '';
       virtualHosts."jakstys.lt" = {
         logFormat = ''
           output file ${config.services.caddy.logDir}/access-jakstys.lt.log {

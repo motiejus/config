@@ -41,6 +41,21 @@ in {
         // {};
 
       folders = {
+        "/var/www/dl/tel" = {
+          devices = ["mxp10"];
+          id = "gqrtz-prx9h";
+          label = "www-tel";
+        };
+        "/var/www/dl/fwmine" = {
+          devices = ["fwmine"];
+          id = "7z9sw-2nubh";
+          label = "www-fwmine";
+        };
+        "/var/www/dl/mykolo" = {
+          devices = ["mxp10"];
+          id = "wslmq-fyw4w";
+          label = "mykolo";
+        };
         "${config.services.syncthing.dataDir}/annex2/Books" = {
           devices = ["mxp10" "fwmine"];
           id = "8lk0n-mm63y";
