@@ -173,5 +173,7 @@
         };
 
       formatter = pkgs.alejandra;
+
+      packages.snmp-yaml = pkgs.callPackage ./packages/snmp-yaml {};
     });
 }

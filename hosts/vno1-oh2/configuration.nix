@@ -300,6 +300,12 @@
         evaluation_interval = "15s";
       };
 
+      exporters.snmp = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        configuration = {};
+      };
+
       scrapeConfigs = let
         port = builtins.toString myData.ports.exporters.node;
       in [
