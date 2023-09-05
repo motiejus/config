@@ -317,6 +317,41 @@
           job_name = "vno1-rp3b.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${port}"];}];
         }
+        {
+          job_name = "snmp_exporter";
+          static_configs = [{targets = ["127.0.0.1:9116"];}];
+        }
+        {
+          job_name = "snmp-mikrotik";
+          static_configs = [
+            {
+              targets = [
+                "192.168.189.2" # kids
+                "192.168.189.3" # livingroom
+                "192.168.189.4" # commbox
+              ];
+            }
+          ];
+          metrics_path = "./snmp";
+          params = {
+            auth = ["public_v2"];
+            module = ["mikrotik"];
+          };
+          relabel_configs = [
+            {
+              source_labels = ["__address__"];
+              target_label = "__param_target";
+            }
+            {
+              source_labels = ["__param_target"];
+              target_label = "instance";
+            }
+            {
+              target_label = "__address__";
+              replacement = "127.0.0.1:9116";
+            }
+          ];
+        }
       ];
     };
 
