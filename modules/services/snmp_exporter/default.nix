@@ -1,7 +1,7 @@
 {
   config,
   lib,
-  myData,
+  pkgs,
   ...
 }: {
   options.mj.services.snmp_exporter = with lib.types; {
@@ -13,8 +13,10 @@
 
     services.prometheus.exporters.snmp = {
       enable = true;
-      configurationPath = ./snmp.yml;
+      configurationPath = pkgs.concatTextFile {
+        name = "snmp.yml";
+        files = [./snmp.yml];
+      };
     };
-
   };
 }
