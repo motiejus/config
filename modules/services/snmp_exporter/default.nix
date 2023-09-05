@@ -13,7 +13,6 @@
 
     services.prometheus.exporters.snmp = {
       enable = true;
-      listenAddress = "127.0.0.1";
       configurationPath = ./snmp.yml;
     };
 
