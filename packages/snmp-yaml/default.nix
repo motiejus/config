@@ -3,14 +3,14 @@
   pkgs,
 }:
 stdenv.mkDerivation {
-  pname = "snmp-yaml";
+  name = "snmp-yaml";
 
-  buildInputs = [pkgs.snmp-exporter];
+  buildInputs = [pkgs.prometheus-snmp-exporter];
 
   installPhase = ''
     mkdir -p $out
-    ${pkgs.snmp-exporter}/bin/generator generate \
-        ${pkgs.snmp-exporter}/generator/generator.yaml \
+    ${pkgs.prometheus-snmp-exporter}/bin/generator generate \
+        ${pkgs.prometheus-snmp-exporter}/generator/generator.yaml \
         --output-path=$out/snmp.yml
   '';
 }
