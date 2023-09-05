@@ -174,6 +174,6 @@
 
       formatter = pkgs.alejandra;
 
-      #packages.snmp-yaml = pkgs.callPackage ./packages/snmp-yaml {};
+      packages.snmp-yaml = pkgs.callPackage ./packages/snmp-yaml {};
     });
 }
