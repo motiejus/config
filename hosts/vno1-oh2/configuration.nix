@@ -100,6 +100,8 @@
 
       gitea.enable = true;
 
+      snmp_exporter.enable = true;
+
       headscale = {
         enable = true;
         clientOidcPath = config.age.secrets.headscale-client-oidc.path;
@@ -298,12 +300,6 @@
       globalConfig = {
         scrape_interval = "15s";
         evaluation_interval = "15s";
-      };
-
-      exporters.snmp = {
-        enable = true;
-        listenAddress = "127.0.0.1";
-        configuration = {};
       };
 
       scrapeConfigs = let

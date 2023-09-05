@@ -13,6 +13,7 @@
     ./node_exporter
     ./nsd-acme
     ./postfix
+    ./snmp_exporter
     ./syncthing
     ./zfsunlock
   ];
