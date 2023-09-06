@@ -307,6 +307,10 @@
         port = builtins.toString myData.ports.exporters.node;
       in [
         {
+          job_name = "prometheus";
+          static_configs = [{targets = ["127.0.0.1:${toString myData.ports.prometheus}"];}];
+        }
+        {
           job_name = "${config.networking.hostName}.${config.networking.domain}";
           static_configs = [{targets = ["127.0.0.1:${port}"];}];
         }
