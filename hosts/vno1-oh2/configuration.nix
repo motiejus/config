@@ -296,6 +296,7 @@
     prometheus = {
       enable = true;
       port = myData.ports.prometheus;
+      retentionTime = "1y";
 
       globalConfig = {
         scrape_interval = "15s";
