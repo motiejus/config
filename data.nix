@@ -20,6 +20,9 @@ rec {
     kodi = 8080;
     prometheus = 9001;
     exporters.node = 9002;
+
+    # non-configurable in caddy as of 2023-09-06
+    exporters.caddy = 2019;
   };
 
   people_pubkeys = {

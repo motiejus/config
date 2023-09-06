@@ -179,6 +179,11 @@
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
+      globalConfig = ''
+        servers {
+          metrics
+        }
+      '';
       virtualHosts."grafana.jakstys.lt".extraConfig = ''
         @denied not remote_ip ${myData.tailscale_subnet.cidr}
         abort @denied
@@ -309,6 +314,10 @@
         {
           job_name = "prometheus";
           static_configs = [{targets = ["127.0.0.1:${toString myData.ports.prometheus}"];}];
+        }
+        {
+          job_name = "caddy";
+          static_configs = [{targets = ["127.0.0.1:${toString myData.ports.exporters.caddy}"];}];
         }
         {
           job_name = "${config.networking.hostName}.${config.networking.domain}";
