@@ -520,6 +520,14 @@
         ExecStart = "${pkgs.systemd}/bin/systemctl restart caddy.service";
       };
     };
+
+    minidlna = {
+      serviceConfig = {
+        ProtectSystem = "strict";
+        ProtectHome = "tmpfs";
+        BindReadOnlyPaths = ["/home/motiejus/video"];
+      };
+    };
   };
 
   systemd.paths = {
