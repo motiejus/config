@@ -426,14 +426,11 @@
         WEBSOCKET_ADDRESS = "127.0.0.1";
         WEBSOCKET_PORT = myData.ports.vaultwarden_ws;
 
-        SMTP_HOST = "127.0.0.1";
+        SMTP_HOST = "localhost";
         SMTP_PORT = 25;
         SMTP_SECURITY = "off";
-
-        #USE_SENDMAIL = true;
-        #SENDMAIL_COMMAND = "${pkgs.postfix}/bin/sendmail";
-        #SMTP_FROM = "admin@jakstys.lt";
-        #SMTP_FROM_NAME = "jakstys.lt Bitwarden server";
+        SMTP_FROM = "admin@jakstys.lt";
+        SMTP_FROM_NAME = "Bitwarden at jakstys.lt";
       };
     };
   };
