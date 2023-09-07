@@ -419,9 +419,9 @@
       config = {
         ROCKET_ADDRESS = "127.0.0.1";
         ROCKET_PORT = myData.ports.vaultwarden;
-        ROCKET_LOG = "critical";
+        LOG_LEVEL = "warn";
         DOMAIN = "https://bitwarden.jakstys.lt";
-        SIGNUPS_ALLOWED = true;
+        SIGNUPS_ALLOWED = false;
         INVITATION_ORG_NAME = "jakstys";
 
         # TODO remove after 1.29.0
