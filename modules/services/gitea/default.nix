@@ -56,14 +56,13 @@
             COOKIE_SECURE = true;
           };
           log.LEVEL = "Error";
-          # TODO: does not work with 1.19.4, getting error
-          # in the UI when testing the email sending workflow.
-          #mailer = {
-          #    ENABLED = true;
-          #    MAILER_TYPE = "sendmail";
-          #    FROM = "<noreply@jakstys.lt>";
-          #    SENDMAIL_PATH = "${pkgs.system-sendmail}/bin/sendmail";
-          #};
+          mailer = {
+            ENABLED = true;
+            FROM = "<noreply@jakstys.lt>";
+            PROTOCOL = "smtp";
+            SMTP_ADDR = "localhost";
+            SMTP_PORT = 25;
+          };
           "service.explore".DISABLE_USERS_PAGE = true;
         };
       };
