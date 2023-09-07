@@ -423,6 +423,7 @@
         DOMAIN = "https://bitwarden.jakstys.lt";
         SIGNUPS_ALLOWED = false;
         INVITATION_ORG_NAME = "jakstys";
+        PUSH_ENABLED = true;
 
         # TODO remove after 1.29.0
         WEBSOCKET_ENABLED = true;
