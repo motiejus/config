@@ -475,7 +475,7 @@
 
     vaultwarden = {
       serviceConfig = {
-        environmentFile = ["$CREDENTIALS_DIRECTORY/admin.env"];
+        EnvironmentFile = ["$CREDENTIALS_DIRECTORY/admin.env"];
         LoadCredential = [
           "admin.env:${config.age.secrets.vaultwarden-admin-env.path}"
         ];
