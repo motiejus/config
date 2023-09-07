@@ -437,9 +437,18 @@
         SMTP_FROM_NAME = "Bitwarden at jakstys.lt";
       };
     };
-  };
 
-  users.users.vaultwarden.extraGroups = ["postdrop"];
+    minidlna = {
+      enable = true;
+      openFirewall = true;
+      settings = {
+        media_dir = ["/home/motiejus/video"];
+        friendly_name = "vno1-oh2";
+        inotify = "yes";
+      };
+    };
+
+  };
 
   systemd.services = {
     caddy = let
