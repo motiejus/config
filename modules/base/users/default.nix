@@ -73,6 +73,7 @@
       programs.git = {
         enable = true;
         userEmail = "motiejus@jakstys.lt";
+        userName = "Motiejus Jakštys";
         aliases.yolo = "commit --amend --no-edit -a";
         extraConfig = {
           rerere.enabled = true;
