@@ -118,5 +118,10 @@ rec {
     _acme-challenge.irc          CNAME     _acme-endpoint.irc
     _acme-endpoint.irc              NS     ns._acme-endpoint.irc
     ns._acme-endpoint.irc            A     ${vno1}
+
+    bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
+    _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
+    ns._acme-endpoint.bitwarden      A     ${vno1}
   '';
 }
