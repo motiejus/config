@@ -15,8 +15,13 @@ rec {
   ports = {
     grafana = 3000;
     gitea = 3001;
+
+    # not necessary from vaultwarden 1.29.0
+    vaultwarden_ws = 3012;
+
     soju = 6697;
     matrix-synapse = 8008;
+    vaultwarden = 8222;
     kodi = 8080;
     prometheus = 9001;
     exporters.node = 9002;

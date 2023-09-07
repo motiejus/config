@@ -108,16 +108,13 @@
         subnetCIDR = myData.tailscale_subnet.cidr;
       };
 
-      nsd-acme = {
+      nsd-acme = let
+        accountKey = config.age.secrets.letsencrypt-account-key.path;
+      in {
         enable = true;
-        zones."grafana.jakstys.lt" = {
-          accountKey = config.age.secrets.letsencrypt-account-key.path;
-          staging = false;
-        };
-        zones."irc.jakstys.lt" = {
-          accountKey = config.age.secrets.letsencrypt-account-key.path;
-          staging = false;
-        };
+        zones."grafana.jakstys.lt".accountKey = accountKey;
+        zones."irc.jakstys.lt".accountKey = accountKey;
+        zones."bitwarden.jakstys.lt".accountKey = accountKey;
       };
 
       deployerbot = {
@@ -189,6 +186,29 @@
         abort @denied
         reverse_proxy 127.0.0.1:3000
         tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+      '';
+      virtualHosts."bitwarden.jakstys.lt".extraConfig = ''
+        @denied not remote_ip ${myData.tailscale_subnet.cidr}
+        abort @denied
+        tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
+
+        # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
+        encode gzip
+        header {
+          # Enable HTTP Strict Transport Security (HSTS)
+          Strict-Transport-Security "max-age=31536000;"
+          # Enable cross-site filter (XSS) and tell browser to block detected attacks
+          X-XSS-Protection "1; mode=block"
+          # Disallow the site to be rendered within a frame (clickjacking protection)
+          X-Frame-Options "SAMEORIGIN"
+        }
+
+        # deprecated from vaultwarden 1.29.0
+        reverse_proxy /notifications/hub 127.0.0.1:${toString myData.ports.vaultwarden_ws}
+
+        reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
+           header_up X-Real-IP {remote_host}
+        }
       '';
       virtualHosts."www.jakstys.lt".extraConfig = ''
         redir https://jakstys.lt
@@ -389,18 +409,49 @@
         message-store fs /var/lib/soju
       '';
     };
+
+    vaultwarden = {
+      enable = true;
+      config = {
+        ROCKET_ADDRESS = "127.0.0.1";
+        ROCKET_PORT = myData.ports.vaultwarden;
+        DOMAIN = "https://bitwarden.jakstys.lt";
+        SIGNUPS_ALLOWED = false;
+        ROCKET_LOG = "critical";
+
+        # TODO remove after 1.29.0
+        WEBSOCKET_ENABLED = true;
+        WEBSOCKET_ADDRESS = "127.0.0.1";
+        WEBSOCKET_PORT = myData.ports.vaultwarden_ws;
+
+        SMTP_HOST = "127.0.0.1";
+        SMTP_PORT = 25;
+        SMTP_SECURITY = "off";
+        SMTP_FROM = "admin@jakstys.lt";
+        SMTP_FROM_NAME = "jakstys.lt Bitwarden server";
+      };
+    };
   };
 
   systemd.services = {
     caddy = let
-      acme = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+      grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+      bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
     in {
       serviceConfig.LoadCredential = [
-        "grafana.jakstys.lt-cert.pem:${acme.certFile}"
-        "grafana.jakstys.lt-key.pem:${acme.keyFile}"
+        "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
+        "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
+        "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
+        "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
       ];
-      after = ["nsd-acme-grafana.jakstys.lt.service"];
-      requires = ["nsd-acme-grafana.jakstys.lt.service"];
+      after = [
+        "nsd-acme-grafana.jakstys.lt.service"
+        "nsd-acme-bitwarden.jakstys.lt.service"
+      ];
+      requires = [
+        "nsd-acme-grafana.jakstys.lt.service"
+        "nsd-acme-bitwarden.jakstys.lt.service"
+      ];
     };
 
     soju = let
@@ -449,6 +500,7 @@
       pathConfig = {
         PathChanged = [
           config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
+          config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
         ];
         Unit = "cert-watcher.service";
       };
