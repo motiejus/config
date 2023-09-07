@@ -26,7 +26,7 @@ in
     "secrets/grafana.jakstys.lt/oidc.age"
     "secrets/letsencrypt/account.key.age"
     "secrets/headscale/oidc_client_secret2.age"
-    "secrets/vaultwarden/admin.env.age"
+    "secrets/vaultwarden/secrets.env.age"
 
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"

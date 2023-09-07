@@ -419,6 +419,7 @@
         ROCKET_LOG = "critical";
         DOMAIN = "https://bitwarden.jakstys.lt";
         SIGNUPS_ALLOWED = true;
+        INVITATION_ORG_NAME = "jakstys";
 
         # TODO remove after 1.29.0
         WEBSOCKET_ENABLED = true;
@@ -428,11 +429,16 @@
         SMTP_HOST = "127.0.0.1";
         SMTP_PORT = 25;
         SMTP_SECURITY = "off";
-        SMTP_FROM = "admin@jakstys.lt";
-        SMTP_FROM_NAME = "jakstys.lt Bitwarden server";
+
+        #USE_SENDMAIL = true;
+        #SENDMAIL_COMMAND = "${pkgs.postfix}/bin/sendmail";
+        #SMTP_FROM = "admin@jakstys.lt";
+        #SMTP_FROM_NAME = "jakstys.lt Bitwarden server";
       };
     };
   };
+
+  users.users.vaultwarden.extraGroups = ["postdrop"];
 
   systemd.services = {
     caddy = let
@@ -474,10 +480,12 @@
     };
 
     vaultwarden = {
+      preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/vaultwarden/secrets.env";
       serviceConfig = {
-        EnvironmentFile = ["$CREDENTIALS_DIRECTORY/admin.env"];
+        EnvironmentFile = ["-/run/vaultwarden/secrets.env"];
+        RuntimeDirectory = "vaultwarden";
         LoadCredential = [
-          "admin.env:${config.age.secrets.vaultwarden-admin-env.path}"
+          "secrets.env:${config.age.secrets.vaultwarden-secrets-env.path}"
         ];
       };
     };
