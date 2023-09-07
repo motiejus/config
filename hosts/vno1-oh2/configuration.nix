@@ -412,12 +412,13 @@
 
     vaultwarden = {
       enable = true;
+
       config = {
         ROCKET_ADDRESS = "127.0.0.1";
         ROCKET_PORT = myData.ports.vaultwarden;
-        DOMAIN = "https://bitwarden.jakstys.lt";
-        SIGNUPS_ALLOWED = false;
         ROCKET_LOG = "critical";
+        DOMAIN = "https://bitwarden.jakstys.lt";
+        SIGNUPS_ALLOWED = true;
 
         # TODO remove after 1.29.0
         WEBSOCKET_ENABLED = true;
@@ -470,6 +471,15 @@
       '';
       after = ["nsd-acme-irc.jakstys.lt.service"];
       requires = ["nsd-acme-irc.jakstys.lt.service"];
+    };
+
+    vaultwarden = {
+      serviceConfig = {
+        environmentFile = ["$CREDENTIALS_DIRECTORY/admin.env"];
+        LoadCredential = [
+          "admin.env:${config.age.secrets.vaultwarden-admin-env.path}"
+        ];
+      };
     };
 
     grafana = {

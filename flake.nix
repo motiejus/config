@@ -64,6 +64,7 @@
             age.secrets.borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
             age.secrets.grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
             age.secrets.letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
+            age.secrets.vaultwarden-admin-env.file = ./secrets/vaultwarden/admin.env.age;
 
             age.secrets.synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
             age.secrets.synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
