@@ -298,6 +298,7 @@
         };
       };
       settings = {
+        paths.logs = "/var/log/grafana";
         server = {
           domain = "grafana.jakstys.lt";
           root_url = "https://grafana.jakstys.lt";
@@ -504,6 +505,7 @@
     grafana = {
       preStart = "ln -sf $CREDENTIALS_DIRECTORY/oidc /run/grafana/oidc-secret";
       serviceConfig = {
+        LogsDirectory = "grafana";
         RuntimeDirectory = "grafana";
         LoadCredential = ["oidc:${config.age.secrets.grafana-oidc.path}"];
       };
