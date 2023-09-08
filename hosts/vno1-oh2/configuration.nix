@@ -54,6 +54,7 @@
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/bitwarden_rs"
+              "/var/lib/.snapshot-latest/caddy"
               "/var/lib/.snapshot-latest/gitea"
               "/var/lib/.snapshot-latest/grafana"
               "/var/lib/.snapshot-latest/headscale"
