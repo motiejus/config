@@ -82,11 +82,11 @@
         pwgen
         parted
         sqlite
+        bonnie # disk benchmarking
         procps
         ripgrep
         vimv-rs
         sysstat
-        nix-top # nix-top is a top for what nix is doing
         bsdgames
         binutils
         moreutils
