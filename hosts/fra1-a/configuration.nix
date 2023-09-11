@@ -91,7 +91,6 @@
     firewall = {
       allowedUDPPorts = [53];
       allowedTCPPorts = [22 53];
-      checkReversePath = "loose"; # for tailscale
     };
   };
 

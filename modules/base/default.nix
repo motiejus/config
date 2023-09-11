@@ -144,6 +144,7 @@
     };
 
     networking.firewall.logRefusedConnections = false;
+    networking.firewall.checkReversePath = "loose"; # for tailscale
 
     services = {
       chrony = {

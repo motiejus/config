@@ -108,7 +108,6 @@
       }
     ];
     firewall = {
-      checkReversePath = "loose"; # for tailscale
     };
   };
 
