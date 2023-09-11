@@ -45,14 +45,14 @@ in {
 
   config = with config.mj.base.zfsborg;
     lib.mkIf enable {
-      systemd.services."zfsborg-snapshot-dirs" = let
-        mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
-      in {
+      systemd.services."zfsborg-snapshot-dirs" = {
         description = "zfsborg prepare snapshot directories";
         wantedBy = ["multi-user.target"];
         serviceConfig = {
           Type = "oneshot";
-          ExecStart =
+          ExecStart = let
+            mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
+          in
             builtins.map
             (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
             mountpoints;
