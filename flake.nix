@@ -88,6 +88,8 @@
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
             age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
             age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+
+            age.secrets.datapool-passphrase.file = ./secrets/vno1-rp3b/datapool-passphrase.age;
           }
         ];
 
