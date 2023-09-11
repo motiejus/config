@@ -66,6 +66,8 @@
             ];
             backup_at = "*-*-* 00:01:00";
           }
+
+          # TODO: merge the two below
           {
             mountpoint = "/var/log";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
@@ -76,6 +78,18 @@
             ];
             backup_at = "*-*-* 00:01:00";
           }
+          {
+            mountpoint = "/var/log";
+            repo = "borgstor@${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_log";
+            paths = ["/var/log/.snapshot-latest/caddy/"];
+            patterns = [
+              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
+              "- *"
+            ];
+            backup_at = "*-*-* 00:02:00";
+          }
+          # /TODO
+
           {
             mountpoint = "/home";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
