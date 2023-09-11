@@ -33,6 +33,8 @@
   config = {
     time.timeZone = config.mj.timeZone;
 
+    mj.services.friendlyport.vpn.ports = [config.services.iperf3.port];
+
     i18n = {
       defaultLocale = "en_US.UTF-8";
       supportedLocales = [
@@ -142,8 +144,6 @@
     };
 
     networking.firewall.logRefusedConnections = false;
-    networking.firewall.allowedTCPPorts = [config.services.iperf3.port];
-    networking.firewall.allowedUDPPorts = [config.services.iperf3.port];
 
     services = {
       chrony = {
