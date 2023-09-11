@@ -33,6 +33,8 @@
   config = {
     time.timeZone = config.mj.timeZone;
 
+    mj.services.friendlyport.vpn.ports = [config.services.iperf3.port];
+
     i18n = {
       defaultLocale = "en_US.UTF-8";
       supportedLocales = [
@@ -99,9 +101,9 @@
         curl
         btop
         iftop
-        iperf
         whois
         ipset
+        iperf3
         jnettop
         openssl
         tcpdump
