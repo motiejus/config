@@ -34,6 +34,14 @@
     device = "datapool/root";
     fsType = "zfs";
   };
+  fileSystems."/data/borg" = {
+    device = "datapool/root/borg";
+    fsType = "zfs";
+  };
+  fileSystems."/data/shared" = {
+    device = "datapool/root/shared";
+    fsType = "zfs";
+  };
 
   swapDevices = [];
 
