@@ -99,6 +99,7 @@
         curl
         btop
         iftop
+        iperf
         whois
         ipset
         jnettop
