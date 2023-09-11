@@ -72,33 +72,33 @@ in {
             "config.mj.base.unitstatus.enable must be true";
               lib.nameValuePair
               "${lib.strings.sanitizeDerivationName mountpoint}-${toString i}"
-              {
-                doInit = true;
-                repo = attrs.repo;
-                encryption = {
-                  mode = "repokey-blake2";
-                  passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
-                };
-                paths = attrs.paths;
-                extraArgs = "--remote-path=borg1";
-                compression = "auto,lzma";
-                startAt = attrs.backup_at;
-                readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
-                preHook = mountLatest mountpoint fs.device;
-                postHook = umountLatest mountpoint;
-                prune.keep = {
-                  within = "1d";
-                  daily = 7;
-                  weekly = 4;
-                  monthly = 3;
-                };
-              }
-              // lib.optionalAttrs (attrs ? patterns) {
-                patterns = attrs.patterns;
-              }
-              // lib.optionalAttrs (sshKeyPath != null) {
-                environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
-              }
+              ({
+                  doInit = true;
+                  repo = attrs.repo;
+                  encryption = {
+                    mode = "repokey-blake2";
+                    passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
+                  };
+                  paths = attrs.paths;
+                  extraArgs = "--remote-path=borg1";
+                  compression = "auto,lzma";
+                  startAt = attrs.backup_at;
+                  readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
+                  preHook = mountLatest mountpoint fs.device;
+                  postHook = umountLatest mountpoint;
+                  prune.keep = {
+                    within = "1d";
+                    daily = 7;
+                    weekly = 4;
+                    monthly = 3;
+                  };
+                }
+                // lib.optionalAttrs (attrs ? patterns) {
+                  patterns = attrs.patterns;
+                }
+                // lib.optionalAttrs (sshKeyPath != null) {
+                  environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
+                })
         )
         dirs
       );
