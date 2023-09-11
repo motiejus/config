@@ -21,6 +21,9 @@
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
 
+  boot.supportedFilesystems = [ "zfs" ];
+  boot.zfs.forceImportRoot = false;
+
   boot.loader.raspberryPi.firmwareConfig = ''
     dtparam=audio=on
   '';
