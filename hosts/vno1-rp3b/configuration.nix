@@ -15,7 +15,6 @@
   boot.initrd.availableKernelModules = ["usbhid"];
   boot.initrd.kernelModules = ["vc4" "bcm2835_dma" "i2c_bcm2835"];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
-  boot.kernelParams = ["cma=320M"];
   boot.kernelModules = [];
   boot.extraModulePackages = [];
   boot.loader.grub.enable = false;
@@ -24,14 +23,16 @@
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
 
-  boot.loader.raspberryPi.firmwareConfig = ''
-    dtparam=audio=on
-  '';
   powerManagement.cpuFreqGovernor = "ondemand";
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/44444444-4444-4444-8888-888888888888";
     fsType = "ext4";
+  };
+
+  fileSystems."/data" = {
+    device = "datapool/root";
+    fsType = "zfs";
   };
 
   swapDevices = [];
@@ -70,25 +71,6 @@
 
   services.tailscale.enable = true;
 
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  users.extraUsers.kodi.isNormalUser = true;
-
-  services.cage = {
-    user = "kodi";
-    program = let
-      kodi-wayland = pkgs.kodi-wayland.passthru.withPackages (kodiPkgs: [
-        kodiPkgs.youtube
-      ]);
-    in "${kodi-wayland}/bin/kodi-standalone";
-    enable = true;
-  };
-
   services.journald.extraConfig = "Storage=volatile";
 
   environment.etc = {
@@ -112,8 +94,6 @@
       }
     ];
     firewall = {
-      allowedUDPPorts = [myData.ports.kodi];
-      allowedTCPPorts = [myData.ports.kodi];
       checkReversePath = "loose"; # for tailscale
     };
   };
