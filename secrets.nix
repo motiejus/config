@@ -36,6 +36,9 @@ in
   // mk ([fra1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
+  // mk ([vno1-rp3b] ++ motiejus) [
+    "secrets/vno1-rp3b/datadisk-passphrase.age"
+  ]
   // mk (systems ++ motiejus) [
     "secrets/motiejus_passwd_hash.age"
     "secrets/root_passwd_hash.age"
