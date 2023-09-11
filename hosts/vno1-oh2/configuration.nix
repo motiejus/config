@@ -49,8 +49,9 @@
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;
         sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        mountpoints = {
-          "/var/lib" = {
+        dirs = [
+          {
+            mountpoint = "/var/lib";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/bitwarden_rs"
@@ -64,8 +65,9 @@
               "/var/lib/.snapshot-latest/private/soju"
             ];
             backup_at = "*-*-* 00:01:00";
-          };
-          "/var/log" = {
+          }
+          {
+            mountpoint = "/var/log";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
             paths = ["/var/log/.snapshot-latest/caddy/"];
             patterns = [
@@ -73,16 +75,17 @@
               "- *"
             ];
             backup_at = "*-*-* 00:01:00";
-          };
-          "/home" = {
+          }
+          {
+            mountpoint = "/home";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
               "/home/.snapshot-latest/motiejus/annex2"
               "/home/.snapshot-latest/motiejus/.config/syncthing"
             ];
             backup_at = "*-*-* 00:05:00 UTC";
-          };
-        };
+          }
+        ];
       };
 
       unitstatus = {

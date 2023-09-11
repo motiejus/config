@@ -24,11 +24,12 @@ in {
       default = null;
     };
 
-    mountpoints = lib.mkOption {
+    dirs = lib.mkOption {
       default = {};
-      type = attrsOf (submodule (
+      type = listOf (submodule (
         {...}: {
           options = {
+            mountpoint = lib.mkOption {type = path;};
             repo = lib.mkOption {type = str;};
             paths = lib.mkOption {type = listOf path;};
             patterns = lib.mkOption {
@@ -42,65 +43,68 @@ in {
     };
   };
 
-  config = lib.mkIf config.mj.base.zfsborg.enable {
-    systemd.services."zfsborg-snapshot-dirs" = let
-      mountpoints = lib.unique (lib.attrNames config.mj.base.zfsborg.mountpoints);
-    in {
-      description = "zfsborg prepare snapshot directories";
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart =
-          builtins.map
-          (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
-          mountpoints;
-        RemainAfterExit = true;
+  config = with config.mj.base.zfsborg;
+    lib.mkIf enable {
+      systemd.services."zfsborg-snapshot-dirs" = let
+        mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
+      in {
+        description = "zfsborg prepare snapshot directories";
+        wantedBy = ["multi-user.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart =
+            builtins.map
+            (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
+            mountpoints;
+          RemainAfterExit = true;
+        };
       };
+
+      services.borgbackup.jobs = builtins.listToAttrs (
+        map (attrs: let
+          mountpoint = builtins.getAttr "mountpoint" attrs;
+          fs = builtins.getAttr mountpoint config.fileSystems;
+        in
+          assert fs.fsType == "zfs";
+          assert lib.assertMsg
+          config.mj.base.unitstatus.enable
+          "config.mj.base.unitstatus.enable must be true"; {
+            name = lib.strings.sanitizeDerivationName mountpoint;
+            value =
+              {
+                doInit = true;
+                repo = attrs.repo;
+                encryption = {
+                  mode = "repokey-blake2";
+                  passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
+                };
+                paths = attrs.paths;
+                extraArgs = "--remote-path=borg1";
+                compression = "auto,lzma";
+                startAt = attrs.backup_at;
+                readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
+                preHook = mountLatest mountpoint fs.device;
+                postHook = umountLatest mountpoint;
+                prune.keep = {
+                  within = "1d";
+                  daily = 7;
+                  weekly = 4;
+                  monthly = 3;
+                };
+              }
+              // lib.optionalAttrs (attrs ? patterns) {
+                patterns = attrs.patterns;
+              }
+              // lib.optionalAttrs (sshKeyPath != null) {
+                environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
+              };
+          })
+        dirs
+      );
+
+      mj.base.unitstatus.units = let
+        sanitized = map lib.strings.sanitizeDerivationName (lib.catAttrs "mountpoint" dirs);
+      in
+        map (n: "borgbackup-job-${n}") sanitized;
     };
-
-    services.borgbackup.jobs = lib.mapAttrs' (mountpoint: attrs: let
-      fs = builtins.getAttr mountpoint config.fileSystems;
-    in
-      assert fs.fsType == "zfs";
-      assert lib.assertMsg
-      config.mj.base.unitstatus.enable
-      "config.mj.base.unitstatus.enable must be true"; {
-        name = lib.strings.sanitizeDerivationName mountpoint;
-        value =
-          {
-            doInit = true;
-            repo = attrs.repo;
-            encryption = {
-              mode = "repokey-blake2";
-              passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
-            };
-            paths = attrs.paths;
-            extraArgs = "--remote-path=borg1";
-            compression = "auto,lzma";
-            startAt = attrs.backup_at;
-            readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
-            preHook = mountLatest mountpoint fs.device;
-            postHook = umountLatest mountpoint;
-            prune.keep = {
-              within = "1d";
-              daily = 7;
-              weekly = 4;
-              monthly = 3;
-            };
-          }
-          // lib.optionalAttrs (attrs ? patterns) {
-            patterns = attrs.patterns;
-          }
-          // lib.optionalAttrs (config.mj.base.zfsborg.sshKeyPath != null) {
-            environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
-          };
-      })
-    config.mj.base.zfsborg.mountpoints;
-
-    mj.base.unitstatus.units = let
-      mounts = config.mj.base.zfsborg.mountpoints;
-      sanitized = map lib.strings.sanitizeDerivationName (lib.attrNames mounts);
-    in
-      map (n: "borgbackup-job-${n}") sanitized;
-  };
 }
