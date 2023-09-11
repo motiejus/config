@@ -61,16 +61,17 @@ in {
       };
 
       services.borgbackup.jobs = builtins.listToAttrs (
-        map (attrs: let
-          mountpoint = builtins.getAttr "mountpoint" attrs;
-          fs = builtins.getAttr mountpoint config.fileSystems;
-        in
-          assert fs.fsType == "zfs";
-          assert lib.assertMsg
-          config.mj.base.unitstatus.enable
-          "config.mj.base.unitstatus.enable must be true"; {
-            name = lib.strings.sanitizeDerivationName mountpoint;
-            value =
+        lib.imap0 (
+          i: attrs: let
+            mountpoint = builtins.getAttr "mountpoint" attrs;
+            fs = builtins.getAttr mountpoint config.fileSystems;
+          in
+            assert fs.fsType == "zfs";
+            assert lib.assertMsg
+            config.mj.base.unitstatus.enable
+            "config.mj.base.unitstatus.enable must be true";
+              lib.nameValuePair
+              "${lib.strings.sanitizeDerivationName mountpoint}-${toString i}"
               {
                 doInit = true;
                 repo = attrs.repo;
@@ -97,14 +98,14 @@ in {
               }
               // lib.optionalAttrs (sshKeyPath != null) {
                 environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
-              };
-          })
+              }
+        )
         dirs
       );
 
       mj.base.unitstatus.units = let
         sanitized = map lib.strings.sanitizeDerivationName (lib.catAttrs "mountpoint" dirs);
       in
-        map (n: "borgbackup-job-${n}") sanitized;
+        lib.imap0 (i: name: "borgbackup-job-${name}-${toString i}") sanitized;
     };
 }
