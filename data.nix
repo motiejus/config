@@ -10,6 +10,8 @@ rec {
     # "upstream" user. We need a way to configure the uidgid,
     # so creating users explicitly.
     node_exporter = 503;
+
+    borgstor = 504;
   };
 
   ports = {

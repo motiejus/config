@@ -20,7 +20,7 @@
   boot.loader.grub.enable = false;
   boot.loader.generic-extlinux-compatible.enable = true;
 
-  boot.supportedFilesystems = [ "zfs" ];
+  boot.supportedFilesystems = ["zfs"];
   boot.zfs.forceImportRoot = false;
 
   powerManagement.cpuFreqGovernor = "ondemand";
@@ -61,6 +61,12 @@
 
     services = {
       node_exporter.enable = true;
+
+      borgstor = {
+        enable = true;
+        dataDir = "/data/borg";
+        sshKeys = [myData.hosts."vno1-oh2.servers.jakst".publicKey];
+      };
 
       postfix = {
         enable = true;

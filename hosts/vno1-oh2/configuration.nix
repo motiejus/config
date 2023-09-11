@@ -449,7 +449,6 @@
         inotify = "yes";
       };
     };
-
   };
 
   systemd.services = {

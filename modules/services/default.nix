@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [
+    ./borgstor
     ./deployerbot
     ./friendlyport
     ./gitea
