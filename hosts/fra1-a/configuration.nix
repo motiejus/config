@@ -59,7 +59,7 @@
       };
 
       zfsunlock = {
-        enable = true;
+        enable = false;
         targets."vno1-oh2.servers.jakst" = let
           host = myData.hosts."vno1-oh2.servers.jakst";
         in {
