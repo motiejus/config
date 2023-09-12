@@ -143,12 +143,17 @@
     };
 
     services = {
-      friendlyport.vpn.ports = [
-        80
-        443
-        myData.ports.grafana
-        myData.ports.prometheus
-        myData.ports.soju
+      friendlyport.ports = [
+        {
+          subnets = [myData.tailscale_subnet.cidr];
+          tcp = [
+            80
+            443
+            myData.ports.grafana
+            myData.ports.prometheus
+            myData.ports.soju
+          ];
+        }
       ];
 
       node_exporter.enable = true;

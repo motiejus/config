@@ -86,6 +86,19 @@ rec {
     };
   };
 
+  # copied from nixpkgs/lib/attrsets.nix
+  attrVals = nameList: set: map (x: set.${x}) nameList;
+
+  motiejus_ips = let
+    mHosts =
+      attrVals [
+        "mxp10.motiejus.jakst"
+        "fwmine.motiejus.jakst"
+      ]
+      hosts;
+  in
+    builtins.catAttrs "jakstIP" mHosts;
+
   tailscale_subnet = {
     cidr = "100.89.176.0/20";
     range = "100.89.176.0-100.89.191.255";

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }: {
   options.mj.services.snmp_exporter = with lib.types; {
@@ -9,7 +10,12 @@
   };
 
   config = lib.mkIf config.mj.services.snmp_exporter.enable {
-    mj.services.friendlyport.vpn.ports = [config.services.prometheus.exporters.snmp.port];
+    mj.services.friendlyport.ports = [
+      {
+        subnets = [myData.tailscale_subnet.cidr];
+        tcp = [config.services.prometheus.exporters.snmp.port];
+      }
+    ];
 
     services.prometheus.exporters.snmp = {
       enable = true;

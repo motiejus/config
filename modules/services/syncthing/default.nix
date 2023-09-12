@@ -14,7 +14,12 @@ in {
   };
 
   config = lib.mkIf config.mj.services.syncthing.enable {
-    mj.services.friendlyport.motiejus.ports = [8384];
+    mj.services.friendlyport.ports = [
+      {
+        subnets = myData.motiejus_ips;
+        tcp = [8384];
+      }
+    ];
 
     services.syncthing = {
       enable = config.mj.services.syncthing.enable;

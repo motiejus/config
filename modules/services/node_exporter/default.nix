@@ -27,8 +27,11 @@
       gid = myData.uidgid.node_exporter;
     };
 
-    mj.services.friendlyport.vpn.ports = [
-      myData.ports.exporters.node
+    mj.services.friendlyport.ports = [
+      {
+        subnets = [myData.tailscale_subnet.cidr];
+        tcp = [myData.ports.exporters.node];
+      }
     ];
   };
 }

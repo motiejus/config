@@ -4,47 +4,57 @@
   myData,
   ...
 }: {
-  options.mj.services.friendlyport.motiejus = with lib.types; {
+  options.mj.services.friendlyport = with lib.types; {
     ports = lib.mkOption {
-      type = listOf int;
-      default = [];
-    };
-  };
-  options.mj.services.friendlyport.vpn = with lib.types; {
-    ports = lib.mkOption {
-      type = listOf int;
-      default = [];
+      type = listOf (submodule (
+        {...}: {
+          options = {
+            subnets = lib.mkOption {type = listOf str;};
+            tcp = lib.mkOption {
+              type = listOf int;
+              default = [];
+            };
+            udp = lib.mkOption {
+              type = listOf int;
+              default = [];
+            };
+          };
+        }
+      ));
     };
   };
 
   config = let
-    portsM = config.mj.services.friendlyport.motiejus.ports;
-    portsV = config.mj.services.friendlyport.vpn.ports;
-    portsMStr = builtins.concatStringsSep "," (map builtins.toString config.mj.services.friendlyport.motiejus.ports);
-    portsVStr = builtins.concatStringsSep "," (map builtins.toString config.mj.services.friendlyport.vpn.ports);
-    hosts = lib.attrVals ["mxp10.motiejus.jakst" "fwmine.motiejus.jakst"] myData.hosts;
-    ips = lib.catAttrs "jakstIP" hosts;
-    startLinesM =
-      if builtins.length portsM > 0
-      then map (ip: "iptables -A INPUT -p tcp --match multiport --dports ${portsMStr} --source ${ip} -j ACCEPT") ips
-      else [];
-    startLinesV =
-      if builtins.length portsV > 0
-      then "iptables -A INPUT -p tcp --match multiport --dports ${portsVStr} --source ${myData.tailscale_subnet.cidr} -j ACCEPT"
-      else "";
+    ports = config.mj.services.friendlyport.ports;
+    mkAdd = (
+      proto: subnets: ints: let
+        subnetsS = builtins.concatStringsSep "," subnets;
+        intsS = builtins.concatStringsSep "," (map builtins.toString ints);
+      in
+        if builtins.length ints == 0
+        then ""
+        else "iptables -A INPUT -p ${proto} --match multiport --dports ${intsS} --source ${subnetsS} -j ACCEPT"
+    );
+
+    startTCP = map(attr: mkAdd "tcp" attr.subnets attr.tcp) ports;
+    startUDP = map(attr: mkAdd "udp" attr.subnets attr.udp) ports;
 
     # TODO: when stopping the firewall, systemd uses the old ports. So this is a two-phase process.
     # How to stop the old one and start the new one?
-    stopLinesM =
-      if builtins.length portsM > 0
-      then map (ip: "iptables -D INPUT -p tcp --match multiport --dports ${portsMStr} --source ${ip} -j ACCEPT || :") ips
-      else [];
-    stopLinesV =
-      if builtins.length portsV > 0
-      then "iptables -D INPUT -p tcp --match multiport --dports ${portsVStr} --source ${myData.tailscale_subnet.cidr} -j ACCEPT || :"
-      else "";
+    mkDel = (
+      proto: subnets: ints: let
+        subnetsS = builtins.concatStringsSep "," subnets;
+        intsS = builtins.concatStringsSep "," (map builtins.toString ints);
+      in
+        if builtins.length ints == 0
+        then ""
+        else "iptables -D INPUT -p ${proto} --match multiport --dports ${intsS} --source ${subnetsS} -j ACCEPT || :"
+    );
+
+    stopTCP = map(attr: mkDel "tcp" attr.subnets attr.tcp) ports;
+    stopUDP = map(attr: mkDel "udp" attr.subnets attr.udp) ports;
   in {
-    networking.firewall.extraCommands = lib.concatLines (startLinesM ++ [startLinesV]);
-    networking.firewall.extraStopCommands = lib.concatLines (stopLinesM ++ [stopLinesV]);
+    networking.firewall.extraCommands = lib.concatLines (startTCP ++ startUDP);
+    networking.firewall.extraStopCommands = lib.concatLines (stopTCP ++ stopUDP);
   };
 }

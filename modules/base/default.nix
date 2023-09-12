@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }: {
   imports = [
@@ -33,7 +34,12 @@
   config = {
     time.timeZone = config.mj.timeZone;
 
-    mj.services.friendlyport.vpn.ports = [config.services.iperf3.port];
+    mj.services.friendlyport.ports = [
+      {
+        subnets = [myData.tailscale_subnet.cidr];
+        tcp = [config.services.iperf3.port];
+      }
+    ];
 
     i18n = {
       defaultLocale = "en_US.UTF-8";
