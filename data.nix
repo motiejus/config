@@ -126,6 +126,7 @@ rec {
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
+    hdd                             A      ${hosts."vno1-rp3b.servers.jakst".jakstIP}
 
     @                               MX     10 aspmx.l.google.com.
     @                               MX     20 alt1.aspmx.l.google.com.
