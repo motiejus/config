@@ -36,7 +36,7 @@
 
       users.users.jakstpub = {
         description = "Jakstys Public";
-        home = dataDir;
+        home = "/var/empty";
         useDefaultShell = true;
         group = "jakstpub";
         isSystemUser = true;
