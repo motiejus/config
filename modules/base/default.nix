@@ -79,6 +79,7 @@
         lsof # lsof yay
         rage # encrypt-decrypt
         ncdu # disk usage navigator
+        lshw
         pwgen
         parted
         sqlite
