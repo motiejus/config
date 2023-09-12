@@ -29,7 +29,7 @@
 
     mj.services.friendlyport.ports = [
       {
-        subnets = [myData.tailscale_subnet.cidr];
+        subnets = [myData.subnets.tailscale.cidr];
         tcp = [myData.ports.exporters.node];
       }
     ];

@@ -89,20 +89,22 @@ rec {
   # copied from nixpkgs/lib/attrsets.nix
   attrVals = nameList: set: map (x: set.${x}) nameList;
 
-  motiejus_ips = let
-    mHosts =
-      attrVals [
+  subnets = {
+    tailscale = {
+      cidr = "100.89.176.0/20";
+      range = "100.89.176.0-100.89.191.255";
+      sshPattern = "100.89.176.?"; # until we have more hosts
+    };
+    motiejus.cidrs = let
+        mHosts =
+        attrVals [
         "mxp10.motiejus.jakst"
-        "fwmine.motiejus.jakst"
-      ]
-      hosts;
-  in
-    builtins.catAttrs "jakstIP" mHosts;
+            "fwmine.motiejus.jakst"
+        ]
+        hosts;
+      in builtins.catAttrs "jakstIP" mHosts;
 
-  tailscale_subnet = {
-    cidr = "100.89.176.0/20";
-    range = "100.89.176.0-100.89.191.255";
-    pattern = "100.89.176.?"; # until we have more hosts
+    vno1.cidr = "192.168.189.0/24";
   };
 
   jakstysLTZone = let

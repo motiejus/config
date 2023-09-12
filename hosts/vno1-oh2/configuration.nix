@@ -145,7 +145,7 @@
     services = {
       friendlyport.ports = [
         {
-          subnets = [myData.tailscale_subnet.cidr];
+          subnets = [myData.subnets.tailscale.cidr];
           tcp = [
             80
             443
@@ -165,7 +165,7 @@
       headscale = {
         enable = true;
         clientOidcPath = config.age.secrets.headscale-client-oidc.path;
-        subnetCIDR = myData.tailscale_subnet.cidr;
+        subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
       nsd-acme = let
@@ -242,13 +242,13 @@
         }
       '';
       virtualHosts."grafana.jakstys.lt".extraConfig = ''
-        @denied not remote_ip ${myData.tailscale_subnet.cidr}
+        @denied not remote_ip ${myData.subnets.tailscale.cidr}
         abort @denied
         reverse_proxy 127.0.0.1:3000
         tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
       '';
       virtualHosts."bitwarden.jakstys.lt".extraConfig = ''
-        @denied not remote_ip ${myData.tailscale_subnet.cidr}
+        @denied not remote_ip ${myData.subnets.tailscale.cidr}
         abort @denied
         tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
 

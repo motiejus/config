@@ -97,7 +97,7 @@
             createHome = true;
             uid = uidgid;
             openssh.authorizedKeys.keys = let
-              restrictedPubKey = "from=\"${myData.tailscale_subnet.pattern}\" " + publicKey;
+              restrictedPubKey = "from=\"${myData.subnets.tailscale.sshPattern}\" " + publicKey;
             in [restrictedPubKey];
           };
         };

@@ -16,10 +16,7 @@
       enable = true;
       blocktime = 900;
       whitelist =
-        [
-          "192.168.0.0/16"
-          myData.tailscale_subnet.cidr
-        ]
+        ["192.168.0.0/16" myData.subnets.tailscale.cidr]
         ++ (lib.catAttrs "publicIP" (lib.attrValues myData.hosts));
     };
   };

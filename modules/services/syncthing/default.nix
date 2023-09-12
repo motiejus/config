@@ -16,7 +16,7 @@ in {
   config = lib.mkIf config.mj.services.syncthing.enable {
     mj.services.friendlyport.ports = [
       {
-        subnets = myData.motiejus_ips;
+        subnets = myData.subnets.motiejus.cidrs;
         tcp = [8384];
       }
     ];

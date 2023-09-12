@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }: {
   options.mj.services.jakstpub = with lib.types; {
@@ -49,7 +50,10 @@
         unitConfig.Requires = requires;
       };
 
-      # WIP ports
-      #friendlyport.vpn.ports = [ 13
+      mj.services.friendlyport.ports = [{
+        subnets = with myData.subnets; [tailscale.cidr vno1.cidr];
+        tcp = [ 139 445 ];
+        udp = [ 137 138 ];
+      }];
     };
 }
