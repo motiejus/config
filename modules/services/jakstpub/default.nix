@@ -24,7 +24,6 @@
         enableWinbindd = false;
         extraConfig = ''
           map to guest = Bad User
-          log level = 1
           guest account = jakstpub
           server role = standalone server
         '';
