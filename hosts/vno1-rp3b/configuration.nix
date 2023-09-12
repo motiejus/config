@@ -87,6 +87,25 @@
 
   services.journald.extraConfig = "Storage=volatile";
 
+  #services.samba = {
+  #  enable = true;
+  #  securityType = "user";
+  #  enableNmbd = true;
+  #  enableWinbindd = false;
+  #  extraConfig = ''
+  #    map to guest = Bad User
+  #    guest account = jakstpub
+  #    passwd backend = tbdsam
+  #  '';
+  #  shares = {
+  #    public = {
+  #      path = "/data/shared";
+  #      writable = "yes";
+  #      printable = "no";
+  #    };
+  #  };
+  #};
+
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
   };
