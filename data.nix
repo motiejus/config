@@ -96,13 +96,14 @@ rec {
       sshPattern = "100.89.176.?"; # until we have more hosts
     };
     motiejus.cidrs = let
-        mHosts =
+      mHosts =
         attrVals [
-        "mxp10.motiejus.jakst"
-            "fwmine.motiejus.jakst"
+          "mxp10.motiejus.jakst"
+          "fwmine.motiejus.jakst"
         ]
         hosts;
-      in builtins.catAttrs "jakstIP" mHosts;
+    in
+      builtins.catAttrs "jakstIP" mHosts;
 
     vno1.cidr = "192.168.189.0/24";
   };

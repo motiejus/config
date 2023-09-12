@@ -19,8 +19,8 @@
         # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
         enable = true;
         securityType = "user";
-        enableNmbd = true;
-        enableWinbindd = true;
+        enableNmbd = false;
+        enableWinbindd = false;
         extraConfig = ''
           map to guest = Bad User
           log level = 1
@@ -42,6 +42,8 @@
         };
       };
 
+      services.samba-wsdd.enable = true;
+
       users.users.jakstpub = {
         description = "Jakstys Public";
         home = "/var/empty";
@@ -58,10 +60,16 @@
         unitConfig.Requires = requires;
       };
 
-      mj.services.friendlyport.ports = [{
-        subnets = with myData.subnets; [tailscale.cidr vno1.cidr];
-        tcp = [ 139 445 ];
-        udp = [ 137 138 ];
-      }];
+      mj.services.friendlyport.ports = [
+        {
+          subnets = with myData.subnets; [tailscale.cidr vno1.cidr];
+          tcp = [
+            139 # smbd
+            445 # smbd
+            5357 # wsdd
+          ];
+          udp = [3702]; # wsdd
+        }
+      ];
     };
 }
