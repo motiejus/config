@@ -10,10 +10,18 @@
       devNodes = "/dev/disk/by-id/";
       bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NX0TA00913P"];
       immutable = false;
-      availableKernelModules = ["ahci" "xhci_pci" "nvme" "usbhid" "sdhci_pci" "r8169"];
+      availableKernelModules = [
+        "ahci"
+        "xhci_pci"
+        "nvme"
+        "usbhid"
+        "sdhci_pci"
+        "r8169" # builtin non working
+        "r8152" # startech usb-ethernet adapter
+      ];
       removableEfi = true;
       kernelParams = [
-        "ip=192.168.189.1::192.168.189.4:255.255.255.0:vno1-oh2.jakstys.lt:enp3s0:off"
+        "ip=192.168.189.1::192.168.189.4:255.255.255.0:vno1-oh2.jakstys.lt:enp0s21f0u2:off"
       ];
       sshUnlock = {
         enable = true;
@@ -594,7 +602,7 @@
     domain = "servers.jakst";
     defaultGateway = "192.168.189.4";
     nameservers = ["192.168.189.4"];
-    interfaces.enp3s0.ipv4.addresses = [
+    interfaces.enp0s21f0u2.ipv4.addresses = [
       {
         address = "192.168.189.1";
         prefixLength = 24;
