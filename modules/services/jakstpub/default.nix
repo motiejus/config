@@ -16,25 +16,26 @@
   config = with config.mj.services.jakstpub;
     lib.mkIf enable {
       services.samba = {
+        # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
         enable = true;
         securityType = "user";
         enableNmbd = true;
         enableWinbindd = true;
         extraConfig = ''
-          workgroup = WORKGROUP
-          netbios name = HOMESERV
           map to guest = Bad User
+          log level = 1
+          guest account = jakstpub
+          server role = standalone server
         '';
         shares = {
           public = {
             path = dataDir;
-            writable = "yes";
-            printable = "no";
+            writeable = "yes";
             public = "yes";
             "guest ok" = "yes";
             "read only" = "no";
-            "create mask" = 666;
-            "directory mask" = 777;
+            "create mask" = "0666";
+            "directory mask" = "0777";
             "force user" = "jakstpub";
             "force group" = "jakstpub";
           };
