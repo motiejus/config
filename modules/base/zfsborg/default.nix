@@ -92,15 +92,16 @@ in {
                     weekly = 4;
                     monthly = 3;
                   };
-                  environment.BORG_HOST_ID = let
-                    h = config.networking;
-                  in "${h.hostName}.${h.domain}@${h.hostId}";
+                  environment = {
+                    BORG_HOST_ID = let
+                      h = config.networking;
+                    in "${h.hostName}.${h.domain}@${h.hostId}";
+                  } // lib.optionalAttrs (sshKeyPath != null) {
+                    BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
+                  };
                 }
                 // lib.optionalAttrs (attrs ? patterns) {
                   patterns = attrs.patterns;
-                }
-                // lib.optionalAttrs (sshKeyPath != null) {
-                  environment.BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
                 })
         )
         dirs
