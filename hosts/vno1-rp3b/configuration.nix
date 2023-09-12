@@ -86,6 +86,7 @@
         dataDir = "/data/shared";
         requires = ["data-shared.mount"];
         uidgid = myData.uidgid.jakstpub;
+        hostname = "hdd.jakstys.lt";
       };
     };
   };

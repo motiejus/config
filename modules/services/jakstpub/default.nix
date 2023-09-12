@@ -11,6 +11,7 @@
     # RequiresMountsFor is used by upstream, hacking with the unit
     requires = lib.mkOption {type = listOf str;};
     uidgid = lib.mkOption {type = int;};
+    hostname = lib.mkOption {type = str;};
   };
 
   config = with config.mj.services.jakstpub;
@@ -42,7 +43,10 @@
         };
       };
 
-      services.samba-wsdd.enable = true;
+      services.samba-wsdd = {
+        enable = true;
+        hostname = hostname;
+      };
 
       users.users.jakstpub = {
         description = "Jakstys Public";
