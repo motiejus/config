@@ -19,10 +19,11 @@
         enable = true;
         securityType = "user";
         enableNmbd = true;
-        enableWinbindd = false;
+        enableWinbindd = true;
         extraConfig = ''
+          workgroup = WORKGROUP
+          netbios name = HOMESERV
           map to guest = Bad User
-          guest account = jakstpub
         '';
         shares = {
           public = {
@@ -30,6 +31,12 @@
             writable = "yes";
             printable = "no";
             public = "yes";
+            "guest ok" = "yes";
+            "read only" = "no";
+            "create mask" = 666;
+            "directory mask" = 777;
+            "force user" = "jakstpub";
+            "force group" = "jakstpub";
           };
         };
       };
