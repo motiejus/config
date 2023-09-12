@@ -12,6 +12,8 @@ rec {
     node_exporter = 503;
 
     borgstor = 504;
+
+    jakstpub = 505;
   };
 
   ports = {

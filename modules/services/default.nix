@@ -10,6 +10,7 @@
     ./friendlyport
     ./gitea
     ./headscale
+    ./jakstpub
     ./matrix-synapse
     ./node_exporter
     ./nsd-acme

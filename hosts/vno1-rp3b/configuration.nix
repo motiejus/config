@@ -80,31 +80,19 @@
           publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
         };
       };
+
+      jakstpub = {
+        enable = true;
+        dataDir = "/data/shared";
+        requires = ["data-shared.mount"];
+        uidgid = myData.uidgid.jakstpub;
+      };
     };
   };
 
   services.tailscale.enable = true;
 
   services.journald.extraConfig = "Storage=volatile";
-
-  #services.samba = {
-  #  enable = true;
-  #  securityType = "user";
-  #  enableNmbd = true;
-  #  enableWinbindd = false;
-  #  extraConfig = ''
-  #    map to guest = Bad User
-  #    guest account = jakstpub
-  #    passwd backend = tbdsam
-  #  '';
-  #  shares = {
-  #    public = {
-  #      path = "/data/shared";
-  #      writable = "yes";
-  #      printable = "no";
-  #    };
-  #  };
-  #};
 
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
