@@ -98,6 +98,7 @@
         binutils
         moreutils
         perf-tools
+        smartmontools
         unixtools.xxd
 
         # networking
