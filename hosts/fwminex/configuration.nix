@@ -12,6 +12,12 @@
       immutable = false;
       availableKernelModules = [ "xhci_pci" "thunderbolt" "nvme" "usbhid" ];
       removableEfi = true;
+      partitionScheme = {
+        efiBoot = "-part1";
+        swap = "-part3";
+        bootPool = "-part2";
+        rootPool = "-part4";
+      };
     };
   };
 
