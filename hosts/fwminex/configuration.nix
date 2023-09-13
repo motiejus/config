@@ -110,7 +110,7 @@
   };
 
   networking = {
-    hostId = "bcfc4f5f";
+    hostId = "3a54afcd";
     hostName = "fwminex";
     domain = "motiejus.jakst";
     networkmanager.enable = true;
