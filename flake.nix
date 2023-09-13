@@ -75,6 +75,26 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
+      nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/fwminex/configuration.nix
+
+          ./modules
+
+          agenix.nixosModules.default
+          home-manager.nixosModules.home-manager
+
+          {
+            #age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            #age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            #age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+          }
+        ];
+
+        specialArgs = {inherit myData;} // inputs;
+      };
+
       nixosConfigurations.vno1-rp3b = nixpkgs.lib.nixosSystem {
         modules = [
           ./hosts/vno1-rp3b/configuration.nix

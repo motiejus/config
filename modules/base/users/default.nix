@@ -23,6 +23,11 @@
               type = nullOr str;
               default = null;
             };
+
+            extraGroups = lib.mkOption {
+              type = listOf str;
+              default = [];
+            };
           };
         }
       ));
@@ -39,7 +44,7 @@
         motiejus =
           {
             isNormalUser = true;
-            extraGroups = ["wheel"];
+            extraGroups = ["wheel"] ++ passwd.motiejus.extraGroups;
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
           }
