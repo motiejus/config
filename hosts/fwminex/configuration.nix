@@ -10,6 +10,7 @@
       devNodes = "/dev/disk/by-id/";
       bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A"];
       immutable = false;
+      forceNoDev2305 = true;
       availableKernelModules = [ "xhci_pci" "thunderbolt" "nvme" "usbhid" ];
       removableEfi = true;
       partitionScheme = {
