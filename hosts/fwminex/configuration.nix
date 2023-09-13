@@ -18,11 +18,12 @@
         bootPool = "-part2";
         rootPool = "-part4";
       };
-      swapDevices = ["/dev/zvol/rpool/swap"];
     };
   };
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
+
+  swapDevices = [{device = "/dev/zvol/rpool/swap";}];
 
   boot.loader.grub.extraEntries = ''
     menuentry "Debian via bpool label" {
