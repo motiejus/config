@@ -15,10 +15,10 @@
       removableEfi = true;
       partitionScheme = {
         efiBoot = "-part1";
-        swap = "-part3";
         bootPool = "-part2";
         rootPool = "-part4";
       };
+      swapDevices = ["/dev/zvol/rpool/swap"];
     };
   };
 
@@ -40,7 +40,7 @@
   '';
 
   fileSystems."/var/lib/docker" = {
-    device = "rpool/nixos/docker";
+    device = "rpool/nixos/var/docker";
     fsType = "zfs";
   };
 
