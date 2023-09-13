@@ -77,10 +77,10 @@
         };
       };
 
-      postfix = {
-        enable = true;
-        saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      };
+      #postfix = {
+      #  enable = true;
+      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      #};
 
       syncthing = {
         enable = false;
