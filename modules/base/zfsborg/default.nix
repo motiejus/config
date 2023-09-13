@@ -45,20 +45,30 @@ in {
 
   config = with config.mj.base.zfsborg;
     lib.mkIf enable {
-      systemd.services."zfsborg-snapshot-dirs" = {
-        description = "zfsborg prepare snapshot directories";
-        wantedBy = ["multi-user.target"];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = let
-            mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
-          in
-            builtins.map
-            (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
-            mountpoints;
-          RemainAfterExit = true;
+      systemd.services =
+        lib.listToAttrs (lib.imap1 (
+            i: attr:
+              lib.nameValuePair "borgbackup-job-${lib.strings.sanitizeDerivationName attr.mountpoint}-${toString i}" {
+                serviceConfig.TemporaryFileSystem = "${attr.mountpoint}/.snapshot-latest";
+              }
+          )
+          dirs)
+        // {
+          "zfsborg-snapshot-dirs" = {
+            description = "zfsborg prepare snapshot directories";
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = let
+                mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
+              in
+                builtins.map
+                (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
+                mountpoints;
+              RemainAfterExit = true;
+            };
+          };
         };
-      };
 
       services.borgbackup.jobs = builtins.listToAttrs (
         lib.imap0 (
@@ -83,7 +93,6 @@ in {
                   extraArgs = "--remote-path=borg1";
                   compression = "auto,lzma";
                   startAt = attrs.backup_at;
-                  readWritePaths = let p = mountpoint + "/.snapshot-latest"; in [p];
                   preHook = mountLatest mountpoint fs.device;
                   postHook = umountLatest mountpoint;
                   prune.keep = {
