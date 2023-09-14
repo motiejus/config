@@ -1,7 +1,7 @@
 {
   config,
-  lib,
-  pkgs,
+lib,
+pkgs,
   ...
 }: {
   imports = [
@@ -18,6 +18,7 @@
     ./snmp_exporter
     ./sshguard
     ./syncthing
+    ./tailscale
     ./zfsunlock
   ];
 }

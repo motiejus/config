@@ -155,11 +155,9 @@
           ];
         }
       ];
-
+      tailscale.enable = true;
       node_exporter.enable = true;
-
       gitea.enable = true;
-
       snmp_exporter.enable = true;
       sshguard.enable = true;
 
@@ -232,8 +230,6 @@
   };
 
   services = {
-    tailscale.enable = true;
-
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";

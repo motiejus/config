@@ -74,7 +74,11 @@
 
     services = {
       node_exporter.enable = true;
-      sshguard.enable = true;
+      sshguard.enable = false;
+      tailscale = {
+        enable = true;
+        silenceLogs = true;
+      };
 
       deployerbot = {
         follower = {
@@ -99,7 +103,6 @@
   };
 
   services = {
-    tailscale.enable = true;
 
     xserver = {
       enable = true;

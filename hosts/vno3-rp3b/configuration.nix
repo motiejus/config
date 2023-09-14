@@ -62,6 +62,10 @@
     services = {
       node_exporter.enable = true;
       sshguard.enable = true;
+      tailscale = {
+        enable = true;
+        silenceLogs = true;
+      };
 
       borgstor = {
         enable = true;
@@ -91,8 +95,6 @@
       };
     };
   };
-
-  services.tailscale.enable = true;
 
   services.journald.extraConfig = "Storage=volatile";
 
