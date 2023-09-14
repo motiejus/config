@@ -44,6 +44,8 @@
     }
   '';
 
+  systemd.services.zfs-mount.enable = false;
+
   mj = {
     stateVersion = "23.05";
     timeZone = "Europe/Vilnius";
