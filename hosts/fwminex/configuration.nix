@@ -41,7 +41,7 @@
   '';
 
   fileSystems."/var/lib/docker" = {
-    device = "rpool/nixos/var/docker";
+    device = "rpool/nixos/var/lib/docker";
     fsType = "zfs";
   };
 
