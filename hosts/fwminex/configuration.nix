@@ -76,7 +76,7 @@
 
     services = {
       node_exporter.enable = true;
-      sshguard.false = true;
+      sshguard.enable = true;
 
       deployerbot = {
         follower = {
