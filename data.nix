@@ -28,6 +28,7 @@ rec {
     vaultwarden = 8222;
     kodi = 8080;
     prometheus = 9001;
+    tailscale = 41641;
     exporters.node = 9002;
 
     # non-configurable in caddy as of 2023-09-06
