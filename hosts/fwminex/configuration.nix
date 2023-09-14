@@ -115,8 +115,5 @@
     hostName = "fwminex";
     domain = "motiejus.jakst";
     networkmanager.enable = true;
-
-    # WIP
-    firewall.enable = false;
   };
 }
