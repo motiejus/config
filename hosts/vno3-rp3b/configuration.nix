@@ -106,7 +106,7 @@
 
   networking = {
     hostId = "4bd17751";
-    hostName = "vno1-rp3b";
+    hostName = "vno3-rp3b";
     domain = "servers.jakst";
     dhcpcd.enable = true;
   };

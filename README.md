@@ -9,7 +9,7 @@ Flakes:
 
 Other:
 
-    $ nix build .#nixosConfigurations.vno1-rp3b.config.system.build.toplevel
+    $ nix build .#nixosConfigurations.vno3-rp3b.config.system.build.toplevel
 
 Debug
 

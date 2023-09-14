@@ -77,7 +77,7 @@
           }
           {
             mountpoint = "/var/lib";
-            repo = "borgstor@${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_lib";
+            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
               "/var/lib/.snapshot-latest/bitwarden_rs"
               "/var/lib/.snapshot-latest/caddy"
@@ -105,7 +105,7 @@
           }
           {
             mountpoint = "/var/log";
-            repo = "borgstor@${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_log";
+            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_log";
             paths = ["/var/log/.snapshot-latest/caddy/"];
             patterns = [
               "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
@@ -126,7 +126,7 @@
           }
           {
             mountpoint = "/home";
-            repo = "borgstor@${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
               "/home/.snapshot-latest/motiejus/annex2"
               "/home/.snapshot-latest/motiejus/.config/syncthing"
@@ -185,7 +185,7 @@
           repo = "git@git.jakstys.lt:motiejus/config";
           deployDerivations = [
             ".#vno1-oh2"
-            ".#vno1-rp3b"
+            ".#vno3-rp3b"
             ".#fra1-a"
           ];
         };
@@ -412,8 +412,8 @@
           static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
         }
         {
-          job_name = "vno1-rp3b.servers.jakst";
-          static_configs = [{targets = ["${myData.hosts."vno1-rp3b.servers.jakst".jakstIP}:${port}"];}];
+          job_name = "vno3-rp3b.servers.jakst";
+          static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
         }
         {
           job_name = "snmp_exporter";

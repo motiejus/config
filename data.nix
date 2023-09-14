@@ -55,7 +55,7 @@ rec {
       publicIP = "88.223.107.21";
       jakstIP = "100.89.176.4";
     };
-    "vno1-rp3b.servers.jakst" = rec {
+    "vno3-rp3b.servers.jakst" = rec {
       extraHostNames = [jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
       jakstIP = "100.89.176.2";
@@ -128,7 +128,7 @@ rec {
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
-    hdd                             A      ${hosts."vno1-rp3b.servers.jakst".jakstIP}
+    hdd                             A      ${hosts."vno3-rp3b.servers.jakst".jakstIP}
 
     @                               MX     10 aspmx.l.google.com.
     @                               MX     20 alt1.aspmx.l.google.com.

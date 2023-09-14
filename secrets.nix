@@ -7,8 +7,8 @@ let
 
   fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
-  vno1-rp3b = (import ./data.nix).hosts."vno1-rp3b.servers.jakst".publicKey;
-  systems = [fra1-a vno1-oh2 vno1-rp3b];
+  vno3-rp3b = (import ./data.nix).hosts."vno3-rp3b.servers.jakst".publicKey;
+  systems = [fra1-a vno1-oh2 vno3-rp3b];
 
   mk = auth: keyNames:
     builtins.listToAttrs (
@@ -36,8 +36,8 @@ in
   // mk ([fra1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
   ]
-  // mk ([vno1-rp3b] ++ motiejus) [
-    "secrets/vno1-rp3b/datapool-passphrase.age"
+  // mk ([vno3-rp3b] ++ motiejus) [
+    "secrets/vno3-rp3b/datapool-passphrase.age"
   ]
   // mk (systems ++ motiejus) [
     "secrets/motiejus_passwd_hash.age"
