@@ -108,16 +108,7 @@
     hostId = "4bd17751";
     hostName = "vno1-rp3b";
     domain = "servers.jakst";
-    defaultGateway = "192.168.189.4";
-    nameservers = ["192.168.189.4"];
-    interfaces.enu1u1u1.ipv4.addresses = [
-      {
-        address = "192.168.189.5";
-        prefixLength = 24;
-      }
-    ];
-    firewall = {
-    };
+    dhcpcd.enable = true;
   };
 
   nixpkgs.hostPlatform = "aarch64-linux";
