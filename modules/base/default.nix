@@ -32,6 +32,7 @@
 
   config = {
     nixpkgs.config.allowUnfree = true;
+    hardware.enableRedistributableFirmware = true;
 
     time.timeZone = config.mj.timeZone;
 

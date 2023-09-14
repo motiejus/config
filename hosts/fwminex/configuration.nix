@@ -40,11 +40,6 @@
     }
   '';
 
-  fileSystems."/var/lib/docker" = {
-    device = "rpool/nixos/var/lib/docker";
-    fsType = "zfs";
-  };
-
   mj = {
     stateVersion = "23.05";
     timeZone = "Europe/Vilnius";
