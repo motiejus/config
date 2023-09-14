@@ -109,7 +109,9 @@ in {
           map (diskName: diskName + cfg.partitionScheme.efiBoot)
           cfg.bootDevices;
         swapPartitions =
-          map (diskName: diskName + cfg.partitionScheme.swap) cfg.bootDevices;
+          if cfg.partitionScheme ? swap
+          then map (diskName: diskName + cfg.partitionScheme.swap) cfg.bootDevices
+          else [];
       };
       boot = {
         kernelPackages =

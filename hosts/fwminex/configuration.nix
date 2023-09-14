@@ -11,7 +11,7 @@
       bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A"];
       immutable = false;
       forceNoDev2305 = true;
-      availableKernelModules = [ "xhci_pci" "thunderbolt" "nvme" "usbhid" ];
+      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
       removableEfi = true;
       partitionScheme = {
         efiBoot = "-part1";
@@ -71,7 +71,6 @@
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
       };
-
     };
 
     services = {
@@ -97,7 +96,6 @@
         user = "motiejus";
         group = "users";
       };
-
     };
   };
 
