@@ -31,6 +31,8 @@
   };
 
   config = {
+    nixpkgs.config.allowUnfree = true;
+
     time.timeZone = config.mj.timeZone;
 
     mj.services.friendlyport.ports = [
