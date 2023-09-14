@@ -8,6 +8,9 @@
     home-manager.url = "github:nix-community/home-manager/release-23.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
+
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
     agenix.inputs.home-manager.follows = "home-manager";
@@ -30,6 +33,7 @@
     deploy-rs,
     flake-utils,
     home-manager,
+    nixos-hardware,
   } @ inputs: let
     myData = import ./data.nix;
   in
@@ -84,6 +88,7 @@
 
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
+          nixos-hardware.nixosModules.framework-12th-gen-intel
 
           {
             #age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
