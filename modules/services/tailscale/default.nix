@@ -15,11 +15,12 @@
   };
 
   config = with config.mj.services.tailscale;
-    lib.mkIf enable {
+    lib.mkIf enable ({
       services.tailscale.enable = true;
-      networking.firewall.checkReversePath = "loose"; # for tailscale
-    }
-    // lib.mkIf silenceLogs {
-      systemd.services.tailscale.serviceConfig."StandardOutput" = "null";
-    };
+      networking.firewall.checkReversePath = "loose";
+      networking.firewall.allowedUDPPorts = [41641];
+    #}
+    #// lib.mkIf silenceLogs {
+    #  systemd.services.tailscaled.serviceConfig."StandardOutput" = "null";
+    });
 }
