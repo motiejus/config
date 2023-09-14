@@ -11,7 +11,7 @@
       bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A"];
       immutable = false;
       forceNoDev2305 = true;
-      availableKernelModules = ["iwlwifi" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
+      availableKernelModules = ["usb_storage" "sd_mod" "iwlwifi" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
       removableEfi = true;
       partitionScheme = {
         efiBoot = "-part1";
@@ -20,6 +20,10 @@
       };
     };
   };
+
+  powerManagement.cpuFreqGovernor = "powersave";
+  hardware.cpu.intel.updateMicrocode = true;
+  nixpkgs.hostPlatform = "x86_64-linux";
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
