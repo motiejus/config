@@ -24,7 +24,7 @@ in {
       networking.firewall.allowedUDPPorts = [myData.ports.tailscale];
     }
     (mkIf cfg.silenceLogs {
-      systemd.services.tailscaled.serviceConfig."StandardOutput" = "null";
+      systemd.services.tailscaled.serviceConfig.StandardOutput = "null";
     })
   ]);
 }
