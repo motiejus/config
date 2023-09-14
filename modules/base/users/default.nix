@@ -48,7 +48,11 @@
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
           }
-          // lib.filterAttrs (n: v: v != null) passwd.motiejus or {};
+          // lib.filterAttrs (
+            n: v:
+              (n == "passwordFile" || n == "initialPassword") && v != null
+          )
+          passwd.motiejus or {};
 
         root = assert lib.assertMsg (passwd ? root) "root password needs to be defined";
           lib.filterAttrs (n: v: v != null) passwd.root;
