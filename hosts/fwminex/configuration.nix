@@ -57,7 +57,6 @@
         passwd = {
           root.initialPassword = "live";
           motiejus.initialPassword = "live";
-          motiejus.extraGroups = ["networkmanager"];
           #root.passwordFile = config.age.secrets.root-passwd-hash.path;
           #motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
         };
@@ -104,18 +103,9 @@
     };
   };
 
-  services = {
-    xserver = {
-      enable = true;
-      desktopManager.gnome.enable = true;
-      displayManager.gdm.enable = true;
-    };
-  };
-
   networking = {
     hostId = "3a54afcd";
     hostName = "fwminex";
     domain = "motiejus.jakst";
-    networkmanager.enable = true;
   };
 }

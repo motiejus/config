@@ -85,6 +85,7 @@
           ./hosts/fwminex/configuration.nix
 
           ./modules
+          ./modules/profiles/desktop
 
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
