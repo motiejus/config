@@ -106,6 +106,7 @@ rec {
       builtins.catAttrs "jakstIP" mHosts;
 
     vno1.cidr = "192.168.189.0/24";
+    vno3.cidr = "192.168.100.0/24";
   };
 
   jakstysLTZone = let

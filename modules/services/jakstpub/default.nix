@@ -65,7 +65,7 @@
 
       mj.services.friendlyport.ports = [
         {
-          subnets = with myData.subnets; [tailscale.cidr vno1.cidr];
+          subnets = with myData.subnets; [tailscale.cidr vno1.cidr vno3.cidr];
           tcp = [
             139 # smbd
             445 # smbd
