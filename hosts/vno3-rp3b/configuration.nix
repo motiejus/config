@@ -49,6 +49,7 @@
     stateVersion = "23.05";
     timeZone = "Europe/Vilnius";
     base = {
+      zfs.enable = true;
       users.passwd = {
         root.passwordFile = config.age.secrets.root-passwd-hash.path;
         motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
