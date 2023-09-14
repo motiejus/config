@@ -23,7 +23,7 @@
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
-  swapDevices = [{device = "/dev/zvol/rpool/swap";}];
+  #swapDevices = [];
 
   boot.loader.grub.extraEntries = ''
     menuentry "Debian via bpool label" {
@@ -116,5 +116,8 @@
     hostName = "fwminex";
     domain = "motiejus.jakst";
     networkmanager.enable = true;
+
+    # WIP
+    firewall.enable = false;
   };
 }
