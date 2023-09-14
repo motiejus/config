@@ -61,6 +61,7 @@
 
     services = {
       node_exporter.enable = true;
+      sshguard.enable = true;
 
       borgstor = {
         enable = true;

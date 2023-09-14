@@ -44,6 +44,7 @@
 
     services = {
       node_exporter.enable = true;
+      sshguard.enable = true;
 
       postfix = {
         enable = true;

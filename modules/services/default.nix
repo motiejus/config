@@ -16,6 +16,7 @@
     ./nsd-acme
     ./postfix
     ./snmp_exporter
+    ./sshguard
     ./syncthing
     ./zfsunlock
   ];

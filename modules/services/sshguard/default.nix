@@ -4,14 +4,14 @@
   myData,
   ...
 }: {
-  options.mj.base.sshguard = with lib.types; {
+  options.mj.services.sshguard = with lib.types; {
     enable = lib.mkOption {
       type = bool;
-      default = true;
+      default = false;
     };
   };
 
-  config = lib.mkIf config.mj.base.sshguard.enable {
+  config = lib.mkIf config.mj.services.sshguard.enable {
     services.sshguard = {
       enable = true;
       blocktime = 900;

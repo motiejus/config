@@ -10,7 +10,6 @@
     ./fileSystems
     ./snapshot
     ./sshd
-    ./sshguard
     ./unitstatus
     ./users
     ./zfs
