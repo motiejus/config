@@ -15,6 +15,8 @@
       pcscd.enable = true;
       xserver = {
         enable = true;
+        layout = "us,lt";
+        xkbOptions = "grp:alt_shift_toggle";
         desktopManager.xfce.enable = true;
         displayManager.lightdm.enable = true;
       };
