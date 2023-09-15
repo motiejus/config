@@ -100,11 +100,20 @@
         };
       };
 
+      programs.gpg = {
+        enable = true;
+        mutableKeys = false;
+        mutableTrust = false;
+        publicKeys = [{
+          source = ./motiejus-gpg.txt;
+          trust = "ultimate";
+        }];
+      };
+
       services.gpg-agent = {
         enable = true;
         enableSshSupport = true;
       };
-
     };
   };
 }

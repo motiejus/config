@@ -15,7 +15,6 @@
       };
     };
 
-
     mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
 
     services = {
