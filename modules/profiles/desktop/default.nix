@@ -37,12 +37,12 @@
       qgis
       josm
       pdftk
-      joplin
       yt-dlp
       pandoc
       evince
       rtorrent
       gpicview
+      joplin-desktop
       signal-desktop
       element-desktop
 
