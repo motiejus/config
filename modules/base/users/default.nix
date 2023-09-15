@@ -95,7 +95,7 @@
         enable = true;
         shellAliases = {
           "l" = "echo -n ł | xclip -selection clipboard";
-          "gp" = "${pkgs.git} remote | ${pkgs.parallel} --verbose git push";
+          "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
           "elho" = "echo hello1";
         };
       };
