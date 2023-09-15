@@ -201,7 +201,7 @@
     in {
       apps.deploy-rs = {
         type = "app";
-        program = "${deploy-rs.packages."${system}".default}/bin/deploy";
+        program = "${pkgs.deploy-rs.default}/bin/deploy";
       };
       devShells.default = with pkgs;
         mkShell {
@@ -209,11 +209,9 @@
             pkgs.rage
             pkgs.ssh-to-age
             pkgs.age-plugin-yubikey
-            #pkgs.borgbackup
+            pkgs.deploy-rs
 
             agenix.packages.${system}.agenix
-
-            deploy-rs.packages.${system}.deploy-rs
           ];
         };
 
