@@ -76,6 +76,10 @@
         enableSshSupport = true;
       };
 
+      programs.autorandr = {
+        enable = true;
+      };
+
       programs.firefox = {
         enable = true;
         profiles = {
