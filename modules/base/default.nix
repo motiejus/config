@@ -97,6 +97,7 @@
         vimv-rs
         sysstat
         bsdgames
+        parallel
         binutils
         moreutils
         perf-tools
