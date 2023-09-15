@@ -71,7 +71,10 @@
       borgstor = {
         enable = true;
         dataDir = "/data/borg";
-        sshKeys = [myData.hosts."vno1-oh2.servers.jakst".publicKey];
+        sshKeys = [
+          myData.hosts."vno1-oh2.servers.jakst".publicKey
+          myData.people_pubkeys.motiejus
+        ];
       };
 
       postfix = {
