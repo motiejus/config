@@ -93,7 +93,7 @@
       };
 
       syncthing = {
-        enable = true;
+        enable = false;
         dataDir = "/home/motiejus/";
         user = "motiejus";
         group = "users";
