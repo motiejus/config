@@ -18,6 +18,8 @@
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
     deploy-rs.inputs.utils.follows = "flake-utils";
+
+    nur.url = "github:nix-community/NUR";
   };
 
   nixConfig = {
@@ -33,6 +35,7 @@
     flake-utils,
     home-manager,
     nixos-hardware,
+    nur,
   } @ inputs: let
     myData = import ./data.nix;
   in
@@ -81,11 +84,13 @@
       nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
+          {nixpkgs.overlays = [ nur.overlay ]; }
           ./hosts/fwminex/configuration.nix
 
           ./modules
           ./modules/profiles/desktop
 
+          nur.nixosModules.nur
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           nixos-hardware.nixosModules.framework-12th-gen-intel

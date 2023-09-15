@@ -8,11 +8,10 @@
     services.udev.packages = [pkgs.yubikey-personalization];
 
     programs = {
-      firefox = {
-        enable = true;
-        package = pkgs.firefox-devedition;
-        languagePacks = ["en-US" "lt" "de"];
-      };
+      #firefox = {
+      #  enable = true;
+      #  languagePacks = ["en-US" "lt" "de"];
+      #};
     };
 
     mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
@@ -42,8 +41,11 @@
       gimp
       qgis
       josm
+      joplin
+      yt-dlp
       pandoc
       evince
+      rtorrent
       gpicview
       signal-desktop
       element-desktop
@@ -57,5 +59,26 @@
       hunspell
       hunspellDicts.en_US
     ];
+
+    home-manager.users.motiejus = {pkgs, ...}: {
+      programs.firefox = {
+        enable = true;
+        package = pkgs.firefox-devedition;
+        profiles = {
+          xdefault = {
+            isDefault = true;
+            search.default = "DuckDuckGo";
+            settings = {
+              "browser.contentblocking.category" = "strict";
+              "layout.css.prefers-color-scheme.content-override" = 0;
+            };
+            extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+              ublock-origin
+              joplin-web-clipper
+            ];
+          };
+        };
+      };
+    };
   };
 }

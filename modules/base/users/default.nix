@@ -61,7 +61,7 @@
 
     home-manager.useGlobalPkgs = true;
     home-manager.users.motiejus = {pkgs, ...}: {
-      home.stateVersion = "23.05";
+      home.stateVersion = config.mj.stateVersion;
       home.packages = with pkgs; [go];
 
       programs.direnv.enable = true;
@@ -104,10 +104,12 @@
         enable = true;
         mutableKeys = false;
         mutableTrust = false;
-        publicKeys = [{
-          source = ./motiejus-gpg.txt;
-          trust = "ultimate";
-        }];
+        publicKeys = [
+          {
+            source = ./motiejus-gpg.txt;
+            trust = "ultimate";
+          }
+        ];
       };
 
       services.gpg-agent = {
