@@ -42,6 +42,7 @@
       evince
       rtorrent
       gpicview
+      graphicsmagick
       joplin-desktop
       signal-desktop
       element-desktop
