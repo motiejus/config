@@ -4,9 +4,14 @@
   pkgs,
   ...
 }: let
-  mountLatest = mountpoint: zfs_name: ''
+  mkPreHook = mountpoint: zfs_name: ''
     set -x
-    exec ${pkgs.util-linux}/bin/mount -t zfs -o ro $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
+    ${pkgs.util-linux}/bin/mount \
+      -t zfs \
+      -o ro \
+      $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) \
+      ${mountpoint}/.snapshot-latest
+    cd ${mountpoint}/.snapshot-latest
   '';
 in {
   options.mj.base.zfsborg = with lib.types; {
@@ -25,7 +30,7 @@ in {
           options = {
             mountpoint = lib.mkOption {type = path;};
             repo = lib.mkOption {type = str;};
-            paths = lib.mkOption {type = listOf path;};
+            paths = lib.mkOption {type = listOf str;};
             patterns = lib.mkOption {
               type = listOf str;
               default = [];
@@ -87,7 +92,7 @@ in {
                   extraArgs = "--remote-path=borg1";
                   compression = "auto,lzma";
                   startAt = attrs.backup_at;
-                  preHook = mountLatest mountpoint fs.device;
+                  preHook = mkPreHook mountpoint fs.device;
                   prune.keep = {
                     within = "1d";
                     daily = 7;

@@ -63,15 +63,15 @@
             mountpoint = "/var/lib";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "/var/lib/.snapshot-latest/bitwarden_rs"
-              "/var/lib/.snapshot-latest/caddy"
-              "/var/lib/.snapshot-latest/gitea"
-              "/var/lib/.snapshot-latest/grafana"
-              "/var/lib/.snapshot-latest/headscale"
-              "/var/lib/.snapshot-latest/matrix-synapse"
-              "/var/lib/.snapshot-latest/nsd-acme"
-              "/var/lib/.snapshot-latest/tailscale"
-              "/var/lib/.snapshot-latest/private/soju"
+              "bitwarden_rs"
+              "caddy"
+              "gitea"
+              "grafana"
+              "headscale"
+              "matrix-synapse"
+              "nsd-acme"
+              "tailscale"
+              "private/soju"
             ];
             backup_at = "*-*-* 00:01:00";
           }
@@ -79,15 +79,15 @@
             mountpoint = "/var/lib";
             repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "/var/lib/.snapshot-latest/bitwarden_rs"
-              "/var/lib/.snapshot-latest/caddy"
-              "/var/lib/.snapshot-latest/gitea"
-              "/var/lib/.snapshot-latest/grafana"
-              "/var/lib/.snapshot-latest/headscale"
-              "/var/lib/.snapshot-latest/matrix-synapse"
-              "/var/lib/.snapshot-latest/nsd-acme"
-              "/var/lib/.snapshot-latest/tailscale"
-              "/var/lib/.snapshot-latest/private/soju"
+              "bitwarden_rs"
+              "caddy"
+              "gitea"
+              "grafana"
+              "headscale"
+              "matrix-synapse"
+              "nsd-acme"
+              "tailscale"
+              "private/soju"
             ];
             backup_at = "*-*-* 00:01:00";
           }
@@ -96,9 +96,9 @@
           {
             mountpoint = "/var/log";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = ["/var/log/.snapshot-latest/caddy/"];
+            paths = ["caddy"];
             patterns = [
-              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
+              "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
             backup_at = "*-*-* 00:02:00";
@@ -106,9 +106,9 @@
           {
             mountpoint = "/var/log";
             repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = ["/var/log/.snapshot-latest/caddy/"];
+            paths = ["caddy"];
             patterns = [
-              "+ /var/log/.snapshot-latest/caddy/access-jakstys.lt.log-*.zst"
+              "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
             backup_at = "*-*-* 00:02:00";
@@ -119,8 +119,8 @@
             mountpoint = "/home";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
-              "/home/.snapshot-latest/motiejus/annex2"
-              "/home/.snapshot-latest/motiejus/.config/syncthing"
+              "motiejus/annex2"
+              "motiejus/.config/syncthing"
             ];
             backup_at = "*-*-* 00:05:00 UTC";
           }
@@ -128,8 +128,8 @@
             mountpoint = "/home";
             repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
-              "/home/.snapshot-latest/motiejus/annex2"
-              "/home/.snapshot-latest/motiejus/.config/syncthing"
+              "motiejus/annex2"
+              "motiejus/.config/syncthing"
             ];
             backup_at = "*-*-* 00:05:00 UTC";
           }
