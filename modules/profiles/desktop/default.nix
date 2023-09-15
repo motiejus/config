@@ -36,6 +36,7 @@
       gimp
       qgis
       josm
+      pdftk
       joplin
       yt-dlp
       pandoc
