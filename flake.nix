@@ -38,12 +38,10 @@
     nur,
   } @ inputs: let
     myData = import ./data.nix;
-    systemIA64 = "x86_64-linux";
-    systemArm64 = "aarch64-linux";
-    pkgsIA64 = import nixpkgs {inherit systemIA64;};
-    pkgsArm64 = import nixpkgs {inherit systemArm64;};
+    pkgsIA64 = import nixpkgs {system = "x86_64-linux";};
+    pkgsArm64 = import nixpkgs {system = "aarch64-linux";};
     deployPkgsIA64 = import nixpkgs {
-      inherit systemIA64;
+      system = "x86_64-linux";
       overlays = [
         deploy-rs.overlay
         (self: super: {
@@ -55,7 +53,7 @@
       ];
     };
     deployPkgsArm64 = import nixpkgs {
-      inherit systemArm64;
+      system = "aarch64-linux";
       overlays = [
         deploy-rs.overlay
         (self: super: {
@@ -180,7 +178,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deployPkgsIA64.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+              deployPkgsIA64.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
           };
         };
@@ -192,7 +190,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deployPkgsIA64.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fwminex;
+              deployPkgsIA64.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
             user = "root";
           };
         };
@@ -204,7 +202,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deployPkgsArm64.deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno3-rp3b;
+              deployPkgsArm64.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
             user = "root";
           };
         };
@@ -216,7 +214,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deployPkgsArm64.deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.fra1-a;
+              deployPkgsArm64.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
             user = "root";
           };
         };
