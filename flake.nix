@@ -38,6 +38,34 @@
     nur,
   } @ inputs: let
     myData = import ./data.nix;
+    systemIA64 = "x86_64-linux";
+    systemArm64 = "aarch64-linux";
+    pkgsIA64 = import nixpkgs {inherit systemIA64;};
+    pkgsArm64 = import nixpkgs {inherit systemArm64;};
+    deployPkgsIA64 = import nixpkgs {
+      inherit systemIA64;
+      overlays = [
+        deploy-rs.overlay
+        (self: super: {
+          deploy-rs = {
+            inherit (pkgsIA64) deploy-rs;
+            lib = super.deploy-rs.lib;
+          };
+        })
+      ];
+    };
+    deployPkgsArm64 = import nixpkgs {
+      inherit systemArm64;
+      overlays = [
+        deploy-rs.overlay
+        (self: super: {
+          deploy-rs = {
+            inherit (pkgsArm64) deploy-rs;
+            lib = super.deploy-rs.lib;
+          };
+        })
+      ];
+    };
   in
     {
       #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
@@ -152,7 +180,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+              deployPkgsIA64.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
             user = "root";
           };
         };
@@ -164,7 +192,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fwminex;
+              deployPkgsIA64.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fwminex;
             user = "root";
           };
         };
@@ -176,7 +204,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno3-rp3b;
+              deployPkgsArm64.deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.vno3-rp3b;
             user = "root";
           };
         };
@@ -188,7 +216,7 @@
           system = {
             sshUser = "motiejus";
             path =
-              deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.fra1-a;
+              deployPkgsArm64.deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.fra1-a;
             user = "root";
           };
         };
@@ -199,10 +227,6 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
-      apps.deploy-rs = {
-        type = "app";
-        program = "${pkgs.deploy-rs.default}/bin/deploy";
-      };
       devShells.default = with pkgs;
         mkShell {
           packages = [
