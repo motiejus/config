@@ -5,14 +5,8 @@
   ...
 }: let
   mountLatest = mountpoint: zfs_name: ''
-    set -euo pipefail
-    ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest &>/dev/null || :
-    mkdir -p ${mountpoint}/.snapshot-latest
-    ${pkgs.util-linux}/bin/mount -t zfs -o ro $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
-  '';
-
-  umountLatest = mountpoint: ''
-    exec ${pkgs.util-linux}/bin/umount ${mountpoint}/.snapshot-latest
+    set -x
+    exec ${pkgs.util-linux}/bin/mount -t zfs -o ro $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) ${mountpoint}/.snapshot-latest
   '';
 in {
   options.mj.base.zfsborg = with lib.types; {
@@ -46,7 +40,7 @@ in {
   config = with config.mj.base.zfsborg;
     lib.mkIf enable {
       systemd.services =
-        lib.listToAttrs (lib.imap1 (
+        lib.listToAttrs (lib.imap0 (
             i: attr:
               lib.nameValuePair "borgbackup-job-${lib.strings.sanitizeDerivationName attr.mountpoint}-${toString i}" {
                 serviceConfig.TemporaryFileSystem = "${attr.mountpoint}/.snapshot-latest";
@@ -94,7 +88,6 @@ in {
                   compression = "auto,lzma";
                   startAt = attrs.backup_at;
                   preHook = mountLatest mountpoint fs.device;
-                  postHook = umountLatest mountpoint;
                   prune.keep = {
                     within = "1d";
                     daily = 7;
