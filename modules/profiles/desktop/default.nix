@@ -42,6 +42,7 @@
       evince
       rtorrent
       gpicview
+      rox-filer
       graphicsmagick
       joplin-desktop
       signal-desktop
