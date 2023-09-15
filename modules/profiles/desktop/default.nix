@@ -59,6 +59,11 @@
     ];
 
     home-manager.users.motiejus = {pkgs, ...}: {
+      services.gpg-agent = {
+        enable = true;
+        enableSshSupport = true;
+      };
+
       programs.firefox = {
         enable = true;
         profiles = {

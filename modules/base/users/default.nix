@@ -62,7 +62,7 @@
     home-manager.useGlobalPkgs = true;
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = config.mj.stateVersion;
-      home.packages = with pkgs; [go];
+      home.packages = lib.mkIf config.mj.base.users.devEnvironment [pkgs.go];
 
       programs.direnv.enable = true;
 
@@ -112,10 +112,6 @@
         ];
       };
 
-      services.gpg-agent = {
-        enable = true;
-        enableSshSupport = true;
-      };
     };
   };
 }
