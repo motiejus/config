@@ -99,6 +99,12 @@
           "elho" = "echo hello1";
         };
       };
+
+      services.gpg-agent = {
+        enable = true;
+        enableSshSupport = true;
+      };
+
     };
   };
 }

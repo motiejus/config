@@ -8,10 +8,6 @@
     services.udev.packages = [pkgs.yubikey-personalization];
 
     programs = {
-      gnupg.agent = {
-        enable = true;
-        enableSSHSupport = true;
-      };
       firefox = {
         enable = true;
         package = pkgs.firefox-devedition;
