@@ -103,6 +103,10 @@
     };
   };
 
+  environment.systemPackages = with pkgs; [
+    texlive.combined.scheme-medium
+  ];
+
   networking = {
     hostId = "3a54afcd";
     hostName = "fwminex";

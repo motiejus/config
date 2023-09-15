@@ -11,7 +11,7 @@
       firefox = {
         enable = true;
         package = pkgs.firefox-devedition;
-        #languagePacks = ["en" "lt" "de"];
+        languagePacks = ["en-US" "lt" "de"];
       };
     };
 
@@ -37,7 +37,24 @@
     networking.networkmanager.enable = true;
 
     environment.systemPackages = with pkgs; [
+      vlc
+      gimp
+      qgis
+      josm
+      pandoc
+      evince
+      gpicview
+      signal-desktop
+      element-desktop
+
+      gnome.nautilus
+      gnome.gnome-calculator
+      gnome.gnome-calendar
+
       pavucontrol
+      libreoffice-qt
+      hunspell
+      hunspellDicts.en_US
     ];
   };
 }

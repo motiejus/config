@@ -17,7 +17,7 @@ let b:gutentags_file_list_command = 'git ls-files'
 
 call matchadd('ColorColumn', '\%81v', 100)
 " thanks to drew de vault's vimrc, except swearing
-set mouse=a
+set mouse=
 set backupdir=~/.cache directory=~/.cache
 "nnoremap Q :grep <cword><CR>
 nmap gs :grep <cursor><CR>
