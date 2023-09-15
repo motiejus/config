@@ -7,10 +7,18 @@
   config = {
     services.udev.packages = [pkgs.yubikey-personalization];
 
-    programs.gnupg.agent = {
-      enable = true;
-      enableSSHSupport = true;
+    programs = {
+      gnupg.agent = {
+        enable = true;
+        enableSSHSupport = true;
+      };
+      firefox = {
+        enable = true;
+        package = pkgs.firefox-devedition;
+        #languagePacks = ["en" "lt" "de"];
+      };
     };
+
 
     mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
 
