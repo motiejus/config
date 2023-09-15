@@ -17,8 +17,17 @@
         enable = true;
         layout = "us,lt";
         xkbOptions = "grp:alt_shift_toggle";
+
+        displayManager = {
+          sddm.enable = true;
+          defaultSession = "none+awesome";
+        };
+
+        windowManager.awesome = {
+          enable = true;
+        };
+
         desktopManager.xfce.enable = true;
-        displayManager.lightdm.enable = true;
       };
 
       pipewire = {
@@ -40,11 +49,13 @@
       josm
       pdftk
       yt-dlp
+      arandr
       pandoc
       evince
       rtorrent
       gpicview
       rox-filer
+      pavucontrol
       graphicsmagick
       joplin-desktop
       signal-desktop
@@ -54,7 +65,6 @@
       gnome.gnome-calculator
       gnome.gnome-calendar
 
-      pavucontrol
       libreoffice-qt
       hunspell
       hunspellDicts.en_US
