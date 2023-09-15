@@ -18,6 +18,7 @@
     mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
 
     services = {
+      pcscd.enable = true;
       xserver = {
         enable = true;
         desktopManager.xfce.enable = true;
