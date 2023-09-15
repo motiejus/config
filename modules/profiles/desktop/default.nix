@@ -66,10 +66,15 @@
             settings = {
               "browser.contentblocking.category" = "strict";
               "layout.css.prefers-color-scheme.content-override" = 0;
+              "browser.aboutConfig.showWarning" = false;
+              "signon.rememberSignons" = false;
+              "signon.management.page.breach-alerts.enabled" = false;
             };
             extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+              bitwarden
               ublock-origin
               joplin-web-clipper
+              multi-account-containers
             ];
           };
         };
