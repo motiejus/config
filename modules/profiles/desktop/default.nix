@@ -7,12 +7,7 @@
   config = {
     services.udev.packages = [pkgs.yubikey-personalization];
 
-    programs = {
-      #firefox = {
-      #  enable = true;
-      #  languagePacks = ["en-US" "lt" "de"];
-      #};
-    };
+    programs.firefox.enable = true;
 
     mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
 
