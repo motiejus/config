@@ -55,10 +55,8 @@
       users = {
         devEnvironment = true;
         passwd = {
-          root.initialPassword = "live";
-          motiejus.initialPassword = "live";
-          #root.passwordFile = config.age.secrets.root-passwd-hash.path;
-          #motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
+          root.passwordFile = config.age.secrets.root-passwd-hash.path;
+          motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
         };
       };
 
@@ -89,13 +87,13 @@
         };
       };
 
-      #postfix = {
-      #  enable = true;
-      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      #};
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
 
       syncthing = {
-        enable = false;
+        enable = true;
         dataDir = "/home/motiejus/";
         user = "motiejus";
         group = "users";

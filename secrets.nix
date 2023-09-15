@@ -5,10 +5,11 @@ let
   motiejus_bk2 = "age14f39j0wx84n93lgqn6d9gcd3yhuwak6qwrxy8v83ydn7266uafts09ecva";
   motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
 
+  fwminex = (import ./data.nix).hosts."fwminex.motiejus.jakst".publicKey;
   fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   vno3-rp3b = (import ./data.nix).hosts."vno3-rp3b.servers.jakst".publicKey;
-  systems = [fra1-a vno1-oh2 vno3-rp3b];
+  systems = [fra1-a vno1-oh2 vno3-rp3b fwminex];
 
   mk = auth: keyNames:
     builtins.listToAttrs (

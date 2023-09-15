@@ -91,9 +91,9 @@
           nixos-hardware.nixosModules.framework-12th-gen-intel
 
           {
-            #age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            #age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            #age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            age.secrets.root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            age.secrets.sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
           }
         ];
 
