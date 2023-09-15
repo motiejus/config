@@ -84,7 +84,7 @@
       nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          {nixpkgs.overlays = [ nur.overlay ]; }
+          {nixpkgs.overlays = [nur.overlay];}
           ./hosts/fwminex/configuration.nix
 
           ./modules
@@ -153,6 +153,18 @@
             sshUser = "motiejus";
             path =
               deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-oh2;
+            user = "root";
+          };
+        };
+      };
+
+      deploy.nodes.fwminex = {
+        hostname = myData.hosts."fwminex.motiejus.jakst".jakstIP;
+        profiles = {
+          system = {
+            sshUser = "motiejus";
+            path =
+              deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fwminex;
             user = "root";
           };
         };
