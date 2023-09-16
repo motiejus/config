@@ -96,6 +96,7 @@
         ripgrep
         vimv-rs
         sysstat
+        pciutils
         bsdgames
         parallel
         binutils

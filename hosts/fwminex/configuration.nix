@@ -102,6 +102,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    iw
     texlive.combined.scheme-medium
   ];
 
