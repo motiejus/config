@@ -10,7 +10,6 @@
   # previously:
   # imports = [(modulesPath + "/installer/scan/not-detected.nix")];
   # as of 23.05 that is:
-  hardware.enableRedistributableFirmware = true;
 
   boot.initrd.availableKernelModules = ["usbhid"];
   boot.initrd.kernelModules = ["vc4" "bcm2835_dma" "i2c_bcm2835"];
