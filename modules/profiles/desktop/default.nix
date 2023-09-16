@@ -85,7 +85,7 @@
         profiles = {
           xdefault = {
             isDefault = true;
-            search.default = "DuckDuckGo";
+            #search.default = "DuckDuckGo";
             settings = {
               "browser.contentblocking.category" = "strict";
               "layout.css.prefers-color-scheme.content-override" = 0;
