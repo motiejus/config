@@ -60,7 +60,7 @@
 
             nix flake update --accept-flake-config --commit-lock-file
 
-            nix --accept-flake-config run .#deploy-rs -- \
+            ${pkgs.deploy-rs}/bin/deploy-rs -- \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --confirm-timeout 60 \
