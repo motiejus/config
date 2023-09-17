@@ -23,7 +23,9 @@ in {
       virtualHosts.":80".extraConfig = with myData.subnets; ''
         root * ${cfg.dataDir}
         @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
-        file_server browse {}
+        file_server browse {
+          hide .stfolder
+        }
         encode gzip
       '';
     };
