@@ -105,17 +105,17 @@ in {
 
   home-manager.users.motiejus = {pkgs, ...}: {
     programs.autorandr.profiles = {
-        laptop = {
-          fingerprint = { inherit (randr) eDP-1; };
-          config = {
-            eDP-1 = {
-              enable = true;
-              primary = true;
-              mode = "2256x1504";
-              crtc = 0;
-            };
+      laptop = {
+        fingerprint = {inherit (randr) eDP-1;};
+        config = {
+          eDP-1 = {
+            enable = true;
+            primary = true;
+            mode = "2256x1504";
+            crtc = 0;
           };
         };
+      };
 
       dualhome = {
         fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
