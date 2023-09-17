@@ -3,7 +3,9 @@
   pkgs,
   myData,
   ...
-}: {
+}: let
+  randr = import ./randr.nix;
+in {
   zfs-root = {
     boot = {
       enable = true;
@@ -97,6 +99,29 @@
         dataDir = "/home/motiejus/";
         user = "motiejus";
         group = "users";
+      };
+    };
+  };
+
+  home-manager.users.motiejus = {pkgs, ...}: {
+    programs.autorandr.profiles = {
+      dualhome = {
+        fingerprint = {inherit (randr) DP-3 DP-4;};
+        config = {
+          eDP-1.enable = false;
+          DP-4 = {
+            enable = true;
+            mode = "2560x1440";
+            pos = "2560x0";
+            primary = true;
+          };
+          DP-3 = {
+            enable = true;
+            mode = "2560x1440";
+            position = "0x0";
+            crtc = 2;
+          };
+        };
       };
     };
   };

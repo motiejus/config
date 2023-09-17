@@ -115,16 +115,13 @@
         enableSshSupport = true;
       };
 
-      programs.autorandr = {
-        enable = true;
-      };
+      programs.autorandr.enable = true;
 
       programs.firefox = {
         enable = true;
         profiles = {
           xdefault = {
             isDefault = true;
-            #search.default = "DuckDuckGo";
             settings = {
               "browser.contentblocking.category" = "strict";
               "layout.css.prefers-color-scheme.content-override" = 0;
