@@ -105,8 +105,20 @@ in {
 
   home-manager.users.motiejus = {pkgs, ...}: {
     programs.autorandr.profiles = {
+        laptop = {
+          fingerprint = { inherit (randr) eDP-1; };
+          config = {
+            eDP-1 = {
+              enable = true;
+              primary = true;
+              mode = "2256x1504";
+              crtc = 0;
+            };
+          };
+        };
+
       dualhome = {
-        fingerprint = {inherit (randr) DP-3 DP-4;};
+        fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
         config = {
           eDP-1.enable = false;
           DP-4 = {
@@ -114,12 +126,13 @@ in {
             mode = "2560x1440";
             position = "2560x0";
             primary = true;
+            crtc = 0;
           };
           DP-3 = {
             enable = true;
             mode = "2560x1440";
             position = "0x0";
-            crtc = 2;
+            crtc = 1;
           };
         };
       };
