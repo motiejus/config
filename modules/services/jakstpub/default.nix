@@ -20,9 +20,9 @@ in {
   config = lib.mkIf cfg.enable {
     services.caddy = {
       enable = true;
-      virtualHosts.":80".extraConfig = ''
+      virtualHosts.":80".extraConfig = with myData.subnets; ''
         root * ${cfg.dataDir}
-        @denied not remote_ip ${subnets.vno1.cidr} ${subnets.vno3.cidr} ${subnets.tailscale.cidr}
+        @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
         file_server browse {}
         encode gzip
       '';
