@@ -331,7 +331,7 @@ globalkeys = gears.table.join(
               {description = "show the menubar", group = "launcher"}),
     -- My customizations
     awful.key({ modkey }, "x", function()
-        awful.spawn.with_shell("sleep 0.2; slock xset dpms force off")
+        awful.spawn.with_shell("xset dpms force off; sleep 0.1; slock")
     end)
 )
 
