@@ -110,10 +110,7 @@
     ];
 
     home-manager.users.motiejus = {pkgs, ...}: {
-      services.gpg-agent = {
-        enable = true;
-        enableSshSupport = true;
-      };
+      xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
       programs.autorandr.enable = true;
 
@@ -137,6 +134,11 @@
             ];
           };
         };
+      };
+
+      services.gpg-agent = {
+        enable = true;
+        enableSshSupport = true;
       };
     };
   };

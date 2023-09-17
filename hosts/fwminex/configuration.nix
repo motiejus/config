@@ -112,7 +112,7 @@ in {
           DP-4 = {
             enable = true;
             mode = "2560x1440";
-            pos = "2560x0";
+            position = "2560x0";
             primary = true;
           };
           DP-3 = {
