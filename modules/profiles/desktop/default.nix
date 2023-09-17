@@ -9,7 +9,7 @@
 
     programs.firefox.enable = true;
 
-    mj.base.users.passwd.motiejus.extraGroups = ["networkmanager"];
+    mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager"];
 
     services = {
       pcscd.enable = true;
@@ -36,6 +36,14 @@
         alsa.support32Bit = true;
         pulse.enable = true;
       };
+
+      printing.enable = true;
+    };
+
+    programs = {
+      slock.enable = true;
+      nm-applet.enable = true;
+      adb.enable = true;
     };
 
     security.rtkit.enable = true;
@@ -47,27 +55,56 @@
       gimp
       qgis
       josm
+      xclip
       pdftk
       yt-dlp
       arandr
       pandoc
       evince
+      calibre
+      hunspell
+      tigervnc
       rtorrent
+      bsdgames
+      xss-lock
+      qpwgraph # for pipewire
       gpicview
       rox-filer
+      winetricks
+      python3Full
+      libva-utils # intel video tests
       pavucontrol
+      aspellDicts.en
+      aspellDicts.lt
+      libreoffice-qt
       graphicsmagick
       joplin-desktop
       signal-desktop
       element-desktop
+      wineWowPackages.full
+      hunspellDicts.en_US
+      python310Packages.ipython
+      samsung-unified-linux-driver
 
       gnome.nautilus
       gnome.gnome-calculator
       gnome.gnome-calendar
 
-      libreoffice-qt
-      hunspell
-      hunspellDicts.en_US
+      (texlive.combine {
+        inherit
+          (texlive)
+          scheme-medium
+          dvisvgm
+          dvipng
+          wrapfig
+          amsmath
+          ulem
+          hyperref
+          capt-of
+          lithuanian
+          hyphen-lithuanian
+          ;
+      })
     ];
 
     home-manager.users.motiejus = {pkgs, ...}: {

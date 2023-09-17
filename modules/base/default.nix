@@ -100,6 +100,8 @@
         bsdgames
         parallel
         binutils
+        hyperfine
+        dmidecode
         moreutils
         perf-tools
         smartmontools
