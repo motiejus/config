@@ -62,6 +62,7 @@
       pandoc
       evince
       calibre
+      chromium
       hunspell
       tigervnc
       rtorrent
@@ -74,6 +75,7 @@
       python3Full
       libva-utils # intel video tests
       pavucontrol
+      google-chrome
       aspellDicts.en
       aspellDicts.lt
       libreoffice-qt
