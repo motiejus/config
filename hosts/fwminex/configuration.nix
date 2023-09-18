@@ -89,6 +89,7 @@ in {
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;
           publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
+          sshAllowSubnets = with myData.subnets; [tailscale.sshPattern vno1.sshPattern];
         };
       };
 

@@ -41,6 +41,7 @@ in {
 
   options.mj.services.deployerbot.follower = with lib.types; {
     enable = lib.mkEnableOption "Allow system to be deployed with deployerbot";
+    sshAllowSubnets = lib.mkOption {type = listOf str;};
     publicKey = lib.mkOption {type = str;};
     uidgid = lib.mkOption {type = int;};
   };
@@ -126,7 +127,7 @@ in {
           createHome = true;
           uid = cfg.follower.uidgid;
           openssh.authorizedKeys.keys = let
-            restrictedPubKey = "from=\"${myData.subnets.tailscale.sshPattern}\" " + cfg.follower.publicKey;
+            restrictedPubKey = "from=\"${builtins.concatStringsSep "," cfg.follower.sshAllowSubnets}\" " + cfg.follower.publicKey;
           in [restrictedPubKey];
         };
       };

@@ -108,7 +108,10 @@ rec {
     in
       builtins.catAttrs "jakstIP" mHosts;
 
-    vno1.cidr = "192.168.189.0/24";
+    vno1 = {
+      cidr = "192.168.189.0/24";
+      sshPattern = "192.168.189.?";
+    };
     vno3.cidr = "192.168.100.0/24";
   };
 
