@@ -71,6 +71,7 @@
       qpwgraph # for pipewire
       gpicview
       rox-filer
+      borgbackup
       winetricks
       python3Full
       libva-utils # intel video tests
