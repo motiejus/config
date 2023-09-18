@@ -13,10 +13,23 @@
 
     services = {
       pcscd.enable = true;
+      printing.enable = true;
+
+      # TODO post-23.11
+      #logind.powerKey = "suspend";
+      #logind.powerKeyLongPress = "poweroff";
+      logind.extraConfig = ''
+        HandlePowerKey=suspend
+        HandlePowerKeyLongPress=poweroff
+      '';
+
       xserver = {
         enable = true;
         layout = "us,lt";
         xkbOptions = "grp:alt_shift_toggle";
+
+        desktopManager.xfce.enable = true;
+        windowManager.awesome.enable = true;
 
         displayManager = {
           sddm.enable = true;
@@ -27,11 +40,6 @@
           };
         };
 
-        windowManager.awesome = {
-          enable = true;
-        };
-
-        desktopManager.xfce.enable = true;
       };
 
       pipewire = {
@@ -41,7 +49,6 @@
         pulse.enable = true;
       };
 
-      printing.enable = true;
     };
 
     programs = {
