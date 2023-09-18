@@ -96,12 +96,14 @@
       element-desktop
       wineWowPackages.full
       hunspellDicts.en_US
-      python310Packages.ipython
+      python3Packages.ipython
       samsung-unified-linux-driver
 
       gnome.nautilus
       gnome.gnome-calculator
       gnome.gnome-calendar
+
+      xorg.xev
 
       (texlive.combine {
         inherit
