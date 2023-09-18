@@ -21,6 +21,10 @@
         displayManager = {
           sddm.enable = true;
           defaultSession = "none+awesome";
+          autoLogin = {
+            enable = true;
+            user = "motiejus";
+          };
         };
 
         windowManager.awesome = {
