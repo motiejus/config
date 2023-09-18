@@ -69,7 +69,7 @@ rec {
       jakstIP = "100.89.176.5";
     };
     "fwminex.motiejus.jakst" = rec {
-      extraHostNames = [jakstIP];
+      extraHostNames = [jakstIP vno1IP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlWSZ/H6DR5i5aCrlrEQLVF9MXNvls/pjlLPLaav3f+";
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";

@@ -186,6 +186,12 @@
             ".#vno3-rp3b"
             ".#fra1-a"
           ];
+          deployIfPresent = [
+            {
+              derivationTarget = ".#fwminex";
+              altHostname = myData.hosts."fwminex.motiejus.jakst".vno1IP;
+            }
+          ];
         };
 
         follower = {
