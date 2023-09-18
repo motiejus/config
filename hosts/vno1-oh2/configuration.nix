@@ -412,6 +412,10 @@
           static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
         }
         {
+          job_name = "fwminex.motiejus.jakst";
+          static_configs = [{targets = ["${myData.hosts."fwminex.motiejus.jakst".vno1IP}:${port}"];}];
+        }
+        {
           job_name = "snmp_exporter";
           static_configs = [{targets = ["127.0.0.1:9116"];}];
         }
