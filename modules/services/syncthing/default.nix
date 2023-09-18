@@ -44,6 +44,46 @@
       id = "d3hur-cbzyw";
       label = "Pictures";
     };
+    Music = {
+      devices = ["fwminex" "mxp10" "vno1-oh2"];
+      id = "tg94v-cqcwr";
+      label = "music";
+    };
+    video-shared = {
+      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      id = "byzmw-f6zhg";
+      label = "video-shared";
+    };
+    stud-cache = {
+      devices = ["fwminex" "vno1-oh2"];
+      id = "2kq7n-jqzxj";
+      label = "stud-cache";
+    };
+    M-R = {
+      devices = ["fwminex" "rzj-744P2PE" "mxp10" "vno1-oh2"];
+      id = "evgn9-ahngz";
+      label = "M-R";
+    };
+    Irenos = {
+      devices = ["KrekenavosNamai" "vno1-oh2"];
+      id = "wuwai-qkcqj";
+      label = "Irenos";
+    };
+    www-fwminex = {
+      devices = ["fwminex" "vno1-oh2"];
+      id = "7z9sw-2nubh";
+      label = "www-fwminex";
+    };
+    www-mxp10 = {
+      devices = ["mxp10" "vno1-oh2"];
+      id = "gqrtz-prx9h";
+      label = "www-mxp10";
+    };
+    mykolo = {
+      devices = ["mxp10"];
+      id = "wslmq-fyw4w";
+      label = "mykolo";
+    };
 
   };
 in {
@@ -90,52 +130,20 @@ in {
         {}
         // (
           lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-            "/var/www/dl/tel" = {
-              devices = ["mxp10"];
-              id = "gqrtz-prx9h";
-              label = "www-tel";
-            };
-            "/var/www/dl/fwminex" = {
-              devices = ["fwminex"];
-              id = "7z9sw-2nubh";
-              label = "www-fwminex";
-            };
-            "/var/www/dl/mykolo" = {
-              devices = ["mxp10"];
-              id = "wslmq-fyw4w";
-              label = "mykolo";
-            };
+            "/var/www/dl/tel" = www-mxp10;
+            "/var/www/dl/fwminex" = www-fwminex;
+            "/var/www/dl/mykolo" = mykolo;
             "${cfg.dataDir}/annex2/Books" = Books;
             "${cfg.dataDir}/annex2/M-Active" = M-Active;
             "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
             "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
             "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
             "${cfg.dataDir}/annex2/Pictures" = Pictures;
-            "${cfg.dataDir}/annex2/M-R" = {
-              devices = ["fwminex" "rzj-744P2PE" "mxp10"];
-              id = "evgn9-ahngz";
-              label = "M-R";
-            };
-            "${cfg.dataDir}/stud-cache" = {
-              devices = ["fwminex"];
-              id = "2kq7n-jqzxj";
-              label = "stud-cache";
-            };
-            "${cfg.dataDir}/video/shared" = {
-              devices = ["mxp10" "fwminex"];
-              id = "byzmw-f6zhg";
-              label = "video-shared";
-            };
-            "${cfg.dataDir}/music" = {
-              devices = ["fwminex" "mxp10"];
-              id = "tg94v-cqcwr";
-              label = "music";
-            };
-            "${cfg.dataDir}/irenos" = {
-              devices = ["KrekenavosNamai"];
-              id = "wuwai-qkcqj";
-              label = "Irenos";
-            };
+            "${cfg.dataDir}/annex2/M-R" = M-R;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/video/shared" = video-shared;
+            "${cfg.dataDir}/music" = Music;
+            "${cfg.dataDir}/irenos" = Irenos;
           }
         )
         // (
@@ -145,6 +153,11 @@ in {
             "${cfg.dataDir}/M-Documents" = M-Documents;
             "${cfg.dataDir}/M-Camera" = M-Camera;
             "${cfg.dataDir}/Pictures" = Pictures;
+            "${cfg.dataDir}/Music" = Music;
+            "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/Video" = video-shared;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/www" = www-fwminex;
           }
         );
     };
