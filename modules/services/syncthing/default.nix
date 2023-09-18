@@ -128,6 +128,7 @@ in {
             rzj-744P2PE
             KrekenavosNamai
             vno1-vinc
+            vno2-irena
             ;
         })
         // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
