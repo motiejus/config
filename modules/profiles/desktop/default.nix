@@ -141,6 +141,11 @@
         enable = true;
         enableSshSupport = true;
       };
+
+      services.screen-locker = {
+        enable = true;
+        lockCmd = "${pkgs.slock}/bin/slock xset dpms force off";
+      };
     };
   };
 }
