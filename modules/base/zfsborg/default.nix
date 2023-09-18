@@ -6,12 +6,13 @@
 }: let
   mkPreHook = mountpoint: zfs_name: ''
     set -x
+    mkdir "$RUNTIME_DIRECTORY/snapshot"
     ${pkgs.util-linux}/bin/mount \
       -t zfs \
       -o ro \
       $(${pkgs.zfs}/bin/zfs list -H -t snapshot -o name ${zfs_name} | sort | tail -1) \
-      ${mountpoint}/.snapshot-latest
-    cd ${mountpoint}/.snapshot-latest
+      "$RUNTIME_DIRECTORY/snapshot"
+    cd "$RUNTIME_DIRECTORY/snapshot"
   '';
 in {
   options.mj.base.zfsborg = with lib.types; {
@@ -44,30 +45,15 @@ in {
 
   config = with config.mj.base.zfsborg;
     lib.mkIf enable {
-      systemd.services =
-        lib.listToAttrs (lib.imap0 (
-            i: attr:
-              lib.nameValuePair "borgbackup-job-${lib.strings.sanitizeDerivationName attr.mountpoint}-${toString i}" {
-                serviceConfig.TemporaryFileSystem = "${attr.mountpoint}/.snapshot-latest";
-              }
-          )
-          dirs)
-        // {
-          "zfsborg-snapshot-dirs" = {
-            description = "zfsborg prepare snapshot directories";
-            wantedBy = ["multi-user.target"];
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart = let
-                mountpoints = lib.unique (lib.catAttrs "mountpoint" dirs);
-              in
-                builtins.map
-                (d: "${pkgs.coreutils}/bin/mkdir -p ${d}/.snapshot-latest")
-                mountpoints;
-              RemainAfterExit = true;
-            };
-          };
-        };
+      systemd.services = lib.listToAttrs (lib.imap0 (
+          i: attr: let
+            svcName = "borgbackup-job-${lib.strings.sanitizeDerivationName attr.mountpoint}-${toString i}";
+          in
+            lib.nameValuePair svcName {
+              serviceConfig.RuntimeDirectory = svcName;
+            }
+        )
+        dirs);
 
       services.borgbackup.jobs = builtins.listToAttrs (
         lib.imap0 (
