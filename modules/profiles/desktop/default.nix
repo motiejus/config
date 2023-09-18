@@ -39,7 +39,6 @@
             user = "motiejus";
           };
         };
-
       };
 
       pipewire = {
@@ -48,7 +47,6 @@
         alsa.support32Bit = true;
         pulse.enable = true;
       };
-
     };
 
     programs = {
@@ -148,6 +146,8 @@
           };
         };
       };
+
+      services.volnoti.enable = true;
 
       services.gpg-agent = {
         enable = true;
