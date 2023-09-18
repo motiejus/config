@@ -149,7 +149,7 @@
         };
       };
 
-      services.volnoti.enable = true;
+      services.pasystray.enable = true;
 
       services.gpg-agent = {
         enable = true;
