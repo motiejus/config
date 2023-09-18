@@ -12,6 +12,7 @@
     "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
+    "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
   };
   folders = {
     Books = {
@@ -84,7 +85,6 @@
       id = "wslmq-fyw4w";
       label = "mykolo";
     };
-
   };
 in {
   options.mj.services.syncthing = with lib.types; {
@@ -119,10 +119,24 @@ in {
       devices =
         {}
         // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-          inherit (devices) fwminex vno1-oh2 mxp10 rzj-744P2PE KrekenavosNamai;
+          inherit
+            (devices)
+            fwminex
+            vno1-oh2
+            mxp10
+            rzj-744P2PE
+            KrekenavosNamai
+            vno1-vinc
+            ;
         })
         // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
-          inherit (devices) fwminex vno1-oh2 mxp10 rzj-744P2PE;
+          inherit
+            (devices)
+            fwminex
+            vno1-oh2
+            mxp10
+            rzj-744P2PE
+            ;
         })
         // {};
 
