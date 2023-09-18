@@ -5,6 +5,19 @@
   ...
 }: let
   guiPort = 8384;
+  folders = {
+    Books = {
+      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      id = "8lk0n-mm63y";
+      label = "Books";
+    };
+    M-Active = {
+      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      id = "f6fma-unkxq";
+      label = "M-Active";
+    };
+
+  };
 in {
   options.mj.services.syncthing = with lib.types; {
     enable = lib.mkEnableOption "Enable services syncthing settings";
@@ -70,16 +83,8 @@ in {
               id = "wslmq-fyw4w";
               label = "mykolo";
             };
-            "${config.services.syncthing.dataDir}/annex2/Books" = {
-              devices = ["mxp10" "fwminex"];
-              id = "8lk0n-mm63y";
-              label = "Books";
-            };
-            "${config.services.syncthing.dataDir}/annex2/M-Active" = {
-              devices = ["mxp10" "fwminex"];
-              id = "f6fma-unkxq";
-              label = "M-Active";
-            };
+            "${config.services.syncthing.dataDir}/annex2/Books" = folders.Books;
+            "${config.services.syncthing.dataDir}/annex2/M-Active" = folders.M-Active;
             "${config.services.syncthing.dataDir}/annex2/M-Camera" = {
               devices = ["mxp10" "fwminex"];
               id = "pixel_xl_dtm3-photos";
@@ -129,11 +134,8 @@ in {
         )
         // (
           lib.optionalAttrs (config.networking.hostName == "fwminex") {
-            "/home/motiejus/Books" = {
-              devices = ["mxp10" "vno1-oh2" "fwminex"];
-              id = "gqrtz-prx9h";
-              label = "Books";
-            };
+            "/home/motiejus/Books" = folders.Books;
+            "/home/motiejus/M-Active" = folders.M-Active;
           }
         );
     };
