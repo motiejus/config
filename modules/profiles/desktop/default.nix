@@ -72,6 +72,7 @@
       gpicview
       rox-filer
       borgbackup
+      efibootmgr
       winetricks
       python3Full
       libva-utils # intel video tests

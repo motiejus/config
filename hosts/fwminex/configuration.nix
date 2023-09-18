@@ -141,7 +141,6 @@ in {
 
   environment.systemPackages = with pkgs; [
     iw
-    efibootmgr
     texlive.combined.scheme-medium
   ];
 
