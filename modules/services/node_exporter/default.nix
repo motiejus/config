@@ -3,12 +3,18 @@
   lib,
   myData,
   ...
-}: {
+}: let
+  cfg = config.mj.services.node_exporter;
+in {
   options.mj.services.node_exporter = with lib.types; {
     enable = lib.mkEnableOption "Enable node_exporter";
+    extraSubnets = lib.mkOption {
+      type = listOf str;
+      default = [];
+    };
   };
 
-  config = lib.mkIf config.mj.services.node_exporter.enable {
+  config = lib.mkIf cfg.enable {
     services.prometheus.exporters.node = {
       enable = true;
       enabledCollectors = ["systemd" "processes"];
@@ -29,7 +35,7 @@
 
     mj.services.friendlyport.ports = [
       {
-        subnets = [myData.subnets.tailscale.cidr];
+        subnets = [myData.subnets.tailscale.cidr] ++ cfg.extraSubnets;
         tcp = [myData.ports.exporters.node];
       }
     ];

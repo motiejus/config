@@ -74,8 +74,11 @@ in {
     };
 
     services = {
-      node_exporter.enable = true;
       sshguard.enable = false;
+      node_exporter = {
+        enable = true;
+        extraSubnets = [myData.subnets.vno1.cidr];
+      };
       tailscale = {
         enable = true;
         silenceLogs = true;
