@@ -10,7 +10,7 @@
     derivationTarget,
     altHostname,
   }: ''
-    if ping -c 1 ${altHostname}; then
+    if ${pkgs.inetutils}/bin/ping -c 1 ${altHostname}; then
       ${pkgs.deploy-rs}/bin/deploy \
         --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
         --ssh-user=deployerbot-follower \
