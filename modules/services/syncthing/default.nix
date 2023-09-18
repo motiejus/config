@@ -13,6 +13,7 @@
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
+    "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
   };
   folders = {
     Books = {
@@ -66,7 +67,7 @@
       label = "M-R";
     };
     Irenos = {
-      devices = ["KrekenavosNamai" "vno1-oh2"];
+      devices = ["KrekenavosNamai" "vno1-oh2" "vno2-irena"];
       id = "wuwai-qkcqj";
       label = "Irenos";
     };
