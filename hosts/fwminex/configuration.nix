@@ -95,7 +95,7 @@ in {
       };
 
       syncthing = {
-        enable = false;
+        enable = true;
         dataDir = "/home/motiejus/";
         user = "motiejus";
         group = "users";
