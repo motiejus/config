@@ -150,7 +150,10 @@
         };
       };
 
-      services.pasystray.enable = true;
+      services.pasystray = {
+        enable = true;
+        extraOptions = ["--key-grabbing" "--notify=all"];
+      };
 
       services.gpg-agent = {
         enable = true;
