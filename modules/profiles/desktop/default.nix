@@ -162,7 +162,7 @@
 
       services.screen-locker = {
         enable = true;
-        lockCmd = "${pkgs.slock}/bin/slock xset dpms force off";
+        lockCmd = "${pkgs.slock}/bin/slock ${pkgs.xorg.xset}/bin/xset dpms force off";
       };
     };
   };
