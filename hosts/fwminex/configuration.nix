@@ -107,9 +107,10 @@ in {
     };
   };
 
-  home-manager.users.motiejus = {pkgs, ...}: {
-    programs.autorandr.profiles = {
-      laptop = {
+  services.autorandr = {
+    enable = true;
+    profiles = {
+      default = {
         fingerprint = {inherit (randr) eDP-1;};
         config = {
           DP-1.enable = false;
