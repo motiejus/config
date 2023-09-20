@@ -112,11 +112,17 @@ in {
       laptop = {
         fingerprint = {inherit (randr) eDP-1;};
         config = {
+          DP-1.enable = false;
+          DP-2.enable = false;
+          DP-3.enable = false;
+          DP-4.enable = false;
           eDP-1 = {
             enable = true;
             primary = true;
-            mode = "2256x1504";
+            mode = "1920x1200";
             crtc = 0;
+            position = "0x0";
+            rate = "59.88";
           };
         };
       };
@@ -125,18 +131,22 @@ in {
         fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
         config = {
           eDP-1.enable = false;
+          DP-1.enable = false;
+          DP-2.enable = false;
+          DP-3 = {
+            enable = true;
+            mode = "2560x1440";
+            position = "0x0";
+            crtc = 1;
+            rate = "59.95";
+          };
           DP-4 = {
             enable = true;
             mode = "2560x1440";
             position = "2560x0";
             primary = true;
             crtc = 0;
-          };
-          DP-3 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "0x0";
-            crtc = 1;
+            rate = "59.95";
           };
         };
       };
