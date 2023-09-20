@@ -162,6 +162,7 @@
 
       services.screen-locker = {
         enable = true;
+        xautolock.enable = false;
         lockCmd = "${pkgs.slock}/bin/slock ${pkgs.xorg.xset}/bin/xset dpms force off";
       };
     };
