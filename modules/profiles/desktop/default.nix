@@ -126,8 +126,6 @@
     home-manager.users.motiejus = {pkgs, ...}: {
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
-      programs.autorandr.enable = true;
-
       programs.firefox = {
         enable = true;
         profiles = {
