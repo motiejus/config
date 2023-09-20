@@ -189,7 +189,7 @@
           deployIfPresent = [
             {
               derivationTarget = ".#fwminex";
-              altHostname = myData.hosts."fwminex.motiejus.jakst".vno1IP;
+              pingTarget = myData.hosts."fwminex.motiejus.jakst".vno1IP;
             }
           ];
         };

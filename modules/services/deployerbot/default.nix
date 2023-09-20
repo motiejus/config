@@ -2,20 +2,18 @@
   config,
   lib,
   pkgs,
-  myData,
   ...
 }: let
   cfg = config.mj.services.deployerbot;
   mkOptional = {
     derivationTarget,
-    altHostname,
+    pingTarget,
   }: ''
-    if ${pkgs.inetutils}/bin/ping -c 1 ${altHostname}; then
+    if ${pkgs.inetutils}/bin/ping -c 1 ${pingTarget}; then
       ${pkgs.deploy-rs}/bin/deploy \
         --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
         --ssh-user=deployerbot-follower \
         --confirm-timeout 60 \
-        --hostname ${altHostname} \
         --targets ${derivationTarget} -- \
           --accept-flake-config
     fi
@@ -29,7 +27,7 @@ in {
         {...}: {
           options = {
             derivationTarget = lib.mkOption {type = str;};
-            altHostname = lib.mkOption {type = str;};
+            pingTarget = lib.mkOption {type = str;};
           };
         }
       ));
