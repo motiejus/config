@@ -61,7 +61,9 @@
     networking.networkmanager.enable = true;
 
     environment.systemPackages = with pkgs; [
+      iw
       vlc
+      acpi
       gimp
       qgis
       josm

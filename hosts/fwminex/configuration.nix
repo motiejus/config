@@ -75,6 +75,7 @@ in {
 
     services = {
       sshguard.enable = false;
+
       node_exporter = {
         enable = true;
         extraSubnets = [myData.subnets.vno1.cidr];
@@ -153,11 +154,6 @@ in {
       };
     };
   };
-
-  environment.systemPackages = with pkgs; [
-    iw
-    texlive.combined.scheme-medium
-  ];
 
   networking = {
     hostId = "3a54afcd";
