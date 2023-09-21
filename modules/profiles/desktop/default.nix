@@ -171,7 +171,7 @@
       services.screen-locker = {
         enable = true;
         xautolock.enable = false;
-        lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+        lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
       };
     };
   };
