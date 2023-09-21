@@ -29,6 +29,11 @@ in {
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
+  fileSystems."/var/lib/docker" = {
+    device = "rpool/nixos/var/lib/docker";
+    fsType = "zfs";
+  };
+
   #swapDevices = [];
 
   boot.loader.grub.extraEntries = ''
