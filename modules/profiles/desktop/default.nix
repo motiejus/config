@@ -52,9 +52,10 @@
     };
 
     programs = {
+      adb.enable = true;
       slock.enable = true;
       nm-applet.enable = true;
-      adb.enable = true;
+      command-not-found.enable = false;
     };
 
     security.rtkit.enable = true;
@@ -128,8 +129,6 @@
 
     home-manager.users.motiejus = {pkgs, ...}: {
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
-
-      programs.nix-index.enable = true;
 
       programs.firefox = {
         enable = true;

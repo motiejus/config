@@ -19,6 +19,9 @@
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
     deploy-rs.inputs.utils.follows = "flake-utils";
 
+    nix-index-database.url = "github:Mic92/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+
     nur.url = "github:nix-community/NUR";
   };
 
@@ -35,6 +38,7 @@
     flake-utils,
     home-manager,
     nixos-hardware,
+    nix-index-database,
     nur,
   } @ inputs: let
     myData = import ./data.nix;
@@ -120,6 +124,7 @@
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           nixos-hardware.nixosModules.framework-12th-gen-intel
+          nix-index-database.nixosModules.nix-index
 
           {
             age.secrets.motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
