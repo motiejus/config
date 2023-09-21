@@ -58,6 +58,12 @@
       command-not-found.enable = false;
     };
 
+    virtualisation.podman = {
+      enable = true;
+      dockerCompat = true;
+      extraPackages = [pkgs.zfs];
+    };
+
     security.rtkit.enable = true;
 
     networking.networkmanager.enable = true;
