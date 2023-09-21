@@ -85,6 +85,7 @@
       qpwgraph # for pipewire
       gpicview
       rox-filer
+      distrobox
       borgbackup
       efibootmgr
       winetricks
