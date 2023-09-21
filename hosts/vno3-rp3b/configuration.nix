@@ -116,6 +116,7 @@
     hostName = "vno3-rp3b";
     domain = "servers.jakst";
     dhcpcd.enable = true;
+    firewall.rejectPackets = true;
   };
 
   nixpkgs.hostPlatform = "aarch64-linux";
