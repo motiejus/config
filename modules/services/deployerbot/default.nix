@@ -103,10 +103,7 @@ in {
       systemd.timers.deployerbot = {
         description = "deployerbot-main timer";
         wantedBy = ["timers.target"];
-        # 15:38 UTC was the latest merge that I have observed since
-        # making the commit by looking at 3 commits of this repo.
-        # Let's try to be optimistic.
-        timerConfig.OnCalendar = "*-*-* 23:30:00 UTC";
+        timerConfig.OnCalendar = "*-*-* 22:00:00 UTC";
       };
 
       mj.base.unitstatus.units = ["deployerbot"];
