@@ -73,7 +73,7 @@
               "tailscale"
               "private/soju"
             ];
-            backup_at = "*-*-* 00:01:00";
+            backup_at = "*-*-* 00:01:00 UTC";
           }
           {
             mountpoint = "/var/lib";
@@ -89,7 +89,7 @@
               "tailscale"
               "private/soju"
             ];
-            backup_at = "*-*-* 00:01:00";
+            backup_at = "*-*-* 00:01:00 UTC";
           }
 
           # TODO: merge
@@ -101,7 +101,7 @@
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
-            backup_at = "*-*-* 00:02:00";
+            backup_at = "*-*-* 00:02:00 UTC";
           }
           {
             mountpoint = "/var/log";
@@ -111,7 +111,7 @@
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
-            backup_at = "*-*-* 00:02:00";
+            backup_at = "*-*-* 00:02:00 UTC";
           }
 
           # TODO merge
