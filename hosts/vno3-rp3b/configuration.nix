@@ -57,6 +57,11 @@
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
       };
+
+      snapshot = {
+        enable = true;
+        mountpoints = ["/data/shared"];
+      };
     };
 
     services = {
