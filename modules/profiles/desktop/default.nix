@@ -12,6 +12,7 @@
     mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager"];
 
     services = {
+      acpid.enable = true;
       pcscd.enable = true;
       printing.enable = true;
       openssh.settings.X11Forwarding = true;
@@ -127,6 +128,8 @@
 
     home-manager.users.motiejus = {pkgs, ...}: {
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
+
+      programs.nix-index.enable = true;
 
       programs.firefox = {
         enable = true;
