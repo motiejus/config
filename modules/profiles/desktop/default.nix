@@ -67,6 +67,10 @@
 
     networking.networkmanager.enable = true;
 
+    # TODO gtimelog move to it's own module
+    programs.dconf.enable = true;
+    services.gnome.gnome-keyring.enable = true;
+
     environment.systemPackages = with pkgs; [
       iw
       vlc
@@ -115,6 +119,9 @@
       gnome.gnome-calculator
       gnome.gnome-calendar
 
+      # TODO gtimelog move to it's own module
+      gnome.adwaita-icon-theme
+
       xorg.xev
 
       (texlive.combine {
@@ -136,6 +143,7 @@
 
     home-manager.users.motiejus = {pkgs, ...}: {
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
+
       # TODO
       #xdg.configFile."gtimelog" = {
       #  source = "/home/motiejus/.local/share/gtimelog";
