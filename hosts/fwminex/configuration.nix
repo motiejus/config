@@ -159,5 +159,6 @@ in {
     hostId = "3a54afcd";
     hostName = "fwminex";
     domain = "motiejus.jakst";
+    rejectPackets = true;
   };
 }
