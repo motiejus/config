@@ -41,27 +41,31 @@ in {
         guest account = jakstpub
         server role = standalone server
       '';
-      shares = {
-        public = {
-          path = cfg.dataDir;
-          writeable = "yes";
-          public = "yes";
+      shares = let
+        defaults = {
+          "public" = "yes";
+          "mangled names" = "no";
           "guest ok" = "yes";
-          "read only" = "no";
-          "create mask" = "0664";
-          "directory mask" = "0775";
           "force user" = "jakstpub";
           "force group" = "jakstpub";
         };
-        snapshots = {
-          path = cfg.dataDir + "/.zfs/snapshot";
-          writeable = "no";
-          public = "yes";
-          "guest ok" = "yes";
-          "read only" = "yes";
-          "force user" = "jakstpub";
-          "force group" = "jakstpub";
-        };
+      in {
+        public =
+          defaults
+          // {
+            "path" = cfg.dataDir;
+            "writeable" = "yes";
+            "read only" = "no";
+            "create mask" = "0664";
+            "directory mask" = "0775";
+          };
+        snapshots =
+          defaults
+          // {
+            "path" = cfg.dataDir + "/.zfs/snapshot";
+            "writeable" = "no";
+            "read only" = "yes";
+          };
       };
     };
 
