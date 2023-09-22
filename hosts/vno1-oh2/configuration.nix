@@ -415,6 +415,10 @@
           static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
         }
         {
+          job_name = "hacotest.servers.jakst";
+          static_configs = [{targets = ["100.89.176.9:9100"];}];
+        }
+        {
           job_name = "vno3-rp3b.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
         }
