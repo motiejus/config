@@ -81,6 +81,7 @@
       pandoc
       evince
       calibre
+      gtimelog
       chromium
       hunspell
       tigervnc
@@ -135,6 +136,11 @@
 
     home-manager.users.motiejus = {pkgs, ...}: {
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
+      # TODO
+      #xdg.configFile."gtimelog" = {
+      #  source = "/home/motiejus/.local/share/gtimelog";
+      #  target = "/home/motiejus/M-Active/timelog";
+      #};
 
       programs.firefox = {
         enable = true;
