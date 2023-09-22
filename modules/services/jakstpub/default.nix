@@ -53,6 +53,15 @@ in {
           "force user" = "jakstpub";
           "force group" = "jakstpub";
         };
+        snapshots = {
+          path = cfg.dataDir + "/.zfs/snapshot";
+          writeable = "no";
+          public = "yes";
+          "guest ok" = "yes";
+          "read only" = "yes";
+          "force user" = "jakstpub";
+          "force group" = "jakstpub";
+        };
       };
     };
 
