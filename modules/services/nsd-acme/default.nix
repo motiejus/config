@@ -134,8 +134,7 @@ in {
               ExecStart = let
                 hook = mkHook zone;
                 days = builtins.toString cfg.days;
-                staging = lib.optionalString cfg.staging "--staging";
-              in "${pkgs.uacme}/bin/uacme -c \${STATE_DIRECTORY} --verbose --days ${days} --hook ${hook} ${staging} issue ${zone}";
+              in "${pkgs.uacme}/bin/uacme -c \${STATE_DIRECTORY} --verbose --days ${days} --hook ${hook} ${lib.optionalString cfg.staging "--staging"} issue ${zone}";
 
               UMask = "0022";
               User = "nsd";
