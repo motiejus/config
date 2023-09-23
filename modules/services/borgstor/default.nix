@@ -16,7 +16,7 @@
       users.users.borgstor = {
         description = "Borg Storage";
         home = dataDir;
-        useDefaultShell = true;
+        shell = "/bin/sh";
         group = "borgstor";
         isSystemUser = true;
         createHome = false;

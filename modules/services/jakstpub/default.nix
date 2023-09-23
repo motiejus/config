@@ -77,7 +77,7 @@ in {
     users.users.jakstpub = {
       description = "Jakstys Public";
       home = "/var/empty";
-      useDefaultShell = true;
+      shell = "/bin/sh";
       group = "jakstpub";
       isSystemUser = true;
       createHome = false;

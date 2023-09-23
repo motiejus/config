@@ -13,7 +13,7 @@
       users.git = {
         description = "Gitea Service";
         home = "/var/lib/gitea";
-        useDefaultShell = true;
+        shell = "/bin/sh";
         group = "gitea";
         isSystemUser = true;
         uid = myData.uidgid.gitea;

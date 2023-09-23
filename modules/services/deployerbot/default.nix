@@ -53,7 +53,7 @@ in {
         users.users.deployerbot-main = {
           description = "Deployerbot Main";
           home = "/var/lib/deployerbot-main";
-          useDefaultShell = true;
+          shell = "/bin/sh";
           group = "deployerbot-main";
           isSystemUser = true;
           createHome = true;
@@ -122,7 +122,7 @@ in {
           deployerbot-follower = {
             description = "Deployerbot Follower";
             home = "/var/lib/deployerbot-follower";
-            useDefaultShell = true;
+            shell = "/bin/sh";
             group = "deployerbot-follower";
             extraGroups = ["wheel"];
             isSystemUser = true;
