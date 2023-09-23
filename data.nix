@@ -134,7 +134,6 @@ rec {
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
-    hdd                             A      ${hosts."vno3-rp3b.servers.jakst".jakstIP}
 
     @                               MX     10 aspmx.l.google.com.
     @                               MX     20 alt1.aspmx.l.google.com.
@@ -156,5 +155,10 @@ rec {
     _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
     _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
     ns._acme-endpoint.bitwarden      A     ${vno1}
+
+    hdd                              A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
+    _acme-challenge.hdd          CNAME     _acme-endpoint.hdd
+    _acme-endpoint.hdd              NS     ns._acme-endpoint.hdd
+    ns._acme-endpoint.hdd            A     ${vno1}
   '';
 }
