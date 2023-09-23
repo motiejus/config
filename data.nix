@@ -14,6 +14,8 @@ rec {
     borgstor = 504;
 
     jakstpub = 505;
+
+    certget = 506;
   };
 
   ports = {

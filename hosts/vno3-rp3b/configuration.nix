@@ -72,6 +72,12 @@
         silenceLogs = true;
       };
 
+      certget = {
+        enable = true;
+        uidgid = myData.uidgid.certget;
+        sshKeys = [myData.hosts."vno1-oh2.servers.jakst".publicKey];
+      };
+
       borgstor = {
         enable = true;
         dataDir = "/data/borg";

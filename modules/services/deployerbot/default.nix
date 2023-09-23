@@ -118,20 +118,18 @@ in {
       cfg = config.mj.services.deployerbot.follower;
     in
       lib.mkIf cfg.enable {
-        users.users = {
-          deployerbot-follower = {
-            description = "Deployerbot Follower";
-            home = "/var/lib/deployerbot-follower";
-            shell = "/bin/sh";
-            group = "deployerbot-follower";
-            extraGroups = ["wheel"];
-            isSystemUser = true;
-            createHome = true;
-            uid = cfg.uidgid;
-            openssh.authorizedKeys.keys = let
-              restrictedPubKey = "from=\"${builtins.concatStringsSep "," cfg.sshAllowSubnets}\" " + cfg.publicKey;
-            in [restrictedPubKey];
-          };
+        users.users.deployerbot-follower = {
+          description = "Deployerbot Follower";
+          home = "/var/lib/deployerbot-follower";
+          shell = "/bin/sh";
+          group = "deployerbot-follower";
+          extraGroups = ["wheel"];
+          isSystemUser = true;
+          createHome = true;
+          uid = cfg.uidgid;
+          openssh.authorizedKeys.keys = let
+            restrictedPubKey = "from=\"${builtins.concatStringsSep "," cfg.sshAllowSubnets}\" " + cfg.publicKey;
+          in [restrictedPubKey];
         };
         users.groups.deployerbot-follower.gid = cfg.uidgid;
         nix.settings.trusted-users = ["deployerbot-follower"];
