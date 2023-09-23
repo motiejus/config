@@ -4,6 +4,7 @@
   pkgs,
   ...
 }: let
+  cfg = config.mj.services.nsd-acme;
   mkHook = zone: let
     rc = config.services.nsd.remoteControl;
     fullZone = "_acme-endpoint.${zone}";
@@ -84,7 +85,7 @@ in {
   };
 
   # TODO assert services.nsd.enable
-  config = lib.mkIf config.mj.services.nsd-acme.enable {
+  config = lib.mkIf cfg.enable {
     services.nsd.remoteControl.enable = true;
     services.nsd.extraConfig = ''
       pattern:
@@ -186,7 +187,7 @@ in {
             };
           }
       )
-      config.mj.services.nsd-acme.zones;
+      cfg.zones;
 
     systemd.timers =
       lib.mapAttrs'
@@ -201,14 +202,14 @@ in {
             after = ["network-online.target"];
           }
       )
-      config.mj.services.nsd-acme.zones;
+      cfg.zones;
 
     mj.base.unitstatus.units =
       lib.mkIf config.mj.base.unitstatus.enable
       (
         ["nsd-control-setup"]
         ++ map (z: "nsd-acme-${z}")
-        (lib.attrNames config.mj.services.nsd-acme.zones)
+        (lib.attrNames cfg.zones)
       );
   };
 }
