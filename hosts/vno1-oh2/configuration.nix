@@ -171,8 +171,9 @@
         accountKey = config.age.secrets.letsencrypt-account-key.path;
       in {
         enable = true;
-        zones."grafana.jakstys.lt".accountKey = accountKey;
         zones."irc.jakstys.lt".accountKey = accountKey;
+        zones."hdd.jakstys.lt".accountKey = accountKey;
+        zones."grafana.jakstys.lt".accountKey = accountKey;
         zones."bitwarden.jakstys.lt".accountKey = accountKey;
       };
 
