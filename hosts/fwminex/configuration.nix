@@ -29,7 +29,7 @@ in {
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
-  #swapDevices = [];
+  swapDevices = [{device = "/dev/zvol/rpool/swap";}];
 
   boot.loader.grub.extraEntries = ''
     menuentry "Debian via bpool label" {
