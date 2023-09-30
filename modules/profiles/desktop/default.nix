@@ -115,6 +115,12 @@
       python3Packages.ipython
       samsung-unified-linux-driver
 
+      lld
+      llvm
+      llvm-manpages
+      clang-manpages
+      gcc_latest
+
       gnome.nautilus
       gnome.gnome-calculator
       gnome.gnome-calendar
