@@ -4,7 +4,7 @@
   ...
 }: let
   cfg = config.zfs-root.fileSystems;
-  inherit (lib) mkIf types mkDefault mkOption mkMerge mapAttrsToList;
+  inherit (lib) types mkDefault mkOption mkMerge mapAttrsToList;
 in {
   options.zfs-root.fileSystems = {
     datasets = mkOption {

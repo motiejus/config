@@ -55,7 +55,7 @@
           passwd.motiejus or {};
 
         root = assert lib.assertMsg (passwd ? root) "root password needs to be defined";
-          lib.filterAttrs (n: v: v != null) passwd.root;
+          lib.filterAttrs (_: v: v != null) passwd.root;
       };
     };
 

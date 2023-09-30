@@ -3,7 +3,7 @@ let
   motiejus_yk2 = "age1yubikey1qgyvs2ul0enzqf4sscq96zyxk73jnj4lknpemak2hp39lejdwc0s5uzzhpc";
   motiejus_bk1 = "age1kyehn8yr9tfu3w0z4d9p9qrj0tjjh92ljxmz2nyr6xnm7y8kpv5spwwc9n";
   motiejus_bk2 = "age14f39j0wx84n93lgqn6d9gcd3yhuwak6qwrxy8v83ydn7266uafts09ecva";
-  motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1];
+  motiejus = [motiejus_yk1 motiejus_yk2 motiejus_bk1 motiejus_bk2];
 
   fwminex = (import ./data.nix).hosts."fwminex.motiejus.jakst".publicKey;
   fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;

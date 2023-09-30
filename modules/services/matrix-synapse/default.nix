@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  myData,
   ...
 }: {
   options.mj.services.matrix-synapse = with lib.types; {

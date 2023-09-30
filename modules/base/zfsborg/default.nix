@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  mkPreHook = mountpoint: zfs_name: i: ''
+  mkPreHook = zfs_name: i: ''
     set -x
     sleep ${toString i}
     mkdir "$RUNTIME_DIRECTORY/snapshot"
@@ -79,7 +79,7 @@ in {
                   extraArgs = "--remote-path=borg1";
                   compression = "auto,lzma";
                   startAt = attrs.backup_at;
-                  preHook = mkPreHook mountpoint fs.device i;
+                  preHook = mkPreHook fs.device i;
                   prune.keep = {
                     within = "1d";
                     daily = 7;

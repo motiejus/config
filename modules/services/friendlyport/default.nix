@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myData,
   ...
 }: {
   options.mj.services.friendlyport = with lib.types; {

@@ -4,7 +4,6 @@
   pkgs,
   ...
 }: let
-  cfg = config.mj.services.deployerbot;
   mkOptional = {
     derivationTarget,
     pingTarget,

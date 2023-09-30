@@ -6,7 +6,6 @@
 }: let
   cfg = config.mj.services.nsd-acme;
   mkHook = zone: let
-    rc = config.services.nsd.remoteControl;
     fullZone = "_acme-endpoint.${zone}";
   in
     pkgs.writeShellScript "nsd-acme-hook" ''
@@ -188,7 +187,7 @@ in {
     systemd.timers =
       lib.mapAttrs'
       (
-        zone: cfg:
+        zone: _:
           lib.nameValuePair "nsd-acme-${zone}" {
             description = "nsd-acme for zone ${zone}";
             wantedBy = ["timers.target"];

@@ -48,7 +48,7 @@
       system = "x86_64-linux";
       overlays = [
         deploy-rs.overlay
-        (self: super: {
+        (_self: super: {
           deploy-rs = {
             inherit (pkgsIA64) deploy-rs;
             lib = super.deploy-rs.lib;
@@ -60,7 +60,7 @@
       system = "aarch64-linux";
       overlays = [
         deploy-rs.overlay
-        (self: super: {
+        (_self: super: {
           deploy-rs = {
             inherit (pkgsArm64) deploy-rs;
             lib = super.deploy-rs.lib;
@@ -225,7 +225,9 @@
         };
       };
 
-      checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
+      checks = builtins.mapAttrs (_system: deployLib:
+        deployLib.deployChecks self.deploy)
+      deploy-rs.lib;
     }
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};

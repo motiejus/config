@@ -23,7 +23,7 @@
       };
       extraArgs = ["--verbose"];
       datasets = let
-        fs_zfs = lib.filterAttrs (n: v: v.fsType == "zfs") config.fileSystems;
+        fs_zfs = lib.filterAttrs (_: v: v.fsType == "zfs") config.fileSystems;
         mountpoint2fs =
           builtins.listToAttrs
           (map (mountpoint: {
@@ -32,7 +32,7 @@
             })
             config.mj.base.snapshot.mountpoints);
         s_datasets =
-          lib.mapAttrs' (mountpoint: fs: {
+          lib.mapAttrs' (_mountpoint: fs: {
             name = fs.device;
             value = {use_template = ["prod"];};
           })
