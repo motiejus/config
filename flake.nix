@@ -230,17 +230,16 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
-      devShells.default = with pkgs;
-        mkShell {
-          packages = [
-            pkgs.rage
-            pkgs.ssh-to-age
-            pkgs.age-plugin-yubikey
-            pkgs.deploy-rs
+      devShells.default = pkgs.mkShellNoCC {
+        packages = [
+          pkgs.rage
+          pkgs.ssh-to-age
+          pkgs.age-plugin-yubikey
+          pkgs.deploy-rs
 
-            agenix.packages.${system}.agenix
-          ];
-        };
+          agenix.packages.${system}.agenix
+        ];
+      };
 
       formatter = pkgs.alejandra;
     });
