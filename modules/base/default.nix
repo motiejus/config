@@ -88,6 +88,7 @@
         rage # encrypt-decrypt
         ncdu # disk usage navigator
         lshw
+        entr
         pwgen
         parted
         sqlite
