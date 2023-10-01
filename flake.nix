@@ -42,32 +42,21 @@
     nur,
   } @ inputs: let
     myData = import ./data.nix;
-    pkgsIA64 = import nixpkgs {system = "x86_64-linux";};
-    pkgsArm64 = import nixpkgs {system = "aarch64-linux";};
-    deployPkgsIA64 = import nixpkgs {
-      system = "x86_64-linux";
-      overlays = [
-        deploy-rs.overlay
-        (_self: super: {
-          deploy-rs = {
-            inherit (pkgsIA64) deploy-rs;
-            lib = super.deploy-rs.lib;
-          };
-        })
-      ];
-    };
-    deployPkgsArm64 = import nixpkgs {
-      system = "aarch64-linux";
-      overlays = [
-        deploy-rs.overlay
-        (_self: super: {
-          deploy-rs = {
-            inherit (pkgsArm64) deploy-rs;
-            lib = super.deploy-rs.lib;
-          };
-        })
-      ];
-    };
+    mkDeployPkgs = system:
+      import nixpkgs {
+        system = system;
+        overlays = [
+          deploy-rs.overlay
+          (_self: super: {
+            deploy-rs = {
+              inherit (import nixpkgs {system = system;}) deploy-rs;
+              lib = super.deploy-rs.lib;
+            };
+          })
+        ];
+      };
+    deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
+    deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
   in
     {
       #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
