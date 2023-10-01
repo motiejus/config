@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-compat.url = "github:nix-community/flake-compat";
 
     home-manager.url = "github:nix-community/home-manager/release-23.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
@@ -17,10 +18,17 @@
 
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
+    deploy-rs.inputs.flake-compat.follows = "flake-compat";
     deploy-rs.inputs.utils.follows = "flake-utils";
 
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
+    pre-commit-hooks.inputs.nixpkgs-stable.follows = "nixpkgs";
+    pre-commit-hooks.inputs.flake-utils.follows = "flake-utils";
+    pre-commit-hooks.inputs.flake-compat.follows = "flake-compat";
 
     nur.url = "github:nix-community/NUR";
   };
@@ -39,7 +47,9 @@
     home-manager,
     nixos-hardware,
     nix-index-database,
+    pre-commit-hooks,
     nur,
+    ...
   } @ inputs: let
     myData = import ./data.nix;
     mkDeployPkgs = system:
@@ -214,9 +224,20 @@
         };
       };
 
-      checks = builtins.mapAttrs (_system: deployLib:
-        deployLib.deployChecks self.deploy)
-      deploy-rs.lib;
+      checks =
+        (builtins.mapAttrs (_system: deployLib:
+          deployLib.deployChecks self.deploy)
+        deploy-rs.lib)
+        // {
+          x86_64-linux.pre-commit-check = inputs.pre-commit-hooks.lib.x86_64-linux.run {
+            src = ./.;
+            hooks = {
+              alejandra.enable = true;
+              deadnix.enable = true;
+              #statix.enable = true;
+            };
+          };
+        };
     }
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
@@ -230,6 +251,7 @@
 
           agenix.packages.${system}.agenix
         ];
+        inherit (inputs.self.checks.x86_64-linux.pre-commit-check) shellHook;
       };
 
       formatter = pkgs.alejandra;
