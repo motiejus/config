@@ -5,7 +5,6 @@
   ...
 }: let
   cfg = config.mj.services.jakstpub;
-  subnets = myData.subnets;
 in {
   options.mj.services.jakstpub = with lib.types; {
     enable = lib.mkEnableOption "Enable jakstpub";
@@ -70,7 +69,7 @@ in {
 
     services.samba-wsdd = {
       enable = true;
-      hostname = cfg.hostname;
+      inherit (cfg.hostname);
     };
 
     users.users.jakstpub = {

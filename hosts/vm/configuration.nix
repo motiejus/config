@@ -2,8 +2,7 @@
   pkgs,
   myData,
   ...
-}: let
-in {
+}: {
   mj = {
     stateVersion = "23.05";
     timeZone = "UTC";

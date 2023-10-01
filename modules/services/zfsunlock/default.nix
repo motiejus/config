@@ -31,21 +31,19 @@ in {
 
     targets = lib.mkOption {
       default = {};
-      type = attrsOf (submodule (
-        {...}: {
-          options = {
-            sshEndpoint = lib.mkOption {type = str;};
-            pingEndpoint = lib.mkOption {type = str;};
-            pingTimeoutSec = lib.mkOption {
-              type = int;
-              default = 20;
-            };
-            remotePubkey = lib.mkOption {type = str;};
-            pwFile = lib.mkOption {type = path;};
-            startAt = lib.mkOption {type = either str (listOf str);};
+      type = attrsOf (submodule {
+        options = {
+          sshEndpoint = lib.mkOption {type = str;};
+          pingEndpoint = lib.mkOption {type = str;};
+          pingTimeoutSec = lib.mkOption {
+            type = int;
+            default = 20;
           };
-        }
-      ));
+          remotePubkey = lib.mkOption {type = str;};
+          pwFile = lib.mkOption {type = path;};
+          startAt = lib.mkOption {type = either str (listOf str);};
+        };
+      });
     };
   };
 

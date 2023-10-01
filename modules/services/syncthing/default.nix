@@ -4,8 +4,9 @@
   myData,
   ...
 }: let
+  cfg = config.mj.services.syncthing;
+
   guiPort = 8384;
-  cfg = config.services.syncthing;
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
     "vno1-oh2".id = "W45ROUW-CHKI3I6-C4VCOCU-NJYQ3ZS-MJDHH23-YYCDXTI-HTJSBZJ-KZMWTAF";
@@ -95,7 +96,7 @@ in {
     dataDir = lib.mkOption {type = path;};
   };
 
-  config = lib.mkIf config.mj.services.syncthing.enable {
+  config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
         subnets = myData.subnets.motiejus.cidrs;
@@ -104,16 +105,17 @@ in {
     ];
 
     services.syncthing = {
-      enable = config.mj.services.syncthing.enable;
+      inherit (cfg.enable);
+      inherit (cfg.user);
+      inherit (cfg.group);
+      inherit (cfg.dataDir);
+
       openDefaultPorts = true;
       guiAddress = let
         fqdn = with config.networking; "${hostName}.${domain}";
         jakstIP = lib.getAttrFromPath [fqdn "jakstIP"] myData.hosts;
         guiPortStr = builtins.toString guiPort;
       in "${jakstIP}:${guiPortStr}";
-      user = config.mj.services.syncthing.user;
-      group = config.mj.services.syncthing.group;
-      dataDir = config.mj.services.syncthing.dataDir;
 
       extraOptions.gui.insecureAdminAccess = true;
 

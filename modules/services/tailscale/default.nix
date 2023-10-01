@@ -16,7 +16,7 @@ in {
     };
   };
 
-  config = mkIf (cfg.enable) (mkMerge [
+  config = mkIf cfg.enable (mkMerge [
     {
       services.tailscale.enable = true;
       networking.firewall.checkReversePath = "loose";

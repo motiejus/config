@@ -16,6 +16,6 @@
     programs.ssh.knownHosts = let
       sshAttrs = lib.genAttrs ["extraHostNames" "publicKey"] (_: null);
     in
-      lib.mapAttrs (_name: cfg: builtins.intersectAttrs sshAttrs cfg) myData.hosts;
+      lib.mapAttrs (_name: builtins.intersectAttrs sshAttrs) myData.hosts;
   };
 }

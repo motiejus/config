@@ -2,9 +2,10 @@
   config,
   lib,
   myData,
-  #home-manager,
   ...
-}: {
+}: let
+  cfg = config.mj.base.users;
+in {
   options.mj.base.users = with lib.types; {
     devEnvironment = lib.mkOption {
       type = bool;
@@ -12,25 +13,23 @@
     };
 
     passwd = lib.mkOption {
-      type = attrsOf (submodule (
-        {...}: {
-          options = {
-            passwordFile = lib.mkOption {
-              type = nullOr path;
-              default = null;
-            };
-            initialPassword = lib.mkOption {
-              type = nullOr str;
-              default = null;
-            };
-
-            extraGroups = lib.mkOption {
-              type = listOf str;
-              default = [];
-            };
+      type = attrsOf (submodule {
+        options = {
+          passwordFile = lib.mkOption {
+            type = nullOr path;
+            default = null;
           };
-        }
-      ));
+          initialPassword = lib.mkOption {
+            type = nullOr str;
+            default = null;
+          };
+
+          extraGroups = lib.mkOption {
+            type = listOf str;
+            default = [];
+          };
+        };
+      });
     };
   };
 
@@ -38,13 +37,11 @@
     users = {
       mutableUsers = false;
 
-      users = let
-        passwd = config.mj.base.users.passwd;
-      in {
+      users = {
         motiejus =
           {
             isNormalUser = true;
-            extraGroups = ["wheel"] ++ passwd.motiejus.extraGroups;
+            extraGroups = ["wheel"] ++ cfg.passwd.motiejus.extraGroups;
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
           }
@@ -52,17 +49,17 @@
             n: v:
               (n == "passwordFile" || n == "initialPassword") && v != null
           )
-          passwd.motiejus or {};
+          cfg.passwd.motiejus or {};
 
-        root = assert lib.assertMsg (passwd ? root) "root password needs to be defined";
-          lib.filterAttrs (_: v: v != null) passwd.root;
+        root = assert lib.assertMsg (cfg.passwd ? root) "root password needs to be defined";
+          lib.filterAttrs (_: v: v != null) cfg.passwd.root;
       };
     };
 
     home-manager.useGlobalPkgs = true;
     home-manager.users.motiejus = {pkgs, ...}: {
       home.stateVersion = config.mj.stateVersion;
-      home.packages = lib.mkIf config.mj.base.users.devEnvironment [pkgs.go];
+      home.packages = lib.mkIf cfg.devEnvironment [pkgs.go];
 
       programs.direnv.enable = true;
 
@@ -71,7 +68,7 @@
         vimAlias = true;
         vimdiffAlias = true;
         defaultEditor = true;
-        plugins = lib.mkIf config.mj.base.users.devEnvironment [
+        plugins = lib.mkIf cfg.devEnvironment [
           pkgs.vimPlugins.fugitive
           pkgs.vimPlugins.vim-go
           pkgs.vimPlugins.zig-vim

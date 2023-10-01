@@ -22,14 +22,12 @@ in {
     enable = lib.mkEnableOption "Enable system updater orchestrator";
     deployDerivations = lib.mkOption {type = listOf str;};
     deployIfPresent = lib.mkOption {
-      type = listOf (submodule (
-        {...}: {
-          options = {
-            derivationTarget = lib.mkOption {type = str;};
-            pingTarget = lib.mkOption {type = str;};
-          };
-        }
-      ));
+      type = listOf (submodule {
+        options = {
+          derivationTarget = lib.mkOption {type = str;};
+          pingTarget = lib.mkOption {type = str;};
+        };
+      });
       default = [];
     };
     uidgid = lib.mkOption {type = int;};

@@ -27,20 +27,18 @@ in {
 
     dirs = lib.mkOption {
       default = {};
-      type = listOf (submodule (
-        {...}: {
-          options = {
-            mountpoint = lib.mkOption {type = path;};
-            repo = lib.mkOption {type = str;};
-            paths = lib.mkOption {type = listOf str;};
-            patterns = lib.mkOption {
-              type = listOf str;
-              default = [];
-            };
-            backup_at = lib.mkOption {type = str;};
+      type = listOf (submodule {
+        options = {
+          mountpoint = lib.mkOption {type = path;};
+          repo = lib.mkOption {type = str;};
+          paths = lib.mkOption {type = listOf str;};
+          patterns = lib.mkOption {
+            type = listOf str;
+            default = [];
           };
-        }
-      ));
+          backup_at = lib.mkOption {type = str;};
+        };
+      });
     };
   };
 
@@ -69,13 +67,14 @@ in {
               lib.nameValuePair
               "${lib.strings.sanitizeDerivationName mountpoint}-${toString i}"
               ({
+                  inherit (attrs.repo);
+                  inherit (attrs.paths);
+
                   doInit = true;
-                  repo = attrs.repo;
                   encryption = {
                     mode = "repokey-blake2";
                     passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
                   };
-                  paths = attrs.paths;
                   extraArgs = "--remote-path=borg1";
                   compression = "auto,lzma";
                   startAt = attrs.backup_at;
@@ -96,9 +95,7 @@ in {
                       BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
                     };
                 }
-                // lib.optionalAttrs (attrs ? patterns) {
-                  patterns = attrs.patterns;
-                })
+                // lib.optionalAttrs (attrs ? patterns) {inherit (attrs.patterns);})
         )
         dirs
       );

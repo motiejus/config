@@ -54,13 +54,14 @@
     myData = import ./data.nix;
     mkDeployPkgs = system:
       import nixpkgs {
-        system = system;
+        inherit system;
+
         overlays = [
           deploy-rs.overlay
           (_self: super: {
             deploy-rs = {
-              inherit (import nixpkgs {system = system;}) deploy-rs;
-              lib = super.deploy-rs.lib;
+              inherit (import nixpkgs {inherit system;}) deploy-rs;
+              inherit (super.deploy-rs.lib);
             };
           })
         ];
@@ -234,7 +235,7 @@
                 hooks = {
                   alejandra.enable = true;
                   deadnix.enable = true;
-                  #statix.enable = true;
+                  statix.enable = true;
                 };
               };
             }

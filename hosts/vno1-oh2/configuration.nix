@@ -199,7 +199,7 @@
           enable = true;
           sshAllowSubnets = [myData.subnets.tailscale.sshPattern];
           uidgid = myData.uidgid.updaterbot-deployee;
-          publicKey = myData.hosts."vno1-oh2.servers.jakst".publicKey;
+          inherit (myData.hosts."vno1-oh2.servers.jakst".publicKey);
         };
       };
 
