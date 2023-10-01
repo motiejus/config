@@ -225,19 +225,21 @@
       };
 
       checks =
-        (builtins.mapAttrs (_system: deployLib:
-          deployLib.deployChecks self.deploy)
-        deploy-rs.lib)
-        // {
-          x86_64-linux.pre-commit-check = inputs.pre-commit-hooks.lib.x86_64-linux.run {
-            src = ./.;
-            hooks = {
-              alejandra.enable = true;
-              deadnix.enable = true;
-              #statix.enable = true;
-            };
-          };
-        };
+        builtins.mapAttrs (
+          system: deployLib:
+            deployLib.deployChecks self.deploy
+            // {
+              pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+                src = ./.;
+                hooks = {
+                  alejandra.enable = true;
+                  deadnix.enable = true;
+                  #statix.enable = true;
+                };
+              };
+            }
+        )
+        deploy-rs.lib;
     }
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
@@ -251,7 +253,7 @@
 
           agenix.packages.${system}.agenix
         ];
-        inherit (inputs.self.checks.x86_64-linux.pre-commit-check) shellHook;
+        inherit (inputs.self.checks.${system}.pre-commit-check) shellHook;
       };
 
       formatter = pkgs.alejandra;

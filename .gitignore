@@ -1,2 +1,5 @@
 /result
 /.direnv
+
+# nix managed
+/.pre-commit-config.yaml
