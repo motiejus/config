@@ -104,6 +104,7 @@
         parallel
         binutils
         hyperfine
+        sloccount
         dmidecode
         moreutils
         perf-tools
