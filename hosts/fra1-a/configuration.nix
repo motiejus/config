@@ -56,7 +56,7 @@
 
       deployerbot = {
         follower = {
-          inherit (myData.hosts."vno1-oh2.servers.jakst".publicKey);
+          inherit (myData.hosts."vno1-oh2.servers.jakst") publicKey;
 
           enable = true;
           sshAllowSubnets = [myData.subnets.tailscale.sshPattern];

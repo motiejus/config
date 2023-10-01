@@ -67,8 +67,7 @@ in {
               lib.nameValuePair
               "${lib.strings.sanitizeDerivationName mountpoint}-${toString i}"
               ({
-                  inherit (attrs.repo);
-                  inherit (attrs.paths);
+                  inherit (attrs) repo paths;
 
                   doInit = true;
                   encryption = {
@@ -95,7 +94,7 @@ in {
                       BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
                     };
                 }
-                // lib.optionalAttrs (attrs ? patterns) {inherit (attrs.patterns);})
+                // lib.optionalAttrs (attrs ? patterns) {inherit (attrs) patterns;})
         )
         dirs
       );

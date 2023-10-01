@@ -22,7 +22,7 @@
   };
 
   config = let
-    inherit (config.mj.services.friendlyport.ports);
+    inherit (config.mj.services.friendlyport) ports;
 
     mkAdd = proto: subnets: ints: let
       subnetsS = builtins.concatStringsSep "," subnets;

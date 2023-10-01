@@ -105,10 +105,7 @@ in {
     ];
 
     services.syncthing = {
-      inherit (cfg.enable);
-      inherit (cfg.user);
-      inherit (cfg.group);
-      inherit (cfg.dataDir);
+      inherit (cfg) enable user group dataDir;
 
       openDefaultPorts = true;
       guiAddress = let

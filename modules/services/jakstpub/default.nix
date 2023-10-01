@@ -69,7 +69,7 @@ in {
 
     services.samba-wsdd = {
       enable = true;
-      inherit (cfg.hostname);
+      inherit (cfg) hostname;
     };
 
     users.users.jakstpub = {

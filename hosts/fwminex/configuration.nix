@@ -84,7 +84,7 @@ in {
 
       deployerbot = {
         follower = {
-          inherit (myData.hosts."vno1-oh2.servers.jakst".publicKey);
+          inherit (myData.hosts."vno1-oh2.servers.jakst") publicKey;
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;

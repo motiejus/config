@@ -61,7 +61,7 @@
           (_self: super: {
             deploy-rs = {
               inherit (import nixpkgs {inherit system;}) deploy-rs;
-              inherit (super.deploy-rs.lib);
+              inherit (super.deploy-rs) lib;
             };
           })
         ];
