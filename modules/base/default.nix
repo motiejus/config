@@ -89,6 +89,8 @@
         ncdu # disk usage navigator
         lshw
         entr
+        cloc
+        tokei
         pwgen
         parted
         sqlite
