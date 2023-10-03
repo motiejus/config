@@ -99,6 +99,7 @@
         ripgrep
         vimv-rs
         sysstat
+        usbutils
         pciutils
         bsdgames
         parallel
