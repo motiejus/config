@@ -164,11 +164,12 @@
           xdefault = {
             isDefault = true;
             settings = {
-              "browser.contentblocking.category" = "strict";
-              "layout.css.prefers-color-scheme.content-override" = 0;
               "browser.aboutConfig.showWarning" = false;
-              "signon.rememberSignons" = false;
+              "browser.contentblocking.category" = "strict";
+              "browser.urlbar.showSearchSuggestionsFirst" = false;
+              "layout.css.prefers-color-scheme.content-override" = 0;
               "signon.management.page.breach-alerts.enabled" = false;
+              "signon.rememberSignons" = false;
             };
             extensions = with pkgs.nur.repos.rycee.firefox-addons; [
               bitwarden
