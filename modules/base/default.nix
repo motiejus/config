@@ -95,6 +95,8 @@
         parted
         sqlite
         bonnie # disk benchmarking
+        hdparm
+        sdparm
         procps
         ripgrep
         vimv-rs
