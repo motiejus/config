@@ -13,7 +13,10 @@
     services = {
       acpid.enable = true;
       pcscd.enable = true;
-      printing.enable = true;
+      printing = {
+        enable = true;
+        drivers = [pkgs.samsung-unified-linux-driver_4_01_17];
+      };
       openssh.settings.X11Forwarding = true;
 
       # TODO post-23.11
