@@ -252,6 +252,7 @@
         modules = [
           shared/home
         ];
+        extraSpecialArgs = {stateVersion = "23.05";};
       };
 
       devShells.default = pkgs.mkShellNoCC {

@@ -1,11 +1,10 @@
 {
   pkgs,
-  #stateVersion ? "23.05",
+  stateVersion,
   ...
 }: {
   home = {
-    #inherit stateVersion;
-    stateVersion = "23.05";
+    inherit stateVersion;
 
     username = "motiejus";
     homeDirectory = "/home/motiejus";
