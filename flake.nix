@@ -247,6 +247,13 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
+      homeConfigurations.motiejus = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          shared/home
+        ];
+      };
+
       devShells.default = pkgs.mkShellNoCC {
         packages = [
           pkgs.rage

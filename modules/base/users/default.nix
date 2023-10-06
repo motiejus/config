@@ -60,56 +60,18 @@ in {
     };
 
     home-manager.useGlobalPkgs = true;
-    home-manager.users.motiejus = {pkgs, ...}: {
-      home.stateVersion = config.mj.stateVersion;
-      home.packages = lib.mkIf cfg.devEnvironment [pkgs.go];
+    home-manager.users.motiejus = {pkgs, ...}:
+      import ../../../shared/home/default.nix {
+        inherit pkgs;
+        inherit (config.mj) stateVersion;
 
-      programs.direnv.enable = true;
-
-      programs.neovim = {
-        enable = true;
-        vimAlias = true;
-        vimdiffAlias = true;
-        defaultEditor = true;
-        plugins = lib.mkIf cfg.devEnvironment [
-          pkgs.vimPlugins.fugitive
-          pkgs.vimPlugins.vim-go
-          pkgs.vimPlugins.zig-vim
-        ];
-        extraConfig = builtins.readFile ./vimrc;
-      };
-
-      programs.git = {
-        enable = true;
-        userEmail = "motiejus@jakstys.lt";
-        userName = "Motiejus Jakštys";
-        aliases.yolo = "commit --amend --no-edit -a";
-        extraConfig = {
-          rerere.enabled = true;
-          pull.ff = "only";
-          merge.conflictstyle = "diff3";
+        programs.bash = {
+          enable = true;
+          shellAliases = {
+            "l" = "echo -n ł | xclip -selection clipboard";
+            "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
+          };
         };
       };
-
-      programs.bash = {
-        enable = true;
-        shellAliases = {
-          "l" = "echo -n ł | xclip -selection clipboard";
-          "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
-        };
-      };
-
-      programs.gpg = {
-        enable = true;
-        mutableKeys = false;
-        mutableTrust = false;
-        publicKeys = [
-          {
-            source = ./motiejus-gpg.txt;
-            trust = "ultimate";
-          }
-        ];
-      };
-    };
   };
 }
