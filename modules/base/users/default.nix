@@ -43,7 +43,10 @@ in {
             isNormalUser = true;
             extraGroups = ["wheel"] ++ cfg.passwd.motiejus.extraGroups;
             uid = myData.uidgid.motiejus;
-            openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
+            openssh.authorizedKeys.keys = [
+              myData.people_pubkeys.motiejus
+              "from=\"${myData.hosts."mtwork.motiejus.jakst".jakstIP}\" ${myData.people_pubkeys.motiejus_work}"
+            ];
           }
           // lib.filterAttrs (
             n: v:
