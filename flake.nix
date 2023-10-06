@@ -247,12 +247,15 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
-      homeConfigurations.motiejus = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations.motiejusja = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [
           shared/home
         ];
-        extraSpecialArgs = {stateVersion = "23.05";};
+        extraSpecialArgs = {
+          stateVersion = "23.05";
+          email = "motiejusja@wix.com";
+        };
       };
 
       devShells.default = pkgs.mkShellNoCC {

@@ -1,6 +1,7 @@
 {
   pkgs,
   stateVersion,
+  email,
   ...
 }: {
   home = {
@@ -27,7 +28,7 @@
 
   programs.git = {
     enable = true;
-    userEmail = "motiejus@jakstys.lt";
+    userEmail = email;
     userName = "Motiejus Jakštys";
     aliases.yolo = "commit --amend --no-edit -a";
     extraConfig = {
