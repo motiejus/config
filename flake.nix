@@ -231,6 +231,7 @@
         builtins.mapAttrs (
           system: deployLib:
             deployLib.deployChecks self.deploy
+            #// self.homeConfigurations.${system}.motiejusja.activationPackage
             // {
               pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
                 src = ./.;

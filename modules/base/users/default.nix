@@ -64,6 +64,7 @@ in {
       import ../../../shared/home/default.nix {
         inherit pkgs;
         inherit (config.mj) stateVersion;
+        email = "motiejus@jakstys.lt";
 
         programs.bash = {
           enable = true;
