@@ -7,11 +7,6 @@
   cfg = config.mj.base.users;
 in {
   options.mj.base.users = with lib.types; {
-    devEnvironment = lib.mkOption {
-      type = bool;
-      default = false;
-    };
-
     passwd = lib.mkOption {
       type = attrsOf (submodule {
         options = {
@@ -63,9 +58,11 @@ in {
     home-manager.users.motiejus = {pkgs, ...}:
       lib.mkMerge [
         (import ../../../shared/home/default.nix {
+          inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion;
           email = "motiejus@jakstys.lt";
+          devEnvironment = false;
         })
         {
           programs.bash = {

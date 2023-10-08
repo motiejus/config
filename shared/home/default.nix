@@ -2,6 +2,7 @@
   pkgs,
   stateVersion,
   email,
+  devEnvironment,
   ...
 }: {
   home = {
@@ -11,7 +12,16 @@
     homeDirectory = "/home/motiejus";
   };
 
-  #home.packages = lib.mkIf cfg.devEnvironment [pkgs.go];
+  home.packages =
+    if devEnvironment
+    then
+      (with pkgs; [
+        go
+
+        scala_2_12
+        coursier
+      ])
+    else [];
 
   programs.direnv.enable = true;
 
@@ -20,9 +30,22 @@
     vimAlias = true;
     vimdiffAlias = true;
     defaultEditor = true;
-    plugins = with pkgs.vimPlugins; [
-      fugitive
-    ];
+    plugins = with pkgs.vimPlugins;
+      [
+        fugitive
+      ]
+      ++ (
+        if devEnvironment
+        then [
+          vim-go
+
+          zig-vim
+
+          nvim-metals
+          plenary-nvim
+        ]
+        else []
+      );
     extraConfig = builtins.readFile ./vimrc;
   };
 
