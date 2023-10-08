@@ -96,6 +96,7 @@
       xss-lock
       qpwgraph # for pipewire
       gpicview
+      trayscale
       rox-filer
       distrobox
       borgbackup
@@ -180,6 +181,8 @@
           };
         };
       };
+
+      services.syncthing.tray.enable = true;
 
       services.pasystray = {
         enable = true;
