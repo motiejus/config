@@ -61,18 +61,21 @@ in {
 
     home-manager.useGlobalPkgs = true;
     home-manager.users.motiejus = {pkgs, ...}:
-      import ../../../shared/home/default.nix {
-        inherit pkgs;
-        inherit (config.mj) stateVersion;
-        email = "motiejus@jakstys.lt";
-
-        programs.bash = {
-          enable = true;
-          shellAliases = {
-            "l" = "echo -n ł | xclip -selection clipboard";
-            "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
+      lib.mkMerge [
+        (import ../../../shared/home/default.nix {
+          inherit pkgs;
+          inherit (config.mj) stateVersion;
+          email = "motiejus@jakstys.lt";
+        })
+        {
+          programs.bash = {
+            enable = true;
+            shellAliases = {
+              "l" = "echo -n ł | xclip -selection clipboard";
+              "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
+            };
           };
-        };
-      };
+        }
+      ];
   };
 }
