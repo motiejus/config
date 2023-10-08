@@ -18,7 +18,7 @@
   };
   folders = {
     Books = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = ["fwminex" "vno1-oh2" "mxp10"];
       id = "8lk0n-mm63y";
       label = "Books";
     };
