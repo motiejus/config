@@ -129,15 +129,15 @@ rec {
   in ''
     $ORIGIN jakstys.lt.
     $TTL 86400
-    @                                SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023032100 86400 86400 86400 86400)
+    @                                SOA   ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
     @                                NS    ns1.jakstys.lt.
     @                                NS    ns2.jakstys.lt.
-    @                                A     ${vno1}
-    www                              A     ${vno1}
+    @                          600   A     ${vno1}
+    www                        600   A     ${vno1}
     ns1                              A     ${vno1}
     ns2                              A     ${fra1a}
-    vpn                              A     ${vno1}
-    git                              A     ${vno1}
+    vpn                        600   A     ${vno1}
+    git                        600   A     ${vno1}
     auth                             A     ${vno1}
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
