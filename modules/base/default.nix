@@ -95,6 +95,7 @@
         parted
         sqlite
         bonnie # disk benchmarking
+        dhcpcd
         hdparm
         sdparm
         procps
