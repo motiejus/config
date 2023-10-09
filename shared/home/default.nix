@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   stateVersion,
   email,
@@ -28,38 +29,44 @@
 
   programs.direnv.enable = true;
 
-  programs.neovim = {
-    enable = true;
-    vimAlias = true;
-    vimdiffAlias = true;
-    defaultEditor = true;
-    plugins = with pkgs.vimPlugins;
-      [
-        fugitive
-      ]
-      ++ (
-        if devEnvironment
-        then [
-          vim-go
-
-          zig-vim
-
-          cmp-nvim-lsp
-          nvim-cmp
-          nvim-metals
-          plenary-nvim
+  programs.neovim = lib.mkMerge [
+    {
+      enable = true;
+      vimAlias = true;
+      vimdiffAlias = true;
+      defaultEditor = true;
+      plugins = with pkgs.vimPlugins;
+        [
+          fugitive
         ]
-        else []
-      );
-    extraLuaConfig =
-      builtins.readFile
-      (pkgs.substituteAll {
-        src = ./init.lua;
-        inherit (pkgs) metals;
-        javaHome = pkgs.jdk.home;
-      })
-      .outPath;
-  };
+        ++ (
+          if devEnvironment
+          then [
+            vim-go
+
+            zig-vim
+
+            cmp-nvim-lsp
+            nvim-cmp
+            nvim-metals
+            plenary-nvim
+          ]
+          else []
+        );
+      extraConfig = builtins.readFile ./vimrc;
+    }
+    (lib.mkIf devEnvironment {
+      extraLuaConfig =
+        builtins.readFile
+        (pkgs.substituteAll {
+          src = ./dev.lua;
+          javaHome = pkgs.jdk.home;
+          inherit (pkgs) metals;
+          inherit (pkgs) gotools;
+        })
+        .outPath;
+    })
+  ];
 
   programs.git = {
     enable = true;

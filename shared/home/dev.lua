@@ -1,71 +1,7 @@
 vim.api.nvim_exec([[
-    syntax on
-    filetype plugin indent on
-    set et ts=4 sw=4 sts=4 nu hlsearch ruler ignorecase smartcase nomodeline bg=dark incsearch
-    set path=**/* grepprg=rg\ --vimgrep grepformat^=%f:%l:%c:%m backspace=2 nojs
-    set laststatus=1
-    nnoremap <Leader>\ gqj
-    command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <CR> :e <C-r>=getline('.')<CR><CR>
-
-    call matchadd('ColorColumn', '\%81v', 100)
-    " thanks to drew de vault's vimrc, except swearing
-    set mouse=
-    set backupdir=~/.cache directory=~/.cache
-    "nnoremap Q :grep <cword><CR>
-    nmap gs :grep <cursor><CR>
-
-    " bits from vim-sensible
-    set autoindent smarttab nrformats-=octal
-    nnoremap <silent> <C-L> :nohlsearch<C-R>=has('diff')?'<Bar>diffupdate':''<CR><CR><C-L>
-    set wildmenu sidescrolloff=5 display+=lastline encoding=utf-8
-    set formatoptions+=j history=1000 tabpagemax=50 sessionoptions-=options
-
-    " so Gdiff and vimdiff output are somewhat readable
-    if &diff
-        syntax off
-    endif
-
-    if has("patch-8.1-0360")
-      set diffopt+=algorithm:patience
-    endif
-
-    " html
-    au FileType html,gohtmltmpl setlocal ts=2 sw=2 sts=2
-
-    " ruby
-    au BufRead,BufNewFile Vagrantfile setfiletype ruby
-
-    " puppet
-    au BufRead,BufNewFile *.j2 setfiletype django
-
-    " avro
-    au BufRead,BufNewFile *.avsc setfiletype json
-    au BufRead,BufNewFile *.avsc setlocal ts=2 sw=2 sts=2
-
-    " redo
-    au BufRead,BufNewFile *.do setfiletype sh
-
-    " go
-    au FileType go setlocal noet
     au FileType go nnoremap <buffer> <C-]> :GoDef<CR>
     au FileType go let g:go_template_autocreate = 0
-    au FileType go let g:go_fmt_command = "goimports"
-
-    " strace
-    au FileType strace setlocal nonu
-
-    " yaml
-    au FileType yaml setlocal ts=2 sw=2 sts=2
-
-    " sql
-    au FileType sql setlocal formatprg=pg_format\ -
-    au FileType sql setlocal ts=2 sw=2 sts=2
-
-    " mail
-    autocmd BufRead,BufNewFile *mutt-* setfiletype mail
-
-    " TeX
-    au FileType tex setlocal spell spelllang=en_us ts=2 sw=2 sts=2
+    au FileType go let g:go_fmt_command = "@gotools@/bin/goimports"
 ]], false)
 
 local api = vim.api
@@ -195,3 +131,4 @@ api.nvim_create_autocmd("FileType", {
   end,
   group = nvim_metals_group,
 })
+
