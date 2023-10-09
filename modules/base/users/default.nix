@@ -7,6 +7,10 @@
   cfg = config.mj.base.users;
 in {
   options.mj.base.users = with lib.types; {
+    devEnvironment = lib.mkOption {
+      type = bool;
+      default = false;
+    };
     passwd = lib.mkOption {
       type = attrsOf (submodule {
         options = {
@@ -61,8 +65,8 @@ in {
           inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion;
+          inherit (config.mj.base.users) devEnvironment;
           email = "motiejus@jakstys.lt";
-          devEnvironment = false;
         })
         {
           programs.bash = {
