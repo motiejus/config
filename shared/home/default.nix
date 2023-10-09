@@ -76,5 +76,6 @@
   programs.tmux = {
     enable = true;
     keyMode = "vi";
+    historyLimit = 1000000;
   };
 }
