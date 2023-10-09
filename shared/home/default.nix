@@ -56,6 +56,7 @@
       (pkgs.substituteAll {
         src = ./init.lua;
         inherit (pkgs) metals;
+        javaHome = pkgs.jdk.home;
       })
       .outPath;
   };
