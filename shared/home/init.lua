@@ -7,11 +7,6 @@ vim.api.nvim_exec([[
     nnoremap <Leader>\ gqj
     command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <CR> :e <C-r>=getline('.')<CR><CR>
 
-    let g:gutentags_enabled = 0
-    let g:gutentags_generate_on_new = 0
-    let g:gutentags_cache_dir = '~/.vim/ctags'
-    let b:gutentags_file_list_command = 'git ls-files'
-
     call matchadd('ColorColumn', '\%81v', 100)
     " thanks to drew de vault's vimrc, except swearing
     set mouse=
@@ -65,8 +60,6 @@ vim.api.nvim_exec([[
     " sql
     au FileType sql setlocal formatprg=pg_format\ -
     au FileType sql setlocal ts=2 sw=2 sts=2
-    let g:loaded_sql_completion = 0
-    let g:omni_sql_no_default_maps = 1
 
     " mail
     autocmd BufRead,BufNewFile *mutt-* setfiletype mail
