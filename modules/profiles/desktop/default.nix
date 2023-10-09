@@ -210,6 +210,14 @@
         lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
       };
 
+      # https://github.com/nix-community/home-manager/issues/2064
+      systemd.user.targets.tray = {
+        Unit = {
+          Description = "Home Manager System Tray";
+          Requires = ["graphical-session-pre.target"];
+        };
+      };
+
       # thanks K900
       gtk = {
         enable = true;
