@@ -47,6 +47,7 @@ rec {
       extraHostNames = [
         "dl.jakstys.lt"
         "git.jakstys.lt"
+        "irc.jakstys.lt"
         "vno1-oh2.jakstys.lt"
         "jakstys.lt"
         "www.jakstys.lt"

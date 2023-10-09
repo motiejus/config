@@ -89,6 +89,7 @@
       pandoc
       evince
       calibre
+      weechat
       gtimelog
       chromium
       hunspell
