@@ -4,6 +4,8 @@
   ...
 }: {
   config = {
+    hardware.bluetooth.enable = true;
+    services.blueman.enable = true;
     services.udev.packages = [pkgs.yubikey-personalization];
 
     programs.firefox.enable = true;
@@ -188,6 +190,7 @@
       };
 
       services.cbatticon.enable = true;
+      services.blueman-applet.enable = true;
 
       services.syncthing.tray = {
         enable = true;
