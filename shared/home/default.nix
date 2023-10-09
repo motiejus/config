@@ -21,6 +21,7 @@
         zigpkgs."0.11.0"
 
         scala_2_12
+        metals
         coursier
       ])
     else [];
@@ -43,12 +44,20 @@
 
           zig-vim
 
+          cmp-nvim-lsp
+          nvim-cmp
           nvim-metals
           plenary-nvim
         ]
         else []
       );
-    extraLuaConfig = builtins.readFile ./init.lua;
+    extraLuaConfig =
+      builtins.readFile
+      (pkgs.substituteAll {
+        src = ./init.lua;
+        inherit (pkgs) metals;
+      })
+      .outPath;
   };
 
   programs.git = {
