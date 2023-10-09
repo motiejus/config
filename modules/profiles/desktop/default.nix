@@ -150,7 +150,12 @@
       })
     ];
 
-    home-manager.users.motiejus = {pkgs, ...}: {
+    home-manager.users.motiejus = {
+      pkgs,
+      config,
+      ...
+    }: {
+      imports = [./plasma.nix];
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
       # TODO
@@ -182,7 +187,12 @@
         };
       };
 
-      services.syncthing.tray.enable = true;
+      services.cbatticon.enable = true;
+
+      services.syncthing.tray = {
+        enable = true;
+        #extraOptions = ["--wait"];
+      };
 
       services.pasystray = {
         enable = true;
@@ -198,6 +208,60 @@
         enable = true;
         xautolock.enable = false;
         lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+      };
+
+      # thanks K900
+      gtk = {
+        enable = true;
+        theme = {
+          package = pkgs.plasma5Packages.breeze-gtk;
+          name = "Breeze";
+        };
+        cursorTheme = {
+          package = pkgs.plasma5Packages.breeze-icons;
+          name = "Breeze_Snow";
+        };
+        iconTheme = {
+          package = pkgs.papirus-icon-theme;
+          name = "Papirus-Dark";
+        };
+        gtk2 = {
+          configLocation = "${config.xdg.configHome}/gtk-2.0/gtkrc";
+          extraConfig = ''
+            gtk-alternative-button-order = 1
+          '';
+        };
+        gtk3.extraConfig = {
+          gtk-application-prefer-dark-theme = true;
+          gtk-decoration-layout = "icon:minimize,maximize,close";
+        };
+        gtk4.extraConfig = {
+          gtk-application-prefer-dark-theme = true;
+          gtk-decoration-layout = "icon:minimize,maximize,close";
+        };
+      };
+
+      mj.plasma.kconfig = {
+        kdeglobals = {
+          General.ColorScheme = "ArcDark";
+          Icons.Theme = "Papirus-Dark";
+          KDE.widgetStyle = "Breeze";
+        };
+        plasmarc.Theme.name = "Arc-Dark";
+        kscreenlockerrc.Greeter = {
+          Theme = "com.github.varlesh.arc-dark";
+        };
+        ksplashrc.KSplash = {
+          Engine = "KSplashQML";
+          Theme = "com.github.varlesh.arc-dark";
+        };
+        kwinrc."org.kde.kdecoration2" = {
+          library = "org.kde.kwin.aurorae";
+          theme = "__aurorae__svg__Arc-Dark";
+        };
+        kcminputrc.Mouse.cursorTheme = "Breeze_Snow";
+        # don't mess with GTK settings
+        kded5rc."Module-gtkconfig".autoload = false;
       };
     };
   };
