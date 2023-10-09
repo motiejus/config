@@ -122,7 +122,8 @@
       nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          {nixpkgs.overlays = [nur.overlay];}
+          # TODO make this generic
+          {nixpkgs.overlays = [nur.overlay zigpkgs.overlays.default];}
           ./hosts/fwminex/configuration.nix
 
           ./modules
