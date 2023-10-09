@@ -48,7 +48,7 @@
         ]
         else []
       );
-    extraConfig = builtins.readFile ./vimrc;
+    extraLuaConfig = builtins.readFile ./init.lua;
   };
 
   programs.git = {
