@@ -2,7 +2,7 @@ syntax on
 filetype plugin indent on
 set et ts=4 sw=4 sts=4 nu hlsearch ruler ignorecase smartcase nomodeline bg=dark incsearch
 set path=**/* grepprg=rg\ --vimgrep grepformat^=%f:%l:%c:%m backspace=2 nojs
-set laststatus=1
+set laststatus=1 diffopt+=algorithm:patience
 nnoremap <Leader>\ gqj
 command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <CR> :e <C-r>=getline('.')<CR><CR>
 
@@ -22,10 +22,6 @@ set formatoptions+=j history=1000 tabpagemax=50 sessionoptions-=options
 " so Gdiff and vimdiff output are somewhat readable
 if &diff
     syntax off
-endif
-
-if has("patch-8.1-0360")
-  set diffopt+=algorithm:patience
 endif
 
 " html
