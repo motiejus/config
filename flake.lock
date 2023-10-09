@@ -235,7 +235,8 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nur": "nur",
-        "pre-commit-hooks": "pre-commit-hooks"
+        "pre-commit-hooks": "pre-commit-hooks",
+        "zigpkgs": "zigpkgs"
       }
     },
     "systems": {
@@ -250,6 +251,32 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "zigpkgs": {
+      "inputs": {
+        "flake-compat": [
+          "flake-compat"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1696810944,
+        "narHash": "sha256-yvt223HLZlAJa/u4uzT5aw3ph2bifto/KfU2k+eX+jg=",
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
+        "rev": "6dc03885321cc8aad6356c847148eb40e167f9fb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
         "type": "github"
       }
     }

@@ -18,6 +18,8 @@
       (with pkgs; [
         go
 
+        zigpkgs."0.11.0"
+
         scala_2_12
         coursier
       ])

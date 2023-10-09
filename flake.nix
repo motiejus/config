@@ -8,6 +8,11 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nur.url = "github:nix-community/NUR";
 
+    zigpkgs.url = "github:mitchellh/zig-overlay";
+    zigpkgs.inputs.nixpkgs.follows = "nixpkgs";
+    zigpkgs.inputs.flake-utils.follows = "flake-utils";
+    zigpkgs.inputs.flake-compat.follows = "flake-compat";
+
     home-manager.url = "github:nix-community/home-manager/release-23.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -50,6 +55,7 @@
     nixos-hardware,
     nix-index-database,
     pre-commit-hooks,
+    zigpkgs,
     nur,
     ...
   } @ inputs: let
@@ -246,7 +252,17 @@
         deploy-rs.lib;
     }
     // flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system;};
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          (_final: prev: {
+            zigpkgs = import zigpkgs {
+              inherit (prev) pkgs;
+              inherit system;
+            };
+          })
+        ];
+      };
     in {
       homeConfigurations.motiejusja = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
