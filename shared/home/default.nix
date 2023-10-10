@@ -46,6 +46,7 @@
 
             zig-vim
 
+            vim-vsnip
             cmp-nvim-lsp
             nvim-cmp
             nvim-metals
