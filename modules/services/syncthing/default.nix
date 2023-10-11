@@ -8,6 +8,7 @@
 
   guiPort = 8384;
   devices = {
+    "mtwork".id = "3XRWDGO-M42WJAK-MGR24VJ-B5TNQXH-7R5YNFI-MAGXALL-XFENVI4-XYDPMAM";
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
     "vno1-oh2".id = "W45ROUW-CHKI3I6-C4VCOCU-NJYQ3ZS-MJDHH23-YYCDXTI-HTJSBZJ-KZMWTAF";
     "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
@@ -18,12 +19,12 @@
   };
   folders = {
     Books = {
-      devices = ["fwminex" "vno1-oh2" "mxp10"];
+      devices = ["fwminex" "vno1-oh2" "mxp10" "mtwork"];
       id = "8lk0n-mm63y";
       label = "Books";
     };
     M-Active = {
-      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "f6fma-unkxq";
       label = "M-Active";
     };
@@ -33,7 +34,7 @@
       label = "M-Documents";
     };
     M-Camera = {
-      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "pixel_xl_dtm3-photos";
       label = "M-Active";
     };
