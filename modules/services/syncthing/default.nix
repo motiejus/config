@@ -122,6 +122,7 @@ in {
         // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
           inherit
             (devices)
+            mtwork
             fwminex
             vno1-oh2
             mxp10
@@ -134,6 +135,7 @@ in {
         // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
           inherit
             (devices)
+            mtwork
             fwminex
             vno1-oh2
             mxp10
