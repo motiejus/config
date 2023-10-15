@@ -183,13 +183,16 @@
           repo = "git@git.jakstys.lt:motiejus/config";
           deployDerivations = [
             ".#vno1-oh2"
-            ".#vno3-rp3b"
             ".#fra1-a"
           ];
           deployIfPresent = [
             {
               derivationTarget = ".#fwminex";
               pingTarget = myData.hosts."fwminex.motiejus.jakst".vno1IP;
+            }
+            {
+              derivationTarget = ".#vno3-rp3b";
+              pingTarget = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
             }
           ];
         };
