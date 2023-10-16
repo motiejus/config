@@ -14,7 +14,7 @@
         --ssh-user=deployerbot-follower \
         --confirm-timeout 60 \
         --targets ${derivationTarget} -- \
-          --accept-flake-config
+          --accept-flake-config || EXITCODE=1
     fi
   '';
 in {
@@ -93,10 +93,13 @@ in {
                 --accept-flake-config
 
             # Optional deployments
+            EXITCODE=0
             ${lib.concatLines (map mkOptional cfg.deployIfPresent)}
 
             # done
             git push origin main
+
+            exit $EXITCODE
           '';
         };
 
