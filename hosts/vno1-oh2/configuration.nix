@@ -420,7 +420,7 @@
         }
         {
           job_name = "mtwork.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."mtwork.motiejus.jakst".jakstIP}:${port}"];}];
+          static_configs = [{targets = ["${myData.hosts."mtwork.motiejus.jakst".jakstIP}:9100"];}];
         }
         {
           job_name = "hacotest.servers.jakst";
