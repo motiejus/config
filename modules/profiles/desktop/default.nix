@@ -9,8 +9,9 @@
     services.udev.packages = [pkgs.yubikey-personalization];
 
     programs.firefox.enable = true;
+    programs.wireshark.enable = true;
 
-    mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager"];
+    mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
     services = {
       acpid.enable = true;
