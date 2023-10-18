@@ -10,8 +10,7 @@ Flakes:
 Other:
 
     $ nix build .#nixosConfigurations.vno3-rp3b.config.system.build.toplevel
-
-Debug
+    $ nix build .#homeConfigurations.x86_64-linux.motiejusja.activationPackage
 
     $ nix eval .#nixosConfigurations.vno1-oh2.config.services.nsd
 
