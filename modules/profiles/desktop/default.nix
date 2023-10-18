@@ -103,6 +103,7 @@
       trayscale
       rox-filer
       distrobox
+      miniupnpc
       borgbackup
       efibootmgr
       winetricks
