@@ -78,6 +78,7 @@
       rerere.enabled = true;
       pull.ff = "only";
       merge.conflictstyle = "diff3";
+      init.defaultBranch = "main";
     };
   };
 
