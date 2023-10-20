@@ -20,6 +20,7 @@
         go
 
         zigpkgs."0.11.0"
+        sbt
 
         scala_2_12
         metals
