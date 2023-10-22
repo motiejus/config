@@ -12,7 +12,7 @@ in {
     # https://github.com/tailscale/tailscale/issues/1548
     silenceLogs = mkOption {
       type = bool;
-      default = false;
+      default = true;
     };
   };
 

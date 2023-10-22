@@ -44,10 +44,7 @@
     services = {
       node_exporter.enable = true;
       sshguard.enable = true;
-      tailscale = {
-        enable = true;
-        silenceLogs = true;
-      };
+      tailscale.enable = true;
 
       postfix = {
         enable = true;

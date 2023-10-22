@@ -65,12 +65,9 @@
     };
 
     services = {
+      tailscale.enable = true;
       node_exporter.enable = true;
       sshguard.enable = true;
-      tailscale = {
-        enable = true;
-        silenceLogs = true;
-      };
 
       certget = {
         enable = true;

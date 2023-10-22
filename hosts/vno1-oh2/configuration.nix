@@ -154,6 +154,7 @@
           ];
         }
       ];
+
       tailscale.enable = true;
       node_exporter.enable = true;
       gitea.enable = true;
