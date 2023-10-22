@@ -10,9 +10,9 @@ in {
   options.mj.services.tailscale = with types; {
     enable = mkEnableOption "Enable tailscale";
     # https://github.com/tailscale/tailscale/issues/1548
-    silenceLogs = mkOption {
+    verboseLogs = mkOption {
       type = bool;
-      default = true;
+      default = false;
     };
   };
 
@@ -22,7 +22,7 @@ in {
       networking.firewall.checkReversePath = "loose";
       networking.firewall.allowedUDPPorts = [myData.ports.tailscale];
     }
-    (mkIf cfg.silenceLogs {
+    (mkIf (!cfg.verboseLogs) {
       systemd.services.tailscaled.serviceConfig.StandardOutput = "null";
     })
   ]);
