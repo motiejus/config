@@ -145,12 +145,12 @@
       friendlyport.ports = [
         {
           subnets = [myData.subnets.tailscale.cidr];
-          tcp = [
+          tcp = with myData.ports; [
             80
             443
-            myData.ports.grafana
-            myData.ports.prometheus
-            myData.ports.soju
+            grafana
+            prometheus
+            soju
           ];
         }
       ];
