@@ -112,7 +112,7 @@
     };
   };
 
-  services.journald.extraConfig = "Storage=volatile";
+  #services.journald.extraConfig = "Storage=volatile";
 
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
