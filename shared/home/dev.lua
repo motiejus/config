@@ -56,43 +56,44 @@ map("n", "]c", function()
   vim.diagnostic.goto_next({ wrap = false })
 end)
 
--- completion related settings
--- This is similiar to what I use
-local cmp = require("cmp")
-cmp.setup({
-  sources = {
-    { name = "nvim_lsp" },
-    { name = "vsnip" },
-  },
-  snippet = {
-    expand = function(args)
-      -- Comes from vsnip
-      vim.fn["vsnip#anonymous"](args.body)
-    end,
-  },
-  mapping = cmp.mapping.preset.insert({
-    -- None of this made sense to me when first looking into this since there
-    -- is no vim docs, but you can't have select = true here _unless_ you are
-    -- also using the snippet stuff. So keep in mind that if you remove
-    -- snippets you need to remove this select
-    ["<CR>"] = cmp.mapping.confirm({ select = true }),
-    -- I use tabs... some say you should stick to ins-completion but this is just here as an example
-    ["<Tab>"] = function(fallback)
-      if cmp.visible() then
-        cmp.select_next_item()
-      else
-        fallback()
-      end
-    end,
-    ["<S-Tab>"] = function(fallback)
-      if cmp.visible() then
-        cmp.select_prev_item()
-      else
-        fallback()
-      end
-    end,
-  }),
-})
+-- Completion related settings. Disabling (motiejus 2023-10-23), because I
+-- can't get C-n to work on "simple" files.
+--
+--local cmp = require("cmp")
+--cmp.setup({
+--  sources = {
+--    { name = "nvim_lsp" },
+--    { name = "vsnip" },
+--  },
+--  snippet = {
+--    expand = function(args)
+--      -- Comes from vsnip
+--      vim.fn["vsnip#anonymous"](args.body)
+--    end,
+--  },
+--  mapping = cmp.mapping.preset.insert({
+--    -- None of this made sense to me when first looking into this since there
+--    -- is no vim docs, but you can't have select = true here _unless_ you are
+--    -- also using the snippet stuff. So keep in mind that if you remove
+--    -- snippets you need to remove this select
+--    ["<CR>"] = cmp.mapping.confirm({ select = true }),
+--    -- I use tabs... some say you should stick to ins-completion but this is just here as an example
+--    ["<Tab>"] = function(fallback)
+--      if cmp.visible() then
+--        cmp.select_next_item()
+--      else
+--        fallback()
+--      end
+--    end,
+--    ["<S-Tab>"] = function(fallback)
+--      if cmp.visible() then
+--        cmp.select_prev_item()
+--      else
+--        fallback()
+--      end
+--    end,
+--  }),
+--})
 
 
 
@@ -117,7 +118,8 @@ metals_config.settings = {
  metals_config.init_options.statusBarProvider = "on"
 
 -- Example if you are using cmp how to make sure the correct capabilities for snippets are set
-metals_config.capabilities = require("cmp_nvim_lsp").default_capabilities()
+-- TODO(motiejus) disabled with cmp 2023-10-23
+--metals_config.capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 -- Autocmd that will actually be in charging of starting the whole thing
 local nvim_metals_group = api.nvim_create_augroup("nvim-metals", { clear = true })
