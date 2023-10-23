@@ -16,7 +16,7 @@
         src = "${git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
         buildInputs = [gnused];
       } ''
-        sed -e 's@/usr@${perl}@' $src > $out
+        sed -e 's@^#!/usr/bin/perl@#!${perl}@' $src > $out
         chmod +x $out
       '';
   in
@@ -33,21 +33,18 @@ in {
   };
 
   home.packages = with pkgs;
-    [glibcLocales]
-    ++ (
-      if devEnvironment
-      then [
-        go
+    if devEnvironment
+    then [
+      go
 
-        zigpkgs."0.11.0"
-        sbt
+      zigpkgs."0.11.0"
+      sbt
 
-        scala_2_12
-        metals
-        coursier
-      ]
-      else []
-    );
+      scala_2_12
+      metals
+      coursier
+    ]
+    else [];
 
   programs.direnv.enable = true;
 
