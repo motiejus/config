@@ -5,7 +5,26 @@
   email,
   devEnvironment,
   ...
-}: {
+}: let
+  queryWatchman = with pkgs; let
+    # TODO: this is a perl script which needs $LOCALE_ARCHIVE.
+    # As of writing, I have this in my ~/.bashrc:
+    # export LOCALE_ARCHIVE=/usr/lib/locale/locale-archive
+    fsmon =
+      runCommand "fsmonitor-watchman"
+      {
+        src = "${git}/share/git-core/templates/hooks/fsmonitor-watchman.sample";
+        buildInputs = [gnused];
+      } ''
+        sed -e 's@/usr@${perl}@' $src > $out
+        chmod +x $out
+      '';
+  in
+    writeShellScript "query-watchman" ''
+      export PATH=${pkgs.watchman}/bin:$PATH
+      exec ${fsmon.outPath} "$@"
+    '';
+in {
   home = {
     inherit stateVersion;
 
@@ -13,10 +32,11 @@
     homeDirectory = "/home/motiejus";
   };
 
-  home.packages =
-    if devEnvironment
-    then
-      (with pkgs; [
+  home.packages = with pkgs;
+    [glibcLocales]
+    ++ (
+      if devEnvironment
+      then [
         go
 
         zigpkgs."0.11.0"
@@ -25,8 +45,9 @@
         scala_2_12
         metals
         coursier
-      ])
-    else [];
+      ]
+      else []
+    );
 
   programs.direnv.enable = true;
 
@@ -76,6 +97,8 @@
     userName = "Motiejus Jakštys";
     aliases.yolo = "commit --amend --no-edit -a";
     extraConfig = {
+      core.fsmonitor = queryWatchman.outPath;
+      core.untrackedcache = true;
       rerere.enabled = true;
       pull.ff = "only";
       merge.conflictstyle = "diff3";
