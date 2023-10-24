@@ -33,6 +33,11 @@
       id = "4fu7z-z6es2";
       label = "M-Documents";
     };
+    M-V = {
+      devices = ["fwminex" "vno1-vinc"];
+      id = "oq3ht-a9hnb";
+      label = "M-V";
+    };
     M-Camera = {
       devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "pixel_xl_dtm3-photos";
@@ -140,6 +145,7 @@ in {
             vno1-oh2
             mxp10
             rzj-744P2PE
+            vno1-vinc
             ;
         })
         // {};
@@ -151,6 +157,7 @@ in {
             "/var/www/dl/tel" = www-mxp10;
             "/var/www/dl/fwminex" = www-fwminex;
             "/var/www/dl/mykolo" = mykolo;
+            "${cfg.dataDir}/M-V" = M-V;
             "${cfg.dataDir}/annex2/Books" = Books;
             "${cfg.dataDir}/annex2/M-Active" = M-Active;
             "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
@@ -173,6 +180,7 @@ in {
             "${cfg.dataDir}/Pictures" = Pictures;
             "${cfg.dataDir}/Music" = Music;
             "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/M-V" = M-V;
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/stud-cache" = stud-cache;
             "${cfg.dataDir}/www" = www-fwminex;

@@ -28,21 +28,6 @@ in {
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
-  boot.loader.grub.extraEntries = ''
-    menuentry "Debian via bpool label" {
-      search --set=bpool --label bpool
-      configfile "$(bpool)/@/BOOT/debian@/grub/grub.cfg"
-    }
-    menuentry "Debian 3915eee7610a7d61" {
-      search --set=root 3915eee7610a7d61
-      configfile "/BOOT/debian@/grub/grub.cfg"
-    }
-    menuentry "Debian 4113456512205749601" {
-      search --set=root 4113456512205749601
-      configfile "/BOOT/debian@/grub/grub.cfg"
-    }
-  '';
-
   systemd.services.zfs-mount.enable = false;
 
   mj = {
