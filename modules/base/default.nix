@@ -169,6 +169,8 @@
     networking.firewall.logRefusedConnections = false;
 
     services = {
+      iperf3.enable = true;
+
       chrony = {
         enable = true;
         servers = ["time.cloudflare.com"];
