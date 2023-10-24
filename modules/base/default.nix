@@ -40,6 +40,7 @@
       {
         subnets = [myData.subnets.tailscale.cidr];
         tcp = [config.services.iperf3.port];
+        udp = [config.services.iperf3.port];
       }
     ];
 
