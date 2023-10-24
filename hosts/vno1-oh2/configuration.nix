@@ -469,6 +469,11 @@
       ];
     };
 
+    grafana-image-renderer = {
+      enable = true;
+      provisionGrafana = true;
+    };
+
     nsd = {
       enable = true;
       interfaces = ["0.0.0.0" "::"];
