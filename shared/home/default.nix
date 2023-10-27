@@ -4,6 +4,7 @@
   stateVersion,
   email,
   devEnvironment,
+  hmOnly,
   ...
 }: {
   home = {
@@ -14,18 +15,30 @@
   };
 
   home.packages = with pkgs;
-    if devEnvironment
-    then [
-      go
+    (
+      if devEnvironment
+      then [
+        go
 
-      zigpkgs."0.11.0"
-      sbt
+        zigpkgs."0.11.0"
+        sbt
 
-      scala_2_12
-      metals
-      coursier
-    ]
-    else [];
+        scala_2_12
+        metals
+        coursier
+      ]
+      else []
+    )
+    ++ (
+      if hmOnly
+      then [
+        ncdu
+        tokei
+        vimv-rs
+        hyperfine
+      ]
+      else []
+    );
 
   programs.direnv.enable = true;
 

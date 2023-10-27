@@ -66,6 +66,7 @@ in {
           inherit pkgs;
           inherit (config.mj) stateVersion;
           inherit (config.mj.base.users) devEnvironment;
+          hmOnly = false;
           email = "motiejus@jakstys.lt";
         })
         {

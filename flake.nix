@@ -274,6 +274,7 @@
           stateVersion = "23.05";
           email = "motiejusja@wix.com";
           devEnvironment = true;
+          hmOnly = true;
         };
       };
 
