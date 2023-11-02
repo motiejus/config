@@ -34,7 +34,7 @@
       label = "M-Documents";
     };
     M-V = {
-      devices = ["fwminex" "vno1-vinc"];
+      devices = ["fwminex" "vno1-vinc" "vno1-oh2"];
       id = "oq3ht-a9hnb";
       label = "M-V";
     };
