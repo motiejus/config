@@ -72,9 +72,14 @@
 
     networking.networkmanager.enable = true;
 
-    # TODO gtimelog move to it's own module
-    programs.dconf.enable = true;
     services.gnome.gnome-keyring.enable = true;
+
+    # wip put clight-gui to nixpkgs
+    #services.geoclue2 = {
+    #  enable = true;
+    #  enableWifi = true;
+    #};
+    #location.provider = "geoclue2";
 
     environment.systemPackages = with pkgs; [
       iw
@@ -90,7 +95,6 @@
       pandoc
       evince
       calibre
-      gtimelog
       chromium
       hunspell
       tigervnc
@@ -132,9 +136,6 @@
       gnome.gnome-calculator
       gnome.gnome-calendar
 
-      # TODO gtimelog move to it's own module
-      gnome.adwaita-icon-theme
-
       xorg.xev
 
       (texlive.combine {
@@ -164,12 +165,6 @@
     }: {
       imports = [./plasma.nix];
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
-
-      # TODO
-      #xdg.configFile."gtimelog" = {
-      #  source = "/home/motiejus/.local/share/gtimelog";
-      #  target = "/home/motiejus/M-Active/timelog";
-      #};
 
       programs.firefox = {
         enable = true;
