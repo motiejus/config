@@ -2,6 +2,8 @@
   description = "motiejus/config";
 
   inputs = {
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
@@ -15,6 +17,9 @@
 
     home-manager.url = "github:nix-community/home-manager/release-23.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    home-manager-unstable.url = "github:nix-community/home-manager";
+    home-manager-unstable.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
@@ -48,10 +53,12 @@
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-unstable,
     agenix,
     deploy-rs,
     flake-utils,
     home-manager,
+    home-manager-unstable,
     nixos-hardware,
     nix-index-database,
     pre-commit-hooks,
@@ -265,8 +272,18 @@
         ];
       };
     in {
-      homeConfigurations.motiejusja = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
+      homeConfigurations.motiejusja = home-manager-unstable.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs-unstable {
+          inherit system;
+          overlays = [
+            (_final: prev: {
+              zigpkgs = import zigpkgs {
+                inherit (prev) pkgs;
+                inherit system;
+              };
+            })
+          ];
+        };
         modules = [
           shared/home
         ];
