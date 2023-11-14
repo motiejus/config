@@ -34,6 +34,7 @@ in {
         ];
         config = {
           default_config = {};
+
           http = {
             use_x_forwarded_for = true;
             trusted_proxies = ["127.0.0.1"];
@@ -46,6 +47,25 @@ in {
               }
             ];
           };
+
+          wake_on_lan = {};
+          automation = [
+            {
+              alias = "Turn On Living Room TV with WakeOnLan";
+              trigger = [
+                {
+                  platform = "webostv.turn_on";
+                  entity_id = "media_player.lg_webos_smart_tv";
+                }
+              ];
+              action = [
+                {
+                  service = "wake_on_lan.send_magic_packet";
+                  data = {mac = "74:e6:b8:4c:fb:b7";};
+                }
+              ];
+            }
+          ];
         };
       };
     };
