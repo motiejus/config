@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   myData,
   ...
 }: let
@@ -13,7 +14,7 @@ in {
   config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
-        subnets = myData.subnets.motiejus.cidrs;
+        subnets = [myData.subnets.tailscale.cidr];
         tcp = [myData.ports.hass];
       }
       {
@@ -21,6 +22,8 @@ in {
         tcp = [config.services.esphome.port];
       }
     ];
+
+    environment.systemPackages = [pkgs.esphome]; # so it lands in PATH
 
     services = {
       esphome = {
@@ -52,7 +55,7 @@ in {
             auth_providers = [
               {
                 type = "trusted_networks";
-                trusted_networks = [myData.subnets.tailscale.cidr];
+                trusted_networks = myData.subnets.motiejus.cidrs;
               }
             ];
           };
