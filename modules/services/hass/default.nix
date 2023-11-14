@@ -30,6 +30,7 @@ in {
           "yamaha_musiccast"
           "dlna_dmr"
           "shelly"
+          "webostv"
         ];
         config = {
           default_config = {};
