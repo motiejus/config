@@ -29,6 +29,7 @@ in {
           # my stuff
           "yamaha_musiccast"
           "dlna_dmr"
+          "shelly"
         ];
         config = {
           default_config = {};
