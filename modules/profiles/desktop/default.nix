@@ -104,6 +104,8 @@
       qpwgraph # for pipewire
       gpicview
       trayscale
+      # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
+      wireshark
       rox-filer
       distrobox
       miniupnpc
