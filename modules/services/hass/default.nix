@@ -23,7 +23,10 @@ in {
     ];
 
     services = {
-      esphome.enable = true;
+      esphome = {
+        enable = true;
+        address = "0.0.0.0";
+      };
 
       home-assistant = {
         enable = true;
