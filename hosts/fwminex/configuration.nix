@@ -57,7 +57,10 @@ in {
 
     services = {
       sshguard.enable = false;
-      tailscale.enable = true;
+      tailscale = {
+        enable = true;
+        verboseLogs = true;
+      };
 
       node_exporter = {
         enable = true;
