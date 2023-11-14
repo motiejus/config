@@ -13,12 +13,18 @@ in {
   config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
-        subnets = [myData.subnets.tailscale.cidr];
+        subnets = myData.subnets.motiejus.cidrs;
         tcp = [myData.ports.hass];
+      }
+      {
+        subnets = myData.subnets.motiejus.cidrs;
+        tcp = [config.services.esphome.port];
       }
     ];
 
     services = {
+      esphome.enable = true;
+
       home-assistant = {
         enable = true;
         extraComponents = [

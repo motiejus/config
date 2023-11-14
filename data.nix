@@ -112,6 +112,7 @@ rec {
       mHosts =
         attrVals [
           "mxp10.motiejus.jakst"
+          "mtwork.motiejus.jakst"
           "fwminex.motiejus.jakst"
         ]
         hosts;
