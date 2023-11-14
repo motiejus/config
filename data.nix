@@ -29,6 +29,7 @@ rec {
     matrix-synapse = 8008;
     vaultwarden = 8222;
     kodi = 8080;
+    hass = 8123;
     prometheus = 9001;
     tailscale = 41641;
     exporters.node = 9002;
@@ -159,6 +160,11 @@ rec {
     _acme-challenge.irc          CNAME     _acme-endpoint.irc
     _acme-endpoint.irc              NS     ns._acme-endpoint.irc
     ns._acme-endpoint.irc            A     ${vno1}
+
+    hass                             A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.hass         CNAME     _acme-endpoint.hass
+    _acme-endpoint.hass             NS     ns._acme-endpoint.hass
+    ns._acme-endpoint.hass           A     ${vno1}
 
     bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
     _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden

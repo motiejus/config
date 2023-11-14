@@ -173,6 +173,7 @@
         enable = true;
         zones."irc.jakstys.lt".accountKey = accountKey;
         zones."hdd.jakstys.lt".accountKey = accountKey;
+        zones."hass.jakstys.lt".accountKey = accountKey;
         zones."grafana.jakstys.lt".accountKey = accountKey;
         zones."bitwarden.jakstys.lt".accountKey = accountKey;
       };
@@ -249,6 +250,12 @@
         servers {
           metrics
         }
+      '';
+      virtualHosts."hass.jakstys.lt".extraConfig = ''
+        @denied not remote_ip ${myData.subnets.tailscale.cidr}
+        abort @denied
+        reverse_proxy 127.0.0.1:8123
+        tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
       '';
       virtualHosts."grafana.jakstys.lt".extraConfig = ''
         @denied not remote_ip ${myData.subnets.tailscale.cidr}
@@ -526,20 +533,25 @@
 
   systemd.services = {
     caddy = let
+      hass = config.mj.services.nsd-acme.zones."hass.jakstys.lt";
       grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
       bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
     in {
       serviceConfig.LoadCredential = [
+        "hass.jakstys.lt-cert.pem:${hass.certFile}"
+        "hass.jakstys.lt-key.pem:${hass.keyFile}"
         "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
         "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
         "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
         "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
       ];
       after = [
+        "nsd-acme-hass.jakstys.lt.service"
         "nsd-acme-grafana.jakstys.lt.service"
         "nsd-acme-bitwarden.jakstys.lt.service"
       ];
       requires = [
+        "nsd-acme-hass.jakstys.lt.service"
         "nsd-acme-grafana.jakstys.lt.service"
         "nsd-acme-bitwarden.jakstys.lt.service"
       ];
@@ -610,6 +622,7 @@
       wantedBy = ["multi-user.target"];
       pathConfig = {
         PathChanged = [
+          config.mj.services.nsd-acme.zones."hass.jakstys.lt".certFile
           config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
           config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
         ];

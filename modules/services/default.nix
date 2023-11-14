@@ -5,6 +5,7 @@
     ./deployerbot
     ./friendlyport
     ./gitea
+    ./hass
     ./headscale
     ./jakstpub
     ./matrix-synapse
