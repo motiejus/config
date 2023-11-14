@@ -13,7 +13,7 @@ in {
   config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
-        subnets = myData.subnets.vpn.cidrs;
+        subnets = [myData.subnets.tailscale.cidr];
         tcp = [myData.ports.hass];
       }
     ];
@@ -25,13 +25,25 @@ in {
           "esphome"
           "met"
           "radio_browser"
+
+          # my stuff
+          "yamaha_musiccast"
+          "dlna_dmr"
         ];
         config = {
-          auth_providers = {
-            trusted_networks = [myData.subnets.tailscale.cidr];
-            #trusted_proxies = ["127.0.0.1"];
-          };
           default_config = {};
+          http = {
+            use_x_forwarded_for = true;
+            trusted_proxies = ["127.0.0.1"];
+          };
+          homeassistant = {
+            auth_providers = [
+              {
+                type = "trusted_networks";
+                trusted_networks = [myData.subnets.tailscale.cidr];
+              }
+            ];
+          };
         };
       };
     };

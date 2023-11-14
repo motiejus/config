@@ -160,6 +160,7 @@
       gitea.enable = true;
       snmp_exporter.enable = true;
       sshguard.enable = true;
+      hass.enable = true;
 
       headscale = {
         enable = true;
