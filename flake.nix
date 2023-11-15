@@ -83,9 +83,7 @@
       nur.overlay
       zigpkgs.overlays.default
       (_final: _prev: {
-        pkgs-unstable = import nixpkgs-unstable {
-          inherit system;
-        };
+        pkgs-unstable = import nixpkgs-unstable {inherit system;};
       })
     ];
   in
