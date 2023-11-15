@@ -2,6 +2,8 @@
   description = "motiejus/config";
 
   inputs = {
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
@@ -48,6 +50,7 @@
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-unstable,
     agenix,
     deploy-rs,
     flake-utils,
@@ -76,6 +79,15 @@
       };
     deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
     deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
+    mkOverlays = system: [
+      nur.overlay
+      zigpkgs.overlays.default
+      (_final: _prev: {
+        pkgs-unstable = import nixpkgs-unstable {
+          inherit system;
+        };
+      })
+    ];
   in
     {
       #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
@@ -88,9 +100,10 @@
       #  specialArgs = {inherit myData;} // inputs;
       #};
 
-      nixosConfigurations.vno1-oh2 = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.vno1-oh2 = nixpkgs.lib.nixosSystem rec {
         system = "x86_64-linux";
         modules = [
+          {nixpkgs.overlays = mkOverlays system;}
           ./hosts/vno1-oh2/configuration.nix
 
           ./modules
@@ -119,11 +132,10 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
-      nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.fwminex = nixpkgs.lib.nixosSystem rec {
         system = "x86_64-linux";
         modules = [
-          # TODO make this generic
-          {nixpkgs.overlays = [nur.overlay zigpkgs.overlays.default];}
+          {nixpkgs.overlays = mkOverlays system;}
           ./hosts/fwminex/configuration.nix
 
           ./modules
@@ -145,8 +157,10 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
-      nixosConfigurations.vno3-rp3b = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.vno3-rp3b = nixpkgs.lib.nixosSystem rec {
+        system = "aarch64-linux";
         modules = [
+          {nixpkgs.overlays = mkOverlays system;}
           ./hosts/vno3-rp3b/configuration.nix
 
           ./modules
@@ -166,8 +180,10 @@
         specialArgs = {inherit myData;} // inputs;
       };
 
-      nixosConfigurations.fra1-a = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.fra1-a = nixpkgs.lib.nixosSystem rec {
+        system = "aarch64-linux";
         modules = [
+          {nixpkgs.overlays = mkOverlays system;}
           ./hosts/fra1-a/configuration.nix
 
           ./modules
