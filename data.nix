@@ -167,6 +167,11 @@ rec {
     _acme-endpoint.hass             NS     ns._acme-endpoint.hass
     ns._acme-endpoint.hass           A     ${vno1}
 
+    esphome                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+    _acme-challenge.esphome      CNAME     _acme-endpoint.esphome
+    _acme-endpoint.esphome          NS     ns._acme-endpoint.esphome
+    ns._acme-endpoint.esphome        A     ${vno1}
+
     bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
     _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
     _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
