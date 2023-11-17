@@ -61,7 +61,10 @@ in {
           };
 
           wake_on_lan = {};
-          automation = [
+
+          # requires a restore from backup
+          "automation ui" = "!include automations.yaml";
+          "automation yaml" = [
             {
               alias = "Turn On Living Room TV with WakeOnLan";
               trigger = [
