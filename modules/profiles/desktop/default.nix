@@ -92,7 +92,6 @@
       pdftk
       yt-dlp
       arandr
-      spotdl
       pandoc
       evince
       calibre
