@@ -276,6 +276,9 @@
               inherit system;
             };
           })
+          (_final: _prev: {
+            pkgs-unstable = import nixpkgs-unstable {inherit system;};
+          })
         ];
       };
     in {

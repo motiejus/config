@@ -83,6 +83,7 @@
   ];
 
   programs.git = {
+    package = pkgs.pkgs-unstable.git;
     enable = true;
     userEmail = email;
     userName = "Motiejus Jakštys";
