@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   myData,
   ...
 }: let
@@ -17,24 +16,14 @@ in {
         subnets = [myData.subnets.tailscale.cidr];
         tcp = [myData.ports.hass];
       }
-      {
-        subnets = myData.subnets.motiejus.cidrs;
-        tcp = [config.services.esphome.port];
-      }
     ];
 
-    environment.systemPackages = [pkgs.esphome]; # so it lands in PATH
+    environment.systemPackages = [];
 
     services = {
-      esphome = {
-        enable = true;
-        address = "0.0.0.0";
-      };
-
       home-assistant = {
         enable = true;
         extraComponents = [
-          "esphome"
           "met"
           "radio_browser"
 
