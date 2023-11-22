@@ -12,7 +12,7 @@
   # as of 23.05 that is:
 
   boot.initrd.availableKernelModules = ["usbhid"];
-  boot.initrd.kernelModules = ["vc4" "bcm2835_dma" "i2c_bcm2835"];
+  boot.initrd.kernelModules = ["vc4" "bcm2835_dma"];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.kernelModules = [];
   boot.extraModulePackages = [];
