@@ -112,7 +112,6 @@
         sloccount
         dmidecode
         moreutils
-        perf-tools
         smartmontools
         unixtools.xxd
 
@@ -151,6 +150,7 @@
 
     programs = {
       mtr.enable = true;
+      bcc.enable = true;
 
       tmux = {
         enable = true;
