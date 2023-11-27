@@ -26,11 +26,6 @@ in {
       description = "Specify boot devices";
       type = types.nonEmptyListOf types.str;
     };
-    forceNoDev2305 = mkOption {
-      description = "https://github.com/NixOS/nixpkgs/issues/222491";
-      type = types.bool;
-      default = false;
-    };
     availableKernelModules = mkOption {
       type = types.nonEmptyListOf types.str;
       default = ["uas" "nvme" "ahci"];
@@ -137,10 +132,7 @@ in {
           generationsDir.copyKernels = true;
           grub = {
             enable = true;
-            devices =
-              if cfg.forceNoDev2305
-              then ["nodev"]
-              else map (diskName: cfg.devNodes + diskName) cfg.bootDevices;
+            devices = map (diskName: cfg.devNodes + diskName) cfg.bootDevices;
             efiInstallAsRemovable = cfg.removableEfi;
             copyKernels = true;
             efiSupport = true;

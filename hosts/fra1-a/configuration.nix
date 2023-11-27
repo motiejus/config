@@ -11,7 +11,6 @@
       enable = true;
       devNodes = "/dev/disk/by-id/";
       bootDevices = ["scsi-0QEMU_QEMU_HARDDISK_36151096"];
-      forceNoDev2305 = true;
       immutable = false;
       availableKernelModules = ["xhci_pci" "virtio_pci" "virtio_scsi" "usbhid" "sr_mod" "virtio_gpu"];
       removableEfi = true;
