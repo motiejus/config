@@ -16,60 +16,62 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    services.caddy = {
-      enable = true;
-      virtualHosts.":80".extraConfig = with myData.subnets; ''
-        root * ${cfg.dataDir}
-        @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
-        file_server browse {
-          hide .stfolder
-        }
-        encode gzip
-      '';
-    };
-
-    services.samba = {
-      # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
-      enable = true;
-      securityType = "user";
-      enableNmbd = false;
-      enableWinbindd = false;
-      extraConfig = ''
-        map to guest = Bad User
-        guest account = jakstpub
-        server role = standalone server
-      '';
-      shares = let
-        defaults = {
-          "public" = "yes";
-          "mangled names" = "no";
-          "guest ok" = "yes";
-          "force user" = "jakstpub";
-          "force group" = "jakstpub";
-        };
-      in {
-        public =
-          defaults
-          // {
-            "path" = cfg.dataDir;
-            "writeable" = "yes";
-            "read only" = "no";
-            "create mask" = "0664";
-            "directory mask" = "0775";
-          };
-        snapshots =
-          defaults
-          // {
-            "path" = cfg.dataDir + "/.zfs/snapshot";
-            "writeable" = "no";
-            "read only" = "yes";
-          };
+    services = {
+      caddy = {
+        enable = true;
+        virtualHosts.":80".extraConfig = with myData.subnets; ''
+          root * ${cfg.dataDir}
+          @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
+          file_server browse {
+            hide .stfolder
+          }
+          encode gzip
+        '';
       };
-    };
 
-    services.samba-wsdd = {
-      enable = true;
-      inherit (cfg) hostname;
+      samba = {
+        # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
+        enable = true;
+        securityType = "user";
+        enableNmbd = false;
+        enableWinbindd = false;
+        extraConfig = ''
+          map to guest = Bad User
+          guest account = jakstpub
+          server role = standalone server
+        '';
+        shares = let
+          defaults = {
+            "public" = "yes";
+            "mangled names" = "no";
+            "guest ok" = "yes";
+            "force user" = "jakstpub";
+            "force group" = "jakstpub";
+          };
+        in {
+          public =
+            defaults
+            // {
+              "path" = cfg.dataDir;
+              "writeable" = "yes";
+              "read only" = "no";
+              "create mask" = "0664";
+              "directory mask" = "0775";
+            };
+          snapshots =
+            defaults
+            // {
+              "path" = cfg.dataDir + "/.zfs/snapshot";
+              "writeable" = "no";
+              "read only" = "yes";
+            };
+        };
+      };
+
+      samba-wsdd = {
+        enable = true;
+        inherit (cfg) hostname;
+      };
     };
 
     users.users.jakstpub = {

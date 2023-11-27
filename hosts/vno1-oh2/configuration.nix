@@ -174,11 +174,13 @@
         accountKey = config.age.secrets.letsencrypt-account-key.path;
       in {
         enable = true;
-        zones."irc.jakstys.lt".accountKey = accountKey;
-        zones."hdd.jakstys.lt".accountKey = accountKey;
-        zones."hass.jakstys.lt".accountKey = accountKey;
-        zones."grafana.jakstys.lt".accountKey = accountKey;
-        zones."bitwarden.jakstys.lt".accountKey = accountKey;
+        zones = {
+          "irc.jakstys.lt".accountKey = accountKey;
+          "hdd.jakstys.lt".accountKey = accountKey;
+          "hass.jakstys.lt".accountKey = accountKey;
+          "grafana.jakstys.lt".accountKey = accountKey;
+          "bitwarden.jakstys.lt".accountKey = accountKey;
+        };
       };
 
       deployerbot = {
@@ -254,86 +256,88 @@
           metrics
         }
       '';
-      virtualHosts."hass.jakstys.lt".extraConfig = ''
-        @denied not remote_ip ${myData.subnets.tailscale.cidr}
-        abort @denied
-        reverse_proxy 127.0.0.1:8123
-        tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
-      '';
-      virtualHosts."grafana.jakstys.lt".extraConfig = ''
-        @denied not remote_ip ${myData.subnets.tailscale.cidr}
-        abort @denied
-        reverse_proxy 127.0.0.1:3000
-        tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
-      '';
-      virtualHosts."bitwarden.jakstys.lt".extraConfig = ''
-        @denied not remote_ip ${myData.subnets.tailscale.cidr}
-        abort @denied
-        tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
+      virtualHosts = {
+        "hass.jakstys.lt".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+          reverse_proxy 127.0.0.1:8123
+          tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
+        '';
+        "grafana.jakstys.lt".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+          reverse_proxy 127.0.0.1:3000
+          tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+        '';
+        "bitwarden.jakstys.lt".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+          tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
 
-        # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
-        encode gzip
-        header {
-          # Enable HTTP Strict Transport Security (HSTS)
-          Strict-Transport-Security "max-age=31536000;"
-          # Enable cross-site filter (XSS) and tell browser to block detected attacks
-          X-XSS-Protection "1; mode=block"
-          # Disallow the site to be rendered within a frame (clickjacking protection)
-          X-Frame-Options "SAMEORIGIN"
-        }
+          # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
+          encode gzip
+          header {
+            # Enable HTTP Strict Transport Security (HSTS)
+            Strict-Transport-Security "max-age=31536000;"
+            # Enable cross-site filter (XSS) and tell browser to block detected attacks
+            X-XSS-Protection "1; mode=block"
+            # Disallow the site to be rendered within a frame (clickjacking protection)
+            X-Frame-Options "SAMEORIGIN"
+          }
 
-        # deprecated from vaultwarden 1.29.0
-        reverse_proxy /notifications/hub 127.0.0.1:${toString myData.ports.vaultwarden_ws}
+          # deprecated from vaultwarden 1.29.0
+          reverse_proxy /notifications/hub 127.0.0.1:${toString myData.ports.vaultwarden_ws}
 
-        reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
-           header_up X-Real-IP {remote_host}
-        }
-      '';
-      virtualHosts."www.jakstys.lt".extraConfig = ''
-        redir https://jakstys.lt
-      '';
-      virtualHosts."dl.jakstys.lt".extraConfig = ''
-        root * /var/www/dl
-        file_server browse {
-          hide .stfolder
-        }
-        encode gzip
-      '';
-      virtualHosts."jakstys.lt" = {
-        logFormat = ''
-          output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
-            roll_disabled
+          reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
+             header_up X-Real-IP {remote_host}
           }
         '';
-        extraConfig = ''
-          header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-
-          header /_/* Cache-Control "public, max-age=31536000, immutable"
-
-          root * /var/www/jakstys.lt
-          file_server {
-            precompressed br gzip
-          }
-
-          @matrixMatch {
-            path /.well-known/matrix/client
-            path /.well-known/matrix/server
-          }
-          header @matrixMatch Content-Type application/json
-          header @matrixMatch Access-Control-Allow-Origin *
-          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
-
-          handle /.well-known/matrix/client {
-            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-          }
-          handle /.well-known/matrix/server {
-            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-          }
-
-          handle /_matrix/* {
-            reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
-          }
+        "www.jakstys.lt".extraConfig = ''
+          redir https://jakstys.lt
         '';
+        "dl.jakstys.lt".extraConfig = ''
+          root * /var/www/dl
+          file_server browse {
+            hide .stfolder
+          }
+          encode gzip
+        '';
+        "jakstys.lt" = {
+          logFormat = ''
+            output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
+              roll_disabled
+            }
+          '';
+          extraConfig = ''
+            header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+            header /_/* Cache-Control "public, max-age=31536000, immutable"
+
+            root * /var/www/jakstys.lt
+            file_server {
+              precompressed br gzip
+            }
+
+            @matrixMatch {
+              path /.well-known/matrix/client
+              path /.well-known/matrix/server
+            }
+            header @matrixMatch Content-Type application/json
+            header @matrixMatch Access-Control-Allow-Origin *
+            header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+
+            handle /.well-known/matrix/client {
+              respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+            }
+            handle /.well-known/matrix/server {
+              respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+            }
+
+            handle /_matrix/* {
+              reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+            }
+          '';
+        };
       };
     };
 

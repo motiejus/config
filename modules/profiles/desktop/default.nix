@@ -8,8 +8,10 @@
     services.blueman.enable = true;
     services.udev.packages = [pkgs.yubikey-personalization];
 
-    programs.firefox.enable = true;
-    programs.wireshark.enable = true;
+    programs = {
+      firefox.enable = true;
+      wireshark.enable = true;
+    };
 
     mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
@@ -191,28 +193,30 @@
         };
       };
 
-      services.cbatticon.enable = true;
-      services.blueman-applet.enable = true;
+      services = {
+        cbatticon.enable = true;
+        blueman-applet.enable = true;
 
-      services.syncthing.tray = {
-        enable = true;
-        #extraOptions = ["--wait"];
-      };
+        syncthing.tray = {
+          enable = true;
+          #extraOptions = ["--wait"];
+        };
 
-      services.pasystray = {
-        enable = true;
-        extraOptions = ["--key-grabbing" "--notify=all"];
-      };
+        pasystray = {
+          enable = true;
+          extraOptions = ["--key-grabbing" "--notify=all"];
+        };
 
-      services.gpg-agent = {
-        enable = true;
-        enableSshSupport = true;
-      };
+        gpg-agent = {
+          enable = true;
+          enableSshSupport = true;
+        };
 
-      services.screen-locker = {
-        enable = true;
-        xautolock.enable = false;
-        lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+        screen-locker = {
+          enable = true;
+          xautolock.enable = false;
+          lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+        };
       };
 
       # https://github.com/nix-community/home-manager/issues/2064

@@ -121,7 +121,6 @@ in {
       in "${jakstIP}:${guiPortStr}";
 
       extraOptions.gui.insecureAdminAccess = true;
-
       devices =
         {}
         // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
@@ -149,7 +148,6 @@ in {
             ;
         })
         // {};
-
       folders = with folders;
         {}
         // (

@@ -11,35 +11,42 @@
   # imports = [(modulesPath + "/installer/scan/not-detected.nix")];
   # as of 23.05 that is:
 
-  boot.initrd.availableKernelModules = ["usbhid"];
-  boot.initrd.kernelModules = ["vc4" "bcm2835_dma"];
-  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
-  boot.kernelModules = [];
-  boot.extraModulePackages = [];
-  boot.loader.grub.enable = false;
-  boot.loader.generic-extlinux-compatible.enable = true;
+  boot = {
+    initrd = {
+      availableKernelModules = ["usbhid"];
+      kernelModules = ["vc4" "bcm2835_dma"];
+    };
+    loader = {
+      grub.enable = false;
+      generic-extlinux-compatible.enable = true;
+    };
 
-  boot.supportedFilesystems = ["zfs"];
-  boot.zfs.forceImportRoot = false;
+    kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+    kernelModules = [];
+    extraModulePackages = [];
+    supportedFilesystems = ["zfs"];
+    zfs.forceImportRoot = false;
+  };
 
   powerManagement.cpuFreqGovernor = "ondemand";
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/44444444-4444-4444-8888-888888888888";
-    fsType = "ext4";
-  };
-
-  fileSystems."/data" = {
-    device = "datapool/root";
-    fsType = "zfs";
-  };
-  fileSystems."/data/borg" = {
-    device = "datapool/root/borg";
-    fsType = "zfs";
-  };
-  fileSystems."/data/shared" = {
-    device = "datapool/root/shared";
-    fsType = "zfs";
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-uuid/44444444-4444-4444-8888-888888888888";
+      fsType = "ext4";
+    };
+    "/data" = {
+      device = "datapool/root";
+      fsType = "zfs";
+    };
+    "/data/borg" = {
+      device = "datapool/root/borg";
+      fsType = "zfs";
+    };
+    "/data/shared" = {
+      device = "datapool/root/shared";
+      fsType = "zfs";
+    };
   };
 
   swapDevices = [];
