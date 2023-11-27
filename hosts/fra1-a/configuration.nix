@@ -32,8 +32,8 @@
     timeZone = "UTC";
     base = {
       users.passwd = {
-        root.passwordFile = config.age.secrets.root-passwd-hash.path;
-        motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
+        root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+        motiejus.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
       };
       unitstatus = {
         enable = true;

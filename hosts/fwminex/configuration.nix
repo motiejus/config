@@ -39,8 +39,8 @@ in {
       users = {
         devEnvironment = true;
         passwd = {
-          root.passwordFile = config.age.secrets.root-passwd-hash.path;
-          motiejus.passwordFile = config.age.secrets.motiejus-passwd-hash.path;
+          root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+          motiejus.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
         };
       };
 

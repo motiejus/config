@@ -14,7 +14,7 @@ in {
     passwd = lib.mkOption {
       type = attrsOf (submodule {
         options = {
-          passwordFile = lib.mkOption {
+          hashedPasswordFile = lib.mkOption {
             type = nullOr path;
             default = null;
           };
@@ -49,7 +49,7 @@ in {
           }
           // lib.filterAttrs (
             n: v:
-              (n == "passwordFile" || n == "initialPassword") && v != null
+              (n == "hashedPasswordFile" || n == "initialPassword") && v != null
           )
           cfg.passwd.motiejus or {};
 
