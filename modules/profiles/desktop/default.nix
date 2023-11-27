@@ -5,8 +5,6 @@
 }: {
   config = {
     hardware.bluetooth.enable = true;
-    services.blueman.enable = true;
-    services.udev.packages = [pkgs.yubikey-personalization];
 
     programs = {
       firefox.enable = true;
@@ -16,6 +14,8 @@
     mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
     services = {
+      blueman.enable = true;
+      udev.packages = [pkgs.yubikey-personalization];
       acpid.enable = true;
       pcscd.enable = true;
       printing = {
@@ -24,13 +24,8 @@
       };
       openssh.settings.X11Forwarding = true;
 
-      # TODO post-23.11
-      #logind.powerKey = "suspend";
-      #logind.powerKeyLongPress = "poweroff";
-      logind.extraConfig = ''
-        HandlePowerKey=suspend
-        HandlePowerKeyLongPress=poweroff
-      '';
+      logind.powerKey = "suspend";
+      logind.powerKeyLongPress = "poweroff";
 
       xserver = {
         enable = true;

@@ -31,9 +31,7 @@
           oidc = {
             issuer = "https://git.jakstys.lt/";
             client_id = "e25c15ea-41ca-4bf0-9ebf-2be9f2d1ccea";
-            # TODO 23.11 from https://github.com/NixOS/nixpkgs/pull/249101/files
-            #client_secret_path = "\${CREDENTIALS_DIRECTORY}/oidc-client-secret";
-            client_secret_path = "/run/credentials/headscale.service/oidc-client-secret";
+            client_secret_path = "\${CREDENTIALS_DIRECTORY}/oidc-client-secret";
           };
         };
       };

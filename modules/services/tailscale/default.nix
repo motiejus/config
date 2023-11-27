@@ -2,7 +2,6 @@
   config,
   lib,
   myData,
-  pkgs,
   ...
 }: let
   cfg = config.mj.services.tailscale;
@@ -20,7 +19,6 @@ in {
   config = mkIf cfg.enable (mkMerge [
     {
       services.tailscale.enable = true;
-      services.tailscale.package = pkgs.pkgs-unstable.tailscale;
       networking.firewall.checkReversePath = "loose";
       networking.firewall.allowedUDPPorts = [myData.ports.tailscale];
     }

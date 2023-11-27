@@ -2,9 +2,7 @@
   description = "motiejus/config";
 
   inputs = {
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
@@ -19,7 +17,7 @@
       };
     };
 
-    home-manager.url = "github:nix-community/home-manager/release-23.05";
+    home-manager.url = "github:nix-community/home-manager/release-23.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix = {
@@ -66,7 +64,6 @@
   outputs = {
     self,
     nixpkgs,
-    nixpkgs-unstable,
     agenix,
     deploy-rs,
     flake-utils,
@@ -95,12 +92,11 @@
       };
     deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
     deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
-    mkOverlays = system: [
+    # accepting "system" argument in case we need to construct
+    # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
+    mkOverlays = _: [
       nur.overlay
       zigpkgs.overlays.default
-      (_final: _prev: {
-        pkgs-unstable = import nixpkgs-unstable {inherit system;};
-      })
     ];
   in
     {
@@ -287,7 +283,7 @@
                 hooks = {
                   alejandra.enable = true;
                   deadnix.enable = true;
-                  statix.enable = true;
+                  #statix.enable = true;
                 };
               };
             }
@@ -303,9 +299,6 @@
               inherit (prev) pkgs;
               inherit system;
             };
-          })
-          (_final: _prev: {
-            pkgs-unstable = import nixpkgs-unstable {inherit system;};
           })
         ];
       };
