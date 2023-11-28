@@ -114,6 +114,7 @@
       rox-filer
       distrobox
       miniupnpc
+      shellcheck
       borgbackup
       efibootmgr
       winetricks
