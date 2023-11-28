@@ -96,6 +96,7 @@
       arandr
       pandoc
       evince
+      gnumake
       calibre
       chromium
       hunspell
