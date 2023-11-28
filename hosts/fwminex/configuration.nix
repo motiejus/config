@@ -5,19 +5,42 @@
 }: let
   randr = import ./randr.nix;
 in {
-  zfs-root = {
-    boot = {
-      enable = true;
-      devNodes = "/dev/disk/by-id/";
-      bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A"];
-      immutable = false;
+  boot = {
+    initrd = {
       availableKernelModules = ["usb_storage" "sd_mod" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
-      removableEfi = true;
-      partitionScheme = {
-        efiBoot = "-part1";
-        bootPool = "-part2";
-        rootPool = "-part4";
-      };
+    };
+    loader.systemd-boot.enable = true;
+    supportedFilesystems = ["zfs"];
+    zfs = {
+      forceImportRoot = false;
+      devNodes = "/dev/disk/by-id/";
+    };
+  };
+
+  fileSystems = {
+    "/" = {
+      device = "rpool/nixos/root";
+      fsType = "zfs";
+    };
+    "/boot" = {
+      device = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A_1-part2";
+      fsType = "vfat";
+    };
+    "/home" = {
+      device = "rpool/nixos/home";
+      fsType = "zfs";
+    };
+    "/nix" = {
+      device = "rpool/nixos/nix";
+      fsType = "zfs";
+    };
+    "/var/lib" = {
+      device = "rpool/nixos/var/lib";
+      fsType = "zfs";
+    };
+    "/var/log" = {
+      device = "rpool/nixos/var/log";
+      fsType = "zfs";
     };
   };
 
