@@ -93,11 +93,13 @@
       xclip
       pdftk
       yt-dlp
+      scrcpy
       arandr
       pandoc
       evince
       gnumake
       calibre
+      librsvg
       chromium
       hunspell
       tigervnc
