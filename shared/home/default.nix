@@ -32,6 +32,7 @@
     ++ (
       if hmOnly
       then [
+        yt-dlp
         ncdu
         tokei
         vimv-rs
