@@ -88,6 +88,7 @@
       xclip
       pdftk
       yt-dlp
+      ffmpeg
       scrcpy
       arandr
       pandoc
