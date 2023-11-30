@@ -117,6 +117,7 @@
       python3Full
       libva-utils # intel video tests
       pavucontrol
+      openshot-qt
       google-chrome
       aspellDicts.en
       aspellDicts.lt
