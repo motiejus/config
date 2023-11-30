@@ -89,6 +89,7 @@
       pdftk
       yt-dlp
       ffmpeg
+      tinycc
       scrcpy
       arandr
       pandoc
