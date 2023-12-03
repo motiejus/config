@@ -32,6 +32,7 @@ in {
           "dlna_dmr"
           "shelly"
           "webostv"
+          "daikin"
         ];
         config = {
           default_config = {};
