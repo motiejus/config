@@ -134,6 +134,7 @@
         dnsutils
         speedtest-cli
         prettyping
+        config.boot.kernelPackages.perf
         (runCommand "prettyping-pp" {} ''
           mkdir -p $out/bin
           ln -s ${prettyping}/bin/prettyping $out/bin/pp
