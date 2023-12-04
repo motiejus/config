@@ -112,6 +112,7 @@
         sloccount
         dmidecode
         moreutils
+        perf-tools
         smartmontools
         unixtools.xxd
 
