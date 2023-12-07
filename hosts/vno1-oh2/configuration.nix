@@ -386,7 +386,7 @@
           http_port = myData.ports.grafana;
         };
         users.auto_assign_org = true;
-        users.auto_assign_org_role = "Viewer";
+        users.auto_assign_org_role = "Editor";
 
         # https://github.com/grafana/grafana/issues/70203#issuecomment-1612823390
         auth.oauth_allow_insecure_email_lookup = true;
