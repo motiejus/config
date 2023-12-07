@@ -32,9 +32,10 @@
     ++ (
       if hmOnly
       then [
-        yt-dlp
         ncdu
         tokei
+        scrcpy
+        yt-dlp
         vimv-rs
         hyperfine
       ]
