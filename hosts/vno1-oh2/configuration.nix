@@ -638,6 +638,8 @@
     };
   };
 
+  environment.systemPackages = with pkgs; [geoipWithDatabase];
+
   networking = {
     hostId = "f9117e1b";
     hostName = "vno1-oh2";
