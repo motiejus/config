@@ -45,7 +45,7 @@
   programs = {
     direnv.enable = true;
 
-    programs.firefox = {
+    firefox = {
       enable = true;
       profiles = {
         xdefault = {
