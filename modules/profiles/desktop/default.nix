@@ -172,29 +172,6 @@
       imports = [./plasma.nix];
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
-      programs.firefox = {
-        enable = true;
-        profiles = {
-          xdefault = {
-            isDefault = true;
-            settings = {
-              "browser.aboutConfig.showWarning" = false;
-              "browser.contentblocking.category" = "strict";
-              "browser.urlbar.showSearchSuggestionsFirst" = false;
-              "layout.css.prefers-color-scheme.content-override" = 0;
-              "signon.management.page.breach-alerts.enabled" = false;
-              "signon.rememberSignons" = false;
-            };
-            extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-              bitwarden
-              ublock-origin
-              joplin-web-clipper
-              multi-account-containers
-            ];
-          };
-        };
-      };
-
       services = {
         cbatticon.enable = true;
         blueman-applet.enable = true;
