@@ -3,7 +3,7 @@
   pkgs,
   stateVersion,
   email,
-  devEnvironment,
+  fullDesktop,
   hmOnly,
   ...
 }: {
@@ -16,7 +16,7 @@
 
   home.packages = with pkgs;
     (
-      if devEnvironment
+      if fullDesktop
       then [
         go
 
@@ -45,7 +45,7 @@
   programs = {
     direnv.enable = true;
 
-    firefox = {
+    firefox = lib.mkIf fullDesktop {
       enable = true;
       profiles = {
         xdefault = {
@@ -80,7 +80,7 @@
             fugitive
           ]
           ++ (
-            if devEnvironment
+            if fullDesktop
             then [
               vim-go
 
@@ -96,7 +96,7 @@
           );
         extraConfig = builtins.readFile ./vimrc;
       }
-      (lib.mkIf devEnvironment {
+      (lib.mkIf fullDesktop {
         extraLuaConfig =
           builtins.readFile
           (pkgs.substituteAll {

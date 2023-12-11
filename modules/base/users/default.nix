@@ -7,7 +7,7 @@
   cfg = config.mj.base.users;
 in {
   options.mj.base.users = with lib.types; {
-    devEnvironment = lib.mkOption {
+    fullDesktop = lib.mkOption {
       type = bool;
       default = false;
     };
@@ -65,7 +65,7 @@ in {
           inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion;
-          inherit (config.mj.base.users) devEnvironment;
+          inherit (config.mj.base.users) fullDesktop;
           hmOnly = false;
           email = "motiejus@jakstys.lt";
         })

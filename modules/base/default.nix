@@ -108,6 +108,7 @@
         bsdgames
         parallel
         binutils
+        bandwhich
         hyperfine
         sloccount
         dmidecode
