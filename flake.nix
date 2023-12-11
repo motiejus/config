@@ -295,6 +295,7 @@
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
+          nur.overlay
           (_final: prev: {
             zigpkgs = import zigpkgs {
               inherit (prev) pkgs;
