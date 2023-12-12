@@ -15,27 +15,21 @@
   };
 
   home.packages = with pkgs;
-    (
-      if fullDesktop
-      then [
+    lib.mkMerge [
+      (lib.mkIf fullDesktop [
         go
-
         zigpkgs."0.11.0"
-      ]
-      else []
-    )
-    ++ (
-      if hmOnly
-      then [
+      ])
+      (lib.mkIf hmOnly [
         ncdu
         tokei
+        jdk17
         scrcpy
         yt-dlp
         vimv-rs
         hyperfine
-      ]
-      else []
-    );
+      ])
+    ];
 
   programs = {
     direnv.enable = true;
@@ -71,17 +65,13 @@
         vimdiffAlias = true;
         defaultEditor = true;
         plugins = with pkgs.vimPlugins;
-          [
-            fugitive
-          ]
-          ++ (
-            if fullDesktop
-            then [
+          lib.mkMerge [
+            [fugitive]
+            (lib.mkIf fullDesktop [
               vim-go
               zig-vim
-            ]
-            else []
-          );
+            ])
+          ];
         extraConfig = builtins.readFile ./vimrc;
       }
       (lib.mkIf fullDesktop {
