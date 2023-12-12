@@ -22,10 +22,6 @@
 
         zigpkgs."0.11.0"
         sbt
-
-        scala_2_12
-        metals
-        coursier
       ]
       else []
     )
@@ -83,14 +79,7 @@
             if fullDesktop
             then [
               vim-go
-
               zig-vim
-
-              vim-vsnip
-              cmp-nvim-lsp
-              nvim-cmp
-              nvim-metals
-              plenary-nvim
             ]
             else []
           );
@@ -101,8 +90,6 @@
           builtins.readFile
           (pkgs.substituteAll {
             src = ./dev.lua;
-            javaHome = pkgs.jdk.home;
-            inherit (pkgs) metals;
             inherit (pkgs) gotools;
           })
           .outPath;
