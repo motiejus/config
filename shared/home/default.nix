@@ -23,7 +23,6 @@
       (lib.mkIf hmOnly [
         ncdu
         tokei
-        jdk17
         scrcpy
         yt-dlp
         vimv-rs
