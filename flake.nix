@@ -38,6 +38,14 @@
       };
     };
 
+    nixgl = {
+      url = "github:guibou/nixGL";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -74,6 +82,7 @@
     pre-commit-hooks,
     zigpkgs,
     nur,
+    nixgl,
     ...
   } @ inputs: let
     myData = import ./data.nix;
@@ -296,6 +305,7 @@
         inherit system;
         overlays = [
           nur.overlay
+          nixgl.overlay
           (_final: prev: {
             zigpkgs = import zigpkgs {
               inherit (prev) pkgs;

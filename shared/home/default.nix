@@ -21,12 +21,22 @@
         zigpkgs."0.11.0"
       ])
       (lib.mkIf hmOnly [
+        pkgs.nixgl.nixGLIntel
         ncdu
         tokei
         scrcpy
         yt-dlp
         vimv-rs
+        bandwhich
         hyperfine
+        (runCommand "ff" {} ''
+          mkdir -p $out/bin
+          {
+              echo '#!/bin/sh'
+              echo 'exec ${pkgs.nixgl.nixGLIntel}/bin/nixGLIntel ${firefox}/bin/firefox "$@"'
+          } > $out/bin/ff
+          chmod a+x $out/bin/ff
+        '')
       ])
     ];
 
