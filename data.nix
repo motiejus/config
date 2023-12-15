@@ -146,6 +146,22 @@ rec {
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 
+    beta                           TXT     hosted-email-verify=czwt2yjp
+    beta                           TXT     "v=spf1 include:spf.migadu.com -all"
+    _dmarc.beta                    TXT     "v=DMARC1; p=quarantine;"
+    beta                            MX     10 aspmx1.migadu.com.
+    beta                            MX     20 aspmx2.migadu.com.
+    *.beta                          MX     10 aspmx1.migadu.com.
+    *.beta                          MX     20 aspmx2.migadu.com.
+    key1._domainkey.beta         CNAME     key1.beta.jakstys.lt._domainkey.migadu.com.
+    key2._domainkey.beta         CNAME     key2.beta.jakstys.lt._domainkey.migadu.com.
+    key3._domainkey.beta         CNAME     key3.beta.jakstys.lt._domainkey.migadu.com.
+    autoconfig.beta              CNAME     autoconfig.migadu.com.
+    _autodiscover._tcp.beta        SRV     0 1 443 autodiscover.migadu.com.
+    _submissions._tcp.beta         SRV     0 1 465 smtp.migadu.com.
+    _imaps._tcp.beta               SRV     0 1 993 imap.migadu.com.
+    _pop3s._tcp.beta               SRV     0 1 995 imap.migadu.com.
+
     @                               MX     10 aspmx.l.google.com.
     @                               MX     20 alt1.aspmx.l.google.com.
     @                               MX     20 alt2.aspmx.l.google.com.
