@@ -488,6 +488,7 @@
       interfaces = ["0.0.0.0" "::"];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
+        "beta.jakstys.lt.".data = myData.betaJakstysLTZone;
       };
     };
 
@@ -638,7 +639,10 @@
     };
   };
 
-  environment.systemPackages = with pkgs; [geoipWithDatabase];
+  environment.systemPackages = with pkgs; [
+    imapsync
+    geoipWithDatabase
+  ];
 
   networking = {
     hostId = "f9117e1b";

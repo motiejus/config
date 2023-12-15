@@ -105,6 +105,7 @@
       xss-lock
       qpwgraph # for pipewire
       gpicview
+      imapsync
       trayscale
       # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
       wireshark

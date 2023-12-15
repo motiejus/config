@@ -80,6 +80,7 @@
     interfaces = ["0.0.0.0" "::"];
     zones = {
       "jakstys.lt.".data = myData.jakstysLTZone;
+      "beta.jakstys.lt.".data = myData.betaJakstysLTZone;
     };
   };
 
