@@ -115,6 +115,7 @@
       borgbackup
       efibootmgr
       winetricks
+      virtualenv
       python3Full
       libva-utils # intel video tests
       pavucontrol
