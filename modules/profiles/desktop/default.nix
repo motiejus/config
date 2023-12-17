@@ -112,6 +112,7 @@
       rox-filer
       distrobox
       miniupnpc
+      evolution
       shellcheck
       borgbackup
       efibootmgr
