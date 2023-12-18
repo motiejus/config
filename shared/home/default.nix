@@ -18,7 +18,7 @@
     lib.mkMerge [
       (lib.mkIf fullDesktop [
         go
-        zigpkgs."0.11.0"
+        zig
       ])
       (lib.mkIf hmOnly [
         pkgs.nixgl.nixGLIntel

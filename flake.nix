@@ -8,15 +8,6 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nur.url = "github:nix-community/NUR";
 
-    zigpkgs = {
-      url = "github:mitchellh/zig-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-
     home-manager.url = "github:nix-community/home-manager/release-23.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -80,7 +71,6 @@
     nixos-hardware,
     nix-index-database,
     pre-commit-hooks,
-    zigpkgs,
     nur,
     nixgl,
     ...
@@ -106,7 +96,6 @@
     # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
     mkOverlays = _: [
       nur.overlay
-      zigpkgs.overlays.default
     ];
   in
     {
@@ -306,12 +295,6 @@
         overlays = [
           nur.overlay
           nixgl.overlay
-          (_final: prev: {
-            zigpkgs = import zigpkgs {
-              inherit (prev) pkgs;
-              inherit system;
-            };
-          })
         ];
       };
     in {
