@@ -111,6 +111,7 @@
         bandwhich
         hyperfine
         sloccount
+        stress-ng
         dmidecode
         moreutils
         perf-tools
