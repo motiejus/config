@@ -105,6 +105,7 @@
       bsdgames
       xss-lock
       qpwgraph # for pipewire
+      powertop
       gpicview
       imapsync
       trayscale
