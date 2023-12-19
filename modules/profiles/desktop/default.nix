@@ -81,6 +81,7 @@
     environment.systemPackages = with pkgs; [
       iw
       vlc
+      i7z
       acpi
       gimp
       qgis
