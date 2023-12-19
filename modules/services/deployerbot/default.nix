@@ -106,7 +106,7 @@ in {
         systemd.timers.deployerbot = {
           description = "deployerbot-main timer";
           wantedBy = ["timers.target"];
-          timerConfig.OnCalendar = "*-*-* 22:00:00 UTC";
+          timerConfig.OnCalendar = "*-*-* 23:30:00 UTC";
         };
 
         mj.base.unitstatus.units = ["deployerbot"];
