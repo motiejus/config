@@ -114,6 +114,7 @@
         stress-ng
         dmidecode
         moreutils
+        lm_sensors
         perf-tools
         smartmontools
         unixtools.xxd
