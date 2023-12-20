@@ -92,6 +92,7 @@
         lshw
         entr
         cloc
+        poop # hopefully poof some day
         tokei
         pwgen
         parted
