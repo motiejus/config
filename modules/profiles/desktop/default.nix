@@ -2,7 +2,9 @@
   config,
   pkgs,
   ...
-}: {
+}: let
+  inX11 = false;
+in {
   config = {
     hardware.bluetooth.enable = true;
 
@@ -37,7 +39,8 @@
 
         displayManager = {
           sddm.enable = true;
-          defaultSession = "none+awesome";
+          #defaultSession = "none+awesome";
+          defaultSession = "river";
           autoLogin = {
             enable = true;
             user = "motiejus";
@@ -55,9 +58,14 @@
 
     programs = {
       adb.enable = true;
-      slock.enable = true;
       nm-applet.enable = true;
       command-not-found.enable = false;
+
+      # for wayland
+      river.enable = true;
+
+      # for X11
+      slock.enable = inX11;
     };
 
     virtualisation.podman = {
@@ -198,7 +206,7 @@
         };
 
         screen-locker = {
-          enable = true;
+          enable = inX11;
           xautolock.enable = false;
           lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
         };
