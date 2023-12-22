@@ -105,6 +105,7 @@
       bsdgames
       xss-lock
       qpwgraph # for pipewire
+      audacity
       powertop
       gpicview
       imapsync
@@ -115,6 +116,7 @@
       distrobox
       miniupnpc
       evolution
+      obs-studio
       shellcheck
       borgbackup
       efibootmgr
