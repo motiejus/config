@@ -263,6 +263,17 @@
           reverse_proxy 127.0.0.1:8123
           tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
         '';
+        "beta.jakstys.lt".extraConfig = ''
+          handle /.well-known/carddav {
+            redir https://cdav.migadu.com/
+          }
+          handle /.well-known/caldav {
+            redir https://cdav.migadu.com/
+          }
+          handle {
+            respond "okz" 200
+          }
+        '';
         "grafana.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
