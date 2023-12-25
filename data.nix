@@ -126,12 +126,15 @@ rec {
     vno3.cidr = "192.168.100.0/24";
   };
 
-  betaJakstysLTZone = ''
+  betaJakstysLTZone = let
+    vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+  in ''
     $ORIGIN beta.jakstys.lt.
     $TTL 86400
     @                           SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023121600 86400 86400 86400 86400)
     @                            NS     ns1.jakstys.lt.
     @                            NS     ns2.jakstys.lt.
+    @                             A     ${vno1}
     @                           TXT     hosted-email-verify=czwt2yjp
     @                           TXT     "v=spf1 include:spf.migadu.com -all"
     _dmarc                      TXT     "v=DMARC1; p=quarantine;"
