@@ -86,6 +86,7 @@
       gimp
       qgis
       josm
+      qemu
       xclip
       pdftk
       yt-dlp
