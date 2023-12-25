@@ -175,11 +175,11 @@ rec {
     vno1                             A     ${vno1}
 
 
-    @                               MX     10 aspmx.l.google.com.
-    @                               MX     20 alt1.aspmx.l.google.com.
-    @                               MX     20 alt2.aspmx.l.google.com.
-    @                               MX     30 aspmx2.googlemail.com.
-    @                               MX     30 aspmx3.googlemail.com.
+    @                        600    MX     10 aspmx.l.google.com.
+    @                        600    MX     20 alt1.aspmx.l.google.com.
+    @                        600    MX     20 alt2.aspmx.l.google.com.
+    @                        600    MX     30 aspmx2.googlemail.com.
+    @                        600    MX     30 aspmx3.googlemail.com.
 
     grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
     _acme-challenge.grafana      CNAME     _acme-endpoint.grafana
