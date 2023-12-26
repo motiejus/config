@@ -174,12 +174,23 @@ rec {
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 
-
-    @                        600    MX     10 aspmx.l.google.com.
-    @                        600    MX     20 alt1.aspmx.l.google.com.
-    @                        600    MX     20 alt2.aspmx.l.google.com.
-    @                        600    MX     30 aspmx2.googlemail.com.
-    @                        600    MX     30 aspmx3.googlemail.com.
+    @                     600      TXT     hosted-email-verify=rvyd6h64
+    @                     600       MX     10 aspmx1.migadu.com.
+    @                     600       MX     20 aspmx2.migadu.com.
+    *                     600       MX     10 aspmx1.migadu.com.
+    *                     600       MX     20 aspmx2.migadu.com.
+    key1._domainkey       600    CNAME     key1.jakstys.lt._domainkey.migadu.com.
+    key2._domainkey       600    CNAME     key2.jakstys.lt._domainkey.migadu.com.
+    key3._domainkey       600    CNAME     key3.jakstys.lt._domainkey.migadu.com.
+    @                     600      TXT     "v=spf1 include:spf.migadu.com -all"
+    _dmarc                600      TXT     "v=DMARC1; p=quarantine;"
+    *                     600       MX     10 aspmx1.migadu.com.
+    *                     600       MX     20 aspmx2.migadu.com.
+    autoconfig            600    CNAME     autoconfig.migadu.com.
+    _autodiscover._tcp    600      SRV     0 1 443 autodiscover.migadu.com.
+    _submissions._tcp     600      SRV     0 1 465 smtp.migadu.com.
+    _imaps._tcp           600      SRV     0 1 993 imap.migadu.com.
+    _pop3s._tcp           600      SRV     0 1 995 imap.migadu.com.
 
     grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
     _acme-challenge.grafana      CNAME     _acme-endpoint.grafana

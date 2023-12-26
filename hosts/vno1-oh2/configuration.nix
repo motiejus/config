@@ -329,6 +329,13 @@
               precompressed br gzip
             }
 
+            handle /.well-known/carddav {
+              redir https://cdav.migadu.com/
+            }
+            handle /.well-known/caldav {
+              redir https://cdav.migadu.com/
+            }
+
             @matrixMatch {
               path /.well-known/matrix/client
               path /.well-known/matrix/server
