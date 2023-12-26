@@ -78,6 +78,14 @@
     #};
     #location.provider = "geoclue2";
 
+    documentation = {
+      dev.enable = true;
+      man = {
+        man-db.enable = false;
+        mandoc.enable = true;
+      };
+    };
+
     environment.systemPackages = with pkgs; [
       iw
       vlc
@@ -113,6 +121,7 @@
       trayscale
       # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
       wireshark
+      man-pages
       rox-filer
       distrobox
       miniupnpc
@@ -136,6 +145,7 @@
       joplin-desktop
       signal-desktop
       element-desktop
+      man-pages-posix
       wineWowPackages.full
       hunspellDicts.en_US
       python3Packages.ipython
