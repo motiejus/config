@@ -361,8 +361,8 @@
     };
 
     photoprism = {
-      enable = true;
-      originalsPath = "/home/motiejus/Pictures";
+      enable = false;
+      originalsPath = "/data";
     };
 
     logrotate = {
@@ -649,12 +649,8 @@
     };
 
     photoprism.serviceConfig = {
-      #ProtectHome = lib.mkForce "tmpfs";
-      #BindPaths = ["/home/motiejus/Pictures"];
-      #DynamicUser = lib.mkForce false;
-      #LockPersonality = lib.mkForce false;
-      #PrivateDevices = lib.mkForce false;
-      #PrivateUsers = lib.mkForce false;
+      #TemporaryFileSystem = ["/data"];
+      #BindPaths = ["/home/motiejus/Pictures:/data"];
     };
   };
 
