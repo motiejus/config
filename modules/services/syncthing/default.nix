@@ -16,6 +16,7 @@
     "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
+    "v-kfire".id = "HWNFPKU-RERU6NW-AGHEOIE-CIKWKIR-RLB4QY7-OASXE4D-QZP7QZY-3US2TAD";
   };
   folders = {
     Books = {
@@ -37,6 +38,11 @@
       devices = ["fwminex" "vno1-oh2"];
       id = "4fu7z-z6es2";
       label = "M-Documents";
+    };
+    video-vincentas = {
+      devices = ["vno1-vinc" "vno1-oh2"];
+      id = "xbrfr-mhszm";
+      label = "video-vincentas";
     };
     M-V = {
       devices = ["fwminex" "vno1-vinc" "vno1-oh2"];
@@ -140,6 +146,7 @@ in {
               KrekenavosNamai
               vno1-vinc
               vno2-irena
+              v-kfire
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
@@ -172,6 +179,7 @@ in {
               "${cfg.dataDir}/annex2/M-R" = M-R;
               "${cfg.dataDir}/stud-cache" = stud-cache;
               "${cfg.dataDir}/video/shared" = video-shared;
+              "${cfg.dataDir}/video/vincentas" = video-vincentas;
               "${cfg.dataDir}/music" = Music;
               "${cfg.dataDir}/irenos" = Irenos;
             }
