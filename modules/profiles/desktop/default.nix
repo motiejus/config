@@ -108,6 +108,7 @@
       pandoc
       evince
       gnumake
+      digikam
       calibre
       librsvg
       neomutt
