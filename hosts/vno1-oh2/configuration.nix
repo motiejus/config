@@ -1,6 +1,6 @@
 {
   config,
-  lib,
+  #lib,
   pkgs,
   myData,
   ...
@@ -649,8 +649,12 @@
     };
 
     photoprism.serviceConfig = {
-      ProtectHome = lib.mkForce "tmpfs";
-      BindReadOnlyPaths = ["/home/motiejus/Pictures"];
+      #ProtectHome = lib.mkForce "tmpfs";
+      #BindPaths = ["/home/motiejus/Pictures"];
+      #DynamicUser = lib.mkForce false;
+      #LockPersonality = lib.mkForce false;
+      #PrivateDevices = lib.mkForce false;
+      #PrivateUsers = lib.mkForce false;
     };
   };
 
@@ -665,6 +669,16 @@
         ];
         Unit = "cert-watcher.service";
       };
+    };
+  };
+
+  users = let
+    uidgid = myData.uidgid.photoprism;
+  in {
+    groups.photoprism.gid = uidgid;
+    users.photoprism = {
+      group = "photoprism";
+      uid = uidgid;
     };
   };
 
