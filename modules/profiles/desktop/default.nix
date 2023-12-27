@@ -110,6 +110,7 @@
       gnumake
       calibre
       librsvg
+      neomutt
       chromium
       hunspell
       tigervnc
