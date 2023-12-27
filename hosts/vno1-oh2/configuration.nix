@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   myData,
   ...
@@ -359,6 +360,11 @@
       };
     };
 
+    photoprism = {
+      enable = true;
+      originalsPath = "/home/motiejus/Pictures";
+    };
+
     logrotate = {
       settings = {
         "/var/log/caddy/access-jakstys.lt.log" = {
@@ -640,6 +646,11 @@
         ProtectHome = "tmpfs";
         BindReadOnlyPaths = ["/home/motiejus/video"];
       };
+    };
+
+    photoprism.serviceConfig = {
+      ProtectHome = lib.mkForce "tmpfs";
+      BindReadOnlyPaths = ["/home/motiejus/Pictures"];
     };
   };
 
