@@ -23,6 +23,11 @@
       id = "8lk0n-mm63y";
       label = "Books";
     };
+    Mail = {
+      devices = ["fwminex" "vno1-oh2"];
+      id = "66fmz-x6f1a";
+      label = "Mail";
+    };
     M-Active = {
       devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "f6fma-unkxq";
@@ -158,6 +163,7 @@ in {
               "/var/www/dl/mykolo" = mykolo;
               "${cfg.dataDir}/M-V" = M-V;
               "${cfg.dataDir}/annex2/Books" = Books;
+              "${cfg.dataDir}/annex2/Mail" = Mail;
               "${cfg.dataDir}/annex2/M-Active" = M-Active;
               "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
               "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
@@ -172,6 +178,7 @@ in {
           )
           // (
             lib.optionalAttrs (config.networking.hostName == "fwminex") {
+              "${cfg.dataDir}/.cache/evolution/mail" = Mail;
               "${cfg.dataDir}/Books" = Books;
               "${cfg.dataDir}/M-Active" = M-Active;
               "${cfg.dataDir}/M-Documents" = M-Documents;
