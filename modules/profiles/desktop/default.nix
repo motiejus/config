@@ -136,7 +136,6 @@
       efibootmgr
       winetricks
       virtualenv
-      thunderbird
       python3Full
       libva-utils # intel video tests
       pavucontrol
