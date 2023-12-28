@@ -29,6 +29,7 @@ in
     "secrets/letsencrypt/account.key.age"
     "secrets/headscale/oidc_client_secret2.age"
     "secrets/vaultwarden/secrets.env.age"
+    "secrets/photoprism/admin_password.age"
 
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"

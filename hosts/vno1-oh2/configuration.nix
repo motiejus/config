@@ -363,6 +363,7 @@
     photoprism = {
       enable = true;
       originalsPath = "/data";
+      passwordFile = config.age.secrets.photoprism-admin-passwd.path;
     };
 
     logrotate = {

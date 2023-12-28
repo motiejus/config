@@ -127,6 +127,7 @@
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 zfs-passphrase-fra1-a.file = ./secrets/fra1-a/zfs-passphrase.age;
 
+                photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
                 headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
                 borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
