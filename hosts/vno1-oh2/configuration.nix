@@ -1,6 +1,6 @@
 {
   config,
-  #lib,
+  lib,
   pkgs,
   myData,
   ...
@@ -361,7 +361,7 @@
     };
 
     photoprism = {
-      enable = false;
+      enable = true;
       originalsPath = "/data";
     };
 
@@ -649,8 +649,8 @@
     };
 
     photoprism.serviceConfig = {
-      #TemporaryFileSystem = ["/data"];
-      #BindPaths = ["/home/motiejus/Pictures:/data"];
+      ProtectHome = lib.mkForce "tmpfs";
+      BindPaths = ["/home/motiejus/annex2/Pictures:/data"];
     };
   };
 
