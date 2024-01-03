@@ -26,6 +26,7 @@
         tokei
         scrcpy
         yt-dlp
+        kubectl
         vimv-rs
         bandwhich
         hyperfine
