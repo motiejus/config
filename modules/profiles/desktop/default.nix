@@ -99,6 +99,7 @@
       josm
       qemu
       xclip
+      xeyes
       pdftk
       yt-dlp
       ffmpeg
