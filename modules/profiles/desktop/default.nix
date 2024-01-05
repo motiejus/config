@@ -99,7 +99,6 @@
       josm
       qemu
       xclip
-      xeyes
       pdftk
       yt-dlp
       ffmpeg
@@ -166,6 +165,7 @@
       gnome.gnome-calendar
 
       xorg.xev
+      xorg.xeyes
 
       (texlive.combine {
         inherit
