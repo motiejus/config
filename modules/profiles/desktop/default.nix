@@ -160,6 +160,7 @@
       clang-manpages
       gcc_latest
 
+      gnome.cheese
       gnome.nautilus
       gnome.gnome-calculator
       gnome.gnome-calendar
