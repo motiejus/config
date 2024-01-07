@@ -141,6 +141,7 @@
       libva-utils # intel video tests
       pavucontrol
       openshot-qt
+      squashfsTools
       google-chrome
       aspellDicts.en
       aspellDicts.lt
