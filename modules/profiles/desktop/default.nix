@@ -107,6 +107,7 @@
       arandr
       pandoc
       evince
+      scribus
       gnumake
       calibre
       librsvg
