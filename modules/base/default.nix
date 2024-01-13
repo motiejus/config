@@ -32,6 +32,7 @@
 
   config = {
     nixpkgs.config.allowUnfree = true;
+
     hardware.enableRedistributableFirmware = true;
 
     time.timeZone = config.mj.timeZone;
@@ -102,8 +103,6 @@
         hdparm
         sdparm
         procps
-        ripgrep
-        (lowPrio busybox)
         vimv-rs
         sysstat
         usbutils
