@@ -103,7 +103,7 @@
         sdparm
         procps
         ripgrep
-        busybox
+        (lowPrio busybox)
         vimv-rs
         sysstat
         usbutils
