@@ -103,6 +103,7 @@
         sdparm
         procps
         ripgrep
+        busybox
         vimv-rs
         sysstat
         usbutils
