@@ -40,7 +40,7 @@
       label = "M-Documents";
     };
     video-vincentas = {
-      devices = ["vno1-vinc" "vno1-oh2"];
+      devices = ["vno1-vinc" "vno1-oh2" "v-kfire"];
       id = "xbrfr-mhszm";
       label = "video-vincentas";
     };
