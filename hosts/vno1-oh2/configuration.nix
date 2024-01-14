@@ -680,6 +680,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    yt-dlp
     imapsync
     geoipWithDatabase
   ];
