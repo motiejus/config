@@ -105,6 +105,7 @@
         procps
         vimv-rs
         sysstat
+        ethtool
         usbutils
         pciutils
         bsdgames
