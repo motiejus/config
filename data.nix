@@ -135,8 +135,8 @@ rec {
     $ORIGIN 11sync.net.
     $TTL 3600
     @                      SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
-    @                       NS   ns1.11sync.net
-    @                       NS   ns2.11sync.net
+    @                       NS   ns1.11sync.net.
+    @                       NS   ns2.11sync.net.
     @                        A   ${fra1a}
     @                      TXT   "hosted-email-verify=qeuysotu"
     @                       MX   10 aspmx1.migadu.com.
