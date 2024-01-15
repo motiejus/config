@@ -165,34 +165,34 @@ rec {
     @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
     @                               NS     ns1.jakstys.lt.
     @                               NS     ns2.jakstys.lt.
-    @                          600   A     ${vno1}
-    www                        600   A     ${vno1}
+    @                                A     ${vno1}
+    www                              A     ${vno1}
     ns1                              A     ${vno1}
     ns2                              A     ${fra1a}
-    vpn                        600   A     ${vno1}
-    git                        600   A     ${vno1}
+    vpn                              A     ${vno1}
+    git                              A     ${vno1}
     auth                             A     ${vno1}
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 
-    @                     3600      TXT     hosted-email-verify=rvyd6h64
-    @                     3600       MX     10 aspmx1.migadu.com.
-    @                     3600       MX     20 aspmx2.migadu.com.
-    *                     3600       MX     10 aspmx1.migadu.com.
-    *                     3600       MX     20 aspmx2.migadu.com.
-    key1._domainkey       3600    CNAME     key1.jakstys.lt._domainkey.migadu.com.
-    key2._domainkey       3600    CNAME     key2.jakstys.lt._domainkey.migadu.com.
-    key3._domainkey       3600    CNAME     key3.jakstys.lt._domainkey.migadu.com.
-    @                     3600      TXT     "v=spf1 include:spf.migadu.com -all"
-    _dmarc                3600      TXT     "v=DMARC1; p=quarantine;"
-    *                     3600       MX     10 aspmx1.migadu.com.
-    *                     3600       MX     20 aspmx2.migadu.com.
-    autoconfig            3600    CNAME     autoconfig.migadu.com.
-    _autodiscover._tcp    3600      SRV     0 1 443 autodiscover.migadu.com.
-    _submissions._tcp     3600      SRV     0 1 465 smtp.migadu.com.
-    _imaps._tcp           3600      SRV     0 1 993 imap.migadu.com.
-    _pop3s._tcp           3600      SRV     0 1 995 imap.migadu.com.
+    @                               TXT    hosted-email-verify=rvyd6h64
+    @                                MX    10 aspmx1.migadu.com.
+    @                                MX    20 aspmx2.migadu.com.
+    *                                MX    10 aspmx1.migadu.com.
+    *                                MX    20 aspmx2.migadu.com.
+    key1._domainkey               CNAME    key1.jakstys.lt._domainkey.migadu.com.
+    key2._domainkey               CNAME    key2.jakstys.lt._domainkey.migadu.com.
+    key3._domainkey               CNAME    key3.jakstys.lt._domainkey.migadu.com.
+    @                               TXT    "v=spf1 include:spf.migadu.com -all"
+    _dmarc                          TXT    "v=DMARC1; p=quarantine;"
+    *                                MX    10 aspmx1.migadu.com.
+    *                                MX    20 aspmx2.migadu.com.
+    autoconfig                    CNAME    autoconfig.migadu.com.
+    _autodiscover._tcp              SRV    0 1 443 autodiscover.migadu.com.
+    _submissions._tcp               SRV    0 1 465 smtp.migadu.com.
+    _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
+    _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
 
     grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
     _acme-challenge.grafana      CNAME     _acme-endpoint.grafana
