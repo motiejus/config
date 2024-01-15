@@ -164,8 +164,6 @@ rec {
     @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
     @                               NS     ns1.jakstys.lt.
     @                               NS     ns2.jakstys.lt.
-    beta                            NS     ns1.jakstys.lt.
-    beta                            NS     ns2.jakstys.lt.
     @                          600   A     ${vno1}
     www                        600   A     ${vno1}
     ns1                              A     ${vno1}
