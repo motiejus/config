@@ -137,13 +137,14 @@ rec {
     @                      SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
     @                       NS   ns1.11sync.net.
     @                       NS   ns2.11sync.net.
-    @                        A   ${fra1a}
+    @                 600    A   ${fra1a}
     @                      TXT   "hosted-email-verify=qeuysotu"
     @                       MX   10 aspmx1.migadu.com.
     @                       MX   20 aspmx2.migadu.com.
     @                      TXT   "v=spf1 include:spf.migadu.com -all"
     ns1                      A   ${vno1}
     ns2                      A   ${fra1a}
+    www               600    A   ${fra1a}
     key1._domainkey      CNAME   key1.11sync.net._domainkey.migadu.com.
     key2._domainkey      CNAME   key2.11sync.net._domainkey.migadu.com.
     key3._domainkey      CNAME   key3.11sync.net._domainkey.migadu.com.
