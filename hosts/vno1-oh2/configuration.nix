@@ -321,7 +321,7 @@
             }
           '';
           extraConfig = ''
-            header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+            header Strict-Transport-Security "max-age=31536000"
 
             header /_/* Cache-Control "public, max-age=31536000, immutable"
 
