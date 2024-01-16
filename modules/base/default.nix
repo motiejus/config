@@ -125,10 +125,11 @@
         # networking
         dig
         nmap
-        ngrep
+        wrk2
         wget
         curl
         btop
+        ngrep
         iftop
         whois
         ipset
