@@ -125,7 +125,8 @@
         # networking
         dig
         nmap
-        wrk2
+        # broken on aarch64-linux
+        #wrk2
         wget
         curl
         btop
