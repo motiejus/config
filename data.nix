@@ -137,7 +137,7 @@ rec {
     @                      SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
     @                       NS   ns1.11sync.net.
     @                       NS   ns2.11sync.net.
-    @                 600    A   ${fra1a}
+    @                 600    A   ${hosts."fra1-a.servers.jakst".jakstIP}
     @                      TXT   "hosted-email-verify=qeuysotu"
     @                       MX   10 aspmx1.migadu.com.
     @                       MX   20 aspmx2.migadu.com.
