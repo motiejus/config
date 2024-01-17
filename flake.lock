@@ -51,6 +51,39 @@
         "type": "github"
       }
     },
+    "e11sync": {
+      "inputs": {
+        "flake-compat": [
+          "flake-compat"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "geoip2-tarball": "geoip2-tarball",
+        "gitignore": [
+          "gitignore"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks": [
+          "pre-commit-hooks"
+        ]
+      },
+      "locked": {
+        "lastModified": 1705498237,
+        "narHash": "sha256-FFKNlobtEjtdR+PpbarW3D2xWLTXS0jipSOPWCBh2ug=",
+        "ref": "refs/heads/main",
+        "rev": "bf0d2452ce39c2665214cd2e869dec4117eafc25",
+        "revCount": 113,
+        "type": "git",
+        "url": "https://git.jakstys.lt/motiejus/e11sync"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.jakstys.lt/motiejus/e11sync"
+      }
+    },
     "flake-compat": {
       "locked": {
         "lastModified": 1688025799,
@@ -82,6 +115,19 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
+      }
+    },
+    "geoip2-tarball": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1705308463,
+        "narHash": "sha256-Q+t6LnGy8R6QLugw25iC0WdVPU2C3eqZPlbvVQ9EpwE=",
+        "type": "tarball",
+        "url": "https://dl.jakstys.lt/_/2024.01.13.tar.zst"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://dl.jakstys.lt/_/2024.01.13.tar.zst"
       }
     },
     "gitignore": {
@@ -202,11 +248,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1705490880,
-        "narHash": "sha256-JfC6ZMF/BWWIzzqYNswF/WTtIbjaF8MKkpdhl1YPyN8=",
+        "lastModified": 1705498134,
+        "narHash": "sha256-JWz7O2RDOAiWvndH/Gd84XvZgsFuvHhDnr4MFbCjLLA=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "8d1c62baf47e465e0732ebf7336d2443add7e3ec",
+        "rev": "2afd51ec110a41d646272a548fe5a2913f33a918",
         "type": "github"
       },
       "original": {
@@ -251,6 +297,7 @@
       "inputs": {
         "agenix": "agenix",
         "deploy-rs": "deploy-rs",
+        "e11sync": "e11sync",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "gitignore": "gitignore",

@@ -75,12 +75,31 @@
     };
   };
 
-  services.nsd = {
+  e11sync = {
     enable = true;
-    interfaces = ["0.0.0.0" "::"];
-    zones = {
-      "jakstys.lt.".data = myData.jakstysLTZone;
-      "11sync.net.".data = myData.e11syncZone;
+    migrateOnStart = true;
+    secretKeyPath = config.age.secrets.e11sync-secret-key.path;
+    vhost = "11sync.net";
+  };
+
+  services = {
+    caddy = {
+      enable = true;
+      email = "motiejus+acme@jakstys.lt";
+      globalConfig = ''
+        servers {
+          metrics
+        }
+      '';
+    };
+
+    nsd = {
+      enable = true;
+      interfaces = ["0.0.0.0" "::"];
+      zones = {
+        "jakstys.lt.".data = myData.jakstysLTZone;
+        "11sync.net.".data = myData.e11syncZone;
+      };
     };
   };
 
@@ -90,8 +109,8 @@
     domain = "servers.jakst";
     useDHCP = true;
     firewall = {
-      allowedUDPPorts = [53];
-      allowedTCPPorts = [22 53];
+      allowedUDPPorts = [53 443];
+      allowedTCPPorts = [22 53 80 443];
     };
   };
 

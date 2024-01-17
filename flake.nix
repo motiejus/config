@@ -53,6 +53,17 @@
         gitignore.follows = "gitignore";
       };
     };
+
+    e11sync = {
+      url = "git+https://git.jakstys.lt/motiejus/e11sync";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        flake-compat.follows = "flake-compat";
+        gitignore.follows = "gitignore";
+        pre-commit-hooks.follows = "pre-commit-hooks";
+      };
+    };
   };
 
   nixConfig = {
@@ -73,6 +84,7 @@
     pre-commit-hooks,
     nur,
     nixgl,
+    e11sync,
     ...
   } @ inputs: let
     myData = import ./data.nix;
@@ -201,16 +213,18 @@
           system = "aarch64-linux";
           modules = [
             {nixpkgs.overlays = mkOverlays system;}
-            ./hosts/fra1-a/configuration.nix
-
-            ./modules
-
+            # TODO: remove `${system}` from here
+            e11sync.nixosModules.${system}.e11sync
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
+
+            ./hosts/fra1-a/configuration.nix
+            ./modules
 
             {
               age.secrets = {
                 zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
+                e11sync-secret-key.file = ./secrets/e11sync/secret-key.age;
                 motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
