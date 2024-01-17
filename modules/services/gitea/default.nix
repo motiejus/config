@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   myData,
   ...
 }: {
@@ -41,6 +42,7 @@
           };
           security.LOGIN_REMEMBER_DAYS = 30;
           server = {
+            STATIC_URL_PREFIX = "/static";
             ENABLE_GZIP = true;
             LANDING_PAGE = "/motiejus";
             ROOT_URL = "https://git.jakstys.lt";
@@ -73,6 +75,14 @@
 
       caddy = {
         virtualHosts."git.jakstys.lt".extraConfig = ''
+          route /static/assets/* {
+            uri strip_prefix /static/assets
+            file_server * {
+              root ${pkgs.gitea.passthru.data-compressed}/public
+              precompressed br gzip
+            }
+          }
+
           reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
         '';
       };
