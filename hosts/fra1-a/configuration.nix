@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   myData,
@@ -95,6 +96,12 @@
       virtualHosts = {
         "www.11sync.net".extraConfig = ''
           redir https://11sync.net
+        '';
+        "11sync.net".extraConfig = lib.mkForce ''
+          respond /admin/* "Access denied" 403 {
+            close
+          }
+          ${builtins.readFile "${pkgs.e11sync-caddyfile}"}
         '';
         "http://admin.11sync.net".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
