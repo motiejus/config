@@ -213,8 +213,7 @@
           system = "aarch64-linux";
           modules = [
             {nixpkgs.overlays = mkOverlays system;}
-            # TODO: remove `${system}` from here
-            e11sync.nixosModules.${system}.e11sync
+            e11sync.nixosModules.e11sync
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
 
