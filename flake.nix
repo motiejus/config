@@ -108,6 +108,7 @@
     # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
     mkOverlays = _: [
       nur.overlay
+      e11sync.overlays.default
     ];
   in
     {

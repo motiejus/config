@@ -1,5 +1,6 @@
 {
   config,
+  pkgs,
   myData,
   modulesPath,
   ...
@@ -91,9 +92,15 @@
           metrics
         }
       '';
-      virtualHosts."www.11sync.net".extraConfig = ''
-        redir https://11sync.net
-      '';
+      virtualHosts = {
+        "www.11sync.net".extraConfig = ''
+          redir https://11sync.net
+        '';
+        "admin.11sync.net".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          ${builtins.readFile "${pkgs.e11sync-frontend}"}
+        '';
+      };
     };
 
     nsd = {
