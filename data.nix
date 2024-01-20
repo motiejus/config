@@ -145,7 +145,7 @@ rec {
     ns1                      A   ${vno1}
     ns2                      A   ${fra1a}
     www               600    A   ${fra1a}
-    admin             600    A   ${fra1a}
+    admin             600    A   ${hosts."fra1-a.servers.jakst".jakstIP}
     key1._domainkey      CNAME   key1.11sync.net._domainkey.migadu.com.
     key2._domainkey      CNAME   key2.11sync.net._domainkey.migadu.com.
     key3._domainkey      CNAME   key3.11sync.net._domainkey.migadu.com.

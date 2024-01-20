@@ -96,9 +96,11 @@
         "www.11sync.net".extraConfig = ''
           redir https://11sync.net
         '';
-        "admin.11sync.net".extraConfig = ''
+        "http://admin.11sync.net".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          ${builtins.readFile "${pkgs.e11sync-frontend}"}
+
+          redir / /admin/
+          ${builtins.readFile "${pkgs.e11sync-caddyfile}"}
         '';
       };
     };
