@@ -150,6 +150,7 @@
       joplin-desktop
       signal-desktop
       element-desktop
+      netsurf-browser
       man-pages-posix
       wineWowPackages.full
       hunspellDicts.en_US
