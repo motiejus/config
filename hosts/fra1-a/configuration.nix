@@ -91,6 +91,9 @@
           metrics
         }
       '';
+      virtualHosts."www.11sync.net".extraConfig = ''
+        redir https://11sync.net
+      '';
     };
 
     nsd = {
