@@ -100,6 +100,7 @@
       qemu
       xclip
       pdftk
+      x11vnc
       yt-dlp
       ffmpeg
       tinycc
@@ -170,7 +171,6 @@
 
       xorg.xev
       xorg.xeyes
-      xorg.xinit
 
       (texlive.combine {
         inherit
