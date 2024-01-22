@@ -170,6 +170,7 @@
 
       xorg.xev
       xorg.xeyes
+      xorg.xinit
 
       (texlive.combine {
         inherit
