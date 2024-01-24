@@ -651,7 +651,10 @@
 
     photoprism.serviceConfig = {
       ProtectHome = lib.mkForce "tmpfs";
-      BindPaths = ["/home/motiejus/annex2/Pictures:/data"];
+      BindPaths = [
+        "/home/motiejus/annex2/M-Active:/data/M-Camera"
+        "/home/motiejus/annex2/Pictures:/data/Pictures"
+      ];
     };
   };
 
