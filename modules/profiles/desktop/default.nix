@@ -4,7 +4,10 @@
   ...
 }: {
   config = {
-    hardware.bluetooth.enable = true;
+    hardware.bluetooth = {
+      enable = true;
+      powerOnBoot = true;
+    };
 
     programs = {
       firefox.enable = true;
@@ -14,6 +17,7 @@
     mj.base.users.passwd.motiejus.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
     services = {
+      fwupd.enable = true;
       blueman.enable = true;
       udev.packages = [pkgs.yubikey-personalization];
       acpid.enable = true;
@@ -51,6 +55,8 @@
         alsa.support32Bit = true;
         pulse.enable = true;
       };
+
+      gnome.gnome-keyring.enable = true;
     };
 
     programs = {
@@ -68,8 +74,6 @@
     security.rtkit.enable = true;
 
     networking.networkmanager.enable = true;
-
-    services.gnome.gnome-keyring.enable = true;
 
     # wip put clight-gui to nixpkgs
     #services.geoclue2 = {
