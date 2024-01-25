@@ -134,27 +134,28 @@ rec {
   in ''
     $ORIGIN 11sync.net.
     $TTL 3600
-    @                      SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
-    @                       NS   ns1.11sync.net.
-    @                       NS   ns2.11sync.net.
-    @                 600    A   ${fra1a}
-    @                      TXT   "hosted-email-verify=qeuysotu"
-    @                       MX   10 aspmx1.migadu.com.
-    @                       MX   20 aspmx2.migadu.com.
-    @                      TXT   "v=spf1 include:spf.migadu.com -all"
-    ns1                      A   ${vno1}
-    ns2                      A   ${fra1a}
-    www               600    A   ${fra1a}
-    admin             600    A   ${hosts."fra1-a.servers.jakst".jakstIP}
-    key1._domainkey      CNAME   key1.11sync.net._domainkey.migadu.com.
-    key2._domainkey      CNAME   key2.11sync.net._domainkey.migadu.com.
-    key3._domainkey      CNAME   key3.11sync.net._domainkey.migadu.com.
-    _dmarc                 TXT   "v=DMARC1; p=quarantine;"
-    autoconfig           CNAME   autoconfig.migadu.com.
-    _autodiscover._tcp     SRV   0 1 443 autodiscover.migadu.com.
-    _submissions._tcp      SRV   0 1 465 smtp.migadu.com.
-    _imaps._tcp            SRV   0 1 993 imap.migadu.com.
-    _pop3s._tcp            SRV   0 1 995 pop.migadu.com.
+    @                            SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
+    @                             NS   ns1.11sync.net.
+    @                             NS   ns2.11sync.net.
+    @                       600    A   ${fra1a}
+    @                            TXT   "hosted-email-verify=qeuysotu"
+    @                             MX   10 aspmx1.migadu.com.
+    @                             MX   20 aspmx2.migadu.com.
+    @                            TXT   "v=spf1 include:spf.migadu.com -all"
+    ns1                            A   ${vno1}
+    ns2                            A   ${fra1a}
+    www                     600    A   ${fra1a}
+    admin                   600    A   ${hosts."fra1-a.servers.jakst".jakstIP}
+    key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
+    key2._domainkey            CNAME   key2.11sync.net._domainkey.migadu.com.
+    key3._domainkey            CNAME   key3.11sync.net._domainkey.migadu.com.
+    _dmarc                       TXT   "v=DMARC1; p=quarantine;"
+    autoconfig                 CNAME   autoconfig.migadu.com.
+    _autodiscover._tcp           SRV   0 1 443 autodiscover.migadu.com.
+    _submissions._tcp            SRV   0 1 465 smtp.migadu.com.
+    _imaps._tcp                  SRV   0 1 993 imap.migadu.com.
+    _pop3s._tcp                  SRV   0 1 995 pop.migadu.com.
+    _github-challenge-11sync-org TXT   "ff5e813c58"
   '';
 
   jakstysLTZone = let
