@@ -6,7 +6,6 @@
 }: let
   cfg = config.mj.services.syncthing;
 
-  guiPort = 8384;
   devices = {
     "mtwork".id = "3XRWDGO-M42WJAK-MGR24VJ-B5TNQXH-7R5YNFI-MAGXALL-XFENVI4-XYDPMAM";
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
@@ -123,13 +122,7 @@ in {
 
     services.syncthing = {
       inherit (cfg) enable user group dataDir;
-
       openDefaultPorts = true;
-      guiAddress = let
-        fqdn = with config.networking; "${hostName}.${domain}";
-        jakstIP = lib.getAttrFromPath [fqdn "jakstIP"] myData.hosts;
-        guiPortStr = builtins.toString guiPort;
-      in "${jakstIP}:${guiPortStr}";
 
       settings = {
         gui.insecureAdminAccess = true;
