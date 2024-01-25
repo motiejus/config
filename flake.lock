@@ -71,11 +71,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1706168160,
-        "narHash": "sha256-tEV+sP670ZReMkMR569kESxTHIs+Lr9bLuorlCj8k3U=",
+        "lastModified": 1706168996,
+        "narHash": "sha256-XXSSBwzvtR2C69x2SskNsTGy9yGi0H9T/CCxKvkJfkA=",
         "ref": "refs/heads/main",
-        "rev": "50358bc99f76285c5cde0a31698697c9ad99e3b4",
-        "revCount": 139,
+        "rev": "27de639bc5d5316735a33479e912e405c5679f0d",
+        "revCount": 140,
         "type": "git",
         "url": "https://git.jakstys.lt/motiejus/e11sync"
       },
