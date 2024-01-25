@@ -75,7 +75,8 @@ in {
                     passCommand = "cat ${config.mj.base.zfsborg.passwordPath}";
                   };
                   extraArgs = "--remote-path=borg1";
-                  compression = "auto,lzma";
+                  compression = "auto,zstd,10";
+                  extraCreateArgs = "--chunker-params buzhash,10,23,16,4095";
                   startAt = attrs.backup_at;
                   preHook = mkPreHook fs.device i;
                   prune.keep = {
