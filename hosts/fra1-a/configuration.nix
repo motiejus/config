@@ -98,7 +98,7 @@
           redir https://11sync.net
         '';
         "11sync.net".extraConfig = lib.mkForce ''
-          redir /admin/* http://admin.11sync.net/admin/{uri}
+          redir /admin/* http://admin.11sync.net{uri}
           ${builtins.readFile "${pkgs.e11sync-caddyfile}"}
         '';
         "http://admin.11sync.net".extraConfig = ''
