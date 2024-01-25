@@ -117,6 +117,7 @@
       calibre
       librsvg
       neomutt
+      inkscape
       chromium
       hunspell
       tigervnc
