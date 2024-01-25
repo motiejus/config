@@ -179,7 +179,7 @@ in {
           )
           // (
             lib.optionalAttrs (config.networking.hostName == "fwminex") {
-              "${cfg.dataDir}/.cache/evolution/mail" = Mail;
+              "${cfg.dataDir}/.cache/evolution" = Mail;
               "${cfg.dataDir}/Books" = Books;
               "${cfg.dataDir}/M-Active" = M-Active;
               "${cfg.dataDir}/M-Documents" = M-Documents;
