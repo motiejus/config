@@ -36,9 +36,29 @@
         root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
         motiejus.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
       };
+
       unitstatus = {
         enable = true;
         email = "motiejus+alerts@jakstys.lt";
+      };
+
+      snapshot = {
+        enable = true;
+        mountpoints = ["/var/lib"];
+      };
+
+      zfsborg = {
+        enable = true;
+        passwordPath = config.age.secrets.borgbackup-password.path;
+        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+        dirs = [
+          {
+            mountpoint = "/var/lib";
+            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
+            paths = ["private/e11sync-backend"];
+            backup_at = "*-*-* 01:00:00 UTC";
+          }
+        ];
       };
     };
 

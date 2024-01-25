@@ -224,6 +224,7 @@
             {
               age.secrets = {
                 zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
+                borgbackup-password.file = ./secrets/fra1-a/borgbackup-password.age;
                 e11sync-secret-key.file = ./secrets/e11sync/secret-key.age;
                 motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;

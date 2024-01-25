@@ -37,6 +37,7 @@ in
   ]
   // mk ([fra1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
+    "secrets/fra1-a/borgbackup-password.age"
     "secrets/e11sync/secret-key.age"
   ]
   // mk ([vno3-rp3b] ++ motiejus) [
