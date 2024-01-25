@@ -562,6 +562,11 @@
         inotify = "yes";
       };
     };
+
+    syncthing.relay = {
+      enable = true;
+      providedBy = "11sync.net";
+    };
   };
 
   systemd.services = {
@@ -702,7 +707,13 @@
     ];
     firewall = {
       allowedUDPPorts = [53 80 443];
-      allowedTCPPorts = [53 80 443];
+      allowedTCPPorts = [
+        53
+        80
+        443
+        config.services.syncthing.relay.port
+        config.services.syncthing.relay.statusPort
+      ];
       rejectPackets = true;
     };
   };
