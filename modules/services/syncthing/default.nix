@@ -32,6 +32,13 @@
       devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "f6fma-unkxq";
       label = "M-Active";
+      versioning = {
+        type = "staggered";
+        params = {
+          cleanInterval = "3600";
+          maxAge = builtins.toString (3600 * 24 * 30);
+        };
+      };
     };
     M-Documents = {
       devices = ["fwminex" "vno1-oh2"];
@@ -51,7 +58,7 @@
     M-Camera = {
       devices = ["mxp10" "fwminex" "vno1-oh2" "mtwork"];
       id = "pixel_xl_dtm3-photos";
-      label = "M-Active";
+      label = "M-Camera";
     };
     R-Documents = {
       devices = ["rzj-744P2PE" "vno1-oh2"];
