@@ -157,6 +157,7 @@
       element-desktop
       netsurf-browser
       man-pages-posix
+      geoipWithDatabase
       wineWowPackages.full
       hunspellDicts.en_US
       python3Packages.ipython
