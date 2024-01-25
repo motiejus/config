@@ -71,11 +71,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1705902529,
-        "narHash": "sha256-gjZ5iaSdabi2TPdYj3gokw4jmfLC+cQD26I38/wrcow=",
+        "lastModified": 1706168160,
+        "narHash": "sha256-tEV+sP670ZReMkMR569kESxTHIs+Lr9bLuorlCj8k3U=",
         "ref": "refs/heads/main",
-        "rev": "52418adf438e9ea0746d1e0f93aa1cf84d041dd0",
-        "revCount": 138,
+        "rev": "50358bc99f76285c5cde0a31698697c9ad99e3b4",
+        "revCount": 139,
         "type": "git",
         "url": "https://git.jakstys.lt/motiejus/e11sync"
       },
@@ -248,11 +248,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1706136343,
-        "narHash": "sha256-bAaRhauFvxU7oNVDe0XIpKzDPiTjgUCaSRhhjtV4j9A=",
+        "lastModified": 1706165097,
+        "narHash": "sha256-k4DDMdP4WJji/GlSJX5tcJIASZ5XrOlMSmiYWY4KkPM=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "590d85d9efaf8d78bc0199ef24dc4ec3d86e0ef6",
+        "rev": "ca477a06ac06163e1a7b888f8a358f5c64a7cbc2",
         "type": "github"
       },
       "original": {
