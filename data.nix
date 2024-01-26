@@ -178,6 +178,7 @@ rec {
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
 
+    @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
     @                               TXT    hosted-email-verify=rvyd6h64
     @                                MX    10 aspmx1.migadu.com.
     @                                MX    20 aspmx2.migadu.com.
