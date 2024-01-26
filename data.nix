@@ -138,6 +138,7 @@ rec {
     @                             NS   ns1.11sync.net.
     @                             NS   ns2.11sync.net.
     @                       600    A   ${fra1a}
+    @                            TXT   google-site-verification=nvUYd7_ShhPKvTn_Xbw-vPFONOhPeaYQsGp34DbV-80
     @                            TXT   "hosted-email-verify=qeuysotu"
     @                             MX   10 aspmx1.migadu.com.
     @                             MX   20 aspmx2.migadu.com.
