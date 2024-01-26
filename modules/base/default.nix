@@ -98,22 +98,20 @@
         pwgen
         parted
         sqlite
-        bonnie # disk benchmarking
         dhcpcd
         hdparm
         sdparm
         procps
         vimv-rs
         sysstat
+        ripgrep
         ethtool
         usbutils
         pciutils
         bsdgames
         parallel
         binutils
-        bandwhich
         hyperfine
-        sloccount
         stress-ng
         dmidecode
         moreutils
@@ -140,21 +138,17 @@
         tcpdump
         testssl
         dnsutils
+        bandwhich
         speedtest-cli
-        prettyping
         config.boot.kernelPackages.perf
-        (runCommand "prettyping-pp" {} ''
-          mkdir -p $out/bin
-          ln -s ${prettyping}/bin/prettyping $out/bin/pp
-        '')
 
         # compression/decompression
         xz
         pigz
         zstd
         p7zip
-        brotli
         zopfli
+        brotli
       ];
     };
 
