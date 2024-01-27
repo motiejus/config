@@ -10,7 +10,10 @@
     };
 
     programs = {
-      firefox.enable = true;
+      firefox = {
+        enable = true;
+        package = pkgs.firefox-bin;
+      };
       wireshark.enable = true;
     };
 
