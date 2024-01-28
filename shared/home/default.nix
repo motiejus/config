@@ -51,6 +51,7 @@
         xdefault = {
           isDefault = true;
           settings = {
+            "app.update.auto" = false;
             "browser.aboutConfig.showWarning" = false;
             "browser.contentblocking.category" = "strict";
             "browser.urlbar.showSearchSuggestionsFirst" = false;
