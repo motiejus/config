@@ -47,6 +47,7 @@
     firefox = lib.mkIf fullDesktop {
       enable = true;
       package = pkgs.firefox-bin;
+      policies.DisableAppUpdate = true;
       profiles = {
         xdefault = {
           isDefault = true;
