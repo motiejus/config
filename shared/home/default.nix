@@ -102,7 +102,11 @@ in {
 
     firefox = lib.mkIf fullDesktop {
       enable = true;
-      package = glintel pkgs.firefox-bin "firefox";
+      # firefox doesn't need the wrapper on the personal laptop
+      package =
+        if hmOnly
+        then (glintel pkgs.firefox-bin "firefox")
+        else pkgs.firefox-bin;
       policies.DisableAppUpdate = true;
       profiles = {
         xdefault = {
