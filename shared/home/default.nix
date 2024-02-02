@@ -6,7 +6,32 @@
   fullDesktop,
   hmOnly,
   ...
-}: {
+}: let
+  pkgNicer = pkgs.writeShellApplication {
+    name = "nicer";
+    text = ''
+      f=$(${pkgs.coreutils}/bin/mktemp)
+      trap '${pkgs.coreutils}/bin/rm -f "$f"' EXIT
+      ${pkgs.coreutils}/bin/env > "$f"
+      systemd-run \
+          --user \
+          --same-dir \
+          --slice nicer \
+          --nice=19 \
+          --property CPUSchedulingPolicy=idle \
+          --property IOSchedulingClass=idle \
+          --property IOSchedulingPriority=7 \
+          --pty \
+          --pipe \
+          --wait \
+          --collect \
+          --quiet \
+          --property EnvironmentFile="$f" \
+          --service-type=exec \
+          -- "$@"
+    '';
+  };
+in {
   home = {
     inherit stateVersion;
 
@@ -16,35 +41,13 @@
 
   home.packages = with pkgs;
     lib.mkMerge [
+      [pkgNicer]
+
       (lib.mkIf fullDesktop [
         go
         zig
       ])
-      (writeShellApplication {
-        name = "nicer";
-        text = ''
-          set -e
-          f=$(${coreutils}/bin/mktemp)
-          trap 'rm -f "$f"' EXIT
-          ${coreutils}/bin/env > "$f"
-          systemd-run \
-              --user \
-              --same-dir \
-              --slice nicer \
-              --nice=19 \
-              --property CPUSchedulingPolicy=idle \
-              --property IOSchedulingClass=idle \
-              --property IOSchedulingPriority=7 \
-              --pty \
-              --pipe \
-              --wait \
-              --collect \
-              --quiet \
-              --property EnvironmentFile="$f" \
-              --service-type=exec \
-              -- "$@"
-        '';
-      })
+
       (lib.mkIf hmOnly [
         pkgs.nixgl.nixGLIntel
         ncdu
