@@ -88,12 +88,7 @@
     ...
   } @ inputs: let
     myData = import ./data.nix;
-    mkDeployPkgs = system:
-      import nixpkgs {inherit system overlays;};
-    deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
-    deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
-    # accepting "system" argument in case we need to construct
-    # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
+
     overlays = [
       nur.overlay
       e11sync.overlays.default
@@ -241,7 +236,7 @@
             system = {
               sshUser = "motiejus";
               path =
-                deployPkgsIA64.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
+                self.nixosConfigurations.vno1-oh2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
               user = "root";
             };
           };
@@ -253,7 +248,7 @@
             system = {
               sshUser = "motiejus";
               path =
-                deployPkgsIA64.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
+                self.nixosConfigurations.fwminex.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
               user = "root";
             };
           };
@@ -265,7 +260,7 @@
             system = {
               sshUser = "motiejus";
               path =
-                deployPkgsArm64.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
+                self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
               user = "root";
             };
           };
@@ -277,7 +272,7 @@
             system = {
               sshUser = "motiejus";
               path =
-                deployPkgsArm64.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
+                self.nixosConfigurations.fra1-a.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
               user = "root";
             };
           };
