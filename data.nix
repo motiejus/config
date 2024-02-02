@@ -15,8 +15,6 @@ rec {
 
     jakstpub = 505;
 
-    certget = 506;
-
     photoprism = 507;
   };
 
