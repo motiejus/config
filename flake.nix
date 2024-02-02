@@ -102,6 +102,7 @@
           inherit (super.deploy-rs) lib;
         };
       })
+      (_: _: {deploy-rs-pkg = null;})
     ];
   in
     {
@@ -323,7 +324,7 @@
 
           agenix.packages.${system}.agenix
         ];
-        inherit (inputs.self.checks.${system}.pre-commit-check) shellHook;
+        inherit (self.checks.${system}.pre-commit-check) shellHook;
       };
 
       formatter = pkgs.alejandra;
