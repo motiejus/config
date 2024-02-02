@@ -91,6 +91,7 @@
 
     overlays = [
       nur.overlay
+      nixgl.overlay
       e11sync.overlays.default
 
       (_self: super: {deploy-rs-pkg = super.deploy-rs;})
@@ -298,13 +299,7 @@
         deploy-rs.lib;
     }
     // flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [
-          nur.overlay
-          nixgl.overlay
-        ];
-      };
+      pkgs = import nixpkgs {inherit system overlays;};
     in {
       homeConfigurations.motiejusja = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
@@ -324,7 +319,7 @@
           pkgs.rage
           pkgs.ssh-to-age
           pkgs.age-plugin-yubikey
-          pkgs.deploy-rs
+          pkgs.deploy-rs.deploy-rs
 
           agenix.packages.${system}.agenix
         ];
