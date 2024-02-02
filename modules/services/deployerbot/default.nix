@@ -9,7 +9,7 @@
     pingTarget,
   }: ''
     if ${pkgs.inetutils}/bin/ping -c 1 ${pingTarget}; then
-      ${pkgs.deploy-rs}/bin/deploy \
+      ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
         --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
         --ssh-user=deployerbot-follower \
         --confirm-timeout 60 \
@@ -85,7 +85,7 @@ in {
 
             nix flake update --accept-flake-config --commit-lock-file
 
-            ${pkgs.deploy-rs}/bin/deploy \
+            ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --confirm-timeout 60 \

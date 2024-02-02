@@ -91,24 +91,24 @@
     mkDeployPkgs = system:
       import nixpkgs {
         inherit system;
-
-        overlays = [
-          deploy-rs.overlay
-          (_self: super: {
-            deploy-rs = {
-              inherit (import nixpkgs {inherit system;}) deploy-rs;
-              inherit (super.deploy-rs) lib;
-            };
-          })
-        ];
+        overlays = mkOverlays system;
       };
+
     deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
     deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
     # accepting "system" argument in case we need to construct
     # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
-    mkOverlays = _: [
+    mkOverlays = system: [
       nur.overlay
       e11sync.overlays.default
+
+      deploy-rs.overlay
+      (_self: super: {
+        deploy-rs = {
+          inherit (import nixpkgs {inherit system;}) deploy-rs;
+          inherit (super.deploy-rs) lib;
+        };
+      })
     ];
   in
     {
