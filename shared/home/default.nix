@@ -99,6 +99,10 @@ in {
 
   programs = {
     direnv.enable = true;
+    man = {
+      enable = true;
+      generateCaches = true;
+    };
 
     firefox = lib.mkIf fullDesktop {
       enable = true;
