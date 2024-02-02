@@ -1,5 +1,4 @@
 vim.api.nvim_exec([[
-    au FileType go nnoremap <buffer> <C-]> :GoDef<CR>
-    au FileType go let g:go_template_autocreate = 0
+    set grepprg=@ripgrep@/bin/rg\ --vimgrep grepformat^=%f:%l:%c:%m
     au FileType go let g:go_fmt_command = "@gotools@/bin/goimports"
 ]], false)

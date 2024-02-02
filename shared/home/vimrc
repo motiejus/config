@@ -1,7 +1,7 @@
 syntax on
 filetype plugin indent on
 set et ts=4 sw=4 sts=4 nu hlsearch ruler ignorecase smartcase nomodeline bg=dark incsearch
-set path=**/* grepprg=rg\ --vimgrep grepformat^=%f:%l:%c:%m backspace=2 nojs
+set path=**/* backspace=2 nojs
 set laststatus=1 diffopt+=algorithm:patience
 nnoremap <Leader>\ gqj
 command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <CR> :e <C-r>=getline('.')<CR><CR>
@@ -42,6 +42,8 @@ au BufRead,BufNewFile *.do setfiletype sh
 
 " go
 au FileType go setlocal noet
+au FileType go nnoremap <buffer> <C-]> :GoDef<CR>
+au FileType go let g:go_template_autocreate = 0
 
 " strace
 au FileType strace setlocal nonu

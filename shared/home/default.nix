@@ -152,7 +152,7 @@ in {
           builtins.readFile
           (pkgs.substituteAll {
             src = ./dev.lua;
-            inherit (pkgs) gotools;
+            inherit (pkgs) gotools ripgrep;
           })
           .outPath;
       })
