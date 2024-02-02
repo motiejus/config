@@ -57,7 +57,7 @@
         pkgs.symlinkJoin (
           {
             inherit paths;
-            nativeBuildInputs = [pkgs.makeBinaryWrapper];
+            nativeBuildInputs = [pkgs.makeWrapper];
             postBuild = ''
               mv $out/bin/${execName} $out/bin/.${execName}-mkWrapped-original
               makeWrapper ${wrap}/bin/${wrap.name} $out/bin/${execName} --add-flags $out/bin/.${execName}-mkWrapped-original
