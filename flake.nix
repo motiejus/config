@@ -89,23 +89,20 @@
   } @ inputs: let
     myData = import ./data.nix;
     mkDeployPkgs = system:
-      import nixpkgs {
-        inherit system;
-        overlays = mkOverlays system;
-      };
-
+      import nixpkgs {inherit system overlays;};
     deployPkgsIA64 = mkDeployPkgs "x86_64-linux";
     deployPkgsArm64 = mkDeployPkgs "aarch64-linux";
     # accepting "system" argument in case we need to construct
     # nixpkgs-unstable. See git log around the switch from 23.05 to 23.11.
-    mkOverlays = system: [
+    overlays = [
       nur.overlay
       e11sync.overlays.default
 
+      (_self: super: {deploy-rs-pkg = super.deploy-rs;})
       deploy-rs.overlay
       (_self: super: {
         deploy-rs = {
-          inherit (import nixpkgs {inherit system;}) deploy-rs;
+          deploy-rs = super.deploy-rs-pkg;
           inherit (super.deploy-rs) lib;
         };
       })
@@ -126,7 +123,7 @@
         vno1-oh2 = nixpkgs.lib.nixosSystem rec {
           system = "x86_64-linux";
           modules = [
-            {nixpkgs.overlays = mkOverlays system;}
+            {nixpkgs.overlays = overlays;}
             ./hosts/vno1-oh2/configuration.nix
 
             ./modules
@@ -161,7 +158,7 @@
         fwminex = nixpkgs.lib.nixosSystem rec {
           system = "x86_64-linux";
           modules = [
-            {nixpkgs.overlays = mkOverlays system;}
+            {nixpkgs.overlays = overlays;}
             ./hosts/fwminex/configuration.nix
 
             ./modules
@@ -188,7 +185,7 @@
         vno3-rp3b = nixpkgs.lib.nixosSystem rec {
           system = "aarch64-linux";
           modules = [
-            {nixpkgs.overlays = mkOverlays system;}
+            {nixpkgs.overlays = overlays;}
             ./hosts/vno3-rp3b/configuration.nix
 
             ./modules
@@ -213,7 +210,7 @@
         fra1-a = nixpkgs.lib.nixosSystem rec {
           system = "aarch64-linux";
           modules = [
-            {nixpkgs.overlays = mkOverlays system;}
+            {nixpkgs.overlays = overlays;}
             e11sync.nixosModules.e11sync
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
