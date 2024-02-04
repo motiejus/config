@@ -196,11 +196,12 @@ in {
       xorg.xev
       xorg.xeyes
 
-      nvtop.overrideAttrs
-      {
+      (nvtop.override {
         amd = true;
         intel = true;
-      }
+        msm = false;
+        nvidia = false;
+      })
 
       (texlive.combine {
         inherit
