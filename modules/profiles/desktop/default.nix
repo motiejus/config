@@ -121,7 +121,6 @@ in {
       qemu
       xclip
       pdftk
-      nvtop
       x11vnc
       yt-dlp
       ffmpeg
@@ -196,6 +195,12 @@ in {
 
       xorg.xev
       xorg.xeyes
+
+      nvtop.overrideAttrs
+      {
+        amd = true;
+        intel = true;
+      }
 
       (texlive.combine {
         inherit
