@@ -129,6 +129,7 @@ in {
       arandr
       pandoc
       evince
+      gparted
       scribus
       gnumake
       calibre
