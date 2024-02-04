@@ -106,12 +106,23 @@
     ];
   in
     {
+      #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
+      #  system = "x86_64-linux";
+      #  modules = [
+      #    ./hosts/vm/configuration.nix
+      #    ./modules
+      #  ];
+
+      #  specialArgs = {inherit myData;} // inputs;
+      #};
+
       nixosConfigurations = {
         vno1-oh2 = nixpkgs.lib.nixosSystem rec {
           system = "x86_64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
             ./hosts/vno1-oh2/configuration.nix
+
             ./modules
 
             agenix.nixosModules.default
@@ -146,6 +157,7 @@
           modules = [
             {nixpkgs.overlays = overlays;}
             ./hosts/fwminex/configuration.nix
+
             ./modules
             ./modules/profiles/desktop
 
@@ -172,6 +184,7 @@
           modules = [
             {nixpkgs.overlays = overlays;}
             ./hosts/vno3-rp3b/configuration.nix
+
             ./modules
 
             agenix.nixosModules.default
@@ -272,8 +285,9 @@
         builtins.mapAttrs (
           system: deployLib:
             deployLib.deployChecks self.deploy
+            #// self.homeConfigurations.${system}.motiejusja.activationPackage
             // {
-              pre-commit-check = pre-commit-hooks.lib.${system}.run {
+              pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
                 src = ./.;
                 hooks = {
                   alejandra.enable = true;
@@ -281,7 +295,6 @@
                   statix.enable = true;
                 };
               };
-              hm-module = self.homeConfigurations.${system}.motiejusja.activationPackage;
             }
         )
         deploy-rs.lib;
