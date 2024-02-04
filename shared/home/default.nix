@@ -5,6 +5,7 @@
   email,
   fullDesktop,
   hmOnly,
+  username ? "motiejus",
   ...
 }: let
   pkgNicer = pkgs.writeShellApplication {
@@ -70,10 +71,8 @@
   glintel = mkWrapped pkgs.nixgl.nixGLIntel;
 in {
   home = {
-    inherit stateVersion;
-
-    username = "motiejus";
-    homeDirectory = "/home/motiejus";
+    inherit stateVersion username;
+    homeDirectory = "/home/${username}";
   };
 
   home.packages = with pkgs;

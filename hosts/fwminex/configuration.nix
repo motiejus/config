@@ -63,6 +63,7 @@ in {
     base = {
       zfs.enable = true;
       users = {
+        enable = true;
         fullDesktop = true;
         passwd = {
           root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;

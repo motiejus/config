@@ -7,6 +7,7 @@
   cfg = config.mj.base.users;
 in {
   options.mj.base.users = with lib.types; {
+    enable = lib.mkEnableOption "enable motiejus and root";
     fullDesktop = lib.mkOption {
       type = bool;
       default = false;
@@ -32,7 +33,7 @@ in {
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     users = {
       mutableUsers = false;
 

@@ -106,23 +106,23 @@
     ];
   in
     {
-      #nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
-      #  system = "x86_64-linux";
-      #  modules = [
-      #    ./hosts/vm/configuration.nix
-      #    ./modules
-      #  ];
-
-      #  specialArgs = {inherit myData;} // inputs;
-      #};
-
       nixosConfigurations = {
+        vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            {nixpkgs.overlays = overlays;}
+            home-manager.nixosModules.home-manager
+            ./hosts/vm/configuration.nix
+            ./modules
+          ];
+          specialArgs = {inherit myData;} // inputs;
+        };
+
         vno1-oh2 = nixpkgs.lib.nixosSystem rec {
           system = "x86_64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
             ./hosts/vno1-oh2/configuration.nix
-
             ./modules
 
             agenix.nixosModules.default
