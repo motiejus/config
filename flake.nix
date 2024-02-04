@@ -285,7 +285,6 @@
         builtins.mapAttrs (
           system: deployLib:
             deployLib.deployChecks self.deploy
-            #// self.homeConfigurations.${system}.motiejusja.activationPackage
             // {
               pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
                 src = ./.;
@@ -295,6 +294,7 @@
                   statix.enable = true;
                 };
               };
+              hm = self.homeConfigurations.${system}.motiejusja.activationPackage;
             }
         )
         deploy-rs.lib;
@@ -319,7 +319,6 @@
       devShells.default = pkgs.mkShellNoCC {
         packages = [
           pkgs.rage
-          pkgs.ssh-to-age
           pkgs.age-plugin-yubikey
           pkgs.deploy-rs.deploy-rs
 
