@@ -31,6 +31,8 @@
   };
 
   config = {
+    # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
+    boot.kernel.sysctl."kernel.sysrq" = "438";
     nixpkgs.config.allowUnfree = true;
 
     hardware.enableRedistributableFirmware = true;
