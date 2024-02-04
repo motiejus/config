@@ -310,7 +310,7 @@
         extraSpecialArgs = {
           stateVersion = "23.05";
           email = "motiejusja@wix.com";
-          fullDesktop = true;
+          devTools = true;
           hmOnly = true;
         };
       };

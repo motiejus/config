@@ -2,6 +2,7 @@
   self,
   lib,
   pkgs,
+  config,
   modulesPath,
   ...
 }: {
@@ -12,19 +13,14 @@
   ];
 
   home-manager.useGlobalPkgs = true;
-  home-manager.users.nixos = {
-    #config,
-    pkgs,
-    ...
-  }:
+  home-manager.users.nixos = {pkgs, ...}:
     lib.mkMerge [
       (import ../../shared/home/default.nix {
         inherit lib;
         inherit pkgs;
-        #inherit (config.mj) stateVersion;
-        stateVersion = "23.11";
+        inherit (config.mj) stateVersion;
         username = "nixos";
-        fullDesktop = true;
+        devTools = true;
         hmOnly = false;
         email = "motiejus@jakstys.lt";
       })
@@ -62,7 +58,6 @@
 
   services = {
     pcscd.enable = true;
-    udev.packages = [pkgs.yubikey-personalization];
     getty.autologinUser = "nixos";
     xserver = {
       enable = true;
@@ -103,30 +98,6 @@
       wheelNeedsPassword = false;
     };
   };
-
-  # from yubikey-guide
-  environment.systemPackages = with pkgs; [
-    paperkey
-    pgpdump
-    parted
-    cryptsetup
-
-    yubikey-manager
-    yubikey-manager-qt
-    yubikey-personalization
-    yubikey-personalization-gui
-    yubico-piv-tool
-    yubioath-flutter
-
-    ent
-    haskellPackages.hopenpgp-tools
-
-    diceware
-    pwgen
-
-    cfssl
-    pcsctools
-  ];
 
   networking = {
     hostName = "vm";

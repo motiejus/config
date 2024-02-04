@@ -8,7 +8,7 @@
 in {
   options.mj.base.users = with lib.types; {
     enable = lib.mkEnableOption "enable motiejus and root";
-    fullDesktop = lib.mkOption {
+    devTools = lib.mkOption {
       type = bool;
       default = false;
     };
@@ -66,7 +66,7 @@ in {
           inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion;
-          inherit (config.mj.base.users) fullDesktop;
+          inherit (config.mj.base.users) devTools;
           hmOnly = false;
           email = "motiejus@jakstys.lt";
         })

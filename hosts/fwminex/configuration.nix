@@ -64,7 +64,7 @@ in {
       zfs.enable = true;
       users = {
         enable = true;
-        fullDesktop = true;
+        devTools = true;
         passwd = {
           root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
           motiejus.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;

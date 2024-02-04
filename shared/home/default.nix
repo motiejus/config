@@ -3,7 +3,7 @@
   pkgs,
   stateVersion,
   email,
-  fullDesktop,
+  devTools,
   hmOnly,
   username ? "motiejus",
   ...
@@ -61,7 +61,9 @@
             nativeBuildInputs = [pkgs.makeWrapper];
             postBuild = ''
               mv $out/bin/${execName} $out/bin/.${execName}-mkWrapped-original
-              makeWrapper ${wrap}/bin/${wrap.name} $out/bin/${execName} --add-flags $out/bin/.${execName}-mkWrapped-original
+              makeWrapper \
+                ${wrap}/bin/${wrap.name} $out/bin/${execName} \
+                --add-flags $out/bin/.${execName}-mkWrapped-original
             '';
           }
           // metaAttributes
@@ -79,7 +81,7 @@ in {
     lib.mkMerge [
       [pkgNicer]
 
-      (lib.mkIf fullDesktop [
+      (lib.mkIf devTools [
         go
         zig
       ])
@@ -103,7 +105,7 @@ in {
       generateCaches = true;
     };
 
-    firefox = lib.mkIf fullDesktop {
+    firefox = lib.mkIf devTools {
       enable = true;
       # firefox doesn't need the wrapper on the personal laptop
       package =
@@ -143,14 +145,14 @@ in {
         plugins = with pkgs.vimPlugins;
           lib.mkMerge [
             [fugitive]
-            (lib.mkIf fullDesktop [
+            (lib.mkIf devTools [
               vim-go
               zig-vim
             ])
           ];
         extraConfig = builtins.readFile ./vimrc;
       }
-      (lib.mkIf fullDesktop {
+      (lib.mkIf devTools {
         extraLuaConfig =
           builtins.readFile
           (pkgs.substituteAll {
