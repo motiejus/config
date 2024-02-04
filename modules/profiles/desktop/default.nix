@@ -121,6 +121,7 @@ in {
       qemu
       xclip
       pdftk
+      nvtop
       x11vnc
       yt-dlp
       ffmpeg
