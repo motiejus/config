@@ -196,6 +196,7 @@ in {
       xorg.xev
       xorg.xeyes
 
+      intel-gpu-tools
       (nvtop.override {
         amd = true;
         intel = true;
