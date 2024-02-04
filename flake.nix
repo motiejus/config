@@ -321,7 +321,6 @@
           pkgs.rage
           pkgs.age-plugin-yubikey
           pkgs.deploy-rs.deploy-rs
-
           agenix.packages.${system}.agenix
         ];
         inherit (self.checks.${system}.pre-commit-check) shellHook;

@@ -2,6 +2,7 @@
   self,
   lib,
   pkgs,
+  myData,
   config,
   modulesPath,
   ...
@@ -74,6 +75,7 @@
       isNormalUser = true;
       extraGroups = ["wheel" "video"];
       initialHashedPassword = "";
+      openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
     };
     root.initialHashedPassword = "";
   };
@@ -90,14 +92,14 @@
 
   networking = {
     hostName = "vm";
-    domain = "example.org";
+    domain = "jakstys.lt";
     firewall.allowedTCPPorts = [22];
   };
 
   nix = {
     extraOptions = ''
       experimental-features = nix-command flakes
-      trusted-users = vm
+      trusted-users = nixos
     '';
   };
 }
