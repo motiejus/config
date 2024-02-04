@@ -14,26 +14,15 @@
 
   home-manager.useGlobalPkgs = true;
   home-manager.users.nixos = {pkgs, ...}:
-    lib.mkMerge [
-      (import ../../shared/home/default.nix {
-        inherit lib;
-        inherit pkgs;
-        inherit (config.mj) stateVersion;
-        username = "nixos";
-        devTools = true;
-        hmOnly = false;
-        email = "motiejus@jakstys.lt";
-      })
-      {
-        programs.bash = {
-          enable = true;
-          shellAliases = {
-            "l" = "echo -n ł | xclip -selection clipboard";
-            "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
-          };
-        };
-      }
-    ];
+    import ../../shared/home/default.nix {
+      inherit lib;
+      inherit pkgs;
+      inherit (config.mj) stateVersion;
+      username = "nixos";
+      devTools = true;
+      hmOnly = false;
+      email = "motiejus@jakstys.lt";
+    };
 
   mj = {
     stateVersion = "23.11";

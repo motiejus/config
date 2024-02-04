@@ -309,6 +309,7 @@
         ];
         extraSpecialArgs = {
           stateVersion = "23.05";
+          username = "motiejus";
           email = "motiejusja@wix.com";
           devTools = true;
           hmOnly = true;
