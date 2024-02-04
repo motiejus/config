@@ -49,7 +49,7 @@
   };
 
   isoImage = {
-    isoName = "toolshed.iso";
+    isoName = "toolshed-${self.lastModifiedDate}.iso";
     squashfsCompression = "zstd";
     appendToMenuLabel = " Toolshed ${self.lastModifiedDate}";
     makeEfiBootable = true; # EFI booting
