@@ -250,6 +250,17 @@
   };
 
   services = {
+    freshrss = {
+      enable = true;
+      authType = "none";
+      virtualHost = "localhost:9010";
+      baseUrl = "http://localhost:9010";
+    };
+    nginx = {
+      enable = true;
+      defaultHTTPListenPort = 9010;
+    };
+
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
