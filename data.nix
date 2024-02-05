@@ -176,6 +176,7 @@ rec {
     dl                               A     ${vno1}
     fra1-a                           A     ${fra1a}
     vno1                             A     ${vno1}
+    rss                              A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
 
     @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
     @                               TXT    hosted-email-verify=rvyd6h64
