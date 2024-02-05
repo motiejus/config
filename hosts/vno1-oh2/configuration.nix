@@ -250,17 +250,6 @@
   };
 
   services = {
-    miniflux = {
-      enable = true;
-      config = {
-        LISTEN_ADDR = "localhost:9010";
-      };
-      adminCredentialsFile = pkgs.writeText "miniflux-creds" ''
-        ADMIN_USERNAME=admin
-        ADMIN_PASSWORD=adminadmin
-      '';
-    };
-
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
@@ -275,11 +264,6 @@
           abort @denied
           reverse_proxy 127.0.0.1:8123
           tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
-        '';
-        "rss.jakstys.lt:80".extraConfig = ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          abort @denied
-          reverse_proxy 127.0.0.1:9010
         '';
         "beta.jakstys.lt".extraConfig = ''
           handle /.well-known/carddav {
