@@ -63,11 +63,13 @@ in {
         tmuxbash
         nicer
         ncdu
+        poop
         tokei
         scrcpy
         yt-dlp
         kubectl
         vimv-rs
+        ripgrep
         bandwhich
         hyperfine
       ])
