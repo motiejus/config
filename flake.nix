@@ -103,6 +103,10 @@
         };
       })
       (_: _: {deploy-rs-pkg = null;})
+      (_: super: {
+        tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
+        nicer = super.callPackage ./pkgs/nicer.nix {};
+      })
     ];
   in
     {
@@ -308,6 +312,7 @@
           shared/home
         ];
         extraSpecialArgs = {
+          inherit self system;
           stateVersion = "23.05";
           username = "motiejus";
           email = "motiejusja@wix.com";

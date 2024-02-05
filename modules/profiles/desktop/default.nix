@@ -111,6 +111,10 @@ in {
     };
 
     environment.systemPackages = with pkgs; [
+      # packages defined here
+      nicer
+      tmuxbash
+
       iw
       vlc
       i7z

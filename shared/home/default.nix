@@ -8,31 +8,6 @@
   username ? "motiejus",
   ...
 }: let
-  pkgNicer = pkgs.writeShellApplication {
-    name = "nicer";
-    text = ''
-      f=$(${pkgs.coreutils}/bin/mktemp)
-      trap '${pkgs.coreutils}/bin/rm -f "$f"' EXIT
-      ${pkgs.coreutils}/bin/env > "$f"
-      systemd-run \
-          --user \
-          --same-dir \
-          --slice nicer \
-          --nice=19 \
-          --property CPUSchedulingPolicy=idle \
-          --property IOSchedulingClass=idle \
-          --property IOSchedulingPriority=7 \
-          --pty \
-          --pipe \
-          --wait \
-          --collect \
-          --quiet \
-          --property EnvironmentFile="$f" \
-          --service-type=exec \
-          -- "$@"
-    '';
-  };
-
   # from https://github.com/Gerg-L/demoninajar/blob/39964f198dbfa34c21f81c35370fab312b476051/homes/veritas_manjaro/nixGL.nix#L42
   mkWrapped = wrap: orig-pkg: execName:
     pkgs.makeOverridable
@@ -79,14 +54,14 @@ in {
 
   home.packages = with pkgs;
     lib.mkMerge [
-      [pkgNicer]
-
       (lib.mkIf devTools [
         go
         zig
       ])
 
       (lib.mkIf hmOnly [
+        tmuxbash
+        nicer
         ncdu
         tokei
         scrcpy
