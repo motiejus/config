@@ -122,7 +122,7 @@
           specialArgs = {inherit myData;} // inputs;
         };
 
-        vno1-oh2 = nixpkgs.lib.nixosSystem rec {
+        vno1-oh2 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
@@ -156,7 +156,7 @@
           specialArgs = {inherit myData;} // inputs;
         };
 
-        fwminex = nixpkgs.lib.nixosSystem rec {
+        fwminex = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
@@ -183,7 +183,7 @@
           specialArgs = {inherit myData;} // inputs;
         };
 
-        vno3-rp3b = nixpkgs.lib.nixosSystem rec {
+        vno3-rp3b = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
@@ -208,7 +208,7 @@
           specialArgs = {inherit myData;} // inputs;
         };
 
-        fra1-a = nixpkgs.lib.nixosSystem rec {
+        fra1-a = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
