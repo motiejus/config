@@ -95,6 +95,7 @@
         tokei
         pwgen
         parted
+        bloaty
         sqlite
         dhcpcd
         hdparm

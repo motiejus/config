@@ -60,11 +60,14 @@ in {
       ])
 
       (lib.mkIf hmOnly [
+        # pkgs by motiejus
         tmuxbash
         nicer
+
         ncdu
         poop
         tokei
+        bloaty
         scrcpy
         yt-dlp
         kubectl
