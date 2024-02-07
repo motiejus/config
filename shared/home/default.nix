@@ -73,6 +73,7 @@ in {
         kubectl
         vimv-rs
         ripgrep
+        yamllint
         bandwhich
         hyperfine
       ])

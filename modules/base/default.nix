@@ -109,6 +109,7 @@
         pciutils
         bsdgames
         parallel
+        yamllint
         binutils
         hyperfine
         stress-ng
