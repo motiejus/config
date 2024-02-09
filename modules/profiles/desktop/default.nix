@@ -124,8 +124,6 @@ in {
       josm
       qemu
       xclip
-      cmake
-      ninja
       pdftk
       x11vnc
       yt-dlp
