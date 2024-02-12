@@ -1,48 +1,52 @@
 {
   lib,
-  gamja,
+  stdenvNoCC,
   fetchFromSourcehut,
   buildNpmPackage,
   runCommand,
-  python3,
   writeText,
   brotli,
   zopfli,
   xorg,
-  # optional configuration attrSet, see https://git.sr.ht/~emersion/gamja#configuration-file for possible values
+  # https://git.sr.ht/~emersion/gamja/tree/master/doc/config-file.md
   gamjaConfig ? null,
-}:
-buildNpmPackage rec {
-  pname = "gamja";
+}: let
   version = "1.0.0-beta.9";
+  pkg = buildNpmPackage rec {
+    pname = "gamja";
+    inherit version;
 
-  src = fetchFromSourcehut {
-    owner = "~emersion";
-    repo = "gamja";
-    rev = "v${version}";
-    hash = "sha256-09rCj9oMzldRrxMGH4rUnQ6wugfhfmJP3rHET5b+NC8=";
+    src = fetchFromSourcehut {
+      owner = "~emersion";
+      repo = "gamja";
+      rev = "v${version}";
+      hash = "sha256-09rCj9oMzldRrxMGH4rUnQ6wugfhfmJP3rHET5b+NC8=";
+    };
+
+    npmDepsHash = "sha256-LxShwZacCctKAfMNCUMyrSaI1hIVN80Wseq/d8WITkc=";
+
+    installPhase = ''
+        mv dist $out
+      ${lib.optionalString (gamjaConfig != null) "cp ${writeText "gamja-config" (builtins.toJSON gamjaConfig)} $out/config.json"}
+    '';
   };
+in
+  stdenvNoCC.mkDerivation {
+    name = pkg.pname;
+    inherit (pkg) version;
+    src = pkg;
+    sourceRoot = ".";
 
-  npmDepsHash = "sha256-LxShwZacCctKAfMNCUMyrSaI1hIVN80Wseq/d8WITkc=";
+    installPhase = ''
+      runHook preInstall
+      mv gamja-${version} $out
+      runHook postInstall
+    '';
 
-  # without this, the aarch64-linux build fails
-  nativeBuildInputs = [python3];
-
-  installPhase = ''
-    runHook preInstall
-
-    cp -r dist $out
-    ${lib.optionalString (gamjaConfig != null) "cp ${writeText "gamja-config" (builtins.toJSON gamjaConfig)} $out/config.json"}
-
-    runHook postInstall
-  '';
-
-  passthru = {
-    data-compressed =
-      runCommand "gamja-compressed" {
-      } ''
+    passthru = {
+      data-compressed = runCommand "gamja-compressed" {} ''
         mkdir $out
-        ${xorg.lndir}/bin/lndir ${gamja}/ $out/
+        ${xorg.lndir}/bin/lndir ${pkg}/ $out/
 
         find $out \
             -name '*.css' -or \
@@ -54,12 +58,12 @@ buildNpmPackage rec {
             tee >(xargs -n1 -P''$(nproc) ${zopfli}/bin/zopfli) | \
             xargs -n1 -P''$(nproc) ${brotli}/bin/brotli
       '';
-  };
+    };
 
-  meta = with lib; {
-    description = "A simple IRC web client";
-    homepage = "https://git.sr.ht/~emersion/gamja";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [motiejus];
-  };
-}
+    meta = with lib; {
+      description = "A simple IRC web client";
+      homepage = "https://git.sr.ht/~emersion/gamja";
+      license = licenses.agpl3Only;
+      maintainers = with maintainers; [motiejus];
+    };
+  }
