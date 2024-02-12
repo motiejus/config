@@ -528,6 +528,7 @@
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";
+      httpOrigins = ["https://irc.jakstys.lt"];
       extraConfig = ''
         message-store fs /var/lib/soju
       '';
