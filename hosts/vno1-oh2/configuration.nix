@@ -155,6 +155,7 @@
             grafana
             prometheus
             soju
+            soju-ws
           ];
         }
       ];
@@ -520,7 +521,11 @@
 
     soju = {
       enable = true;
-      listen = ["unix+admin://" ":${toString myData.ports.soju}"];
+      listen = [
+        "unix+admin://"
+        ":${toString myData.ports.soju}"
+        "ws+insecure://0.0.0.0:${toString myData.ports.soju-ws}"
+      ];
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";

@@ -26,6 +26,7 @@ rec {
     vaultwarden_ws = 3012;
 
     soju = 6697;
+    soju-ws = 6698;
     matrix-synapse = 8008;
     vaultwarden = 8222;
     kodi = 8080;
