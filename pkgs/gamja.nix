@@ -39,15 +39,15 @@ buildNpmPackage rec {
 
   passthru = {
     data-compressed =
-      runCommand "soju-data-compressed" {
-        nativeBuildInputs = [brotli zopfli xorg.lndir];
+      runCommand "gamja-compressed" {
       } ''
         mkdir $out
-        lndir ${gamja}/ $out/
+        ${xorg.lndir}/bin/lndir ${gamja}/ $out/
 
         find $out \
             -name '*.css' -or \
             -name '*.js' -or \
+            -name '*.json' -or \
             -name '*.map' -or \
             -name '*.webmanifest' -or \
             -name '*.html' | \
