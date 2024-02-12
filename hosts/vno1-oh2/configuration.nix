@@ -4,7 +4,16 @@
   pkgs,
   myData,
   ...
-}: {
+}: let
+  # TODO: this doesn't get added to the compressed version
+  gamja = pkgs.gamja.override {
+    gamjaConfig = {
+      server = {
+        url = "irc.jakstys.lt:6698";
+      };
+    };
+  };
+in {
   zfs-root = {
     boot = {
       enable = true;
@@ -303,7 +312,7 @@
           abort @denied
           tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
-          root * ${pkgs.gamja.passthru.data-compressed}
+          root * ${gamja.passthru.data-compressed}
           file_server browse {
               precompressed br gzip
           }
@@ -700,8 +709,6 @@
   };
 
   environment.systemPackages = with pkgs; [
-    gamja # wip
-
     yt-dlp
     imapsync
     geoipWithDatabase
