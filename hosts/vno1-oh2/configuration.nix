@@ -266,17 +266,6 @@
           reverse_proxy 127.0.0.1:8123
           tls {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/hass.jakstys.lt-key.pem
         '';
-        "beta.jakstys.lt".extraConfig = ''
-          handle /.well-known/carddav {
-            redir https://cdav.migadu.com/
-          }
-          handle /.well-known/caldav {
-            redir https://cdav.migadu.com/
-          }
-          handle {
-            respond "okz" 200
-          }
-        '';
         "grafana.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
@@ -308,6 +297,15 @@
         '';
         "www.jakstys.lt".extraConfig = ''
           redir https://jakstys.lt
+        '';
+        "irc.jakstys.lt".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+
+          root * ${pkgs.gamja}
+          file_server browse {
+              precompressed br gzip
+          }
         '';
         "dl.jakstys.lt".extraConfig = ''
           root * /var/www/dl
@@ -524,7 +522,7 @@
       listen = [
         "unix+admin://"
         ":${toString myData.ports.soju}"
-        "ws+insecure://0.0.0.0:${toString myData.ports.soju-ws}"
+        "ws+insecure://:${toString myData.ports.soju-ws}"
       ];
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
