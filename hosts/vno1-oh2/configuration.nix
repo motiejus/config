@@ -523,7 +523,7 @@
       listen = [
         "unix+admin://"
         ":${toString myData.ports.soju}"
-        "ws+insecure://:${toString myData.ports.soju-ws}"
+        "wss://:${toString myData.ports.soju-ws}"
       ];
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
