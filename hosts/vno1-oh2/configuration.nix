@@ -301,6 +301,7 @@
         "irc.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
+          tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
           root * ${pkgs.gamja}
           file_server browse {
@@ -575,11 +576,14 @@
 
   systemd.services = {
     caddy = let
+      irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
       hass = config.mj.services.nsd-acme.zones."hass.jakstys.lt";
       grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
       bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
     in {
       serviceConfig.LoadCredential = [
+        "irc.jakstys.lt-cert.pem:${irc.certFile}"
+        "irc.jakstys.lt-key.pem:${irc.keyFile}"
         "hass.jakstys.lt-cert.pem:${hass.certFile}"
         "hass.jakstys.lt-key.pem:${hass.keyFile}"
         "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
@@ -588,11 +592,13 @@
         "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
       ];
       after = [
+        "nsd-acme-irc.jakstys.lt.service"
         "nsd-acme-hass.jakstys.lt.service"
         "nsd-acme-grafana.jakstys.lt.service"
         "nsd-acme-bitwarden.jakstys.lt.service"
       ];
       requires = [
+        "nsd-acme-irc.jakstys.lt.service"
         "nsd-acme-hass.jakstys.lt.service"
         "nsd-acme-grafana.jakstys.lt.service"
         "nsd-acme-bitwarden.jakstys.lt.service"
@@ -672,6 +678,7 @@
       wantedBy = ["multi-user.target"];
       pathConfig = {
         PathChanged = [
+          config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
           config.mj.services.nsd-acme.zones."hass.jakstys.lt".certFile
           config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
           config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
