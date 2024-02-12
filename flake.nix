@@ -106,6 +106,7 @@
       (_: super: {
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
+        gamja = super.callPackage ./pkgs/gamja.nix {};
       })
     ];
   in

@@ -689,6 +689,8 @@
   };
 
   environment.systemPackages = with pkgs; [
+    gamja # wip
+
     yt-dlp
     imapsync
     geoipWithDatabase
