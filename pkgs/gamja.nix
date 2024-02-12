@@ -1,9 +1,14 @@
 {
   lib,
+  gamja,
   fetchFromSourcehut,
   buildNpmPackage,
+  runCommand,
   python3,
   writeText,
+  brotli,
+  zopfli,
+  xorg,
   # optional configuration attrSet, see https://git.sr.ht/~emersion/gamja#configuration-file for possible values
   gamjaConfig ? null,
 }:
@@ -31,6 +36,25 @@ buildNpmPackage rec {
 
     runHook postInstall
   '';
+
+  passthru = {
+    data-compressed =
+      runCommand "soju-data-compressed" {
+        nativeBuildInputs = [brotli zopfli xorg.lndir];
+      } ''
+        mkdir $out
+        lndir ${gamja}/ $out/
+
+        find $out \
+            -name '*.css' -or \
+            -name '*.js' -or \
+            -name '*.map' -or \
+            -name '*.webmanifest' -or \
+            -name '*.html' | \
+            tee >(xargs -n1 -P''$(nproc) ${zopfli}/bin/zopfli) | \
+            xargs -n1 -P''$(nproc) ${brotli}/bin/brotli
+      '';
+  };
 
   meta = with lib; {
     description = "A simple IRC web client";
