@@ -58,14 +58,14 @@ This feature is also available in nginx via `ngx_brotli` and
 
 
 Inputs:
-- extensions :: [String]
+- formats :: [String]
 
     The default list of file extensions to compress.
 
     Default: common formats that compress well. The list may be appended (but
     not reduced) without warning.
 
-- extraExtensions :: [String]
+- extraFormats :: [String]
 
     Extra extensions to compress in addition to `extensions`.
 
@@ -98,10 +98,12 @@ Inputs:
   brotli,
   xz,
   zstd,
-  extensions ? ["css" "js" "svg" "ttf" "eot" "txt" "xml" "map" "html" "json" "webmanifest"],
-  extraExtensions ? [],
+}: drv: {
+  formats ? ["css" "js" "svg" "ttf" "eot" "txt" "xml" "map" "html" "json" "webmanifest"],
+  extraFormats ? [],
   compressors ? ["gz" "br"],
-} @ args: drv: let
+  ...
+} @ args: let
   compressorMap =
     {
       compressor-gz = "${zopfli}/bin/zopfli --keep {}";
@@ -116,13 +118,13 @@ Inputs:
       prog = builtins.getAttr "compressor-${ext}" compressorMap;
     in "tee >(xargs -I{} -n1 -P$NIX_BUILD_CORES ${prog})")
     compressors;
-  extensionsVbar = builtins.concatStringsSep "|" (extensions ++ extraExtensions);
+  formatsbar = builtins.concatStringsSep "|" (formats ++ extraFormats);
 in
   runCommand "${drv.name}-compressed" {} ''
     mkdir $out
     ${xorg.lndir}/bin/lndir ${drv}/ $out/
 
     find -L $out -type f -regextype posix-extended \
-      -iregex '.*\.(${extensionsVbar})' | \
+      -iregex '.*\.(${formatsbar})' | \
         ${builtins.concatStringsSep " | \\\n    " compressCommands}
   ''

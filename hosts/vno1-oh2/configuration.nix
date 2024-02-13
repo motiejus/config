@@ -299,20 +299,20 @@
           redir https://jakstys.lt
         '';
         "irc.jakstys.lt".extraConfig = let
-          gamja = pkgs.gamja.override {
+          gamja = pkgs.compressAll (pkgs.gamja.override {
             gamjaConfig = {
               server = {
                 url = "irc.jakstys.lt:6698";
                 nick = "motiejus";
               };
             };
-          };
+          }) {};
         in ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
           tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
-          root * ${pkgs.compressAll gamja}
+          root * ${gamja}
           file_server browse {
               precompressed br gzip
           }

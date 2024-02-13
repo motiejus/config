@@ -78,7 +78,7 @@
           route /static/assets/* {
             uri strip_prefix /static/assets
             file_server * {
-              root ${pkgs.compressAll pkgs.gitea.data}/public
+              root ${pkgs.compressAll pkgs.gitea.data {}}/public
               precompressed br gzip
             }
           }

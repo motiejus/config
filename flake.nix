@@ -323,8 +323,6 @@
         };
       };
 
-      packages.gamja = pkgs.compressAll pkgs.gamja;
-
       devShells.default = pkgs.mkShellNoCC {
         packages = [
           pkgs.rage
