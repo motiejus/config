@@ -49,14 +49,10 @@ in
         ${xorg.lndir}/bin/lndir ${pkg}/ $out/
 
         find $out \
-            -name '*.css' -or \
-            -name '*.js' -or \
-            -name '*.json' -or \
-            -name '*.map' -or \
-            -name '*.webmanifest' -or \
-            -name '*.html' | \
+              -regextype posix-extended \
+              -iregex '.*\.(css|js|json|map|webmanifest|html)' | \
             tee >(xargs -n1 -P''$(nproc) ${zopfli}/bin/zopfli) | \
-            xargs -n1 -P''$(nproc) ${brotli}/bin/brotli
+                  xargs -n1 -P''$(nproc) ${brotli}/bin/brotli
       '';
     };
 
