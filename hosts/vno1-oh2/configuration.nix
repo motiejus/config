@@ -312,7 +312,7 @@
           abort @denied
           tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
-          root * ${gamja.passthru.data-compressed}
+          root * ${pkgs.compressAll gamja}
           file_server browse {
               precompressed br gzip
           }

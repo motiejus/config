@@ -107,6 +107,7 @@
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
         gamja = super.callPackage ./pkgs/gamja.nix {};
+        compressAll = super.callPackage ./pkgs/compress-all.nix {};
       })
     ];
   in
@@ -322,7 +323,7 @@
         };
       };
 
-      packages.gamja = pkgs.gamja;
+      packages.gamja = pkgs.compressAll pkgs.gamja;
 
       devShells.default = pkgs.mkShellNoCC {
         packages = [
