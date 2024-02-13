@@ -12,7 +12,7 @@
   gamjaConfig ? null,
 }: let
   version = "1.0.0-beta.9";
-  pkg = buildNpmPackage rec {
+  pkg = buildNpmPackage {
     pname = "gamja";
     inherit version;
 
