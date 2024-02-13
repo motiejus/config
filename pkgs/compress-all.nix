@@ -47,7 +47,7 @@ For example, a caddy configuration snippet for gamja to serve
 the static assets (JS, CSS files) pre-compressed:
 
     virtualHosts."irc.example.org".extraConfig = ''
-      root * ${pkgs.compressAll pkgs.gamja}
+      root * ${pkgs.compressAll pkgs.gamja {}}
       file_server browse {
           precompressed br gzip
       }
@@ -96,8 +96,6 @@ Inputs:
   xorg,
   zopfli,
   brotli,
-  xz,
-  zstd,
 }: drv: {
   formats ? ["css" "js" "svg" "ttf" "eot" "txt" "xml" "map" "html" "json" "webmanifest"],
   extraFormats ? [],
@@ -108,8 +106,6 @@ Inputs:
     {
       compressor-gz = "${zopfli}/bin/zopfli --keep {}";
       compressor-br = "${brotli}/bin/brotli --keep --no-copy-stat {}";
-      compressor-xz = "${xz}/bin/xz --keep {}";
-      compressor-zst = "${zstd}/bin/zstd --keep {}";
     }
     // lib.filterAttrs (k: _: (lib.hasPrefix "compressor-" k)) args;
   compressCommands =
