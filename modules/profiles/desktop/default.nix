@@ -199,6 +199,7 @@ in {
 
       xorg.xev
       xorg.xeyes
+      xorg.lndir
 
       intel-gpu-tools
       (nvtop.override {
