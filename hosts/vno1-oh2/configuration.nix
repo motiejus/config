@@ -299,7 +299,14 @@
           redir https://jakstys.lt
         '';
         "irc.jakstys.lt".extraConfig = let
-          inherit (pkgs) gamja;
+          gamja = pkgs.gamja.override {
+            gamjaConfig = {
+              server = {
+                url = "irc.jakstys.lt:6698";
+                nick = "motiejus";
+              };
+            };
+          };
         in ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
