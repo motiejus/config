@@ -153,7 +153,7 @@ in {
         extraConfig = {
           rerere.enabled = true;
           pull.ff = "only";
-          merge.conflictstyle = "diff3";
+          merge.conflictstyle = "zdiff3";
           init.defaultBranch = "main";
         };
       };
