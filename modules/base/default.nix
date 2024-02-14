@@ -140,6 +140,7 @@
         dnsutils
         bandwhich
         speedtest-cli
+        nix-output-monitor
         config.boot.kernelPackages.perf
 
         # compression/decompression

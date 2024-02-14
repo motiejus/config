@@ -76,6 +76,7 @@ in {
         yamllint
         bandwhich
         hyperfine
+        nix-output-monitor
       ])
     ];
 
