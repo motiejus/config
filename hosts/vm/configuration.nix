@@ -54,6 +54,7 @@
       desktopManager.xfce.enable = true;
       displayManager = {
         lightdm.enable = true;
+        defaultSession = "none+awesome";
         autoLogin = {
           enable = true;
           user = "nixos";
