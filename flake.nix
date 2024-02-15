@@ -104,10 +104,11 @@
       })
       (_: _: {deploy-rs-pkg = null;})
       (_: super: {
+        inherit (super.callPackage ./pkgs/compress-drv.nix {}) compressDrvWeb;
+
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
         gamja = super.callPackage ./pkgs/gamja.nix {};
-        compressAll = super.callPackage ./pkgs/compress-all.nix {};
       })
     ];
   in
