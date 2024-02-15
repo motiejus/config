@@ -141,6 +141,10 @@ in {
 
       Default: ["gz" "br"]
 
+    - extraCompressors :: [String]
+
+      Extra compressors in addition to `compressors`.
+
   - compressor-<COMPRESSOR> :: String
 
       Map a desired extension (e.g. `gz`) to a compress program.
@@ -154,17 +158,19 @@ in {
 
         compressor-gz = "${zopfli}/bin/zopfli --keep {}";
         compressor-br = "${brotli}/bin/brotli --keep --no-copy-stat {}";
+
   */
 
   compressDrvWeb = drv: {
     formats ? ["css" "js" "svg" "ttf" "eot" "txt" "xml" "map" "html" "json" "webmanifest"],
     extraFormats ? [],
     compressors ? ["gz" "br"],
+    extraCompressors ? [],
     ...
   } @ args:
     compressDrv drv ({
         formats = formats ++ extraFormats;
-        compressors = compressors;
+        compressors = compressors ++ extraCompressors;
         compressor-gz = "${zopfli}/bin/zopfli --keep {}";
         compressor-br = "${brotli}/bin/brotli --keep --no-copy-stat {}";
       }
