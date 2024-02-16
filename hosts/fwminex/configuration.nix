@@ -165,6 +165,9 @@ in {
     };
   };
 
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = ["motiejus"];
+
   networking = {
     hostId = "3a54afcd";
     hostName = "fwminex";
