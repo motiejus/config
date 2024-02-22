@@ -674,6 +674,8 @@
       };
     };
 
+    syncthing-relay.restartIfChanged = false;
+
     photoprism.serviceConfig = {
       ProtectHome = lib.mkForce "tmpfs";
       BindPaths = [
