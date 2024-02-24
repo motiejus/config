@@ -41,7 +41,11 @@ in {
       pcscd.enable = true;
       printing = {
         enable = true;
-        drivers = [pkgs.samsung-unified-linux-driver_4_01_17];
+        drivers = [
+          pkgs.samsung-unified-linux-driver_4_01_17
+          (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd"
+            (builtins.readFile ../../../shared/HP_Color_Laser_15x_Series.ppd))
+        ];
       };
       openssh.settings.X11Forwarding = true;
 
