@@ -47,6 +47,13 @@ in {
             (builtins.readFile ../../../shared/HP_Color_Laser_15x_Series.ppd))
         ];
       };
+
+      services.avahi = {
+        enable = true;
+        nssmdns = true;
+        openFirewall = true;
+      };
+
       openssh.settings.X11Forwarding = true;
 
       logind.powerKey = "suspend";
