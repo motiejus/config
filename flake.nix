@@ -310,6 +310,11 @@
                   statix.enable = true;
                 };
               };
+
+              compress-drv-tests = let
+                pkgs = import nixpkgs {inherit system;};
+              in
+                pkgs.callPackage ./pkgs/compress-drv-tests.nix {};
             }
         )
         deploy-rs.lib;

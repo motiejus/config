@@ -26,6 +26,7 @@
       find -L $out -type f -regextype posix-extended \
         -iregex '.*\.(${formatsbar})' | \
           ${builtins.concatStringsSep " | \\\n    " compressCommands}
+      find $out/
     '';
 in {
   /*
@@ -46,7 +47,7 @@ in {
 
       Example: ["gz" "zstd"]
 
-  - compressor-<COMPRESSOR> :: String
+  - compressor-<EXTENSION> :: String
 
       Map a desired extension (e.g. `gz`) to a compress program.
 
@@ -55,14 +56,19 @@ in {
 
         xargs -I{} -n1 ${prog}
 
-      Example:
+      Compressor must:
+      - read symlinks (thus --force is needed to gzip, zstd, xz).
+      - keep the original file in place (--keep).
 
-        compressor-xz = "${xz}/bin/xz --keep {}";
+      Example compressor:
+
+        compressor-xz = "${xz}/bin/xz --force --keep {}";
 
    See compressDrvWeb, which is a wrapper on top of compressDrv, for broader
    use examples.
   */
-  inherit (compressDrv);
+
+  compressDrv = compressDrv;
 
   /*
   compressDrvWeb compresses a derivation for "web server" usage.

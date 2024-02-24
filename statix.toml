@@ -1,1 +1,11 @@
 ignore = ['modules/base/boot']
+
+# If the attrset has an optional field, `inherit` will not inherit it:
+#  compressDrvWeb = drv: {
+#    compressors ? ["gz" "br"],
+#    ...
+#  } @ args:
+#    compressDrv drv {
+#        inherit (compressors) <<- function 'compressDrv' called without required argument 'compressors'
+#    }
+disabled = ["manual_inherit", "manual_inherit_from"]
