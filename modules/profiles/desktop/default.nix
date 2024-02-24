@@ -48,7 +48,7 @@ in {
         ];
       };
 
-      services.avahi = {
+      avahi = {
         enable = true;
         nssmdns = true;
         openFirewall = true;
