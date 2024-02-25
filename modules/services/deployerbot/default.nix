@@ -84,6 +84,8 @@ in {
             fi
 
             nix flake update --accept-flake-config --commit-lock-file
+            nix flake check
+            git push origin main
 
             ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
@@ -95,9 +97,6 @@ in {
             # Optional deployments
             EXITCODE=0
             ${lib.concatLines (map mkOptional cfg.deployIfPresent)}
-
-            # done
-            git push origin main
 
             exit $EXITCODE
           '';
