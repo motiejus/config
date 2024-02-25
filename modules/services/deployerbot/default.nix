@@ -85,7 +85,7 @@ in {
             fi
 
             nix flake update --accept-flake-config --commit-lock-file
-            nix flake check
+            nix flake check --accept-flake-config
             git push origin main
 
             ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
