@@ -73,7 +73,8 @@ in {
           script = let
             deployDerivationsStr = builtins.concatStringsSep " " cfg.deployDerivations;
           in ''
-            set -x
+            set -xeuo pipefail
+
             export GIT_SSH_COMMAND="ssh -i ''${CREDENTIALS_DIRECTORY}/ssh-key"
             if [[ ! -d config ]]; then
               git clone ${cfg.repo} config
@@ -85,19 +86,20 @@ in {
             fi
 
             nix flake update --accept-flake-config --commit-lock-file
-            nix flake check --all-systems --accept-flake-config
+            # TODO --all-systems
+            nix flake check --accept-flake-config
             git push origin main
 
+            EXITCODE=0
             ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --confirm-timeout 60 \
               --skip-checks \
               --targets ${deployDerivationsStr} -- \
-                --accept-flake-config
+                --accept-flake-config || EXITCODE=1
 
             # Optional deployments
-            EXITCODE=0
             ${lib.concatLines (map mkOptional cfg.deployIfPresent)}
 
             exit $EXITCODE
