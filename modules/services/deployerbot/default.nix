@@ -13,6 +13,7 @@
         --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
         --ssh-user=deployerbot-follower \
         --confirm-timeout 60 \
+        --skip-checks \
         --targets ${derivationTarget} -- \
           --accept-flake-config || EXITCODE=1
     fi
@@ -91,6 +92,7 @@ in {
               --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
               --ssh-user=deployerbot-follower \
               --confirm-timeout 60 \
+              --skip-checks \
               --targets ${deployDerivationsStr} -- \
                 --accept-flake-config
 
