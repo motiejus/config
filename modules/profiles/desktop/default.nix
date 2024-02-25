@@ -147,6 +147,7 @@ in {
       gparted
       scribus
       gnumake
+      libwebp
       calibre
       librsvg
       neomutt
