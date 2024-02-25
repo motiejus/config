@@ -70,6 +70,16 @@
       sshguard.enable = true;
       tailscale.enable = true;
 
+      remote-builder = {
+        enable = true;
+        uidgid = myData.uidgid.remote-builder;
+        sshAllowSubnet = myData.subnets.tailscale.sshPattern;
+        publicKeys = map (h: myData.hosts.${h}.publicKey) [
+          "vno1-oh2.servers.jakst"
+          "fwminex.motiejus.jakst"
+        ];
+      };
+
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
