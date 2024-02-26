@@ -88,17 +88,14 @@
             fi
 
             # Optional deployments
-            ${lib.concatLines (map ({
-                derivationTarget,
-                pingTarget,
-              }: ''
-                if ${pkgs.inetutils}/bin/ping -c 1 ${pingTarget}; then
+            ${lib.concatLines (map (t: ''
+                if ${pkgs.inetutils}/bin/ping -c 1 ${t.pingTarget}; then
                   ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
                     --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
                     --ssh-user=deployerbot-follower \
                     --confirm-timeout 60 \
                     --skip-checks \
-                    --targets ${derivationTarget} -- \
+                    --targets ${t.derivationTarget} -- \
                       --accept-flake-config || EXITCODE=1
                 fi
               '')
