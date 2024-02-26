@@ -2,18 +2,27 @@
   config,
   lib,
   pkgs,
-  pkgsHost,
-  inputs,
+  modulesPath,
   ...
 }: let
-  crossPkgs = pkgsHost.pkgsCross.aarch64-multiplatform;
+  crossPkgs = pkgs.pkgsCross.aarch64-multiplatform;
 in {
   boot = {
     kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux {
       version = "6.8.0-rc1";
       modDirVersion = "6.8.0-rc1";
 
-      src = inputs.linux-rockchip-collabora;
+      #src = linux-rockchip-collabora;
+      #src = builtins.fetchUrl {
+      #  url = "https://git.jakstys.lt/motiejus/linux/archive/rk3588.tar.gz";
+      #  sha256 = "869adb5236254e705b51f3bcd22c0ac2498ca661c44c5a25a737bb067bc5a635";
+      #};
+      src = builtins.fetchGit {
+        url = "https://git.jakstys.lt/motiejus/linux";
+        rev = "eadcef24731e0f1ddb86dc7c9c859387b5b029a2";
+        ref = "rk3588";
+        shallow = true;
+      };
       kernelPatches = [];
 
       extraMeta.branch = "6.8";
@@ -28,27 +37,7 @@ in {
     consoleLogLevel = 7;
   };
 
-  hardware = {
-    deviceTree.name = "rockchip/rk3588s-orangepi-5.dtb";
-
-    opengl.package = let
-      mesa = pkgs.callPackage ../../hacks/orangepi5/mesa {
-        galliumDrivers = ["panfrost"];
-        vulkanDrivers = ["panfrost"];
-        OpenGL = null;
-        Xplugin = null;
-        enableGalliumNine = false;
-        enableOSMesa = false;
-        enableVaapi = false;
-        enableVdpau = false;
-        enableXa = false;
-      };
-      mesa-panthor = mesa.overrideAttrs (_: {
-        src = inputs.mesa-panthor;
-      });
-    in
-      mesa-panthor.drivers;
-  };
+  hardware.deviceTree.name = "rockchip/rk3588s-orangepi-5.dtb";
 
   fileSystems = {
     "/" = {
@@ -59,7 +48,7 @@ in {
   };
 
   system.build = {
-    sdImage = import "${inputs.nixpkgs}/nixos/lib/make-disk-image.nix" {
+    sdImage = import "${modulesPath}/../lib/make-disk-image.nix" {
       name = "orangepi5-sd-image";
       copyChannel = false;
       inherit config lib pkgs;

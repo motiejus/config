@@ -39,13 +39,9 @@ in
       hash = "sha256-0Da7Czy9cpQ+D5EICc3/QSZhAdCBsmeMvBgykYhAQFw=";
     };
 
-    patches = [./sata.patch];
-
     defconfig = "orangepi-5-rk3588s_defconfig";
     extraConfig = ''
       CONFIG_ROCKCHIP_SPI_IMAGE=y
-      CONFIG_SATA=y
-      CONFIG_CMD_SATA=y
     '';
 
     ROCKCHIP_TPL = "${rkbin}/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin";
