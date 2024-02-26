@@ -88,7 +88,7 @@
             fi
 
             # Optional deployments
-            ${lib.concatLines (map (t: ''
+            ${lib.concatMapStringsSep "\n" (t: ''
                 if ${pkgs.inetutils}/bin/ping -c 1 ${t.pingTarget}; then
                   ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
                     --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
@@ -99,7 +99,7 @@
                       --accept-flake-config || EXITCODE=1
                 fi
               '')
-              cfg.deployIfPresent)}
+              cfg.deployIfPresent}
 
             exit $EXITCODE
           '';
