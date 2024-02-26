@@ -3,22 +3,7 @@
   lib,
   pkgs,
   ...
-}: let
-  mkOptional = {
-    derivationTarget,
-    pingTarget,
-  }: ''
-    if ${pkgs.inetutils}/bin/ping -c 1 ${pingTarget}; then
-      ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
-        --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
-        --ssh-user=deployerbot-follower \
-        --confirm-timeout 60 \
-        --skip-checks \
-        --targets ${derivationTarget} -- \
-          --accept-flake-config || EXITCODE=1
-    fi
-  '';
-in {
+}: {
   options.mj.services.deployerbot.main = with lib.types; {
     enable = lib.mkEnableOption "Enable system updater orchestrator";
     deployDerivations = lib.mkOption {type = listOf str;};
@@ -88,7 +73,6 @@ in {
             nix flake update --accept-flake-config --commit-lock-file
             # TODO --all-systems
             nix flake check --accept-flake-config
-            git push origin main
 
             EXITCODE=0
             ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
@@ -99,8 +83,26 @@ in {
               --targets ${deployDerivationsStr} -- \
                 --accept-flake-config || EXITCODE=1
 
+            if [[ $EXITCODE != 0 ]]; then
+              git push origin main
+            fi
+
             # Optional deployments
-            ${lib.concatLines (map mkOptional cfg.deployIfPresent)}
+            ${lib.concatLines (map ({
+                derivationTarget,
+                pingTarget,
+              }: ''
+                if ${pkgs.inetutils}/bin/ping -c 1 ${pingTarget}; then
+                  ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
+                    --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
+                    --ssh-user=deployerbot-follower \
+                    --confirm-timeout 60 \
+                    --skip-checks \
+                    --targets ${derivationTarget} -- \
+                      --accept-flake-config || EXITCODE=1
+                fi
+              '')
+              cfg.deployIfPresent)}
 
             exit $EXITCODE
           '';
