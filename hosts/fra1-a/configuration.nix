@@ -70,7 +70,7 @@
       sshguard.enable = true;
       tailscale.enable = true;
 
-      remote-builder = {
+      remote-builder.server = {
         enable = true;
         uidgid = myData.uidgid.remote-builder;
         sshAllowSubnet = myData.subnets.tailscale.sshPattern;

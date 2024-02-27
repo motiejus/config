@@ -247,6 +247,15 @@
           startAt = "*-*-* *:00/5:00";
         };
       };
+
+      remote-builder.client = let
+        host = myData.hosts."fra1-a.servers.jakst";
+      in {
+        enable = true;
+        inherit (host) system supportedFeatures;
+        hostName = host.jakstIP;
+        sshKey = "/etc/ssh/ssh_host_ed25519_key";
+      };
     };
   };
 

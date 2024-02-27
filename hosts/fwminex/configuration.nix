@@ -115,6 +115,15 @@ in {
         user = "motiejus";
         group = "users";
       };
+
+      remote-builder.client = let
+        host = myData.hosts."fra1-a.servers.jakst";
+      in {
+        enable = true;
+        inherit (host) system supportedFeatures;
+        hostName = host.jakstIP;
+        sshKey = "/etc/ssh/ssh_host_ed25519_key";
+      };
     };
   };
 
@@ -167,21 +176,6 @@ in {
 
   virtualisation.virtualbox.host.enable = true;
   users.extraGroups.vboxusers.members = ["motiejus"];
-
-  nix = {
-    buildMachines = [
-      {
-        hostName = myData.hosts."fra1-a.servers.jakst".jakstIP;
-        system = "aarch64-linux";
-        protocol = "ssh-ng";
-        sshUser = "remote-builder";
-        sshKey = "/etc/ssh/ssh_host_ed25519_key";
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "gccarch-armv8-a"];
-      }
-    ];
-    distributedBuilds = true;
-    extraOptions = ''builders-use-substitutes = true'';
-  };
 
   networking = {
     hostId = "3a54afcd";
