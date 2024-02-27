@@ -74,14 +74,14 @@ rec {
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtYwVhfmdHRK8YcaRQ3JGSIOK55lEMNSPh33Z0iI+pO";
       publicIP = "168.119.184.134";
       jakstIP = "100.89.176.5";
+      system = "aarch64-linux";
+      supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "gccarch-armv8-a"];
     };
     "fwminex.motiejus.jakst" = rec {
       extraHostNames = [jakstIP vno1IP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlWSZ/H6DR5i5aCrlrEQLVF9MXNvls/pjlLPLaav3f+";
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
-      supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "gccarch-armv8-a"];
-      system = "aarch64-linux";
     };
     "mxp10.motiejus.jakst" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIy9IR7Jq3hRZ5JgwfmeCgSKFrdgujnZt79uxDPVi3tu";

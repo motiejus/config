@@ -15,6 +15,7 @@
       system = lib.mkOption {type = enum ["aarch64-linux" "x86_64-linux"];};
       hostName = lib.mkOption {type = str;};
       sshKey = lib.mkOption {type = path;};
+      supportedFeatures = lib.mkOption {type = listOf str;};
     };
   };
 
