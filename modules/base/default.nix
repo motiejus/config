@@ -105,6 +105,7 @@
         sysstat
         ripgrep
         ethtool
+        gettext
         usbutils
         pciutils
         bsdgames
