@@ -72,7 +72,7 @@
 
             nix flake update --accept-flake-config --commit-lock-file
             # TODO --all-systems
-            nix flake check --accept-flake-config
+            nix flake check --all-systems --accept-flake-config
 
             EXITCODE=0
             ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
