@@ -469,10 +469,6 @@
           static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
         }
         {
-          job_name = "mtwork.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."mtwork.motiejus.jakst".jakstIP}:9100"];}];
-        }
-        {
           job_name = "vno3-rp3b.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
         }

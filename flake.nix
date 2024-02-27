@@ -301,7 +301,6 @@
                   statix.enable = true;
                 };
               };
-              hm = self.homeConfigurations.${system}.motiejusja.activationPackage;
             }
         )
         deploy-rs.lib;
@@ -309,21 +308,6 @@
     // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system overlays;};
     in {
-      homeConfigurations.motiejusja = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-        modules = [
-          shared/home
-        ];
-        extraSpecialArgs = {
-          inherit self system;
-          stateVersion = "23.05";
-          username = "motiejus";
-          email = "motiejusja@wix.com";
-          devTools = true;
-          hmOnly = true;
-        };
-      };
-
       devShells.default = pkgs.mkShellNoCC {
         packages = [
           pkgs.rage
