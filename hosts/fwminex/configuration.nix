@@ -168,6 +168,16 @@ in {
   virtualisation.virtualbox.host.enable = true;
   users.extraGroups.vboxusers.members = ["motiejus"];
 
+  nix.buildMachines = [
+    {
+      hostName = myData.hosts."fra1-a.servers.jakst".jakstIP;
+      system = "aarch64-linux";
+      protocol = "ssh-ng";
+      sshUser = "remote-builder";
+      sshKey = "/etc/ssh/ssh_host_ed25519_key";
+    }
+  ];
+
   networking = {
     hostId = "3a54afcd";
     hostName = "fwminex";
