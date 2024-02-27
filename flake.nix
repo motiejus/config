@@ -54,6 +54,11 @@
       };
     };
 
+    #linux-rockchip-collabora = {
+    #  url = "git+https://git.jakstys.lt/motiejus/linux?ref=rk3588";
+    #  flake = false;
+    #};
+
     e11sync = {
       url = "git+https://git.jakstys.lt/motiejus/e11sync";
       inputs = {
@@ -121,6 +126,15 @@
             home-manager.nixosModules.home-manager
             ./hosts/vm/configuration.nix
             ./modules
+          ];
+          specialArgs = {inherit myData;} // inputs;
+        };
+
+        op5p = nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
+          modules = [
+            {nixpkgs.overlays = overlays;}
+            ./hosts/op5p/configuration.nix
           ];
           specialArgs = {inherit myData;} // inputs;
         };
