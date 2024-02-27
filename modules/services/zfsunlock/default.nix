@@ -13,6 +13,7 @@
   }: let
     timeoutStr = builtins.toString pingTimeoutSec;
   in ''
+    set -x
     # if host is reachable via "pingEndpoint", which, we presume is
     # VPN (which implies the rootfs has been unlocked for VPN to work),
     # exit successfully.
