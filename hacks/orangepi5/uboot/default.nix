@@ -44,6 +44,8 @@ in
       CONFIG_ROCKCHIP_SPI_IMAGE=y
     '';
 
+    patches = [];
+
     ROCKCHIP_TPL = "${rkbin}/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin";
     BL31 = "${tfa}/bl31.elf";
 
