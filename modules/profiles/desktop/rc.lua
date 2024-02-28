@@ -504,6 +504,8 @@ awful.rules.rules = {
 
     { rule = { class = "firefox" },
       properties = { screen = 1, tag = "2" } },
+    { rule = { class = "evolution" },
+      properties = { screen = 1, tag = "8" } },
     { rule = { class = "Signal" },
       properties = { screen = 1, tag = "9" } },
     { rule = { class = "Element" },
