@@ -148,6 +148,23 @@ in {
         };
       };
 
+      home1 = {
+        fingerprint = {inherit (randr) eDP-1 DP-4;};
+        config = {
+          eDP-1.enable = false;
+          DP-1.enable = false;
+          DP-2.enable = false;
+          DP-4 = {
+            enable = true;
+            mode = "2560x1440";
+            position = "0x0";
+            primary = true;
+            crtc = 0;
+            rate = "59.95";
+          };
+        };
+      };
+
       dualhome = {
         fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
         config = {
