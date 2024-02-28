@@ -37,7 +37,7 @@ in {
     consoleLogLevel = 7;
   };
 
-  hardware.deviceTree.name = "rockchip/rk3588s-orangepi-5.dtb";
+  hardware.deviceTree.name = "rockchip/rk3588s-orangepi-5-plus.dtb";
 
   fileSystems = {
     "/" = {

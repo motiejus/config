@@ -39,10 +39,8 @@ in
       hash = "sha256-0Da7Czy9cpQ+D5EICc3/QSZhAdCBsmeMvBgykYhAQFw=";
     };
 
-    defconfig = "orangepi-5-rk3588s_defconfig";
-    extraConfig = ''
-      CONFIG_ROCKCHIP_SPI_IMAGE=y
-    '';
+    defconfig = "orangepi-5-plus-rk3588_defconfig";
+    extraConfig = ''CONFIG_ROCKCHIP_SPI_IMAGE=y'';
 
     patches = [];
 
