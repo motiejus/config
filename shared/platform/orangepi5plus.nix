@@ -10,7 +10,7 @@ in {
   boot = {
     kernelPackages = let
       branch = "6.8";
-      version = "${branch}-rc1";
+      version = "${branch}.0-rc1";
     in
       crossPkgs.linuxPackagesFor (crossPkgs.buildLinux {
         inherit version;
