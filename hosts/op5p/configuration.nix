@@ -8,7 +8,7 @@
   ...
 }: {
   imports = [
-    ../../shared/platform/orangepi5.nix
+    ../../shared/platform/orangepi5plus.nix
   ];
 
   users.users = {

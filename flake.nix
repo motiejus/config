@@ -54,11 +54,6 @@
       };
     };
 
-    #linux-rockchip-collabora = {
-    #  url = "git+https://git.jakstys.lt/motiejus/linux?ref=rk3588";
-    #  flake = false;
-    #};
-
     e11sync = {
       url = "git+https://git.jakstys.lt/motiejus/e11sync";
       inputs = {
