@@ -55,6 +55,6 @@ in {
       copyChannel = false;
       inherit config lib pkgs;
     };
-    uboot = crossPkgs.callPackage ../../hacks/orangepi5/uboot {};
+    uboot = crossPkgs.callPackage ../../hacks/orangepi5plus/uboot {};
   };
 }
