@@ -8,27 +8,23 @@
   crossPkgs = pkgs.pkgsCross.aarch64-multiplatform;
 in {
   boot = {
-    kernelPackages = let
-      branch = "6.8";
-      version = "${branch}.0-rc1";
-    in
-      crossPkgs.linuxPackagesFor (crossPkgs.buildLinux {
-        inherit version;
-        modDirVersion = version;
+    kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux {
+      version = "6.8.0-rc1";
+      modDirVersion = "6.8.0-rc1";
 
-        src = builtins.fetchTarball {
-          url = "https://git.kernel.org/torvalds/t/linux-${version}.tar.gz";
-          sha256 = "0rnrd1iy73vkrablx6rqlmxv9bv9zjfh6zj09aqca9rr5h8iz1p3";
-        };
-        kernelPatches = [
-          {
-            name = "orangepi-5-plus-collabora-v${version}";
-            patch = ./orangepi5plus/rk3588-v${version}.patch;
-          }
-        ];
+      src = builtins.fetchTarball {
+        url = "https://git.kernel.org/torvalds/t/linux-6.8-rc1.tar.gz";
+        sha256 = "0rnrd1iy73vkrablx6rqlmxv9bv9zjfh6zj09aqca9rr5h8iz1p3";
+      };
+      kernelPatches = [
+        {
+          name = "orangepi-5-plus-collabora-v6.8.0-rc1";
+          patch = ./orangepi5plus/rk3588-v6.8.0-rc1.patch;
+        }
+      ];
 
-        extraMeta.branch = branch;
-      });
+      extraMeta.branch = "6.8";
+    });
 
     loader = {
       grub.enable = false;
