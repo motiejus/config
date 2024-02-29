@@ -8,7 +8,7 @@
   crossPkgs = pkgs.pkgsCross.aarch64-multiplatform;
 in {
   boot = {
-    kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux {
+    kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux rec {
       version = "6.8.0-rc1";
       modDirVersion = "6.8.0-rc1";
 
@@ -18,8 +18,8 @@ in {
       };
       kernelPatches = [
         {
-          name = "orangepi-5-plus-collabora-v6.8.0-rc1";
-          patch = ./orangepi5plus/rk3588-v6.8.0-rc1.patch;
+          name = "orangepi-5-plus-collabora-${version}";
+          patch = ./orangepi5plus/rk3588-v${version}.patch;
         }
       ];
 
