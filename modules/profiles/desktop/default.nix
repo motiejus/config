@@ -11,10 +11,6 @@ in {
       type = str;
       default = "motiejus";
     };
-    configureDM = lib.mkOption {
-      type = bool;
-      default = true;
-    };
   };
 
   config = {
@@ -67,7 +63,7 @@ in {
         desktopManager.xfce.enable = true;
         windowManager.awesome.enable = true;
 
-        displayManager = lib.mkIf cfg.configureDM {
+        displayManager = {
           lightdm.enable = true;
           defaultSession = "none+awesome";
           autoLogin = {

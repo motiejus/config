@@ -28,10 +28,7 @@
   mj = {
     stateVersion = "23.11";
     timeZone = "UTC";
-    desktop = {
-      username = "nixos";
-      configureDM = false;
-    };
+    desktop.username = "nixos";
   };
 
   isoImage = {
@@ -49,18 +46,7 @@
   services = {
     pcscd.enable = true;
     getty.autologinUser = "nixos";
-    xserver = {
-      enable = true;
-      desktopManager.xfce.enable = true;
-      displayManager = {
-        lightdm.enable = true;
-        defaultSession = "none+awesome";
-        autoLogin = {
-          enable = true;
-          user = "nixos";
-        };
-      };
-    };
+    xserver.enable = true;
   };
 
   programs = {
