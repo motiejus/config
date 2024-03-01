@@ -68,7 +68,7 @@ in {
         windowManager.awesome.enable = true;
 
         displayManager = lib.mkIf cfg.configureDM {
-          sddm.enable = true;
+          lightdm.enable = true;
           defaultSession = "none+awesome";
           autoLogin = {
             enable = true;
