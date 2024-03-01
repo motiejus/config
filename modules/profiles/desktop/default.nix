@@ -169,7 +169,6 @@ in {
       distrobox
       miniupnpc
       evolution
-      obs-studio
       shellcheck
       borgbackup
       efibootmgr
@@ -179,6 +178,7 @@ in {
       libva-utils # intel video tests
       pavucontrol
       openshot-qt
+      rkdeveloptool
       squashfsTools
       google-chrome
       aspellDicts.en
