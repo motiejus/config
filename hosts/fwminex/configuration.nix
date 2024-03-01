@@ -1,4 +1,5 @@
 {
+  pkgs,
   config,
   myData,
   ...
@@ -6,9 +7,8 @@
   randr = import ./randr.nix;
 in {
   boot = {
-    initrd = {
-      availableKernelModules = ["usb_storage" "sd_mod" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
-    };
+    initrd.availableKernelModules = ["usb_storage" "sd_mod" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
+    kernelPackages = pkgs.zfs.latestCompatibleLinuxPackages;
     loader.systemd-boot.enable = true;
     supportedFilesystems = ["zfs"];
     zfs = {
