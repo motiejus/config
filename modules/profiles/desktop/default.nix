@@ -148,6 +148,7 @@ in {
       calibre
       librsvg
       neomutt
+      picocom
       inkscape
       chromium
       hunspell
