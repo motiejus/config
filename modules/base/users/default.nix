@@ -41,7 +41,7 @@ in {
         motiejus =
           {
             isNormalUser = true;
-            extraGroups = ["wheel"] ++ cfg.passwd.motiejus.extraGroups;
+            extraGroups = ["wheel" "dialout" "video"] ++ cfg.passwd.motiejus.extraGroups;
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [
               myData.people_pubkeys.motiejus

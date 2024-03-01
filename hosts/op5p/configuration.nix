@@ -1,12 +1,4 @@
-{
-  #self,
-  #lib,
-  #pkgs,
-  myData,
-  #config,
-  #modulesPath,
-  ...
-}: {
+{myData, ...}: {
   imports = [
     ../../shared/platform/orangepi5plus.nix
   ];
@@ -14,7 +6,6 @@
   users.users = {
     motiejus = {
       isNormalUser = true;
-      extraGroups = ["wheel" "video"];
       initialHashedPassword = "";
       openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
     };

@@ -136,6 +136,7 @@ in {
       qemu
       xclip
       pdftk
+      putty
       x11vnc
       yt-dlp
       ffmpeg
