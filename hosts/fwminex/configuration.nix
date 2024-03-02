@@ -44,10 +44,7 @@ in {
     };
   };
 
-  powerManagement = {
-    cpuFreqGovernor = "powersave";
-    powertop.enable = true;
-  };
+  powerManagement.cpuFreqGovernor = "powersave";
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
