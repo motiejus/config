@@ -52,6 +52,7 @@ in {
     homeDirectory = "/home/${username}";
   };
 
+  home.file.".cache/evolution/.stignore".text = "*.db";
   home.packages = with pkgs;
     lib.mkMerge [
       (lib.mkIf devTools [
