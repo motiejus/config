@@ -33,6 +33,7 @@ in {
           "shelly"
           "webostv"
           "daikin"
+          "ipp"
         ];
         config = {
           default_config = {};
