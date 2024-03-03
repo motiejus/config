@@ -121,6 +121,7 @@
         unixtools.xxd
 
         # networking
+        wol
         dig
         nmap
         # broken on aarch64-linux
