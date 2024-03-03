@@ -93,6 +93,7 @@
         cloc
         poop # hopefully poof some day
         tokei
+        sshfs
         pwgen
         parted
         bloaty
