@@ -28,7 +28,7 @@
   mj = {
     stateVersion = "23.11";
     timeZone = "UTC";
-    desktop.username = "nixos";
+    username = "nixos";
   };
 
   isoImage = {
@@ -49,14 +49,6 @@
     xserver.enable = true;
   };
 
-  programs = {
-    ssh.startAgent = false;
-    gnupg.agent = {
-      enable = true;
-      enableSSHSupport = true;
-    };
-  };
-
   users.users = {
     nixos = {
       isNormalUser = true;
@@ -65,6 +57,9 @@
     };
     root.initialHashedPassword = "";
   };
+
+  # do not autostart lightdm, leave at tty
+  systemd.services.display-manager.wantedBy = lib.mkForce [];
 
   security = {
     pam.services.lightdm.text = ''
@@ -80,12 +75,5 @@
     hostName = "vm";
     domain = "jakstys.lt";
     firewall.allowedTCPPorts = [22];
-  };
-
-  nix = {
-    extraOptions = ''
-      experimental-features = nix-command flakes
-      trusted-users = nixos
-    '';
   };
 }

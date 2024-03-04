@@ -4,7 +4,9 @@
   pkgs,
   myData,
   ...
-}: {
+}: let
+  cfg = config.mj;
+in {
   imports = [
     ./boot
     ./fileSystems
@@ -28,6 +30,11 @@
       example = "Europe/Vilnius";
       description = "Time zone for this system";
     };
+
+    username = lib.mkOption {
+      type = str;
+      default = "motiejus";
+    };
   };
 
   config = {
@@ -37,7 +44,7 @@
 
     hardware.enableRedistributableFirmware = true;
 
-    time.timeZone = config.mj.timeZone;
+    time.timeZone = cfg.timeZone;
 
     mj.services.friendlyport.ports = [
       {
@@ -60,11 +67,11 @@
       };
       settings = {
         experimental-features = ["nix-command" "flakes"];
-        trusted-users = ["motiejus"];
+        trusted-users = [cfg.username];
       };
     };
 
-    system.stateVersion = config.mj.stateVersion;
+    system.stateVersion = cfg.stateVersion;
 
     security = {
       sudo = {

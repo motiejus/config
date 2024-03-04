@@ -1,18 +1,10 @@
 {
-  lib,
   pkgs,
   config,
   ...
 }: let
-  cfg = config.mj.desktop;
+  username = config.mj.username;
 in {
-  options.mj.desktop = with lib.types; {
-    username = lib.mkOption {
-      type = str;
-      default = "motiejus";
-    };
-  };
-
   config = {
     hardware.bluetooth = {
       enable = true;
@@ -27,7 +19,7 @@ in {
       wireshark.enable = true;
     };
 
-    mj.base.users.passwd.${cfg.username}.extraGroups = ["adbusers" "networkmanager" "wireshark"];
+    mj.base.users.passwd.${username}.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
     services = {
       fwupd.enable = true;
@@ -68,7 +60,7 @@ in {
           defaultSession = "none+awesome";
           autoLogin = {
             enable = true;
-            user = cfg.username;
+            user = username;
           };
         };
       };
@@ -239,7 +231,7 @@ in {
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
     systemd.services.NetworkManager-wait-online.enable = false;
 
-    home-manager.users.${cfg.username} = {
+    home-manager.users.${username} = {
       pkgs,
       config,
       ...
