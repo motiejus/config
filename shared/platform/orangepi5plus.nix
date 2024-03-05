@@ -9,12 +9,12 @@
 in {
   boot = {
     kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux rec {
-      version = "6.8.0-rc1";
-      modDirVersion = "6.8.0-rc1";
+      version = "6.8.0-rc7";
+      modDirVersion = "6.8.0-rc7";
 
       src = builtins.fetchTarball {
-        url = "https://git.kernel.org/torvalds/t/linux-6.8-rc1.tar.gz";
-        sha256 = "0rnrd1iy73vkrablx6rqlmxv9bv9zjfh6zj09aqca9rr5h8iz1p3";
+        url = "https://git.kernel.org/torvalds/t/linux-6.8-rc7.tar.gz";
+        sha256 = "sha256:0q9isgv6lxzrmb4idl0spxv2l7fsk3nn4cdq0vdw9c8lyzrh5yy0";
       };
       kernelPatches = [
         {
