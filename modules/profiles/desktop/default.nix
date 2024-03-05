@@ -170,6 +170,7 @@ in {
       libva-utils # intel video tests
       pavucontrol
       openshot-qt
+      poppler_utils
       rkdeveloptool
       squashfsTools
       google-chrome
