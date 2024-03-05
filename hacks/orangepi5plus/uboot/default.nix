@@ -7,8 +7,8 @@
   rkbin = fetchFromGitHub {
     owner = "rockchip-linux";
     repo = "rkbin";
-    rev = "b4558da0860ca48bf1a571dd33ccba580b9abe23";
-    hash = "sha256-KUZQaQ+IZ0OynawlYGW99QGAOmOrGt2CZidI3NTxFw8=";
+    rev = "a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0";
+    hash = "sha256-U/jeUsV7bhqMw3BljmO6SI07NCDAd/+sEp3dZnyXeeA=";
   };
 
   tfa =
@@ -29,22 +29,20 @@
     });
 in
   buildUBoot rec {
-    version = "2024.01";
-
+    version = "v2024.04-rc3-52-g773cb2bca7";
     src = fetchFromGitLab {
       domain = "source.denx.de";
       owner = "u-boot";
       repo = "u-boot";
-      rev = "v${version}";
-      hash = "sha256-0Da7Czy9cpQ+D5EICc3/QSZhAdCBsmeMvBgykYhAQFw=";
+      rev = "773cb2bca7743406e34ab4f441fc0a8a0d200a19";
+      hash = "sha256-MOlqc9KvQJcjpWUdnCf2n4KA0a806Tzsu72taUQjmcs=";
     };
 
     defconfig = "orangepi-5-plus-rk3588_defconfig";
-    extraConfig = ''CONFIG_ROCKCHIP_SPI_IMAGE=y'';
 
     patches = [];
 
-    ROCKCHIP_TPL = "${rkbin}/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin";
+    ROCKCHIP_TPL = "${rkbin}/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.16.bin";
     BL31 = "${tfa}/bl31.elf";
 
     # FIXME: seems to not like nixpkgs dtc for some reason
