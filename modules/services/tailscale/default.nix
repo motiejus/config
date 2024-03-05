@@ -18,7 +18,10 @@ in {
 
   config = mkIf cfg.enable (mkMerge [
     {
-      services.tailscale.enable = true;
+      services.tailscale = {
+        enable = true;
+        extraUpFlags = ["--operator=${config.mj.username}"];
+      };
       networking.firewall.checkReversePath = "loose";
       networking.firewall.allowedUDPPorts = [myData.ports.tailscale];
     }
