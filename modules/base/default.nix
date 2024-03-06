@@ -31,10 +31,7 @@ in {
       description = "Time zone for this system";
     };
 
-    username = lib.mkOption {
-      type = str;
-      default = "motiejus";
-    };
+    username = lib.mkOption {type = str;};
   };
 
   config = {

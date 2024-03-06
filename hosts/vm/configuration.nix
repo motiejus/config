@@ -2,33 +2,24 @@
   self,
   lib,
   pkgs,
-  myData,
-  config,
   modulesPath,
   ...
 }: {
   imports = [
     "${modulesPath}/profiles/all-hardware.nix"
     "${modulesPath}/installer/cd-dvd/iso-image.nix"
-    ../../modules/profiles/desktop
   ];
-
-  home-manager.useGlobalPkgs = true;
-  home-manager.users.nixos = {pkgs, ...}:
-    import ../../shared/home/default.nix {
-      inherit lib;
-      inherit pkgs;
-      inherit (config.mj) stateVersion;
-      username = "nixos";
-      devTools = true;
-      hmOnly = false;
-      email = "motiejus@jakstys.lt";
-    };
 
   mj = {
     stateVersion = "23.11";
     timeZone = "UTC";
     username = "nixos";
+
+    base.users = {
+      enable = true;
+      user.initialHashedPassword = "";
+      root.initialHashedPassword = "";
+    };
   };
 
   isoImage = {
@@ -44,32 +35,15 @@
   swapDevices = [];
 
   services = {
-    pcscd.enable = true;
     getty.autologinUser = "nixos";
-    xserver.enable = true;
-  };
-
-  users.users = {
-    nixos = {
-      isNormalUser = true;
-      initialHashedPassword = "";
-      openssh.authorizedKeys.keys = [myData.people_pubkeys.motiejus];
-    };
-    root.initialHashedPassword = "";
   };
 
   # do not autostart lightdm, leave at tty
   systemd.services.display-manager.wantedBy = lib.mkForce [];
 
-  security = {
-    pam.services.lightdm.text = ''
-      auth sufficient pam_succeed_if.so user ingroup wheel
-    '';
-    sudo = {
-      enable = true;
-      wheelNeedsPassword = false;
-    };
-  };
+  security.pam.services.lightdm.text = ''
+    auth sufficient pam_succeed_if.so user ingroup wheel
+  '';
 
   networking = {
     hostName = "vm";

@@ -111,30 +111,26 @@
         gamja = super.callPackage ./pkgs/gamja.nix {};
       })
     ];
+
+    mkVM = system:
+      nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          {nixpkgs.overlays = overlays;}
+          ./hosts/vm/configuration.nix
+
+          ./modules
+          ./modules/profiles/desktop
+
+          home-manager.nixosModules.home-manager
+        ];
+        specialArgs = {inherit myData;} // inputs;
+      };
   in
     {
       nixosConfigurations = {
-        vm-x86_64 = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            {nixpkgs.overlays = overlays;}
-            home-manager.nixosModules.home-manager
-            ./hosts/vm/configuration.nix
-            ./modules
-          ];
-          specialArgs = {inherit myData;} // inputs;
-        };
-
-        vm-aarch64 = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            {nixpkgs.overlays = overlays;}
-            home-manager.nixosModules.home-manager
-            ./hosts/vm/configuration.nix
-            ./modules
-          ];
-          specialArgs = {inherit myData;} // inputs;
-        };
+        vm-x86_64 = mkVM "x86_64-linux";
+        vm-aarch64 = mkVM "aarch64-linux";
 
         op5p = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";

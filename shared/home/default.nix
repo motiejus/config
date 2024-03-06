@@ -5,7 +5,7 @@
   email,
   devTools,
   hmOnly,
-  username ? "motiejus",
+  username,
   ...
 }: let
   # from https://github.com/Gerg-L/demoninajar/blob/39964f198dbfa34c21f81c35370fab312b476051/homes/veritas_manjaro/nixGL.nix#L42

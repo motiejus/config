@@ -23,7 +23,7 @@ in {
       wireshark.enable = true;
     };
 
-    mj.base.users.passwd.${username}.extraGroups = ["adbusers" "networkmanager" "wireshark"];
+    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark"];
 
     services = {
       fwupd.enable = true;

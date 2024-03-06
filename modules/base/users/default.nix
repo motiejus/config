@@ -5,6 +5,25 @@
   ...
 }: let
   cfg = config.mj.base.users;
+  props = with lib.types; {
+    hashedPasswordFile = lib.mkOption {
+      type = nullOr path;
+      default = null;
+    };
+    initialPassword = lib.mkOption {
+      type = nullOr str;
+      default = null;
+    };
+    initialHashedPassword = lib.mkOption {
+      type = nullOr str;
+      default = null;
+    };
+
+    extraGroups = lib.mkOption {
+      type = listOf str;
+      default = [];
+    };
+  };
 in {
   options.mj.base.users = with lib.types; {
     enable = lib.mkEnableOption "enable motiejus and root";
@@ -12,25 +31,8 @@ in {
       type = bool;
       default = false;
     };
-    passwd = lib.mkOption {
-      type = attrsOf (submodule {
-        options = {
-          hashedPasswordFile = lib.mkOption {
-            type = nullOr path;
-            default = null;
-          };
-          initialPassword = lib.mkOption {
-            type = nullOr str;
-            default = null;
-          };
-
-          extraGroups = lib.mkOption {
-            type = listOf str;
-            default = [];
-          };
-        };
-      });
-    };
+    user = props;
+    root = props;
   };
 
   config = lib.mkIf cfg.enable {
@@ -38,10 +40,10 @@ in {
       mutableUsers = false;
 
       users = {
-        motiejus =
+        ${config.mj.username} =
           {
             isNormalUser = true;
-            extraGroups = ["wheel" "dialout" "video"] ++ cfg.passwd.motiejus.extraGroups;
+            extraGroups = ["wheel" "dialout" "video"] ++ cfg.user.extraGroups;
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [
               myData.people_pubkeys.motiejus
@@ -51,19 +53,18 @@ in {
             n: v:
               (n == "hashedPasswordFile" || n == "initialPassword") && v != null
           )
-          cfg.passwd.motiejus or {};
+          cfg.user or {};
 
-        root = assert lib.assertMsg (cfg.passwd ? root) "root password needs to be defined";
-          lib.filterAttrs (_: v: v != null) cfg.passwd.root;
+        root = lib.filterAttrs (_: v: v != null) cfg.root;
       };
     };
 
     home-manager.useGlobalPkgs = true;
-    home-manager.users.motiejus = {pkgs, ...}:
+    home-manager.users.${config.mj.username} = {pkgs, ...}:
       import ../../../shared/home/default.nix {
         inherit lib;
         inherit pkgs;
-        inherit (config.mj) stateVersion;
+        inherit (config.mj) stateVersion username;
         inherit (cfg) devTools;
         hmOnly = false;
         email = "motiejus@jakstys.lt";
