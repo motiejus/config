@@ -116,6 +116,7 @@ in {
         ripgrep
         ethtool
         gettext
+        keyutils
         usbutils
         pciutils
         bsdgames
