@@ -39,6 +39,8 @@ in {
     boot.kernel.sysctl."kernel.sysrq" = "438";
     nixpkgs.config.allowUnfree = true;
 
+    boot.kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
+
     hardware.enableRedistributableFirmware = true;
 
     time.timeZone = cfg.timeZone;

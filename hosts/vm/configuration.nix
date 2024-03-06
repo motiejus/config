@@ -1,7 +1,6 @@
 {
   self,
   lib,
-  pkgs,
   modulesPath,
   ...
 }: {
@@ -29,8 +28,6 @@
     makeEfiBootable = true; # EFI booting
     makeUsbBootable = true; # USB booting
   };
-
-  boot.kernelPackages = pkgs.zfs.latestCompatibleLinuxPackages;
 
   swapDevices = [];
 
