@@ -4,6 +4,10 @@
   ...
 }: let
   username = config.mj.username;
+  firefox =
+    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
+    then pkgs.firefox-bin
+    else pkgs.firefox;
 in {
   config = {
     hardware.bluetooth = {
@@ -14,7 +18,7 @@ in {
     programs = {
       firefox = {
         enable = true;
-        package = pkgs.firefox-bin;
+        package = firefox;
       };
       wireshark.enable = true;
     };
@@ -109,125 +113,130 @@ in {
       };
     };
 
-    environment.systemPackages = with pkgs; [
-      # packages defined here
-      nicer
-      tmuxbash
+    environment.systemPackages = with pkgs;
+      lib.mkMerge [
+        [
+          # packages defined here
+          nicer
+          tmuxbash
 
-      iw
-      vlc
-      i7z
-      acpi
-      gimp
-      qgis
-      josm
-      qemu
-      xclip
-      pdftk
-      putty
-      x11vnc
-      yt-dlp
-      ffmpeg
-      tinycc
-      scrcpy
-      arandr
-      pandoc
-      evince
-      gparted
-      scribus
-      gnumake
-      libwebp
-      calibre
-      librsvg
-      neomutt
-      picocom
-      inkscape
-      chromium
-      hunspell
-      tigervnc
-      rtorrent
-      bsdgames
-      xss-lock
-      qpwgraph # for pipewire
-      audacity
-      powertop
-      gpicview
-      imapsync
-      trayscale
-      # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
-      wireshark
-      man-pages
-      rox-filer
-      distrobox
-      miniupnpc
-      evolution
-      shellcheck
-      borgbackup
-      efibootmgr
-      winetricks
-      virtualenv
-      python3Full
-      libva-utils # intel video tests
-      pavucontrol
-      openshot-qt
-      poppler_utils
-      rkdeveloptool
-      squashfsTools
-      google-chrome
-      aspellDicts.en
-      aspellDicts.lt
-      libreoffice-qt
-      graphicsmagick
-      joplin-desktop
-      signal-desktop
-      element-desktop
-      netsurf-browser
-      man-pages-posix
-      geoipWithDatabase
-      wineWowPackages.full
-      hunspellDicts.en_US
-      python3Packages.ipython
-      samsung-unified-linux-driver
+          iw
+          vlc
+          acpi
+          gimp
+          qgis
+          josm
+          qemu
+          xclip
+          pdftk
+          putty
+          x11vnc
+          yt-dlp
+          ffmpeg
+          tinycc
+          scrcpy
+          arandr
+          pandoc
+          evince
+          gparted
+          scribus
+          gnumake
+          libwebp
+          calibre
+          librsvg
+          neomutt
+          picocom
+          inkscape
+          chromium
+          hunspell
+          tigervnc
+          rtorrent
+          bsdgames
+          xss-lock
+          qpwgraph # for pipewire
+          audacity
+          powertop
+          gpicview
+          imapsync
+          trayscale
+          # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
+          wireshark
+          man-pages
+          rox-filer
+          distrobox
+          miniupnpc
+          evolution
+          shellcheck
+          borgbackup
+          efibootmgr
+          virtualenv
+          python3Full
+          libva-utils # intel video tests
+          pavucontrol
+          openshot-qt
+          poppler_utils
+          rkdeveloptool
+          squashfsTools
+          aspellDicts.en
+          aspellDicts.lt
+          libreoffice-qt
+          graphicsmagick
+          signal-desktop
+          element-desktop
+          netsurf-browser
+          man-pages-posix
+          geoipWithDatabase
+          hunspellDicts.en_US
+          python3Packages.ipython
+          samsung-unified-linux-driver
 
-      lld
-      llvm
-      llvm-manpages
-      clang-manpages
-      gcc_latest
+          lld
+          llvm
+          llvm-manpages
+          clang-manpages
+          gcc_latest
 
-      gnome.cheese
-      gnome.nautilus
-      gnome.gnome-calculator
-      gnome.gnome-calendar
+          gnome.cheese
+          gnome.nautilus
+          gnome.gnome-calculator
+          gnome.gnome-calendar
 
-      xorg.xev
-      xorg.xeyes
-      xorg.lndir
+          xorg.xev
+          xorg.xeyes
+          xorg.lndir
 
-      intel-gpu-tools
-      (nvtop.override {
-        amd = true;
-        intel = true;
-        msm = false;
-        nvidia = false;
-      })
+          (texlive.combine {
+            inherit
+              (texlive)
+              scheme-medium
+              dvisvgm
+              dvipng
+              wrapfig
+              amsmath
+              ulem
+              hyperref
+              capt-of
+              lithuanian
+              hyphen-lithuanian
+              ;
+          })
+        ]
+        (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
+          i7z
+          (nvtop.override {
+            amd = true;
+            intel = true;
+            msm = false;
+            nvidia = false;
+          })
+          google-chrome
+          joplin-desktop
+          intel-gpu-tools
 
-      (texlive.combine {
-        inherit
-          (texlive)
-          scheme-medium
-          dvisvgm
-          dvipng
-          wrapfig
-          amsmath
-          ulem
-          hyperref
-          capt-of
-          lithuanian
-          hyphen-lithuanian
-          ;
-      })
-    ];
+          winetricks
+          wineWowPackages.full
+        ])
+      ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
     systemd.services.NetworkManager-wait-online.enable = false;

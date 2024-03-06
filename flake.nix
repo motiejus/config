@@ -114,8 +114,19 @@
   in
     {
       nixosConfigurations = {
-        vm = nixpkgs.lib.nixosSystem {
+        vm-x86_64 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
+          modules = [
+            {nixpkgs.overlays = overlays;}
+            home-manager.nixosModules.home-manager
+            ./hosts/vm/configuration.nix
+            ./modules
+          ];
+          specialArgs = {inherit myData;} // inputs;
+        };
+
+        vm-aarch64 = nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
           modules = [
             {nixpkgs.overlays = overlays;}
             home-manager.nixosModules.home-manager

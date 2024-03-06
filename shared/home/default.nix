@@ -94,8 +94,8 @@ in {
         # firefox doesn't need the wrapper on the personal laptop
         package =
           if hmOnly
-          then (glintel pkgs.firefox-bin "firefox")
-          else pkgs.firefox-bin;
+          then (glintel firefox "firefox")
+          else firefox;
         policies.DisableAppUpdate = true;
         profiles = {
           xdefault = {
