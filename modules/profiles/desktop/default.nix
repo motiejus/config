@@ -124,7 +124,6 @@ in {
           vlc
           acpi
           gimp
-          qgis
           josm
           qemu
           xclip
@@ -157,6 +156,7 @@ in {
           powertop
           gpicview
           imapsync
+          qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           trayscale
           # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
           wireshark
