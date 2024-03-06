@@ -21,7 +21,6 @@
       generic-extlinux-compatible.enable = true;
     };
 
-    kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
     kernelModules = [];
     extraModulePackages = [];
     supportedFilesystems = ["zfs"];
