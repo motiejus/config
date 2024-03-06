@@ -83,6 +83,11 @@ rec {
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
     };
+    "vno1-vinc.vincentas.jakst" = rec {
+      extraHostNames = [jakstIP];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
+      jakstIP = "100.89.176.7";
+    };
     "mxp10.motiejus.jakst" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIy9IR7Jq3hRZ5JgwfmeCgSKFrdgujnZt79uxDPVi3tu";
       jakstIP = "100.89.176.1";
