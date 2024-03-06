@@ -20,6 +20,8 @@
     };
   };
 
+  boot.loader.systemd-boot.enable = true;
+
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
     squashfsCompression = "zstd";
