@@ -142,7 +142,6 @@ in {
           scribus
           gnumake
           libwebp
-          calibre
           librsvg
           neomutt
           picocom
@@ -173,7 +172,6 @@ in {
           python3Full
           libva-utils # intel video tests
           pavucontrol
-          openshot-qt
           poppler_utils
           rkdeveloptool
           squashfsTools
@@ -185,7 +183,6 @@ in {
           element-desktop
           netsurf-browser
           man-pages-posix
-          geoipWithDatabase
           hunspellDicts.en_US
           python3Packages.ipython
           samsung-unified-linux-driver
@@ -229,7 +226,6 @@ in {
             msm = false;
             nvidia = false;
           })
-          google-chrome
           joplin-desktop
           intel-gpu-tools
 
