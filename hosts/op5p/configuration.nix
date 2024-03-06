@@ -16,6 +16,8 @@
     };
   };
 
+  boot.supportedFilesystems = ["bcachefs"];
+
   security.sudo = {
     enable = true;
     wheelNeedsPassword = false;

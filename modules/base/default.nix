@@ -35,11 +35,14 @@ in {
   };
 
   config = {
-    # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
-    boot.kernel.sysctl."kernel.sysrq" = "438";
-    nixpkgs.config.allowUnfree = true;
+    boot = {
+      # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
+      kernel.sysctl."kernel.sysrq" = "438";
 
-    boot.kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
+      kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
+    };
+
+    nixpkgs.config.allowUnfree = true;
 
     hardware.enableRedistributableFirmware = true;
 
