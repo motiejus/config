@@ -20,10 +20,7 @@
     };
   };
 
-  boot = {
-    loader.systemd-boot.enable = true;
-    supportedFilesystems = ["bcachefs"];
-  };
+  boot.loader.systemd-boot.enable = true;
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
