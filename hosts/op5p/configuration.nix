@@ -22,6 +22,14 @@
 
   boot.supportedFilesystems = ["bcachefs"];
 
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-label/nixos";
+      fsType = "ext4";
+      options = ["noatime"];
+    };
+  };
+
   security.sudo = {
     enable = true;
     wheelNeedsPassword = false;

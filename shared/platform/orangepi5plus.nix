@@ -37,14 +37,6 @@ in {
 
   hardware.deviceTree.name = "rockchip/rk3588-orangepi-5-plus.dtb";
 
-  fileSystems = {
-    "/" = {
-      device = "/dev/disk/by-label/nixos";
-      fsType = "ext4";
-      options = ["noatime"];
-    };
-  };
-
   system.build = {
     sdImage = import "${modulesPath}/../lib/make-disk-image.nix" {
       name = "orangepi5-sd-image";
