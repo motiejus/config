@@ -16,6 +16,10 @@
     };
   };
 
+  services = {
+    pcscd.enable = true;
+  };
+
   boot.supportedFilesystems = ["bcachefs"];
 
   security.sudo = {
