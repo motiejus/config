@@ -49,7 +49,7 @@ in {
               myData.people_pubkeys.motiejus
             ];
           }
-          // lib.filterAttrs (_: v: v != null) cfg.user or {};
+          // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or {};
 
         root = lib.filterAttrs (_: v: v != null) cfg.root;
       };
