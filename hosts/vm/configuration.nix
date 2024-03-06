@@ -1,6 +1,5 @@
 {
   self,
-  lib,
   modulesPath,
   ...
 }: {
@@ -33,10 +32,8 @@
 
   services = {
     getty.autologinUser = "nixos";
+    xserver.autorun = false;
   };
-
-  # do not autostart lightdm, leave at tty
-  systemd.services.display-manager.wantedBy = lib.mkForce [];
 
   security.pam.services.lightdm.text = ''
     auth sufficient pam_succeed_if.so user ingroup wheel
