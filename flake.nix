@@ -137,6 +137,7 @@
           modules = [
             {nixpkgs.overlays = overlays;}
             ./hosts/op5p/configuration.nix
+            home-manager.nixosModules.home-manager
           ];
           specialArgs = {inherit myData;} // inputs;
         };
