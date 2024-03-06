@@ -332,6 +332,7 @@
     in {
       devShells.default = pkgs.mkShellNoCC {
         packages = [
+          pkgs.nix-output-monitor
           pkgs.rage
           pkgs.age-plugin-yubikey
           pkgs.deploy-rs.deploy-rs
