@@ -127,6 +127,7 @@ in {
         stress-ng
         dmidecode
         moreutils
+        cryptsetup
         lm_sensors
         smartmontools
         unixtools.xxd
