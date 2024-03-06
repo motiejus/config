@@ -20,7 +20,10 @@ in {
         enable = true;
         package = firefox;
       };
-      wireshark.enable = true;
+      wireshark = {
+        enable = true;
+        package = pkgs.wireshark-qt;
+      };
     };
 
     mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark"];
@@ -158,8 +161,6 @@ in {
           imapsync
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           trayscale
-          # TODO why doesn't 'programs.wireshark.enable = true' install the binary?
-          wireshark
           man-pages
           rox-filer
           distrobox
