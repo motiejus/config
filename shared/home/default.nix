@@ -46,6 +46,10 @@
     )
     {};
   glintel = mkWrapped pkgs.nixgl.nixGLIntel;
+  firefox =
+    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
+    then pkgs.firefox-bin
+    else pkgs.firefox;
 in {
   home = {
     inherit stateVersion username;
