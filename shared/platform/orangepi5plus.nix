@@ -8,6 +8,8 @@
   crossFast = pkgs.crossArm64.pkgsCross.aarch64-multiplatform;
   crossNative = pkgs.pkgsCross.aarch64-multiplatform;
 in {
+  mj.skipPerf = true;
+
   boot = {
     kernelPackages = crossNative.linuxPackagesFor (crossFast.buildLinux rec {
       version = "6.8.0-rc7";

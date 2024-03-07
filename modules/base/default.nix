@@ -32,6 +32,11 @@ in {
     };
 
     username = lib.mkOption {type = str;};
+
+    skipPerf = lib.mkOption {
+      type = bool;
+      default = false;
+    };
   };
 
   config = {
@@ -83,88 +88,91 @@ in {
     };
 
     environment = {
-      systemPackages = with pkgs; [
-        jc # parse different formats and command outputs to json
-        jq # parse, format and query json documents
-        pv # pipe viewer for progressbars in pipes
-        bat # "bat - cat with wings", cat|less with language highlight
-        duf # nice disk usage output
-        git
-        htop
-        file # file duh
-        host # look up host info
-        tree # tree duh
-        lsof # lsof yay
-        rage # encrypt-decrypt
-        ncdu # disk usage navigator
-        lshw
-        entr
-        cloc
-        poop # hopefully poof some day
-        tokei
-        sshfs
-        pwgen
-        parted
-        bloaty
-        sqlite
-        dhcpcd
-        hdparm
-        sdparm
-        procps
-        vimv-rs
-        sysstat
-        ripgrep
-        ethtool
-        gettext
-        keyutils
-        usbutils
-        pciutils
-        bsdgames
-        parallel
-        yamllint
-        binutils
-        hyperfine
-        stress-ng
-        dmidecode
-        moreutils
-        cryptsetup
-        lm_sensors
-        smartmontools
-        unixtools.xxd
-        bcachefs-tools
+      systemPackages = with pkgs;
+        lib.mkMerge [
+          [
+            jc # parse different formats and command outputs to json
+            jq # parse, format and query json documents
+            pv # pipe viewer for progressbars in pipes
+            bat # "bat - cat with wings", cat|less with language highlight
+            duf # nice disk usage output
+            git
+            htop
+            file # file duh
+            host # look up host info
+            tree # tree duh
+            lsof # lsof yay
+            rage # encrypt-decrypt
+            ncdu # disk usage navigator
+            lshw
+            entr
+            cloc
+            poop # hopefully poof some day
+            tokei
+            sshfs
+            pwgen
+            parted
+            bloaty
+            sqlite
+            dhcpcd
+            hdparm
+            sdparm
+            procps
+            vimv-rs
+            sysstat
+            ripgrep
+            ethtool
+            gettext
+            keyutils
+            usbutils
+            pciutils
+            bsdgames
+            parallel
+            yamllint
+            binutils
+            hyperfine
+            stress-ng
+            dmidecode
+            moreutils
+            cryptsetup
+            lm_sensors
+            smartmontools
+            unixtools.xxd
+            bcachefs-tools
 
-        # networking
-        wol
-        dig
-        nmap
-        # broken on aarch64-linux
-        #wrk2
-        wget
-        curl
-        btop
-        ngrep
-        iftop
-        whois
-        ipset
-        iperf3
-        jnettop
-        openssl
-        tcpdump
-        testssl
-        dnsutils
-        bandwhich
-        speedtest-cli
-        nix-output-monitor
-        config.boot.kernelPackages.perf
+            # networking
+            wol
+            dig
+            nmap
+            # broken on aarch64-linux
+            #wrk2
+            wget
+            curl
+            btop
+            ngrep
+            iftop
+            whois
+            ipset
+            iperf3
+            jnettop
+            openssl
+            tcpdump
+            testssl
+            dnsutils
+            bandwhich
+            speedtest-cli
+            nix-output-monitor
 
-        # compression/decompression
-        xz
-        pigz
-        zstd
-        p7zip
-        zopfli
-        brotli
-      ];
+            # compression/decompression
+            xz
+            pigz
+            zstd
+            p7zip
+            zopfli
+            brotli
+          ]
+          (lib.mkIf (!cfg.skipPerf) config.boot.kernelPackages.perf)
+        ];
     };
 
     programs = {
