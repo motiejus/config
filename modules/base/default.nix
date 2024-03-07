@@ -124,6 +124,7 @@ in {
             ethtool
             gettext
             keyutils
+            libkcapi
             usbutils
             pciutils
             bsdgames
