@@ -172,7 +172,7 @@ in {
             zopfli
             brotli
           ]
-          (lib.mkIf (!cfg.skipPerf) config.boot.kernelPackages.perf)
+          (lib.mkIf (!cfg.skipPerf) [config.boot.kernelPackages.perf])
         ];
     };
 
