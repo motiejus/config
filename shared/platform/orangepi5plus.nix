@@ -21,7 +21,14 @@ in {
           name = "orangepi-5-plus-collabora-${version}";
           patch = ./orangepi5plus/rk3588-v${version}.patch;
         }
+        {
+          name = "rk3588-crypto";
+          patch = ./orangepi5plus/rk3588-crypto.patch;
+        }
       ];
+      extraConfig = ''
+        CRYPTO_DEV_ROCKCHIP2 m
+      '';
 
       extraMeta.branch = "6.8";
     });
