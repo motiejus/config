@@ -110,6 +110,13 @@
         nicer = super.callPackage ./pkgs/nicer.nix {};
         gamja = super.callPackage ./pkgs/gamja.nix {};
       })
+      (_: _: {
+        crossArm64 = import nixpkgs {
+          system = "x86_64-linux";
+          hostPlatform.config = "aarch64-linux";
+          buildPlatform.config = "x86_64-linux";
+        };
+      })
     ];
 
     mkVM = system:

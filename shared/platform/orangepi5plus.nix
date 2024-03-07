@@ -5,7 +5,7 @@
   modulesPath,
   ...
 }: let
-  crossPkgs = pkgs.pkgsCross.aarch64-multiplatform;
+  crossPkgs = pkgs.crossArm64.pkgsCross.aarch64-multiplatform;
 in {
   boot = {
     kernelPackages = crossPkgs.linuxPackagesFor (crossPkgs.buildLinux rec {
