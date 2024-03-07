@@ -31,6 +31,7 @@ in {
       ];
       extraConfig = ''
         CRYPTO_DEV_ROCKCHIP2 m
+        CRYPTO_DEV_ROCKCHIP2_DEBUG y
       '';
 
       extraMeta.branch = "6.8";
