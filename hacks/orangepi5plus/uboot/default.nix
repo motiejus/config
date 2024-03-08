@@ -1,7 +1,6 @@
 {
   fetchFromGitLab,
   fetchFromGitHub,
-  #buildArmTrustedFirmware,
   buildUBoot,
 }: let
   rkbin = fetchFromGitHub {
@@ -10,22 +9,6 @@
     rev = "a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0";
     hash = "sha256-U/jeUsV7bhqMw3BljmO6SI07NCDAd/+sEp3dZnyXeeA=";
   };
-  #tfa =
-  #  (buildArmTrustedFirmware rec {
-  #    extraMakeFlags = ["bl31"];
-  #    platform = "rk3588";
-  #    extraMeta.platforms = ["aarch64-linux"];
-  #    filesToInstall = ["build/${platform}/release/bl31/bl31.elf"];
-  #  })
-  #  .overrideAttrs (_: {
-  #    src = fetchFromGitLab {
-  #      domain = "gitlab.collabora.com";
-  #      owner = "hardware-enablement";
-  #      repo = "rockchip-3588/trusted-firmware-a";
-  #      rev = "002d8e85ce5f4f06ebc2c2c52b4923a514bfa701";
-  #      hash = "sha256-1XOG7ILIgWa3uXUmAh9WTfSGLD/76OsmWrUhIxm/zTg=";
-  #    };
-  #  });
 in
   buildUBoot rec {
     version = "v2024.04-rc3-52-g773cb2bca7";
