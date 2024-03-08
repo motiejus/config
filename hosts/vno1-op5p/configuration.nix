@@ -57,7 +57,7 @@ in {
       node_exporter.enable = true;
     };
 
-    postfix = {
+    services.postfix = {
       enable = true;
       saslPasswdPath = config.age.secrets.sasl-passwd.path;
     };
