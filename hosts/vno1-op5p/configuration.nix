@@ -47,8 +47,8 @@ in {
 
     base.users = {
       enable = true;
-      #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-      #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+      root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+      user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
       user.initialPassword = "live";
       root.initialPassword = "live";
     };
@@ -57,10 +57,10 @@ in {
       node_exporter.enable = true;
     };
 
-    #postfix = {
-    #  enable = true;
-    #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-    #};
+    postfix = {
+      enable = true;
+      saslPasswdPath = config.age.secrets.sasl-passwd.path;
+    };
   };
 
   services.pcscd.enable = true;
