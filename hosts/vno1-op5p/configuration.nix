@@ -52,12 +52,24 @@ in {
     };
 
     services = {
+      tailscale.enable = true;
       node_exporter.enable = true;
-    };
+      sshguard.enable = true;
 
-    services.postfix = {
-      enable = true;
-      saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
+
+      deployerbot = {
+        follower = {
+          inherit (myData.hosts."vno1-oh2.servers.jakst") publicKey;
+
+          enable = true;
+          sshAllowSubnets = [myData.subnets.tailscale.sshPattern];
+          uidgid = myData.uidgid.updaterbot-deployee;
+        };
+      };
     };
   };
 
