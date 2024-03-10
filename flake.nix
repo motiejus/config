@@ -370,6 +370,7 @@
       pkgs = import nixpkgs {inherit system overlays;};
     in {
       devShells.default = pkgs.mkShellNoCC {
+        GIT_AUTHOR_EMAIL = "motiejus@jakstys.lt";
         packages = [
           pkgs.nix-output-monitor
           pkgs.rage
