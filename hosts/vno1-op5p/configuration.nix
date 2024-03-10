@@ -1,4 +1,4 @@
-_: let
+{config, ...}: let
   nvme = "/dev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-256G-1001_19494D801165";
 in {
   imports = [
