@@ -64,8 +64,9 @@ rec {
       jakstIP = "100.89.176.4";
     };
     "vno1-op5p.servers.jakst" = rec {
-      extraHostNames = [vno1IP];
+      extraHostNames = [jakstIP vno1IP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGy9/qixhcPLeVNJIvN7n32bk8gnq3wqwYFM4SWqgdLb root@op5p";
+      jakstIP = "100.89.176.17";
       vno1IP = "192.168.189.12";
     };
     "vno3-rp3b.servers.jakst" = rec {
