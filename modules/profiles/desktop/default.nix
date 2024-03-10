@@ -269,6 +269,72 @@ in {
           split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
       '';
 
+      home.file.".cache/evolution/.stignore".text = "*.db";
+
+      accounts.email = {
+        maildirBasePath = "Maildir";
+
+        accounts.mj = {
+          primary = true;
+          userName = "motiejus@jakstys.lt";
+          address = "motiejus@jakstys.lt";
+          realName = "Motiejus Jakštys";
+          passwordCommand = "cat ${config.homeDirectory}/.email-creds";
+          imap.host = "imap.migadu.com";
+          smtp.host = "smtp.migadu.com";
+
+          mbsync = {
+            enable = true;
+            create = "maildir";
+          };
+
+          msmtp.enable = true;
+
+          notmuch.enable = true;
+
+          neomutt = {
+            enable = true;
+            extraConfig = ''
+              set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
+
+              set mailcap_path = ${./mailcap}
+              auto_view text/html
+              unset record
+              set send_charset="utf-8"
+
+              macro attach 'V' "<pipe-entry>iconv -c --to-code=UTF8 > ~/.cache/mutt/mail.html<enter><shell-escape>firefox ~/.cache/mutt/mail.html<enter>"
+              macro index,pager \cb "<pipe-message> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
+              macro attach,compose \cb "<pipe-entry> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
+
+              set sort_browser=date
+              set sort=reverse-threads
+              set sort_aux=last-date-received
+
+              bind pager g top
+              bind pager G bottom
+              bind attach,index g first-entry
+              bind attach,index G last-entry
+              bind attach,index,pager \CD half-down
+              bind attach,index,pager \CU half-up
+              bind attach,index,pager \Ce next-line
+              bind attach,index,pager \Cy previous-line
+              bind index,pager B sidebar-toggle-visible
+              bind index,pager R group-reply
+
+              set sidebar_visible = yes
+              set sidebar_width = 15
+              bind index,pager \Cp sidebar-prev
+              bind index,pager \Cn sidebar-next
+              bind index,pager \Co sidebar-open
+              bind index,pager B sidebar-toggle-visible
+              set sidebar_short_path = yes
+              set sidebar_delim_chars = '/'
+              set sidebar_format = '%B%* %?N?%N?'
+            '';
+          };
+        };
+      };
+
       services = {
         cbatticon.enable = true;
         blueman-applet.enable = true;
