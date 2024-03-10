@@ -307,6 +307,18 @@
           };
         };
 
+        vno1-op5p = {
+          hostname = myData.hosts."vno1-op5p.servers.jakst".vno1IP;
+          profiles = {
+            system = {
+              sshUser = "motiejus";
+              path =
+                self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
+              user = "root";
+            };
+          };
+        };
+
         vno3-rp3b = {
           hostname = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
           profiles = {
