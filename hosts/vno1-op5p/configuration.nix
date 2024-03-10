@@ -14,8 +14,8 @@ in {
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
-          keyFileOffset = 554;
-          keyFileSize = 12;
+          keyFileOffset = 9728;
+          keyFileSize = 512;
           keyFile = "/dev/disk/by-id/usb-Generic_Flash_Disk_1EA30F29-0:0";
         };
       };
