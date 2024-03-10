@@ -313,7 +313,7 @@
             system = {
               sshUser = "motiejus";
               path =
-                self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
+                self.nixosConfigurations.vno1-op5p.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-op5p;
               user = "root";
             };
           };
