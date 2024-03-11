@@ -171,6 +171,8 @@ in {
             p7zip
             zopfli
             brotli
+
+            config.boot.kernelPackages.cpupower
           ]
           (lib.mkIf (!cfg.skipPerf) [config.boot.kernelPackages.perf])
         ];
