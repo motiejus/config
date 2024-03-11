@@ -308,7 +308,7 @@
         };
 
         vno1-op5p = {
-          hostname = myData.hosts."vno1-op5p.servers.jakst".vno1IP;
+          hostname = myData.hosts."vno1-op5p.servers.jakst".jakstIP;
           profiles = {
             system = {
               sshUser = "motiejus";
