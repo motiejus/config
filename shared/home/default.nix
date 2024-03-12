@@ -50,13 +50,18 @@
     if (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
     then pkgs.firefox-bin
     else pkgs.firefox;
+  homeDirectory = "/home/${username}";
 in {
   home = {
-    inherit stateVersion username;
-    homeDirectory = "/home/${username}";
+    inherit stateVersion username homeDirectory;
   };
 
   home.file.".cache/evolution/.stignore".text = "*.db";
+
+  home.sessionVariables = lib.mkIf devTools {
+    GOPATH = "${homeDirectory}/.go";
+  };
+
   home.packages = with pkgs;
     lib.mkMerge [
       (lib.mkIf devTools [
