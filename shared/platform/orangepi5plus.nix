@@ -23,7 +23,7 @@ in {
       kernelPatches = [
         {
           name = "orangepi-5-plus-collabora-${version}";
-          patch = ./orangepi5plus/rk3588-v6.8.0-rc7.patch;
+          patch = ./orangepi5plus/rk3588-v6.8.patch;
         }
         {
           name = "rk3588-crypto";
