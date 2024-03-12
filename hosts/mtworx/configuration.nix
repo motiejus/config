@@ -41,7 +41,7 @@ in {
     };
     "/boot" = {
       device = "${nvme}-part1";
-      fsType = "ext4";
+      fsType = "vfat";
     };
   };
 
