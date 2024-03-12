@@ -175,6 +175,7 @@
             {nixpkgs.overlays = overlays;}
             ./hosts/mtworx/configuration.nix
             home-manager.nixosModules.home-manager
+            nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
 
             #agenix.nixosModules.default
             #{
