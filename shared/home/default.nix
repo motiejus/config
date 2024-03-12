@@ -96,6 +96,8 @@ in {
       chromium = {
         enable = true;
         extensions = [
+          {id = "cjpalhdlnbpafiamejdnhcphjbkeiagm";} # ublock origin
+          {id = "mdjildafknihdffpkfmmpnpoiajfjnjd";} # consent-o-matic
           {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
         ];
       };
