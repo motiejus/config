@@ -93,6 +93,12 @@ in {
         generateCaches = true;
       };
 
+      chromium = {
+        enable = true;
+        extensions = [
+          {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
+        ];
+      };
       firefox = lib.mkIf devTools {
         enable = true;
         # firefox doesn't need the wrapper on the personal laptop
