@@ -114,10 +114,11 @@ in {
               "signon.rememberSignons" = false;
             };
             extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+              golinks
+
               bitwarden
               ublock-origin
               consent-o-matic
-              joplin-web-clipper
               multi-account-containers
             ];
           };

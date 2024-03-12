@@ -61,6 +61,7 @@ in {
 
     base.users = {
       enable = true;
+      devTools = true;
       root.initialPassword = "live";
       user.initialPassword = "live";
       #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
