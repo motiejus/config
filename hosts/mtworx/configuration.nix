@@ -27,6 +27,8 @@ in {
     };
   };
 
+  home-manager.users.motiejus = import ../../shared/work;
+
   swapDevices = [
     {
       device = "${nvme}-part2";
