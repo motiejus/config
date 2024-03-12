@@ -169,6 +169,26 @@
           specialArgs = {inherit myData;} // inputs;
         };
 
+        mtworx = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            {nixpkgs.overlays = overlays;}
+            ./hosts/mtworx/configuration.nix
+            home-manager.nixosModules.home-manager
+
+            #agenix.nixosModules.default
+            #{
+            #  age.secrets = {
+            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            #  };
+            #}
+          ];
+
+          specialArgs = {inherit myData;} // inputs;
+        };
+
         vno1-oh2 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
