@@ -1,5 +1,4 @@
 {
-  stdenv,
   lib,
   fetchFromGitHub,
   protobuf,
@@ -12,9 +11,6 @@
   testers,
   turbo,
   nix-update-script,
-  IOKit,
-  CoreServices,
-  CoreFoundation,
   capnproto,
 }:
 rustPlatform.buildRustPackage rec {
@@ -41,17 +37,11 @@ rustPlatform.buildRustPackage rec {
     protobuf
     capnproto
   ];
-  buildInputs =
-    [
-      openssl
-      fontconfig
-      rust-jemalloc-sys
-    ]
-    ++ lib.optionals stdenv.isDarwin [
-      IOKit
-      CoreServices
-      CoreFoundation
-    ];
+  buildInputs = [
+    openssl
+    fontconfig
+    rust-jemalloc-sys
+  ];
 
   # Browser tests time out with chromium and google-chrome
   doCheck = false;
