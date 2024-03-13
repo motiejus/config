@@ -49,6 +49,8 @@ in {
       };
 
       kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
+
+      supportedFilesystems = ["btrfs"];
     };
 
     nixpkgs.config.allowUnfree = true;
