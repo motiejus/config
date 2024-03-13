@@ -149,6 +149,7 @@ in {
           librsvg
           neomutt
           picocom
+          inferno
           inkscape
           chromium
           hunspell
