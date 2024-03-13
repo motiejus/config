@@ -68,7 +68,7 @@ in {
   home.packages = with pkgs;
     lib.mkMerge [
       (lib.mkIf devTools [
-        go
+        pkgs-unstable.go_1_22
         zig
       ])
 

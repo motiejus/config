@@ -11,9 +11,8 @@
       nodejs
       google-cloud-sdk
     ])
-    ++ (with pkgs.nixpkgs-unstable; [
+    ++ (with pkgs.pkgs-unstable; [
       turbo
-      go_1_22
     ]);
 
   virtualisation.docker.enable = true;

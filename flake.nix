@@ -115,7 +115,7 @@
         # TODO: copied from 24.05
         turbo = super.callPackage ./pkgs/turbo.nix {};
 
-        nixpkgs-unstable = import nixpkgs-unstable {
+        pkgs-unstable = import nixpkgs-unstable {
           inherit (super) system;
         };
 
