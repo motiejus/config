@@ -6,11 +6,15 @@
   mj.base.users.email = "motiejus.jakstys@chronosphere.io";
   mj.base.users.user.extraGroups = ["docker"];
 
-  environment.systemPackages = with pkgs; [
-    pkgs.nixpkgs-unstable.turbo
-    nodejs
-    google-cloud-sdk
-  ];
+  environment.systemPackages =
+    (with pkgs; [
+      nodejs
+      google-cloud-sdk
+    ])
+    ++ (with pkgs.nixpkgs-unstable; [
+      turbo
+      go_1_22
+    ]);
 
   virtualisation.docker.enable = true;
 
