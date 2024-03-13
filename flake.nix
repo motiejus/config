@@ -109,6 +109,9 @@
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
         gamja = super.callPackage ./pkgs/gamja.nix {};
+
+        # TODO: copied from 24.05
+        turbo = super.callPackage ./pkgs/turbo.nix {};
       })
       (_: _: {
         crossArm64 = import nixpkgs {
