@@ -104,6 +104,7 @@ in {
       chromium = {
         enable = true;
         extensions = [
+          {id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa";} # 1password
           {id = "cjpalhdlnbpafiamejdnhcphjbkeiagm";} # ublock origin
           {id = "mdjildafknihdffpkfmmpnpoiajfjnjd";} # consent-o-matic
           {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
