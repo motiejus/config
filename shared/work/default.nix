@@ -7,7 +7,7 @@
   mj.base.users.user.extraGroups = ["docker"];
 
   environment.systemPackages = with pkgs; [
-    turbo
+    pkgs.nixpkgs-unstable.turbo
     nodejs
     google-cloud-sdk
   ];
