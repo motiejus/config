@@ -5,7 +5,6 @@
   ];
 
   mj = {
-    skipPerf = true;
     stateVersion = "23.11";
     timeZone = "UTC";
     username = "nixos";
