@@ -39,5 +39,6 @@
     hostName = "op5p";
     domain = "jakstys.lt";
     firewall.allowedTCPPorts = [22];
+    hostId = "abefef01";
   };
 }
