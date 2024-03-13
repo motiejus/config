@@ -16,7 +16,6 @@ in {
   boot = {
     kernelPackages = pkgs.linuxPackages_latest;
     kernelModules = ["kvm-intel"];
-    supportedFilesystems = ["bcachefs"];
     loader.systemd-boot.enable = true;
     initrd = {
       availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
@@ -39,7 +38,7 @@ in {
   fileSystems = {
     "/" = {
       device = "/dev/mapper/luksroot";
-      fsType = "bcachefs";
+      fsType = "btrfs";
     };
     "/boot" = {
       device = "${nvme}-part1";
