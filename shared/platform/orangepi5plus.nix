@@ -41,7 +41,7 @@ in {
       generic-extlinux-compatible.enable = true;
     };
 
-    initrd.kernelModules = ["ahci_dwc" "phy_rockchip_naneng_combphy"];
+    initrd.kernelModules = ["ahci_dwc" "phy_rockchip_naneng_combphy" "rockchip-cpufreq"];
     consoleLogLevel = 7;
   };
 
