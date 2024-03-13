@@ -20,7 +20,7 @@
     pcscd.enable = true;
   };
 
-  boot.supportedFilesystems = ["bcachefs"];
+  boot.supportedFilesystems = ["btrfs" "bcachefs"];
 
   fileSystems = {
     "/" = {

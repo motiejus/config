@@ -21,6 +21,7 @@
   };
 
   boot.loader.systemd-boot.enable = true;
+  boot.supportedFilesystems = ["zfs" "btrfs" "bcachefs"];
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
