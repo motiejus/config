@@ -56,7 +56,10 @@ in {
     inherit stateVersion username homeDirectory;
   };
 
-  home.file.".cache/evolution/.stignore".text = "*.db";
+  home.file = {
+    ".cache/evolution/.stignore".text = "*.db";
+    ".parallel/will-cite".text = "";
+  };
 
   home.sessionVariables = lib.mkIf devTools {
     GOPATH = "${homeDirectory}/.go";
