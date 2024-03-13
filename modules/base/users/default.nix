@@ -31,6 +31,10 @@ in {
       type = bool;
       default = false;
     };
+    email = lib.mkOption {
+      type = str;
+      default = "motiejus@jakstys.lt";
+    };
     user = props;
     root = props;
   };
@@ -57,13 +61,12 @@ in {
 
     home-manager.useGlobalPkgs = true;
     home-manager.users.${config.mj.username} = {pkgs, ...}:
-      import ../../../shared/home/default.nix {
+      import ../../../shared/home {
         inherit lib;
         inherit pkgs;
         inherit (config.mj) stateVersion username;
-        inherit (cfg) devTools;
+        inherit (cfg) devTools email;
         hmOnly = false;
-        email = "motiejus@jakstys.lt";
       };
   };
 }
