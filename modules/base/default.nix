@@ -42,7 +42,10 @@ in {
   config = {
     boot = {
       # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
-      kernel.sysctl."kernel.sysrq" = "438";
+      kernel.sysctl = {
+        "kernel.sysrq" = "438";
+        "kernel.perf_event_paranoid" = "-1";
+      };
 
       kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
     };
