@@ -9,6 +9,7 @@
   environment.systemPackages =
     (with pkgs; [
       nodejs
+      typescript
       concurrently
       google-cloud-sdk
     ])
