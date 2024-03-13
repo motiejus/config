@@ -39,6 +39,7 @@ in {
     "/" = {
       device = "/dev/mapper/luksroot";
       fsType = "btrfs";
+      options = ["compress=zstd"];
     };
     "/boot" = {
       device = "${nvme}-part1";
