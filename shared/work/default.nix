@@ -4,10 +4,13 @@
   ...
 }: {
   mj.base.users.email = "motiejus.jakstys@chronosphere.io";
+  mj.base.users.user.extraGroups = ["docker"];
 
   environment.systemPackages = with pkgs; [
     google-cloud-sdk
   ];
+
+  virtualisation.docker.enable = true;
 
   home-manager.users.${config.mj.username} = {
     home.sessionVariables.GOPRIVATE = "github.com/chronosphereio";
