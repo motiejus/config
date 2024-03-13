@@ -21,7 +21,7 @@
   };
 
   boot.loader.systemd-boot.enable = true;
-  boot.supportedFilesystems = ["zfs" "btrfs" "bcachefs"];
+  boot.supportedFilesystems = ["zfs" "btrfs"];
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
@@ -46,5 +46,6 @@
     hostName = "vm";
     domain = "jakstys.lt";
     firewall.allowedTCPPorts = [22];
+    hostId = "abefef01";
   };
 }
