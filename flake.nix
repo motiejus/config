@@ -184,6 +184,7 @@
             ./hosts/mtworx/configuration.nix
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
+            nix-index-database.nixosModules.nix-index
 
             #agenix.nixosModules.default
             #{

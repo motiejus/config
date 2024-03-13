@@ -9,6 +9,7 @@
   environment.systemPackages =
     (with pkgs; [
       nodejs
+      concurrently
       google-cloud-sdk
     ])
     ++ (with pkgs.pkgs-unstable; [
