@@ -7,6 +7,7 @@
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
 in {
   imports = [
+    ../../shared/work
     ../../modules
     ../../modules/profiles/desktop
   ];
@@ -26,8 +27,6 @@ in {
       };
     };
   };
-
-  home-manager.users.motiejus = import ../../shared/work;
 
   swapDevices = [
     {
