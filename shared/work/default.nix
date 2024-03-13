@@ -8,6 +8,7 @@
 
   environment.systemPackages =
     (with pkgs; [
+      swc
       nodejs
       typescript
       concurrently
