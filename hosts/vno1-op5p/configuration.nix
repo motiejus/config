@@ -83,6 +83,5 @@ in {
     hostName = "vno1-op5p";
     domain = "jakstys.lt";
     firewall.allowedTCPPorts = [22];
-    hostId = "81e10bcc";
   };
 }
