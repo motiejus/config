@@ -124,7 +124,6 @@ in {
   };
 
   services.autorandr = {
-    enable = true;
     profiles = {
       default = {
         fingerprint = {inherit (randr) eDP-1;};

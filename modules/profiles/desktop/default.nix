@@ -43,6 +43,8 @@ in {
         ];
       };
 
+      autorandr.enable = true;
+
       avahi = {
         enable = true;
         nssmdns = true;

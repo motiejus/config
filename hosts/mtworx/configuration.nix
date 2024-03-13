@@ -5,6 +5,7 @@
   ...
 }: let
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
+  randr = import ./randr.nix;
 in {
   imports = [
     ../../shared/work
@@ -125,7 +126,41 @@ in {
   };
 
   services = {
-    autorandr.enable = true;
+    autorandr.profiles = {
+      default = {
+        fingerprint = {inherit (randr) eDP-1;};
+        config = {
+          DP-1.enable = false;
+          DP-2.enable = false;
+          DP-3.enable = false;
+          DP-4.enable = false;
+          eDP-1 = {
+            enable = true;
+            primary = true;
+            mode = "1920x1200";
+            crtc = 0;
+            position = "0x0";
+          };
+        };
+      };
+
+      work = {
+        fingerprint = {
+          inherit (randr) eDP-1;
+          inherit (randr.work) DP-3;
+        };
+        config = {
+          eDP-1.enable = false;
+          DP-3 = {
+            enable = true;
+            primary = true;
+            mode = "3840x2160";
+            crtc = 1;
+            position = "0x0";
+          };
+        };
+      };
+    };
 
     tlp = {
       enable = true;
