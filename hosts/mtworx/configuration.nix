@@ -144,6 +144,28 @@ in {
         };
       };
 
+      dualhome = {
+        fingerprint = {
+          inherit (randr) eDP-1;
+          inherit (randr.home) DP-3 HDMI-1;
+        };
+        config = {
+          eDP-1.enable = false;
+          HDMI-1 = {
+            enable = true;
+            mode = "2560x1440";
+            position = "0x0";
+            crtc = 1;
+          };
+          DP-3 = {
+            enable = true;
+            mode = "2560x1440";
+            position = "2560x0";
+            crtc = 2;
+          };
+        };
+      };
+
       work = {
         fingerprint = {
           inherit (randr) eDP-1;
