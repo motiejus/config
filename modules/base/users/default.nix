@@ -51,6 +51,7 @@ in {
             uid = myData.uidgid.motiejus;
             openssh.authorizedKeys.keys = [
               myData.people_pubkeys.motiejus
+              myData.people_pubkeys.motiejus_work
             ];
           }
           // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or {};
