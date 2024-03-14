@@ -89,6 +89,11 @@ rec {
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
     };
+    "mtworx.motiejus.jakst" = rec {
+      extraHostNames = [jakstIP];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRrsOkKkpJ9ZJYhEdxjwrmdVYoPcGDGtcGfBkkpVF6l";
+      jakstIP = "100.89.176.20";
+    };
     "vno1-vinc.vincentas.jakst" = rec {
       extraHostNames = [jakstIP];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
