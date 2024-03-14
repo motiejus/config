@@ -494,7 +494,7 @@
         }
         {
           job_name = "mtworx.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."mtworx.motiejus.jakst".vno1IP}:${port}"];}];
+          static_configs = [{targets = ["${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}"];}];
         }
         {
           job_name = "vno1-vinc.vincentas.jakst";
