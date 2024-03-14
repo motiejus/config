@@ -8,6 +8,7 @@
 
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
+    "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
     "vno1-oh2".id = "W45ROUW-CHKI3I6-C4VCOCU-NJYQ3ZS-MJDHH23-YYCDXTI-HTJSBZJ-KZMWTAF";
     "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
@@ -28,7 +29,7 @@
       label = "Mail";
     };
     M-Active = {
-      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      devices = ["mxp10" "fwminex" "mtworx" "vno1-oh2"];
       id = "f6fma-unkxq";
       label = "M-Active";
       versioning = {
@@ -55,7 +56,7 @@
       label = "M-V";
     };
     M-Camera = {
-      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      devices = ["mxp10" "fwminex" "mtworx" "vno1-oh2"];
       id = "pixel_xl_dtm3-photos";
       label = "M-Camera";
     };
@@ -70,12 +71,12 @@
       label = "Pictures";
     };
     Music = {
-      devices = ["fwminex" "mxp10" "vno1-oh2"];
+      devices = ["fwminex" "mtworx" "mxp10" "vno1-oh2"];
       id = "tg94v-cqcwr";
       label = "music";
     };
     video-shared = {
-      devices = ["mxp10" "fwminex" "vno1-oh2"];
+      devices = ["mxp10" "mtworx" "fwminex" "vno1-oh2"];
       id = "byzmw-f6zhg";
       label = "video-shared";
     };
@@ -138,6 +139,7 @@ in {
             inherit
               (devices)
               fwminex
+              mtworx
               vno1-oh2
               mxp10
               rzj-744P2PE
@@ -151,10 +153,20 @@ in {
             inherit
               (devices)
               fwminex
+              mtworx
               vno1-oh2
               mxp10
               rzj-744P2PE
               vno1-vinc
+              ;
+          })
+          // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
+            inherit
+              (devices)
+              fwminex
+              mtworx
+              vno1-oh2
+              mxp10
               ;
           })
           // {};
@@ -179,6 +191,14 @@ in {
               "${cfg.dataDir}/video/vincentas" = video-vincentas;
               "${cfg.dataDir}/music" = Music;
               "${cfg.dataDir}/irenos" = Irenos;
+            }
+          )
+          // (
+            lib.optionalAttrs (config.networking.hostName == "mtworx") {
+              "${cfg.dataDir}/M-Active" = M-Active;
+              "${cfg.dataDir}/M-Camera" = M-Camera;
+              "${cfg.dataDir}/Video" = video-shared;
+              "${cfg.dataDir}/music" = Music;
             }
           )
           // (
