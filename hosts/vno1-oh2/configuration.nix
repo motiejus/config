@@ -493,6 +493,10 @@
           static_configs = [{targets = ["${myData.hosts."fwminex.motiejus.jakst".vno1IP}:${port}"];}];
         }
         {
+          job_name = "mtworx.motiejus.jakst";
+          static_configs = [{targets = ["${myData.hosts."mtworx.motiejus.jakst".vno1IP}:${port}"];}];
+        }
+        {
           job_name = "vno1-vinc.vincentas.jakst";
           static_configs = [{targets = ["${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100"];}];
         }
