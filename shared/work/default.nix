@@ -8,14 +8,14 @@
 
   environment.systemPackages =
     (with pkgs; [
-      swc
-      nodejs
-      typescript
-      concurrently
+      #swc
+      #nodejs
+      #typescript
+      #concurrently
       google-cloud-sdk
     ])
     ++ (with pkgs.pkgs-unstable; [
-      turbo
+      #turbo
     ]);
 
   virtualisation.docker.enable = true;
