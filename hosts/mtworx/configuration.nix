@@ -201,8 +201,8 @@ in {
         CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
         CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
         PLATFORM_PROFILE_ON_BAT = "low-power";
-        START_CHARGE_THRESH_BAT1 = 80;
-        STOP_CHARGE_THRESH_BAT1 = 87;
+        START_CHARGE_THRESH_BAT0 = 80;
+        STOP_CHARGE_THRESH_BAT0 = 87;
         RUNTIME_PM_ON_BAT = "auto";
       };
     };
