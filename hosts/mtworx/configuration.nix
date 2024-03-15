@@ -186,7 +186,7 @@ in {
       };
 
       work-lidclosed = {
-        fingerprint = {inherit (randr) eDP-1;};
+        fingerprint = {inherit (randr.work) DP-3;};
         config = work-DP-3;
       };
     };
