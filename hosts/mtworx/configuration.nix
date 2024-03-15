@@ -126,7 +126,18 @@ in {
   };
 
   services = {
-    autorandr.profiles = {
+    autorandr.profiles = let
+      work-DP-3 = {
+        eDP-1.enable = false;
+        DP-3 = {
+          enable = true;
+          primary = true;
+          mode = "3840x2160";
+          crtc = 1;
+          position = "0x0";
+        };
+      };
+    in {
       default = {
         fingerprint = {inherit (randr) eDP-1;};
         config = {
@@ -166,21 +177,17 @@ in {
         };
       };
 
-      work = {
+      work-lidopen = {
         fingerprint = {
           inherit (randr) eDP-1;
           inherit (randr.work) DP-3;
         };
-        config = {
-          eDP-1.enable = false;
-          DP-3 = {
-            enable = true;
-            primary = true;
-            mode = "3840x2160";
-            crtc = 1;
-            position = "0x0";
-          };
-        };
+        config = work-DP-3;
+      };
+
+      work-lidclosed = {
+        fingerprint = {inherit (randr) eDP-1;};
+        config = work-DP-3;
       };
     };
 
