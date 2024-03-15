@@ -133,7 +133,7 @@ in {
           enable = true;
           primary = true;
           mode = "3840x2160";
-          crtc = 1;
+          crtc = 0;
           position = "0x0";
         };
       };
