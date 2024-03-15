@@ -12,6 +12,7 @@
       #nodejs
       #typescript
       #concurrently
+      kubectl
       google-cloud-sdk
     ])
     ++ (with pkgs.pkgs-unstable; [
