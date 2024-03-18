@@ -24,6 +24,13 @@
 
   home-manager.users.${config.mj.username} = {
     home.sessionVariables.GOPRIVATE = "github.com/chronosphereio";
-    programs.git.extraConfig.url."git@github.com:".insteadOf = "https://github.com";
+    programs = {
+      git.extraConfig.url."git@github.com:".insteadOf = "https://github.com";
+      chromium.extensions = [
+        {id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa";} # 1password
+        {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
+        {id = "kgjfgplpablkjnlkjmjdecgdpfankdle";} # Zoom
+      ];
+    };
   };
 }
