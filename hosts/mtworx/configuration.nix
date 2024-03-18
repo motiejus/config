@@ -1,6 +1,6 @@
 {
   pkgs,
-  #config,
+  config,
   myData,
   ...
 }: let
@@ -64,10 +64,8 @@ in {
     base.users = {
       enable = true;
       devTools = true;
-      root.initialPassword = "live";
-      user.initialPassword = "live";
-      #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-      #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+      root.hashedPasswordFile = config.age.secrets.root-work-passwd-hash.path;
+      user.hashedPasswordFile = config.age.secrets.motiejus-work-passwd-hash.path;
     };
 
     services = {

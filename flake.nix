@@ -186,14 +186,14 @@
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
             nix-index-database.nixosModules.nix-index
 
-            #agenix.nixosModules.default
-            #{
-            #  age.secrets = {
-            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-            #  };
-            #}
+            agenix.nixosModules.default
+            {
+              age.secrets = {
+                motiejus-work-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
+                root-work-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
+                #sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+              };
+            }
           ];
 
           specialArgs = {inherit myData;} // inputs;
