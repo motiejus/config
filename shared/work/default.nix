@@ -22,6 +22,41 @@
 
   virtualisation.docker.enable = true;
 
+  services.clamav = {
+    updater.enable = true;
+    daemon = {
+      enable = true;
+      settings = {
+        ScanMail = false;
+        ScanArchive = false;
+        ExcludePath = [
+          "^/proc"
+          "^/sys"
+          "^/dev"
+          "^/nix"
+          "^/var"
+          "^/home/.cache"
+          "^/home/.go"
+          "^/home/dev"
+          "^/home/code"
+        ];
+      };
+    };
+  };
+  # TODO remove once 24.05 is out
+  systemd.services.clamav-daemon.serviceConfig = {
+    StateDirectory = "clamav";
+    RuntimeDirectory = "clamav";
+    User = "clamav";
+    Group = "clamav";
+  };
+
+  systemd.services.clamav-freshclam.serviceConfig = {
+    StateDirectory = "clamav";
+    User = "clamav";
+    Group = "clamav";
+  };
+
   home-manager.users.${config.mj.username} = {
     home.sessionVariables.GOPRIVATE = "github.com/chronosphereio";
     programs = {
