@@ -117,6 +117,7 @@ in {
             tokei
             sshfs
             pwgen
+            mdadm
             parted
             bloaty
             sqlite
