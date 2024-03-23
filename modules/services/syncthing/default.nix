@@ -143,6 +143,7 @@ in {
               vno1-vinc
               vno2-irena
               v-kfire
+              a-kfire
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
@@ -155,6 +156,7 @@ in {
               rzj-744P2PE
               vno1-vinc
               v-kfire
+              a-kfire
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
