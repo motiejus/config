@@ -15,7 +15,7 @@
     "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
-    "v-kfire".id = "HWNFPKU-RERU6NW-AGHEOIE-CIKWKIR-RLB4QY7-OASXE4D-QZP7QZY-3US2TAD";
+    "v-kfire".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
   };
   folders = {
     Books = {
@@ -45,15 +45,10 @@
       id = "4fu7z-z6es2";
       label = "M-Documents";
     };
-    video-vincentas = {
-      devices = ["vno1-vinc" "vno1-oh2" "v-kfire"];
+    Vaikai = {
+      devices = ["vno1-vinc" "vno1-oh2" "v-kfire" "rzj-744P2PE"];
       id = "xbrfr-mhszm";
-      label = "video-vincentas";
-    };
-    M-V = {
-      devices = ["fwminex" "vno1-vinc" "vno1-oh2"];
-      id = "oq3ht-a9hnb";
-      label = "M-V";
+      label = "Vaikai";
     };
     M-Camera = {
       devices = ["mxp10" "fwminex" "mtworx" "vno1-oh2"];
@@ -158,6 +153,7 @@ in {
               mxp10
               rzj-744P2PE
               vno1-vinc
+              v-kfire
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
@@ -177,7 +173,6 @@ in {
               "/var/www/dl/tel" = www-mxp10;
               "/var/www/dl/fwminex" = www-fwminex;
               "/var/www/dl/mykolo" = mykolo;
-              "${cfg.dataDir}/M-V" = M-V;
               "${cfg.dataDir}/annex2/Books" = Books;
               "${cfg.dataDir}/annex2/Mail" = Mail;
               "${cfg.dataDir}/annex2/M-Active" = M-Active;
@@ -188,7 +183,7 @@ in {
               "${cfg.dataDir}/annex2/M-R" = M-R;
               "${cfg.dataDir}/stud-cache" = stud-cache;
               "${cfg.dataDir}/video/shared" = video-shared;
-              "${cfg.dataDir}/video/vincentas" = video-vincentas;
+              "${cfg.dataDir}/video/Vaikai" = Vaikai;
               "${cfg.dataDir}/music" = Music;
               "${cfg.dataDir}/irenos" = Irenos;
             }
@@ -211,7 +206,7 @@ in {
               "${cfg.dataDir}/Pictures" = Pictures;
               "${cfg.dataDir}/Music" = Music;
               "${cfg.dataDir}/M-R" = M-R;
-              "${cfg.dataDir}/M-V" = M-V;
+              "${cfg.dataDir}/Vaikai" = Vaikai;
               "${cfg.dataDir}/Video" = video-shared;
               "${cfg.dataDir}/stud-cache" = stud-cache;
               "${cfg.dataDir}/www" = www-fwminex;
