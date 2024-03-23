@@ -46,7 +46,7 @@
       label = "M-Documents";
     };
     Vaikai = {
-      devices = ["vno1-vinc" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE"];
+      devices = ["vno1-vinc" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10"];
       id = "xbrfr-mhszm";
       label = "Vaikai";
     };
