@@ -16,6 +16,7 @@
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
+    "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
   };
   folders = {
     Books = {
@@ -46,7 +47,7 @@
       label = "M-Documents";
     };
     Vaikai = {
-      devices = ["vno1-vinc" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10"];
+      devices = ["vno1-vinc" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
       id = "xbrfr-mhszm";
       label = "Vaikai";
     };
