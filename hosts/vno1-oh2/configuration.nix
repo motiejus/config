@@ -103,7 +103,7 @@
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
-            backup_at = "*-*-* 01:01:00 UTC";
+            backup_at = "*-*-* 01:30:00 UTC";
           }
           {
             mountpoint = "/var/log";
@@ -113,7 +113,7 @@
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
             ];
-            backup_at = "*-*-* 01:01:00 UTC";
+            backup_at = "*-*-* 01:30:00 UTC";
           }
 
           # TODO merge
@@ -124,7 +124,7 @@
               "motiejus/annex2"
               "motiejus/.config/syncthing"
             ];
-            backup_at = "*-*-* 01:05:00 UTC";
+            backup_at = "*-*-* 02:00:00 UTC";
           }
           {
             mountpoint = "/home";
@@ -133,7 +133,7 @@
               "motiejus/annex2"
               "motiejus/.config/syncthing"
             ];
-            backup_at = "*-*-* 01:05:00 UTC";
+            backup_at = "*-*-* 02:00:00 UTC";
           }
         ];
       };
