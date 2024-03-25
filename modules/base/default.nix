@@ -114,6 +114,7 @@ in {
             entr
             cloc
             poop # hopefully poof some day
+            s-tui # stress and monitor cpu
             tokei
             sshfs
             pwgen
