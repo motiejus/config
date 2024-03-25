@@ -197,7 +197,7 @@
           deployIfPresent = [
             {
               derivationTarget = ".#fwminex";
-              pingTarget = myData.hosts."fwminex.motiejus.jakst".vno1IP;
+              pingTarget = myData.hosts."fwminex.motiejus.jakst".jakstIP;
             }
             {
               derivationTarget = ".#vno1-op5p";
@@ -490,7 +490,7 @@
         }
         {
           job_name = "fwminex.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."fwminex.motiejus.jakst".vno1IP}:${port}"];}];
+          static_configs = [{targets = ["${myData.hosts."fwminex.motiejus.jakst".jakstIP}:${port}"];}];
         }
         {
           job_name = "mtworx.motiejus.jakst";
