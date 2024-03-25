@@ -14,7 +14,8 @@ in {
   ];
 
   boot = {
-    kernelPackages = pkgs.linuxPackages_latest;
+    #kernelPackages = pkgs.linuxPackages_latest;
+    kernelPackages = pkgs.linuxKernel.packages.linux_6_1;
     kernelModules = ["kvm-intel"];
     loader.systemd-boot.enable = true;
     initrd = {
