@@ -12,6 +12,7 @@
       #nodejs
       #typescript
       #concurrently
+      bats
       kubectl
       kubectx
       google-cloud-sdk
