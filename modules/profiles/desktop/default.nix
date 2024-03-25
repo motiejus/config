@@ -157,6 +157,7 @@ in {
           rtorrent
           bsdgames
           xss-lock
+          musl.dev
           qpwgraph # for pipewire
           audacity
           powertop
