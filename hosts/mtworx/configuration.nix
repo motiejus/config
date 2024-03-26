@@ -16,7 +16,7 @@ in {
   boot = {
     kernelPackages = pkgs.linuxPackages_latest;
     kernelModules = ["kvm-intel"];
-    kernelParams = ["intel_pstate=passive"];
+    kernelParams = ["intel_pstate=disable"];
     loader.systemd-boot.enable = true;
     initrd = {
       availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
