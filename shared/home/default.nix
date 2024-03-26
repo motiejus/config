@@ -83,7 +83,6 @@ in {
         bloaty
         scrcpy
         yt-dlp
-        kubectl
         vimv-rs
         ripgrep
         yamllint

@@ -139,6 +139,7 @@ in {
             parallel
             yamllint
             binutils
+            compsize # compression ratio on btrfs
             hyperfine
             stress-ng
             dmidecode

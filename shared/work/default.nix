@@ -14,6 +14,7 @@
       #concurrently
       bats
       kubectl
+      kubectl-node-shell
       kubectx
       google-cloud-sdk
     ])
