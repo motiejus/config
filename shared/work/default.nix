@@ -59,7 +59,10 @@
   };
 
   home-manager.users.${config.mj.username} = {
-    home.sessionVariables.GOPRIVATE = "github.com/chronosphereio";
+    home.sessionVariables = {
+      GOPRIVATE = "github.com/chronosphereio";
+      BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
+    };
     programs = {
       git.extraConfig.url."git@github.com:".insteadOf = "https://github.com";
       chromium.extensions = [
