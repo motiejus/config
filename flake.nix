@@ -114,6 +114,10 @@
         # TODO: copied from 24.05
         turbo = super.callPackage ./pkgs/turbo.nix {};
 
+        throttled = super.throttled.overrideAttrs (_: _: {
+          patches = [./pkgs/throttled.patch];
+        });
+
         pkgs-unstable = import nixpkgs-unstable {
           inherit (super) system;
         };

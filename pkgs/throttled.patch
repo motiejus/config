@@ -1,0 +1,25 @@
+From 185879489c015a730830a09481f496a126d8a7f9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Motiejus=20Jak=C5=A1tys?= <motiejus.jakstys@chronosphere.io>
+Date: Wed, 27 Mar 2024 19:50:12 +0200
+Subject: [PATCH] enable i7-1355U
+
+https://github.com/erpalma/throttled/issues/346
+---
+ throttled.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/throttled.py b/throttled.py
+index b9f4c41..0e2b5f7 100755
+--- a/throttled.py
++++ b/throttled.py
+@@ -170,6 +170,7 @@ supported_cpus = {
+     (6, 165, 5): 'Comet Lake-S',
+     (6, 166, 0): 'CometLake',
+     (6, 167, 1): 'RocketLake',
++    (6, 186, 3): 'RaptorLake-U',
+ }
+ 
+ TESTMSR = False
+-- 
+2.42.0
+
