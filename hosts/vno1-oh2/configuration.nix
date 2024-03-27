@@ -200,6 +200,10 @@
               pingTarget = myData.hosts."fwminex.motiejus.jakst".jakstIP;
             }
             {
+              derivationTarget = ".#mtworx";
+              pingTarget = myData.hosts."mtworx.motiejus.jakst".jakstIP;
+            }
+            {
               derivationTarget = ".#vno1-op5p";
               pingTarget = myData.hosts."vno1-op5p.servers.jakst".jakstIP;
             }
