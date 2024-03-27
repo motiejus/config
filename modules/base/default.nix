@@ -99,6 +99,7 @@ in {
           [
             jc # parse different formats and command outputs to json
             jq # parse, format and query json documents
+            yq
             pv # pipe viewer for progressbars in pipes
             bat # "bat - cat with wings", cat|less with language highlight
             duf # nice disk usage output
