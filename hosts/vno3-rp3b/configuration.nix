@@ -7,9 +7,9 @@
   myData,
   ...
 }: {
-  # previously:
-  # imports = [(modulesPath + "/installer/scan/not-detected.nix")];
-  # as of 23.05 that is:
+  imports = [
+    ../../modules/profiles/sdcard
+  ];
 
   boot = {
     initrd = {
@@ -111,8 +111,6 @@
       };
     };
   };
-
-  services.journald.extraConfig = "Storage=volatile";
 
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
