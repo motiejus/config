@@ -12,18 +12,18 @@ in {
 
   boot = {
     kernelPackages = crossNative.linuxPackagesFor (crossFast.buildLinux rec {
-      version = "6.8.0";
-      modDirVersion = "6.8.0";
+      version = "6.9.0-rc1";
+      modDirVersion = "6.9.0-rc1";
 
       src = builtins.fetchTarball {
-        #url = "https://git.kernel.org/torvalds/t/linux-6.8-rc7.tar.gz";
-        url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.tar.xz";
-        sha256 = "sha256:1xzi1yhh5k3vzfwvw4f2rzaas6dh4qara33vzj77xiz2zmks2y5d";
+        url = "https://git.kernel.org/torvalds/t/linux-6.9-rc1.tar.gz";
+        #url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.tar.xz";
+        sha256 = "sha256:05hi2vfmsjwl5yhqmy4h5a954090nv48z9gabhvh16xlaqlfh8nz";
       };
       kernelPatches = [
         {
           name = "orangepi-5-plus-collabora-${version}";
-          patch = ./orangepi5plus/rk3588-v6.8.patch;
+          patch = ./orangepi5plus/rk3588-v6.9-rc1.patch;
         }
         {
           name = "rk3588-crypto";
@@ -35,7 +35,7 @@ in {
         CRYPTO_DEV_ROCKCHIP2_DEBUG y
       '';
 
-      extraMeta.branch = "6.8";
+      extraMeta.branch = "6.9";
     });
 
     loader = {
