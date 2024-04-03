@@ -119,6 +119,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    raspberrypi-eeprom
     libraspberrypi
     borgbackup
   ];
