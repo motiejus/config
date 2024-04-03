@@ -37,6 +37,7 @@ in {
     "/" = {
       device = "/dev/mapper/luksroot";
       fsType = "bcachefs";
+      options = ["noatime" "fix_errors"];
     };
     "/boot" = {
       device = "${nvme}-part1";
