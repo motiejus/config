@@ -7,7 +7,6 @@
 in {
   imports = [
     ../../modules
-    ../../modules/profiles/sdcard
     ../../shared/platform/orangepi5plus.nix
   ];
 
