@@ -114,6 +114,7 @@ in {
             ncdu # disk usage navigator
             lshw
             entr
+            qemu
             cloc
             poop # hopefully poof some day
             s-tui # stress and monitor cpu
