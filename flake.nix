@@ -340,6 +340,18 @@
           };
         };
 
+        mtworx = {
+          hostname = myData.hosts."mtworx.motiejus.jakst".jakstIP;
+          profiles = {
+            system = {
+              sshUser = "motiejus";
+              path =
+                self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
+              user = "root";
+            };
+          };
+        };
+
         vno1-op5p = {
           hostname = myData.hosts."vno1-op5p.servers.jakst".jakstIP;
           profiles = {
