@@ -51,10 +51,8 @@ in {
 
     base.users = {
       enable = true;
-      #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-      #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
-      root.initialPassword = "live";
-      user.initialPassword = "live";
+      root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+      user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
     };
 
     services = {
@@ -62,10 +60,10 @@ in {
       node_exporter.enable = true;
       sshguard.enable = true;
 
-      #postfix = {
-      #  enable = true;
-      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      #};
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
 
       deployerbot = {
         follower = {
