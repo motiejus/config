@@ -54,7 +54,7 @@ in {
       #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
       #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
       root.initialPassword = "live";
-      user.hashedPasswordFile = "live";
+      user.initialPassword = "live";
     };
 
     services = {
