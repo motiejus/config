@@ -167,14 +167,14 @@
             ./hosts/vno1-op5p/configuration.nix
             home-manager.nixosModules.home-manager
 
-            agenix.nixosModules.default
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-              };
-            }
+            #agenix.nixosModules.default
+            #{
+            #  age.secrets = {
+            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            #  };
+            #}
           ];
 
           specialArgs = {inherit myData;} // inputs;

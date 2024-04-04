@@ -1,5 +1,5 @@
 {
-  config,
+  #config,
   myData,
   ...
 }: let
@@ -11,7 +11,6 @@ in {
   ];
 
   boot = {
-    supportedFilesystems = ["bcachefs"];
     initrd = {
       kernelModules = ["usb_storage"];
       luks.devices = {
@@ -36,8 +35,8 @@ in {
   fileSystems = {
     "/" = {
       device = "/dev/mapper/luksroot";
-      fsType = "bcachefs";
-      options = ["noatime" "fix_errors"];
+      fsType = "btrfs";
+      options = ["noatime" "compress=zstd"];
     };
     "/boot" = {
       device = "${nvme}-part1";
@@ -52,8 +51,10 @@ in {
 
     base.users = {
       enable = true;
-      root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-      user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+      #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+      #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+      root.initialPassword = "live";
+      user.hashedPasswordFile = "live";
     };
 
     services = {
@@ -61,10 +62,10 @@ in {
       node_exporter.enable = true;
       sshguard.enable = true;
 
-      postfix = {
-        enable = true;
-        saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      };
+      #postfix = {
+      #  enable = true;
+      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      #};
 
       deployerbot = {
         follower = {
