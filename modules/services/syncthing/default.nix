@@ -128,7 +128,6 @@ in {
       openDefaultPorts = true;
 
       settings = {
-        gui.insecureAdminAccess = true;
         devices =
           {}
           // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
