@@ -104,6 +104,7 @@ in {
             bat # "bat - cat with wings", cat|less with language highlight
             duf # nice disk usage output
             git
+            lz4
             fio
             htop
             file # file duh
