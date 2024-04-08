@@ -179,6 +179,7 @@ in {
           poppler_utils
           rkdeveloptool
           squashfsTools
+          nixpkgs-review
           aspellDicts.en
           aspellDicts.lt
           libreoffice-qt
