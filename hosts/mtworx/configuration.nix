@@ -125,8 +125,6 @@ in {
   };
 
   services = {
-    throttled.enable = true;
-
     autorandr.profiles = {
       default = {
         fingerprint = {inherit (randr) eDP-1;};
