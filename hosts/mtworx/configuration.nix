@@ -48,8 +48,6 @@ in {
     };
   };
 
-  powerManagement.cpuFreqGovernor = "powersave";
-
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
@@ -209,10 +207,11 @@ in {
         CPU_BOOST_ON_BAT = 0;
         CPU_HWP_DYN_BOOST_ON_BAT = 0;
         CPU_SCALING_GOVERNOR_ON_AC = "performance";
-        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+        CPU_SCALING_GOVERNOR_ON_BAT = "ondemant";
         CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-        CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-        PLATFORM_PROFILE_ON_BAT = "low-power";
+        CPU_ENERGY_PERF_POLICY_ON_BAT = "balance_power";
+        PLATFORM_PROFILE_ON_BAT = "balanced";
+        PLATFORM_PROFILE_ON_AC = "performance";
         START_CHARGE_THRESH_BAT0 = 80;
         STOP_CHARGE_THRESH_BAT0 = 87;
         RUNTIME_PM_ON_BAT = "auto";
