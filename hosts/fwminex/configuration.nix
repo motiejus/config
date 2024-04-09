@@ -123,63 +123,81 @@ in {
     };
   };
 
-  services.autorandr = {
-    profiles = {
-      default = {
-        fingerprint = {inherit (randr) eDP-1;};
-        config = {
-          DP-1.enable = false;
-          DP-2.enable = false;
-          DP-3.enable = false;
-          DP-4.enable = false;
-          eDP-1 = {
-            enable = true;
-            primary = true;
-            mode = "1920x1200";
-            crtc = 0;
-            position = "0x0";
-            rate = "59.88";
+  services = {
+    throttled.enable = true;
+    tlp = {
+      enable = true;
+      settings = {
+        CPU_BOOST_ON_BAT = 0;
+        CPU_HWP_DYN_BOOST_ON_BAT = 0;
+        CPU_SCALING_GOVERNOR_ON_AC = "performance";
+        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+        CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+        CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+        PLATFORM_PROFILE_ON_BAT = "low-power";
+        START_CHARGE_THRESH_BAT1 = 90;
+        STOP_CHARGE_THRESH_BAT1 = 97;
+        RUNTIME_PM_ON_BAT = "auto";
+      };
+    };
+    autorandr = {
+      profiles = {
+        default = {
+          fingerprint = {inherit (randr) eDP-1;};
+          config = {
+            DP-1.enable = false;
+            DP-2.enable = false;
+            DP-3.enable = false;
+            DP-4.enable = false;
+            eDP-1 = {
+              enable = true;
+              primary = true;
+              mode = "1920x1200";
+              crtc = 0;
+              position = "0x0";
+              rate = "59.88";
+            };
           };
         };
-      };
 
-      home1 = {
-        fingerprint = {inherit (randr) eDP-1 DP-4;};
-        config = {
-          eDP-1.enable = false;
-          DP-1.enable = false;
-          DP-2.enable = false;
-          DP-4 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "0x0";
-            primary = true;
-            crtc = 0;
-            rate = "59.95";
+        home1 = {
+          fingerprint = {inherit (randr) eDP-1 DP-4;};
+          config = {
+            eDP-1.enable = false;
+            DP-1.enable = false;
+            DP-2.enable = false;
+            DP-4 = {
+              enable = true;
+              mode = "2560x1440";
+              position = "0x0";
+              primary = true;
+              crtc = 0;
+              rate = "59.95";
+            };
           };
         };
-      };
 
-      dualhome = {
-        fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
-        config = {
-          eDP-1.enable = false;
-          DP-1.enable = false;
-          DP-2.enable = false;
-          DP-3 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "0x0";
-            crtc = 1;
-            rate = "59.95";
-          };
-          DP-4 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "2560x0";
-            primary = true;
-            crtc = 0;
-            rate = "59.95";
+        dualhome = {
+          fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
+          config = {
+            eDP-1.enable = false;
+            DP-1.enable = false;
+            DP-2.enable = false;
+            DP-3 = {
+              enable = true;
+              mode = "2560x1440";
+              position = "0x0";
+              crtc = 1;
+              rate = "59.95";
+            };
+            DP-4 = {
+              enable = true;
+              mode = "2560x1440";
+              position = "2560x0";
+              primary = true;
+              crtc = 0;
+              rate = "59.95";
+            };
           };
         };
       };
@@ -194,21 +212,5 @@ in {
     hostName = "fwminex";
     domain = "motiejus.jakst";
     firewall.rejectPackets = true;
-  };
-
-  services.tlp = {
-    enable = true;
-    settings = {
-      CPU_BOOST_ON_BAT = 0;
-      CPU_HWP_DYN_BOOST_ON_BAT = 0;
-      CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-      PLATFORM_PROFILE_ON_BAT = "low-power";
-      START_CHARGE_THRESH_BAT1 = 90;
-      STOP_CHARGE_THRESH_BAT1 = 97;
-      RUNTIME_PM_ON_BAT = "auto";
-    };
   };
 }
