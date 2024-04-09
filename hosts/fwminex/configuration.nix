@@ -44,8 +44,6 @@ in {
     };
   };
 
-  powerManagement.cpuFreqGovernor = "powersave";
-
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
@@ -135,6 +133,7 @@ in {
         CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
         CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
         PLATFORM_PROFILE_ON_BAT = "low-power";
+        PLATFORM_PROFILE_ON_AC = "performance";
         START_CHARGE_THRESH_BAT1 = 90;
         STOP_CHARGE_THRESH_BAT1 = 97;
         RUNTIME_PM_ON_BAT = "auto";
