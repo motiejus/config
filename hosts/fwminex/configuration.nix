@@ -206,6 +206,10 @@ in {
   virtualisation.virtualbox.host.enable = true;
   users.extraGroups.vboxusers.members = ["motiejus"];
 
+  environment.systemPackages = with pkgs; [
+    tesseract
+  ];
+
   networking = {
     hostId = "3a54afcd";
     hostName = "fwminex";
