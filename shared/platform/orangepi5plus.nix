@@ -5,13 +5,14 @@
   modulesPath,
   ...
 }: let
-  crossFast = pkgs.crossArm64.pkgsCross.aarch64-multiplatform;
+  #crossFast = pkgs.crossArm64.pkgsCross.aarch64-multiplatform;
   crossNative = pkgs.pkgsCross.aarch64-multiplatform;
 in {
   mj.skipPerf = true;
 
   boot = {
-    kernelPackages = crossNative.linuxPackagesFor (crossFast.buildLinux rec {
+    #kernelPackages = crossNative.linuxPackagesFor (crossFast.buildLinux rec {
+    kernelPackages = crossNative.linuxPackagesFor (crossNative.buildLinux rec {
       version = "6.9.0-rc1";
       modDirVersion = "6.9.0-rc1";
 
@@ -55,6 +56,7 @@ in {
       copyChannel = false;
       inherit config lib pkgs;
     };
-    uboot = crossFast.callPackage ../../hacks/orangepi5plus/uboot {};
+    #uboot = crossFast.callPackage ../../hacks/orangepi5plus/uboot {};
+    uboot = crossNative.callPackage ../../hacks/orangepi5plus/uboot {};
   };
 }
