@@ -200,6 +200,7 @@ in {
           # neovim :checkhealth
           set-option -sg escape-time 10
           set-option -g default-terminal "screen-256color"
+          set-option -sa terminal-features ',xterm-256color:RGB'
         '';
       };
     }
