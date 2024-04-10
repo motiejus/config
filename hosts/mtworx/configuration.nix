@@ -202,7 +202,7 @@ in {
     };
 
     tlp = {
-      enable = true;
+      enable = false;
       settings = {
         CPU_BOOST_ON_BAT = 0;
         CPU_HWP_DYN_BOOST_ON_BAT = 0;
