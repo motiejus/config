@@ -122,23 +122,6 @@ in {
   };
 
   services = {
-    throttled.enable = true;
-    tlp = {
-      enable = false;
-      settings = {
-        CPU_BOOST_ON_BAT = 0;
-        CPU_HWP_DYN_BOOST_ON_BAT = 0;
-        CPU_SCALING_GOVERNOR_ON_AC = "performance";
-        CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-        CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-        CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-        PLATFORM_PROFILE_ON_BAT = "low-power";
-        PLATFORM_PROFILE_ON_AC = "performance";
-        START_CHARGE_THRESH_BAT1 = 90;
-        STOP_CHARGE_THRESH_BAT1 = 97;
-        RUNTIME_PM_ON_BAT = "auto";
-      };
-    };
     autorandr = {
       profiles = {
         default = {

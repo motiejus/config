@@ -200,22 +200,5 @@ in {
         };
       };
     };
-
-    tlp = {
-      enable = false;
-      settings = {
-        CPU_BOOST_ON_BAT = 0;
-        CPU_HWP_DYN_BOOST_ON_BAT = 0;
-        CPU_SCALING_GOVERNOR_ON_AC = "performance";
-        CPU_SCALING_GOVERNOR_ON_BAT = "ondemant";
-        CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-        CPU_ENERGY_PERF_POLICY_ON_BAT = "balance_power";
-        PLATFORM_PROFILE_ON_BAT = "balanced";
-        PLATFORM_PROFILE_ON_AC = "performance";
-        START_CHARGE_THRESH_BAT0 = 80;
-        STOP_CHARGE_THRESH_BAT0 = 87;
-        RUNTIME_PM_ON_BAT = "auto";
-      };
-    };
   };
 }
