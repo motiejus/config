@@ -196,6 +196,10 @@ in {
           bind  c  new-window      -c "#{pane_current_path}"
           bind  %  split-window -h -c "#{pane_current_path}"
           bind '"' split-window -v -c "#{pane_current_path}"
+
+          # neovim :checkhealth
+          set-option -sg escape-time 10
+          set-option -g default-terminal "screen-256color"
         '';
       };
     }
