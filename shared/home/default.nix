@@ -143,14 +143,13 @@ in {
           vimAlias = true;
           vimdiffAlias = true;
           defaultEditor = true;
-          plugins = with pkgs.vimPlugins;
-            lib.mkMerge [
-              [fugitive]
-              (lib.mkIf devTools [
-                vim-go
-                zig-vim
-              ])
-            ];
+          plugins = lib.mkMerge [
+            [pkgs.vimPlugins.fugitive]
+            (lib.mkIf devTools [
+              pkgs.pkgs-unstable.vimPlugins.vim-go
+              pkgs.vimPlugins.zig-vim
+            ])
+          ];
           extraConfig = builtins.readFile ./vimrc;
         }
         (lib.mkIf devTools {
