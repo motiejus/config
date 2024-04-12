@@ -167,6 +167,7 @@ in {
             iftop
             whois
             ipset
+            shfmt
             iperf3
             jnettop
             openssl
