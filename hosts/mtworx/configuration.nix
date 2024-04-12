@@ -5,12 +5,12 @@
   ...
 }: let
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
-  randr = import ./randr.nix;
 in {
   imports = [
     ../../shared/work
     ../../modules
     ../../modules/profiles/desktop
+    ../../modules/profiles/autorandr
   ];
 
   boot = {
@@ -119,85 +119,5 @@ in {
     hostName = "mtworx";
     domain = "motiejus.jakst";
     firewall.rejectPackets = true;
-  };
-
-  services = {
-    autorandr.profiles = {
-      default = {
-        fingerprint = {inherit (randr) eDP-1;};
-        config = {
-          DP-1.enable = false;
-          DP-2.enable = false;
-          DP-3.enable = false;
-          DP-4.enable = false;
-          eDP-1 = {
-            enable = true;
-            primary = true;
-            mode = "1920x1200";
-            crtc = 0;
-            position = "0x0";
-          };
-        };
-      };
-
-      dualhome = {
-        fingerprint = {
-          inherit (randr) eDP-1;
-          inherit (randr.home) DP-3 HDMI-1;
-        };
-        config = {
-          eDP-1.enable = false;
-          HDMI-1 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "0x0";
-            crtc = 1;
-          };
-          DP-3 = {
-            enable = true;
-            mode = "2560x1440";
-            position = "2560x0";
-            crtc = 2;
-          };
-        };
-      };
-
-      work-lidopen = {
-        fingerprint = {
-          inherit (randr) eDP-1;
-          inherit (randr.work) DP-3;
-        };
-        config = {
-          DP-3 = {
-            enable = true;
-            primary = true;
-            mode = "3840x2160";
-            crtc = 0;
-            position = "1920x0";
-          };
-          eDP-1 = {
-            enable = true;
-            primary = true;
-            mode = "1920x1200";
-            crtc = 1;
-            position = "0x960";
-          };
-        };
-      };
-
-      work-lidclosed = {
-        fingerprint = {inherit (randr.work) DP-3;};
-        config = {
-          eDP-1.enable = false;
-          DP-3 = {
-            enable = true;
-            primary = true;
-            mode = "3840x2160";
-            crtc = 0;
-            position = "0x0";
-          };
-        };
-      };
-    };
   };
 }
