@@ -3,9 +3,11 @@
   config,
   myData,
   ...
-}: let
-  randr = import ./randr.nix;
-in {
+}: {
+  imports = [
+    ../../modules/profiles/autorandr
+  ];
+
   boot = {
     initrd.availableKernelModules = ["usb_storage" "sd_mod" "xhci_pci" "thunderbolt" "nvme" "usbhid"];
     kernelPackages = pkgs.zfs.latestCompatibleLinuxPackages;
@@ -117,71 +119,6 @@ in {
         inherit (host) system supportedFeatures;
         hostName = host.jakstIP;
         sshKey = "/etc/ssh/ssh_host_ed25519_key";
-      };
-    };
-  };
-
-  services = {
-    autorandr = {
-      profiles = {
-        default = {
-          fingerprint = {inherit (randr) eDP-1;};
-          config = {
-            DP-1.enable = false;
-            DP-2.enable = false;
-            DP-3.enable = false;
-            DP-4.enable = false;
-            eDP-1 = {
-              enable = true;
-              primary = true;
-              mode = "1920x1200";
-              crtc = 0;
-              position = "0x0";
-              rate = "59.88";
-            };
-          };
-        };
-
-        home1 = {
-          fingerprint = {inherit (randr) eDP-1 DP-4;};
-          config = {
-            eDP-1.enable = false;
-            DP-1.enable = false;
-            DP-2.enable = false;
-            DP-4 = {
-              enable = true;
-              mode = "2560x1440";
-              position = "0x0";
-              primary = true;
-              crtc = 0;
-              rate = "59.95";
-            };
-          };
-        };
-
-        dualhome = {
-          fingerprint = {inherit (randr) eDP-1 DP-3 DP-4;};
-          config = {
-            eDP-1.enable = false;
-            DP-1.enable = false;
-            DP-2.enable = false;
-            DP-3 = {
-              enable = true;
-              mode = "2560x1440";
-              position = "0x0";
-              crtc = 1;
-              rate = "59.95";
-            };
-            DP-4 = {
-              enable = true;
-              mode = "2560x1440";
-              position = "2560x0";
-              primary = true;
-              crtc = 0;
-              rate = "59.95";
-            };
-          };
-        };
       };
     };
   };
