@@ -158,7 +158,8 @@ in {
             builtins.readFile
             (pkgs.substituteAll {
               src = ./dev.lua;
-              inherit (pkgs) gotools ripgrep;
+              inherit (pkgs) ripgrep;
+              inherit (pkgs.pkgs-unstable) gopls gotools;
             })
             .outPath;
         })
