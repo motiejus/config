@@ -206,13 +206,12 @@ in {
           set-option -g default-terminal "screen-256color"
           set-option -sa terminal-features ',xterm-256color:RGB'
 
-          run-shell ${pkgs.writeShellScript "urlview"
-            (builtins.readFile
-              (pkgs.substituteAll {
-                src = ./urlview.tmux;
-                extract_url = pkgs.extract_url;
-              })
-              .outPath)}
+          run-shell ${pkgs.writeShellScript "urlview" ''
+            tmux bind-key u capture-pane -J \\\; \
+              save-buffer "''${TMPDIR:-/tmp}/tmux-buffer" \\\; \
+              delete-buffer \\\; \
+              split-window -l 10 "${pkgs.extract_url}/bin/extract_url -c ${pkgs.writeText "urlviewrc" "COMMAND firefox"} ''${TMPDIR:-/tmp}/tmux-buffer'"
+          ''}
         '';
       };
     }
