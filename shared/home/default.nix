@@ -205,17 +205,6 @@ in {
           set-option -sg escape-time 10
           set-option -g default-terminal "screen-256color"
           set-option -sa terminal-features ',xterm-256color:RGB'
-
-          run-shell ${let
-            cmd = "${pkgs.extract_url}/bin/extract_url";
-            cfg = pkgs.writeText "urlviewrc" "COMMAND firefox";
-          in
-            pkgs.writeShellScript "urlview" ''
-              tmux bind-key u capture-pane -J \\\; \
-                save-buffer "''${TMPDIR:-/tmp}/tmux-buffer" \\\; \
-                delete-buffer \\\; \
-                split-window -l 10 "${cmd} -c ${cfg} ''${TMPDIR:-/tmp}/tmux-buffer"
-            ''}
         '';
       };
     }

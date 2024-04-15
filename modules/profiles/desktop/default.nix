@@ -257,6 +257,20 @@ in {
       imports = [./plasma.nix];
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
+      programs.tmux.extraConfig = let
+        cmd = "${pkgs.extract_url}/bin/extract_url";
+        cfg = pkgs.writeText "urlviewrc" "COMMAND firefox";
+        script = pkgs.writeShellApplication {
+          name = "urlview";
+          text = ''
+            tmux bind-key u capture-pane -J \\\; \
+              save-buffer "''${TMPDIR:-/tmp}/tmux-buffer" \\\; \
+              delete-buffer \\\; \
+              split-window -l 10 "${cmd} -c ${cfg} ''${TMPDIR:-/tmp}/tmux-buffer"
+          '';
+        };
+      in "run-shell ${script}/bin/urlview";
+
       services = {
         cbatticon.enable = true;
         blueman-applet.enable = true;
