@@ -43,6 +43,14 @@ in {
         ];
       };
 
+      auto-cpufreq = {
+        enable = true;
+        settings = {
+          charger.governor = "performance";
+          battery.governor = "balanced";
+        };
+      };
+
       autorandr.enable = true;
 
       avahi = {
