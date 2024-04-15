@@ -34,6 +34,14 @@ in {
       udev.packages = [pkgs.yubikey-personalization];
       acpid.enable = true;
       pcscd.enable = true;
+      gnome.gnome-keyring.enable = true;
+      openssh.settings.X11Forwarding = true;
+
+      logind = {
+        powerKey = "suspend";
+        powerKeyLongPress = "poweroff";
+      };
+
       printing = {
         enable = true;
         drivers = [
@@ -43,18 +51,11 @@ in {
         ];
       };
 
-      autorandr.enable = true;
-
       avahi = {
         enable = true;
         nssmdns = true;
         openFirewall = true;
       };
-
-      openssh.settings.X11Forwarding = true;
-
-      logind.powerKey = "suspend";
-      logind.powerKeyLongPress = "poweroff";
 
       xserver = {
         enable = true;
@@ -81,7 +82,13 @@ in {
         pulse.enable = true;
       };
 
-      gnome.gnome-keyring.enable = true;
+      tlp = {
+        enable = true;
+        settings = {
+          PLATFORM_PROFILE_ON_AC = "performance";
+          PLATFORM_PROFILE_ON_BAT = "balanced";
+        };
+      };
     };
 
     programs = {
