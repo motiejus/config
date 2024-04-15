@@ -259,17 +259,15 @@ in {
 
       programs.tmux.extraConfig = let
         cmd = "${pkgs.extract_url}/bin/extract_url";
-        cfg = pkgs.writeText "urlviewrc" "COMMAND firefox";
-        script = pkgs.writeShellApplication {
-          name = "urlview";
-          text = ''
-            tmux bind-key u capture-pane -J \\\; \
-              save-buffer "''${TMPDIR:-/tmp}/tmux-buffer" \\\; \
-              delete-buffer \\\; \
-              split-window -l 10 "${cmd} -c ${cfg} ''${TMPDIR:-/tmp}/tmux-buffer"
-          '';
-        };
-      in "run-shell ${script}/bin/urlview";
+        cfg = pkgs.writeText "urlviewrc" ''
+          COMMAND sh -c 'xdg-open %s >/dev/null 2>&1 & disown'
+        '';
+      in ''
+        bind-key u capture-pane -J \; \
+          save-buffer /tmp/tmux-buffer \; \
+          delete-buffer \; \
+          split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
+      '';
 
       services = {
         cbatticon.enable = true;
