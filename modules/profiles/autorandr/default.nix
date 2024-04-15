@@ -76,7 +76,7 @@ in {
           eDP-1 = {
             enable = true;
             crtc = 1;
-            position = "0x960";
+            position = "0x480";
             mode = eDP-1.${config.networking.hostName}.mode;
           };
         };
