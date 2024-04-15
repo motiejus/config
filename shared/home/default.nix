@@ -210,7 +210,7 @@ in {
             tmux bind-key u capture-pane -J \\\; \
               save-buffer "''${TMPDIR:-/tmp}/tmux-buffer" \\\; \
               delete-buffer \\\; \
-              split-window -l 10 "${pkgs.extract_url}/bin/extract_url -c ${pkgs.writeText "urlviewrc" "COMMAND firefox"} ''${TMPDIR:-/tmp}/tmux-buffer'"
+              split-window -l 10 "${pkgs.extract_url}/bin/extract_url -c ${pkgs.writeText "urlviewrc" "COMMAND firefox"} ''${TMPDIR:-/tmp}/tmux-buffer"
           ''}
         '';
       };
