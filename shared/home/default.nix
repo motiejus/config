@@ -67,6 +67,8 @@ in {
 
   home.packages = with pkgs;
     lib.mkMerge [
+      [extract_url]
+
       (lib.mkIf devTools [
         pkgs-unstable.go_1_22
         zig
@@ -203,6 +205,12 @@ in {
           set-option -sg escape-time 10
           set-option -g default-terminal "screen-256color"
           set-option -sa terminal-features ',xterm-256color:RGB'
+
+          run-shell ${(pkgs.substituteAll {
+              src = ./urlview.tmux;
+              extract_url = pkgs.extract_url;
+            })
+            .outPath}
         '';
       };
     }
