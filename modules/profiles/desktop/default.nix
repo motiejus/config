@@ -259,7 +259,7 @@ in {
 
       programs.tmux.extraConfig = let
         cmd = "${pkgs.extract_url}/bin/extract_url";
-        cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect firefox %s";
+        cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
       in ''
         bind-key u capture-pane -J \; \
           save-buffer /tmp/tmux-buffer \; \
