@@ -140,7 +140,6 @@ in {
           xclip
           pdftk
           putty
-          xinit
           x11vnc
           yt-dlp
           ffmpeg
@@ -215,6 +214,7 @@ in {
           xorg.xev
           xorg.xeyes
           xorg.lndir
+          xorg.xinit
 
           (texlive.combine {
             inherit
