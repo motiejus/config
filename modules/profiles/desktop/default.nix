@@ -166,6 +166,7 @@ in {
           musl.dev
           qpwgraph # for pipewire
           audacity
+          graphviz
           powertop
           gpicview
           imapsync
