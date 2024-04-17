@@ -140,6 +140,7 @@ in {
           xclip
           pdftk
           putty
+          xinit
           x11vnc
           yt-dlp
           ffmpeg
