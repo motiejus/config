@@ -102,7 +102,7 @@ rec {
     };
     "mxp10.motiejus.jakst" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIy9IR7Jq3hRZ5JgwfmeCgSKFrdgujnZt79uxDPVi3tu";
-      jakstIP = "100.89.176.1";
+      jakstIP = "100.89.176.17";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
@@ -128,6 +128,7 @@ rec {
       mHosts =
         attrVals [
           "mxp10.motiejus.jakst"
+          "mtworx.motiejus.jakst"
           "fwminex.motiejus.jakst"
         ]
         hosts;
