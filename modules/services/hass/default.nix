@@ -42,14 +42,14 @@ in {
             use_x_forwarded_for = true;
             trusted_proxies = ["127.0.0.1"];
           };
-          homeassistant = {
-            auth_providers = [
-              {
-                type = "trusted_networks";
-                trusted_networks = myData.subnets.motiejus.cidrs;
-              }
-            ];
-          };
+          #homeassistant = {
+          #  auth_providers = [
+          #    {
+          #      type = "trusted_networks";
+          #      trusted_networks = myData.subnets.motiejus.cidrs;
+          #    }
+          #  ];
+          #};
 
           wake_on_lan = {};
 
