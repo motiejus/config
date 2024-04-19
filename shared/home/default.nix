@@ -150,7 +150,6 @@ in {
             (lib.mkIf devTools [
               pkgs.pkgs-unstable.vimPlugins.vim-go
               pkgs.vimPlugins.zig-vim
-              pkgs.vimPlugins.nvim-lspconfig
             ])
           ];
           extraConfig = builtins.readFile ./vimrc;
