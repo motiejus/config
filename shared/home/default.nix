@@ -217,7 +217,7 @@ in {
           };
           initExtra = ''
             t() { git rev-parse --show-toplevel; }
-            ts() { date --date=@"''${1:0:10}" +"%F %T"; }
+            yodate() { date --date=@"''${1:0:10}" +"%F %T"; }
             source ${./gg.sh}
           '';
         };
