@@ -160,7 +160,6 @@ in {
             (pkgs.substituteAll {
               src = ./dev.lua;
               inherit (pkgs) ripgrep;
-              inherit (pkgs.pkgs-unstable) gopls gotools;
             })
             .outPath;
         })
