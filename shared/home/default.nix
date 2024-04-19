@@ -215,7 +215,12 @@ in {
             "l" = "echo -n ł | ${pkgs.xclip}/bin/xclip -selection clipboard";
             "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
           };
-          initExtra = "source ${./gg.sh}";
+          initExtra = ''
+            ts() {
+              date --date=@"''${1:0:10}" +"%F %T"
+            }
+            source ${./gg.sh}
+          '';
         };
       }
     )
