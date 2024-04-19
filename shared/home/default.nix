@@ -216,9 +216,8 @@ in {
             "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
           };
           initExtra = ''
-            ts() {
-              date --date=@"''${1:0:10}" +"%F %T"
-            }
+            t() { git rev-parse --show-toplevel; }
+            ts() { date --date=@"''${1:0:10}" +"%F %T"; }
             source ${./gg.sh}
           '';
         };
