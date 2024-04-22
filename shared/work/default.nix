@@ -66,7 +66,10 @@
       BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
     };
     programs = {
-      git.extraConfig.url."git@github.com:".insteadOf = "https://github.com";
+      git.extraConfig = {
+        url."git@github.com:".insteadOf = "https://github.com";
+        user.useConfigOnly = true;
+      };
       chromium.extensions = [
         {id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa";} # 1password
         {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
