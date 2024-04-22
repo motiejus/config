@@ -217,7 +217,7 @@ in {
           };
           initExtra = ''
             t() { git rev-parse --show-toplevel; }
-            yodate() { date --date=@$(echo "$1" | sed -E 's/^[^0-9]*(..........).*/\1/') +"%F %T"; }
+            d() { date --date=@$(echo "$1" | sed -E 's/^[^0-9]*(.{10}).*/\1/') +"%F %T"; }
             source ${./gg.sh}
           '';
         };
