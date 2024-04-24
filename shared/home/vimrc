@@ -48,6 +48,9 @@ au FileType go setlocal noet
 au FileType go nnoremap <buffer> <C-]> :GoDef<CR>
 au FileType go let g:go_template_autocreate = 0
 
+" starlark
+au BufRead,BufNewFile *.star setfiletype python
+
 " strace
 au FileType strace setlocal nonu
 
