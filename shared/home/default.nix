@@ -190,6 +190,23 @@ in {
         ];
       };
 
+      htop = {
+        enable = true;
+        settings = {
+          show_cpu_temperature = 1;
+          show_cpu_frequency = 1;
+          hide_kernel_threads = 1;
+          hide_userland_threads = 1;
+          header_layout = "three_33_34_33";
+          column_meters_0 = "Memory Swap LoadAverage Uptime NetworkIO DiskIO";
+          column_meter_modes_0 = "1 1 2 2 2 2";
+          column_meters_1 = "AllCPUs2";
+          column_meter_modes_1 = "1";
+          column_meters_2 = "PressureStallCPUSome PressureStallIOSome PressureStallIOFull Blank PressureStallMemoryFull PressureStallMemorySome";
+          column_meter_modes_2 = "2 2 2 2 2 2";
+        };
+      };
+
       tmux = {
         enable = true;
         keyMode = "vi";
