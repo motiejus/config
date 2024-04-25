@@ -193,7 +193,7 @@ in {
       htop = {
         enable = true;
         settings = {
-          show_cpu_temperature = 1;
+          show_cpu_temperature = 0;
           show_cpu_frequency = 1;
           hide_kernel_threads = 1;
           hide_userland_threads = 1;
