@@ -19,7 +19,7 @@ in {
           allowDiscards = true;
           keyFileOffset = 9728;
           keyFileSize = 512;
-          keyFile = "/dev/disk/by-id/usb-Generic_Flash_Disk_1EA30F29-0:0";
+          keyFile = "/dev/sda";
         };
       };
     };
