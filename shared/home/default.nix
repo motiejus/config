@@ -193,17 +193,17 @@ in {
       htop = {
         enable = true;
         settings = {
-          show_cpu_temperature = 0;
-          show_cpu_frequency = 1;
-          hide_kernel_threads = 1;
-          hide_userland_threads = 1;
-          header_layout = "three_33_34_33";
-          column_meters_0 = "Memory Swap LoadAverage Uptime NetworkIO DiskIO";
           column_meter_modes_0 = "1 1 2 2 2 2";
-          column_meters_1 = "AllCPUs2";
           column_meter_modes_1 = "1";
-          column_meters_2 = "PressureStallCPUSome PressureStallIOSome PressureStallIOFull Blank PressureStallMemoryFull PressureStallMemorySome";
           column_meter_modes_2 = "2 2 2 2 2 2";
+          column_meters_0 = "Memory Swap LoadAverage Uptime NetworkIO DiskIO";
+          column_meters_1 = "AllCPUs2";
+          column_meters_2 = "PressureStallCPUSome PressureStallIOSome PressureStallIOFull Blank PressureStallMemoryFull PressureStallMemorySome";
+          fields = "0 48 17 18 38 39 40 2 46 47 49 1";
+          hide_kernel_threads = "1";
+          hide_userland_threads = "1";
+          show_cpu_frequency = "1";
+          show_cpu_temperature = "0";
         };
       };
 
