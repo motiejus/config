@@ -194,11 +194,11 @@ in {
         enable = true;
         settings = {
           header_layout = "three_25_50_25";
-          column_meters_0 = "Memory Swap NetworkIO DiskIO";
-          column_meter_modes_0 = "1 1 2 2";
+          column_meters_0 = "MemorySwap LoadAverage NetworkIO DiskIO";
+          column_meter_modes_0 = "1 2 2 2";
           column_meters_1 = "AllCPUs4";
           column_meter_modes_1 = "1";
-          column_meters_2 = "PressureStallIOSome PressureStallCPUSome LoadAverage Uptime";
+          column_meters_2 = "PressureStallIOSome PressureStallCPUSome PressureStallMemorySome Uptime";
           column_meter_modes_2 = "2 2 2 2";
           hide_kernel_threads = "1";
           hide_userland_threads = "1";
