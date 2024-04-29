@@ -306,7 +306,12 @@ in {
             extraConfig = ''
               set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
 
-              set mailcap_path = ${./mailcap}
+              set mailcap_path = ${
+                pkgs.substituteAll {
+                  src = ./mailcap;
+                  inherit (pkgs) elinks;
+                }
+              }
               auto_view text/html
               unset record
               set send_charset="utf-8"
