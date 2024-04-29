@@ -261,6 +261,7 @@ in {
 
       programs = {
         mbsync.enable = true;
+        neomutt.enable = true;
 
         tmux.extraConfig = let
           cmd = "${pkgs.extract_url}/bin/extract_url";
