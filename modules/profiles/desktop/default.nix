@@ -259,15 +259,19 @@ in {
       imports = [./plasma.nix];
       xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
-      programs.tmux.extraConfig = let
-        cmd = "${pkgs.extract_url}/bin/extract_url";
-        cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
-      in ''
-        bind-key u capture-pane -J \; \
-          save-buffer /tmp/tmux-buffer \; \
-          delete-buffer \; \
-          split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
-      '';
+      programs = {
+        mbsync.enable = true;
+
+        tmux.extraConfig = let
+          cmd = "${pkgs.extract_url}/bin/extract_url";
+          cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
+        in ''
+          bind-key u capture-pane -J \; \
+            save-buffer /tmp/tmux-buffer \; \
+            delete-buffer \; \
+            split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
+        '';
+      };
 
       home.file.".cache/evolution/.stignore".text = "*.db";
 
@@ -279,7 +283,7 @@ in {
           userName = "motiejus@jakstys.lt";
           address = "motiejus@jakstys.lt";
           realName = "Motiejus Jakštys";
-          passwordCommand = "cat ${config.homeDirectory}/.email-creds";
+          passwordCommand = "cat /home/${username}/.email-creds";
           imap.host = "imap.migadu.com";
           smtp.host = "smtp.migadu.com";
 
