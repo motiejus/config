@@ -296,7 +296,10 @@ in {
 
           msmtp.enable = true;
 
-          notmuch.enable = true;
+          notmuch = {
+            enable = true;
+            neomutt.enable = true;
+          };
 
           neomutt = {
             enable = true;
