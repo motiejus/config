@@ -307,10 +307,11 @@ in {
               set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
 
               set mailcap_path = ${
-                pkgs.substituteAll {
-                  src = ./mailcap;
-                  inherit (pkgs) elinks;
-                }
+                pkgs.writeText "mailcaprc" ''
+                  text/html; ${pkgs.elinks}/bin/elinks -dump ; copiousoutput;
+                  application/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
+                  image/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
+                ''
               }
               auto_view text/html
               unset record

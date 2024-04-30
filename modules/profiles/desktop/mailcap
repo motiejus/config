@@ -1,3 +1,0 @@
-text/html; @elinks@/bin/elinks -dump ; copiousoutput;
-application/*; xdg-open %s &> /dev/null &;
-image/*; xdg-open %s &> /dev/null &;
