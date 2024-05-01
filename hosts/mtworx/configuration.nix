@@ -53,7 +53,35 @@ in {
 
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
 
-  systemd.services.zfs-mount.enable = false;
+  systemd = {
+    timers = {
+      btrfs-snap-home-5m = {
+        enable = true;
+        wantedBy = ["timers.target"];
+        timerConfig.OnCalendar = "*:0/5";
+      };
+      btrfs-snap-home-1h = {
+        enable = true;
+        wantedBy = ["timers.target"];
+        timerConfig.OnCalendar = "*:0";
+      };
+    };
+    services = {
+      zfs-mount.enable = false;
+
+      btrfs-snap-home-5m = {
+        enable = true;
+        serviceConfig.Type = "oneshot";
+        script = "${pkgs.btrfs-snap}/bin/btrfs-snap -r /home 5m 12";
+      };
+
+      btrfs-snap-home-1h = {
+        enable = true;
+        serviceConfig.Type = "oneshot";
+        script = "${pkgs.btrfs-snap}/bin/btrfs-snap -r /home 1h 24";
+      };
+    };
+  };
 
   mj = {
     stateVersion = "23.11";
