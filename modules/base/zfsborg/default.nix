@@ -36,6 +36,10 @@ in {
             type = listOf str;
             default = [];
           };
+          prune = lib.mkOption {
+            type = anything;
+            default = {};
+          };
           backup_at = lib.mkOption {type = str;};
         };
       });
@@ -95,7 +99,8 @@ in {
                       BORG_RSH = ''ssh -i "${config.mj.base.zfsborg.sshKeyPath}"'';
                     };
                 }
-                // lib.optionalAttrs (attrs ? patterns) {inherit (attrs) patterns;})
+                // lib.optionalAttrs (attrs ? patterns) {inherit (attrs) patterns;}
+                // lib.optionalAttrs (attrs ? prune) {inherit (attrs) prune;})
         )
         dirs
       );

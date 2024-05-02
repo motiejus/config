@@ -78,6 +78,12 @@
               "- gitea/data/repo-archive/"
             ];
             backup_at = "*-*-* 01:00:00 UTC";
+            prune.keep = {
+              within = "1d";
+              daily = 1;
+              weekly = 0;
+              monthly = 0;
+            };
           }
           {
             mountpoint = "/var/lib";
