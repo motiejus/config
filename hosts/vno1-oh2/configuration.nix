@@ -74,6 +74,9 @@
               "tailscale"
               "private/soju"
             ];
+            patterns = [
+              "- gitea/data/repo-archive/"
+            ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
           {
@@ -90,6 +93,9 @@
               "nsd-acme"
               "tailscale"
               "private/soju"
+            ];
+            patterns = [
+              "- gitea/data/repo-archive/"
             ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
