@@ -34,6 +34,7 @@
           mirror.ENABLED = false;
           other.SHOW_FOOTER_VERSION = false;
           packages.ENABLED = false;
+          repo-archive.ENABLED = false;
           repository = {
             DEFAULT_REPO_UNITS = "repo.code,repo.releases";
             DISABLE_MIGRATIONS = true;
