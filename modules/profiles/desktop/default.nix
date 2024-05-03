@@ -205,6 +205,7 @@ in {
           llvm-manpages
           clang-manpages
           gcc_latest
+          clang-tools
 
           gnome.cheese
           gnome.nautilus
