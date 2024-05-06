@@ -7,6 +7,7 @@
   getopt,
   gnugrep,
   gnused,
+  gawk,
   btrfs-progs,
   syslogSupport ? true,
   util-linux ? null,
@@ -38,6 +39,7 @@ assert syslogSupport -> util-linux != null;
           getopt
           gnugrep
           gnused
+          gawk
           btrfs-progs
         ]
         ++ optional syslogSupport util-linux
