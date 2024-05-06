@@ -32,7 +32,7 @@ in {
       default = false;
     };
     email = lib.mkOption {
-      type = str;
+      type = nullOr str;
       default = "motiejus@jakstys.lt";
     };
     user = props;

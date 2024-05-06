@@ -2,7 +2,7 @@
   lib,
   pkgs,
   stateVersion,
-  email,
+  email ? null,
   devTools,
   hmOnly,
   username,

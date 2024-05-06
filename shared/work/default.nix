@@ -3,7 +3,7 @@
   pkgs,
   ...
 }: {
-  mj.base.users.email = "motiejus.jakstys@chronosphere.io";
+  mj.base.users.email = null;
   mj.base.users.user.extraGroups = ["docker"];
 
   environment.systemPackages =
