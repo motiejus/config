@@ -17,7 +17,9 @@ in {
       modDirVersion = "6.9.0-rc1";
 
       src = builtins.fetchTarball {
-        url = "https://git.kernel.org/torvalds/t/linux-6.9-rc1.tar.gz";
+        url = "https://github.com/torvalds/linux/archive/refs/tags/v6.9-rc1.tar.gz";
+        # "unsupported snapshot format" 2024-05-06
+        #url = "https://git.kernel.org/torvalds/t/linux-6.9-rc1.tar.gz";
         #url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.tar.xz";
         sha256 = "sha256:05hi2vfmsjwl5yhqmy4h5a954090nv48z9gabhvh16xlaqlfh8nz";
       };
