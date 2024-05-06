@@ -11,6 +11,7 @@ in {
     ../../modules
     ../../modules/profiles/desktop
     ../../modules/profiles/autorandr
+    ../../modules/profiles/btrfs
   ];
 
   boot = {

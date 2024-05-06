@@ -7,6 +7,9 @@
 in {
   imports = [
     ../../modules
+
+    ../../modules/profiles/btrfs
+
     ../../shared/platform/orangepi5plus.nix
   ];
 

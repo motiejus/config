@@ -109,6 +109,7 @@
         inherit (super.callPackage ./pkgs/compress-drv.nix {}) compressDrvWeb;
 
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
+        btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
 
         # TODO: copied from 24.05
