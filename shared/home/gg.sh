@@ -31,6 +31,8 @@ gg() {
 #
 g() {
     local pkg_candidates
+    local _gopath
+    _gopath=$(git rev-parse --show-toplevel)
     pkg_candidates="$( (cd "$_gopath" && find . -mindepth 1 -maxdepth ${_GG_MAXDEPTH} -type d -path "*/$1" -and -not -path '*/vendor/*' -print) | sed 's/^\.\///g')"
     echo "$pkg_candidates" | awk '{print length, $0 }' | sort -n | awk '{print $2}'
 }
@@ -41,6 +43,8 @@ _g_complete() {
     COMPREPLY=()
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
+    local _gopath
+    _gopath=$(git rev-parse --show-toplevel)
     COMPREPLY=($(compgen -W "$(for f in $(find "$_gopath" -mindepth 1 -maxdepth ${_GG_MAXDEPTH} -type d -name "${cur}*" ! -name '.*' ! -path '*/.git/*' ! -path '*/test/*' ! -path '*/vendor/*'); do echo "${f##*/}"; done)" -- "$cur"))
     return 0
 }
