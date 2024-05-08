@@ -56,7 +56,7 @@ assert syslogSupport -> util-linux != null;
       license = licenses.gpl2;
       mainProgram = "btrfs-auto-snapshot";
       maintainers = with maintainers; [motiejus];
-      platforms = platforms.unix;
+      platforms = platforms.linux;
 
       longDescription = ''
         btrfs-auto-snapshot is a Bash script designed to bring as much of the

@@ -148,6 +148,7 @@ in {
           arandr
           pandoc
           evince
+          okular
           gparted
           scribus
           gnumake
