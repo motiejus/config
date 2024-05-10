@@ -71,6 +71,7 @@ in {
 
       (lib.mkIf devTools [
         pkgs-unstable.go_1_22
+        pkgs-unstable.go-tools
         zig
       ])
 
