@@ -150,6 +150,8 @@ in {
             moreutils
             cryptsetup
             lm_sensors
+            inotify-info
+            inotify-tools
             smartmontools
             unixtools.xxd
             bcachefs-tools
