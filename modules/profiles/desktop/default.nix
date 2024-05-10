@@ -165,6 +165,7 @@ in {
           rtorrent
           bsdgames
           xss-lock
+          undocker
           musl.dev
           qpwgraph # for pipewire
           audacity
