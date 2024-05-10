@@ -33,7 +33,7 @@
           api.ENABLE_SWAGGER = false;
           mirror.ENABLED = false;
           other.SHOW_FOOTER_VERSION = false;
-          packages.ENABLED = false;
+          packages.ENABLED = true;
           repo-archive.ENABLED = false;
           repository = {
             DEFAULT_REPO_UNITS = "repo.code,repo.releases";
