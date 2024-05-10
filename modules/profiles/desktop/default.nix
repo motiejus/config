@@ -142,6 +142,7 @@ in {
           putty
           x11vnc
           yt-dlp
+          skopeo
           ffmpeg
           tinycc
           scrcpy
