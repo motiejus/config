@@ -240,7 +240,7 @@ in {
           };
           initExtra = ''
             t() { git rev-parse --show-toplevel; }
-            d() { date --utc --date=@$(echo "$1" | sed -E 's/^[^0-9]*(.{10}).*/\1/') +"%F %T"; }
+            d() { date --utc --date=@$(echo "$1" | sed -E 's/^[^1-9]*([0-9]{10}).*/\1/') +"%F %T"; }
             source ${./gg.sh}
           '';
         };
