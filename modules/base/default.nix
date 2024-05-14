@@ -177,6 +177,7 @@ in {
             testssl
             dnsutils
             bandwhich
+            bridge-utils
             speedtest-cli
             nix-output-monitor
 
