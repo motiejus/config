@@ -165,7 +165,6 @@ in {
           rtorrent
           bsdgames
           xss-lock
-          undocker
           musl.dev
           qpwgraph # for pipewire
           audacity
@@ -250,6 +249,7 @@ in {
           winetricks
           wineWowPackages.full
         ])
+        [pkgs.pkgs-unstable.undocker]
       ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
