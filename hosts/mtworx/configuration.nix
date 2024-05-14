@@ -58,7 +58,7 @@ in {
 
   mj = {
     stateVersion = "23.11";
-    timeZone = "Europe/Vilnius";
+    timeZone = "Europe/Rome";
     username = "motiejus";
 
     base.users = {
