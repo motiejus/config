@@ -72,7 +72,7 @@ in {
       (lib.mkIf devTools [
         pkgs-unstable.go_1_22
         pkgs-unstable.go-tools
-        zig
+        pkgs-unstable.zig_0_12
       ])
 
       (lib.mkIf hmOnly [
@@ -155,7 +155,7 @@ in {
             [pkgs.vimPlugins.fugitive]
             (lib.mkIf devTools [
               pkgs.pkgs-unstable.vimPlugins.vim-go
-              pkgs.vimPlugins.zig-vim
+              pkgs.pkgs-unstable.vimPlugins.zig-vim
             ])
           ];
           extraConfig = builtins.readFile ./vimrc;
