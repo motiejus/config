@@ -95,11 +95,6 @@ in {
       ])
     ];
 
-  # TODO: still detected as python :/
-  xdg.configFile."nvim/ftdetect/star.vim".text = ''
-    au BufRead,BufNewFile *.star setfiletype=python
-  '';
-
   programs = lib.mkMerge [
     {
       direnv.enable = true;
