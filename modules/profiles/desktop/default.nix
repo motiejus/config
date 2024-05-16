@@ -140,6 +140,7 @@ in {
           xclip
           pdftk
           putty
+          tracy
           x11vnc
           yt-dlp
           skopeo
