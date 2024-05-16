@@ -748,6 +748,7 @@
 
   environment.systemPackages = with pkgs; [
     yt-dlp
+    distrobox
     imapsync
     geoipWithDatabase
   ];
