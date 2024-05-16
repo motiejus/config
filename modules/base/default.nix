@@ -143,6 +143,7 @@ in {
             parallel
             yamllint
             binutils
+            patchelf
             compsize # compression ratio on btrfs
             hyperfine
             stress-ng
