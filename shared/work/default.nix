@@ -13,6 +13,7 @@
       #typescript
       #concurrently
       bats
+      mysql80
       kubectl
       kubectl-node-shell
       kubectx
