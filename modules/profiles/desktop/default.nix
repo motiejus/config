@@ -26,7 +26,7 @@ in {
       };
     };
 
-    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark"];
+    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark" "podman"];
 
     services = {
       fwupd.enable = true;
