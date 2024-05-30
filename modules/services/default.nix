@@ -12,7 +12,6 @@
     ./nsd-acme
     ./postfix
     ./remote-builder
-    ./snmp_exporter
     ./sshguard
     ./syncthing
     ./tailscale
