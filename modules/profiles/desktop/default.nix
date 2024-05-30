@@ -53,25 +53,27 @@ in {
 
       avahi = {
         enable = true;
-        nssmdns = true;
+        nssmdns4 = true;
         openFirewall = true;
       };
 
       xserver = {
         enable = true;
-        layout = "us,lt";
-        xkbOptions = "grp:alt_shift_toggle";
+        xkb = {
+          layout = "us,lt";
+          options = "grp:alt_shift_toggle";
+        };
 
         desktopManager.xfce.enable = true;
         windowManager.awesome.enable = true;
+        displayManager.lightdm.enable = true;
+      };
 
-        displayManager = {
-          lightdm.enable = true;
-          defaultSession = "none+awesome";
-          autoLogin = {
-            enable = true;
-            user = username;
-          };
+      displayManager = {
+        defaultSession = "none+awesome";
+        autoLogin = {
+          enable = true;
+          user = username;
         };
       };
 
@@ -238,12 +240,8 @@ in {
         ]
         (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [
           i7z
-          (nvtop.override {
-            amd = true;
-            intel = true;
-            msm = false;
-            nvidia = false;
-          })
+          nvtopPackages.amd
+          nvtopPackages.intel
           joplin-desktop
           intel-gpu-tools
 
