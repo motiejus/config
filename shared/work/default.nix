@@ -6,22 +6,18 @@
   mj.base.users.email = null;
   mj.base.users.user.extraGroups = ["docker"];
 
-  environment.systemPackages =
-    (with pkgs; [
-      #swc
-      #nodejs
-      #typescript
-      #concurrently
-      bats
-      mysql80
-      kubectl
-      kubectl-node-shell
-      kubectx
-      google-cloud-sdk
-    ])
-    ++ (with pkgs.pkgs-unstable; [
-      #turbo
-    ]);
+  environment.systemPackages = with pkgs; [
+    #swc
+    #nodejs
+    #typescript
+    #concurrently
+    bats
+    mysql80
+    kubectl
+    kubectl-node-shell
+    kubectx
+    google-cloud-sdk
+  ];
 
   services.clamav = {
     updater.enable = true;

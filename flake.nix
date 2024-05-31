@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
@@ -76,7 +75,6 @@
   outputs = {
     self,
     nixpkgs,
-    nixpkgs-unstable,
     agenix,
     deploy-rs,
     flake-utils,
@@ -114,10 +112,6 @@
 
         # TODO: copied from 24.05
         turbo = super.callPackage ./pkgs/turbo.nix {};
-
-        pkgs-unstable = import nixpkgs-unstable {
-          inherit (super) system;
-        };
 
         crossArm64 = import nixpkgs {
           system = "x86_64-linux";

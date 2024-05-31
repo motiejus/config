@@ -248,7 +248,7 @@ in {
           winetricks
           wineWowPackages.full
         ])
-        [pkgs.pkgs-unstable.undocker]
+        [pkgs.undocker]
       ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746

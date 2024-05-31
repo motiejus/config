@@ -70,9 +70,9 @@ in {
       [extract_url]
 
       (lib.mkIf devTools [
-        pkgs-unstable.go_1_22
-        pkgs-unstable.go-tools
-        pkgs-unstable.zig_0_12
+        go_1_22
+        go-tools
+        zig_0_12
       ])
 
       (lib.mkIf hmOnly [
