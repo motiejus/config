@@ -193,6 +193,7 @@ in {
             brotli
 
             config.boot.kernelPackages.cpupower
+            config.boot.kernelPackages.vm-tools
           ]
           (lib.mkIf (!cfg.skipPerf) [config.boot.kernelPackages.perf])
         ];
