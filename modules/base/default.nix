@@ -131,6 +131,7 @@ in {
             hdparm
             sdparm
             procps
+            vmtouch
             vimv-rs
             sysstat
             ripgrep
