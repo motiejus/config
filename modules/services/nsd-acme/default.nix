@@ -196,6 +196,7 @@ in {
                 OnCalendar = "*-*-* 01:30";
               };
               after = ["network-online.target"];
+              wants = ["network-online.target"];
             }
         )
         cfg.zones;

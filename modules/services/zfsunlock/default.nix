@@ -75,6 +75,7 @@ in {
               OnCalendar = cfg.startAt;
             };
             after = ["network-online.target"];
+            wants = ["network-online.target"];
           }
       )
       config.mj.services.zfsunlock.targets;
