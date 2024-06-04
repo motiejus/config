@@ -149,8 +149,8 @@ in {
           plugins = lib.mkMerge [
             [pkgs.vimPlugins.fugitive]
             (lib.mkIf devTools [
-              pkgs.pkgs-unstable.vimPlugins.vim-go
-              pkgs.pkgs-unstable.vimPlugins.zig-vim
+              pkgs.vimPlugins.vim-go
+              pkgs.vimPlugins.zig-vim
             ])
           ];
           extraConfig = builtins.readFile ./vimrc;
