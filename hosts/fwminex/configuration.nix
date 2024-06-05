@@ -111,6 +111,12 @@
         group = "users";
       };
 
+      wifibackup = {
+        enable = true;
+        toPath = "/home/motiejus/M-Active/wifi";
+        toUser = config.mj.username;
+      };
+
       remote-builder.client = let
         host = myData.hosts."fra1-a.servers.jakst";
       in {
