@@ -370,6 +370,7 @@ in {
         gpg-agent = {
           enable = true;
           enableSshSupport = true;
+          pinentryPackage = pkgs.pinentry-gtk2;
         };
 
         screen-locker = {
