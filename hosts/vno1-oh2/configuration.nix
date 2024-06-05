@@ -530,7 +530,7 @@
     soju = {
       enable = true;
       listen = [
-        "unix+admin://"
+        #"unix+admin://"
         ":${toString myData.ports.soju}"
         "wss://:${toString myData.ports.soju-ws}"
       ];
