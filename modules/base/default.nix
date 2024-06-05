@@ -202,6 +202,7 @@ in {
     };
 
     programs = {
+      nano.enable = false;
       mtr.enable = true;
       bcc.enable = true;
 
