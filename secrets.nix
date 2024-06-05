@@ -36,6 +36,9 @@ in
     "secrets/synapse/jakstys_lt_signing_key.age"
     "secrets/synapse/registration_shared_secret.age"
     "secrets/synapse/macaroon_secret_key.age"
+
+    "secrets/vno1-oh2/syncthing/key.pem.age"
+    "secrets/vno1-oh2/syncthing/cert.pem.age"
   ]
   // mk ([fra1-a] ++ motiejus) [
     "secrets/vno1-oh2/zfs-passphrase.age"
@@ -48,6 +51,9 @@ in
   // mk ([mtworx] ++ motiejus) [
     "secrets/motiejus_work_passwd_hash.age"
     "secrets/root_work_passwd_hash.age"
+
+    "secrets/mtworx/syncthing/key.pem.age"
+    "secrets/mtworx/syncthing/cert.pem.age"
   ]
   // mk ([fwminex] ++ motiejus) [
     "secrets/fwminex/syncthing/key.pem.age"

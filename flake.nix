@@ -183,6 +183,9 @@
                 motiejus-work-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
                 root-work-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
                 #sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+
+                syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
+                syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
               };
             }
           ];
@@ -217,6 +220,9 @@
                 synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
                 synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
                 synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
+
+                syncthing-key.file = ./secrets/vno1-oh2/syncthing/key.pem.age;
+                syncthing-cert.file = ./secrets/vno1-oh2/syncthing/cert.pem.age;
               };
             }
           ];
