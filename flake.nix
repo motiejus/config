@@ -2,14 +2,13 @@
   description = "motiejus/config";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nur.url = "github:nix-community/NUR";
 
-    home-manager.url = "github:nix-community/home-manager/release-23.11";
+    home-manager.url = "github:nix-community/home-manager/release-24.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix = {
@@ -76,7 +75,6 @@
   outputs = {
     self,
     nixpkgs,
-    nixpkgs-unstable,
     agenix,
     deploy-rs,
     flake-utils,
@@ -114,10 +112,6 @@
 
         # TODO: copied from 24.05
         turbo = super.callPackage ./pkgs/turbo.nix {};
-
-        pkgs-unstable = import nixpkgs-unstable {
-          inherit (super) system;
-        };
 
         crossArm64 = import nixpkgs {
           system = "x86_64-linux";

@@ -48,7 +48,7 @@ in {
         "kernel.kptr_restrict" = "0";
       };
 
-      kernelPackages = lib.mkDefault pkgs.zfs.latestCompatibleLinuxPackages;
+      kernelPackages = lib.mkDefault pkgs.linuxPackages;
 
       supportedFilesystems = ["btrfs"];
     };
