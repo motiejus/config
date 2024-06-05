@@ -12,6 +12,7 @@
     #typescript
     #concurrently
     bats
+    unzip
     mysql80
     kubectl
     kubectl-node-shell
