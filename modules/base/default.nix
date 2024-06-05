@@ -133,6 +133,7 @@ in {
             hdparm
             sdparm
             procps
+            unison
             vmtouch
             vimv-rs
             sysstat
