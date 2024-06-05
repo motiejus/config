@@ -54,6 +54,7 @@ in {
         serviceConfig = {
           Type = "oneshot";
           User = "root";
+          SuccessExitStatus = [0 1];
           ExecStart = ''
             ${pkgs.unison}/bin/unison \
                 -sshcmd ${pkgs.openssh}/bin/ssh \
