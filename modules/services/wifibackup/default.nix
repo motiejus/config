@@ -33,7 +33,6 @@
           Type = "oneshot";
           User = "root";
           SuccessExitStatus = [0 1];
-          RemainAfterExit = true;
         };
         script = let
           knownHostsCmd = pkgs.writeShellScript "known-hosts-localhost" ''
