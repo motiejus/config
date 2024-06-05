@@ -49,10 +49,19 @@ in {
             isNormalUser = true;
             extraGroups = ["wheel" "dialout" "video"] ++ cfg.user.extraGroups;
             uid = myData.uidgid.motiejus;
-            openssh.authorizedKeys.keys = [
-              myData.people_pubkeys.motiejus
-              myData.people_pubkeys.motiejus_work
-            ];
+            openssh.authorizedKeys.keys = let
+              fqdn = "${config.networking.hostName}.${config.networking.domain}";
+            in
+              lib.mkMerge [
+                [
+                  myData.people_pubkeys.motiejus
+                  myData.people_pubkeys.motiejus_work
+                ]
+
+                (lib.mkIf (builtins.hasAttr fqdn myData.hosts) [
+                  ("from=\"127.0.0.1,::1\" " + myData.hosts.${fqdn}.publicKey)
+                ])
+              ];
           }
           // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or {};
 
