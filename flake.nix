@@ -110,9 +110,6 @@
         btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix {};
         nicer = super.callPackage ./pkgs/nicer.nix {};
 
-        # TODO: copied from 24.05
-        turbo = super.callPackage ./pkgs/turbo.nix {};
-
         crossArm64 = import nixpkgs {
           system = "x86_64-linux";
           hostPlatform.config = "aarch64-linux";
