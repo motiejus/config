@@ -49,6 +49,10 @@ in
     "secrets/motiejus_work_passwd_hash.age"
     "secrets/root_work_passwd_hash.age"
   ]
+  // mk ([fwminex] ++ motiejus) [
+    "secrets/fwminex/syncthing/key.pem.age"
+    "secrets/fwminex/syncthing/cert.pem.age"
+  ]
   // mk (systems ++ motiejus) [
     "secrets/motiejus_passwd_hash.age"
     "secrets/root_passwd_hash.age"
