@@ -35,12 +35,17 @@
           SuccessExitStatus = [0 1];
           RemainAfterExit = true;
         };
-        script = ''
+        script = let
+          knownHostsCmd = pkgs.writeShellScript "known-hosts-localhost" ''
+            echo -n "localhost "
+            exec ${pkgs.coreutils}/bin/cat /etc/ssh/ssh_host_ed25519_key.pub
+          '';
+        in ''
           sed -i -E '/^(uuid|interface-name)=/d' ${fromPath}/*.nmconnection
 
           exec ${pkgs.unison}/bin/unison \
               -sshcmd ${pkgs.openssh}/bin/ssh \
-              -sshargs "-i /etc/ssh/ssh_host_ed25519_key -o KnownHostsCommand=${pkgs.coreutils}/bin/cat\ /etc/ssh/ssh_host_ed25519_key.pub" \
+              -sshargs "-i /etc/ssh/ssh_host_ed25519_key -o KnownHostsCommand=${knownHostsCmd} -o UserKnownHostsFile=none -o GlobalKnownHostsFile=/dev/null" \
               -batch \
               -backuploc local \
               -backup "Name *" \
