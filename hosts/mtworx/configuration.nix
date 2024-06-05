@@ -72,6 +72,12 @@ in {
         verboseLogs = true;
       };
 
+      wifibackup = {
+        enable = true;
+        toPath = "/home/${config.mj.username}/M-Active/wifi";
+        toUser = config.mj.username;
+      };
+
       node_exporter = {
         enable = true;
         extraSubnets = [myData.subnets.vno1.cidr];
