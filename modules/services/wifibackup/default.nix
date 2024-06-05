@@ -33,13 +33,14 @@
           Type = "oneshot";
           User = "root";
           SuccessExitStatus = [0 1];
+          RemainAfterExit = true;
         };
         script = ''
           sed -i -E '/^(uuid|interface-name)=/d' ${fromPath}/*.nmconnection
 
           exec ${pkgs.unison}/bin/unison \
               -sshcmd ${pkgs.openssh}/bin/ssh \
-              -sshargs "-i /etc/ssh/ssh_host_ed25519_key -o KnownHostsCommand=\"${pkgs.coreutils}/bin/cat /etc/ssh/ssh_host_ed25519_key.pub\"" \
+              -sshargs "-i /etc/ssh/ssh_host_ed25519_key -o KnownHostsCommand=${pkgs.coreutils}/bin/cat\ /etc/ssh/ssh_host_ed25519_key.pub" \
               -batch \
               -backuploc local \
               -backup "Name *" \

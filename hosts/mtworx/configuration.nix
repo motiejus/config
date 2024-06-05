@@ -74,7 +74,7 @@ in {
 
       wifibackup = {
         enable = true;
-        toPath = "/home/${config.mj.username}/M-Active/wifi";
+        toPath = "/home/${config.mj.username}/M-Active/.wifi";
         toUser = config.mj.username;
       };
 
