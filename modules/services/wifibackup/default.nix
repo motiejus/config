@@ -62,8 +62,6 @@ in {
                 -merge "Name *.nmconnection -> ${mergeNmConnections}/bin/merge-nmconnections CURRENT1 CURRENT2 NEW NEW1 NEW2" \
                 -backuploc local \
                 -backup "Name *" \
-                -backupprefix "" \
-                -backupsuffix ".backup-$VERSION" \
                 ${fromPath} \
                 ssh://${toUser}@localhost/${toPath}/
           '';
