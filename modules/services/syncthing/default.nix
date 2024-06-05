@@ -126,6 +126,8 @@ in {
     services.syncthing = {
       inherit (cfg) enable user group dataDir;
       openDefaultPorts = true;
+      key = config.age.secrets.syncthing-key.path;
+      cert = config.age.secrets.syncthing-cert.path;
 
       settings = {
         devices =

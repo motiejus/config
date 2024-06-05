@@ -244,6 +244,8 @@
                 motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+                syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
+                syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
               };
             }
           ];
