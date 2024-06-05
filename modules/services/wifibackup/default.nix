@@ -56,6 +56,7 @@ in {
           User = "root";
           ExecStart = ''
             ${pkgs.unison}/bin/unison \
+                -sshcmd ${pkgs.openssh}/bin/ssh \
                 -sshargs "-i /etc/ssh/ssh_host_ed25519_key" \
                 -batch \
                 -merge "Name *.nmconnection -> ${mergeNmConnections}/bin/merge-nmconnections CURRENT1 CURRENT2 NEW NEW1 NEW2" \
