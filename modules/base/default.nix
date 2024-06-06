@@ -143,6 +143,7 @@ in {
             keyutils
             libkcapi
             usbutils
+            bpftrace
             pciutils
             bsdgames
             parallel
