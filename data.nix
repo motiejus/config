@@ -122,7 +122,7 @@ rec {
     tailscale = {
       cidr = "100.89.176.0/20";
       range = "100.89.176.0-100.89.191.255";
-      sshPattern = "100.89.176.?"; # until we have more hosts
+      sshPattern = "100.89.176.*"; # until we have more hosts
     };
     motiejus.cidrs = let
       mHosts =
@@ -137,7 +137,7 @@ rec {
 
     vno1 = {
       cidr = "192.168.189.0/24";
-      sshPattern = "192.168.189.?";
+      sshPattern = "192.168.189.*";
     };
     vno3.cidr = "192.168.100.0/24";
   };
