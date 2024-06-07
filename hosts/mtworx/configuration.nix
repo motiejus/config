@@ -49,8 +49,6 @@ in {
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  boot.binfmt.emulatedSystems = ["aarch64-linux"];
-
   systemd.services.zfs-mount.enable = false;
 
   mj = {
