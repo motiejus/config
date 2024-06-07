@@ -78,6 +78,15 @@ in {
         toUser = config.mj.username;
       };
 
+      remote-builder.client = let
+        host = myData.hosts."fra1-a.servers.jakst";
+      in {
+        enable = true;
+        inherit (host) system supportedFeatures;
+        hostName = host.jakstIP;
+        sshKey = "/etc/ssh/ssh_host_ed25519_key";
+      };
+
       node_exporter = {
         enable = true;
         extraSubnets = [myData.subnets.vno1.cidr];

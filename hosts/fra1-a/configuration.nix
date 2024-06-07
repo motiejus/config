@@ -77,6 +77,7 @@
         publicKeys = map (h: myData.hosts.${h}.publicKey) [
           "vno1-oh2.servers.jakst"
           "fwminex.motiejus.jakst"
+          "mtworx.motiejus.jakst"
         ];
       };
 
