@@ -3,7 +3,8 @@
   myData,
   ...
 }: let
-  nvme = "/dev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-256G-1001_19494D801165";
+  #nvme = "/dev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-256G-1001_19494D801165";
+  nvme = "/dev/nvme0n1";
 in {
   imports = [
     ../../modules
@@ -18,7 +19,8 @@ in {
       kernelModules = ["usb_storage"];
       luks.devices = {
         luksroot = {
-          device = "${nvme}-part3";
+          #device = "${nvme}-part3";
+          device = "${nvme}p3";
           allowDiscards = true;
           keyFileOffset = 9728;
           keyFileSize = 512;
@@ -30,7 +32,7 @@ in {
 
   swapDevices = [
     {
-      device = "${nvme}-part2";
+      device = "${nvme}p2";
       randomEncryption.enable = true;
     }
   ];
@@ -42,7 +44,7 @@ in {
       options = ["noatime" "compress=zstd"];
     };
     "/boot" = {
-      device = "${nvme}-part1";
+      device = "${nvme}1";
       fsType = "ext4";
     };
   };
