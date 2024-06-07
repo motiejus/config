@@ -77,6 +77,14 @@
         {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
         {id = "kgjfgplpablkjnlkjmjdecgdpfankdle";} # Zoom
       ];
+      bash.initExtra = ''
+        hm_ps1_extra() {
+            if type -t mj_ps1_extra >/dev/null; then
+                mj_ps1_extra
+            fi
+        }
+        export PS1=$(echo "$PS1" | sed 's;\\n;$(hm_ps1_extra);')
+      '';
     };
   };
 }
