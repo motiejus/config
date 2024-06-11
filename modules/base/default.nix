@@ -119,6 +119,8 @@ in {
             qemu
             cloc
             poop # hopefully poof some day
+            flex
+            bison
             s-tui # stress and monitor cpu
             iotop
             wdiff
