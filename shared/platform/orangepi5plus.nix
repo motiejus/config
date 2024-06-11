@@ -14,20 +14,20 @@
   boot = {
     #kernelPackages = crossNative.linuxPackagesFor (crossFast.buildLinux rec {
     kernelPackages = pkgs.linuxPackagesFor (pkgs.buildLinux rec {
-      version = "6.9.0-rc1";
-      modDirVersion = "6.9.0-rc1";
+      version = "6.10.0-rc1";
+      modDirVersion = "6.10.0-rc1";
 
       src = builtins.fetchTarball {
-        url = "https://github.com/torvalds/linux/archive/refs/tags/v6.9-rc1.tar.gz";
+        url = "https://github.com/torvalds/linux/archive/refs/tags/v6.10-rc1.tar.gz";
         # "unsupported snapshot format" 2024-05-06
         #url = "https://git.kernel.org/torvalds/t/linux-6.9-rc1.tar.gz";
         #url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.8.tar.xz";
-        sha256 = "sha256:05hi2vfmsjwl5yhqmy4h5a954090nv48z9gabhvh16xlaqlfh8nz";
+        sha256 = "sha256:006frl76cwi9a4mw7x6vsyazgrjfiz1gn4q4hvpykqql5mar3a05";
       };
       kernelPatches = [
         {
           name = "orangepi-5-plus-collabora-${version}";
-          patch = ./orangepi5plus/rk3588-v6.9-rc1.patch;
+          patch = ./orangepi5plus/rk3588-v6.10-rc1.patch;
         }
         {
           name = "rk3588-crypto";
@@ -39,7 +39,7 @@
         CRYPTO_DEV_ROCKCHIP2_DEBUG y
       '';
 
-      extraMeta.branch = "6.9";
+      extraMeta.branch = "6.10";
     });
 
     loader = {
