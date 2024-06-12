@@ -78,10 +78,11 @@
         {id = "kgjfgplpablkjnlkjmjdecgdpfankdle";} # Zoom
       ];
       bash.initExtra = ''
-        hm_ps1_extra() {
-            eval "''${MJ_PS1_EXTRA:-}"
+        mj_ps1_extra() {
+            if [[ $PWD =~ $HOME/dev ]]; then
+            kubectl config view --minify -o jsonpath={.current-context}:{..namespace}
         }
-        export PS1=$(echo "$PS1" | sed 's;\\n;$(hm_ps1_extra);')
+        export PS1=$(echo "$PS1" | sed 's;\\n;$(mj_ps1_extra);')
       '';
     };
   };
