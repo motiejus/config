@@ -151,6 +151,7 @@ in {
             (lib.mkIf devTools [
               pkgs.vimPlugins.vim-go
               pkgs.vimPlugins.zig-vim
+              pkgs.vimPlugins.fzf-vim
               pkgs.vimPlugins.nvim-lspconfig
             ])
           ];
