@@ -12,7 +12,7 @@
     "vno1-oh2".id = "W45ROUW-CHKI3I6-C4VCOCU-NJYQ3ZS-MJDHH23-YYCDXTI-HTJSBZJ-KZMWTAF";
     "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
-    "KrekenavosNamai".id = "CYZDYL6-YMW7SZ3-K6IJO4Q-6NOULSG-OVZ3BGN-6LN3CLR-P3BJFKW-2PMHJQT";
+    "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
@@ -47,7 +47,7 @@
       label = "M-Documents";
     };
     Vaikai = {
-      devices = ["vno1-vinc" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
+      devices = ["vno1-vinc" "sqq1-desk" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
       id = "xbrfr-mhszm";
       label = "Vaikai";
     };
@@ -87,7 +87,7 @@
       label = "M-R";
     };
     Irenos = {
-      devices = ["KrekenavosNamai" "vno1-oh2" "vno2-irena"];
+      devices = ["sqq1-desk" "vno1-oh2" "vno2-irena"];
       id = "wuwai-qkcqj";
       label = "Irenos";
     };
@@ -140,7 +140,7 @@ in {
               vno1-oh2
               mxp10
               rzj-744P2PE
-              KrekenavosNamai
+              sqq1-desk
               vno1-vinc
               vno2-irena
               v-kfire
@@ -155,6 +155,7 @@ in {
               vno1-oh2
               mxp10
               rzj-744P2PE
+              sqq1-desk
               vno1-vinc
               v-kfire
               a-kfire
