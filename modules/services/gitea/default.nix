@@ -77,7 +77,7 @@
       caddy = {
         virtualHosts."git.jakstys.lt".extraConfig = ''
           route /static/assets/* {
-            uri strip_prefix /static/assets
+            uri strip_prefix /static
             file_server * {
               root ${pkgs.compressDrvWeb pkgs.gitea.data {}}/public
               precompressed br gzip
