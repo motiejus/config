@@ -47,7 +47,7 @@
       label = "M-Documents";
     };
     Vaikai = {
-      devices = ["vno1-vinc" "sqq1-desk" "fwminex" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
+      devices = ["vno1-vinc" "sqq1-desk" "fwminex" "mtworx" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
       id = "xbrfr-mhszm";
       label = "Vaikai";
     };
@@ -164,10 +164,15 @@ in {
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit
               (devices)
-              fwminex
               mtworx
+              fwminex
               vno1-oh2
+              vno1-vinc
+              sqq1-desk
+              rzj-744P2PE
               mxp10
+              a-kfire
+              v-kfire
               ;
           })
           // {};
@@ -197,6 +202,7 @@ in {
             lib.optionalAttrs (config.networking.hostName == "mtworx") {
               "${cfg.dataDir}/M-Active" = M-Active;
               "${cfg.dataDir}/M-Camera" = M-Camera;
+              "${cfg.dataDir}/Vaikai" = Vaikai;
               "${cfg.dataDir}/Video" = video-shared;
               "${cfg.dataDir}/music" = Music;
             }
