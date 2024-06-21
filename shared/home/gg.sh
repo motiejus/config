@@ -33,7 +33,7 @@ g() {
     local pkg_candidates
     local _gopath
     _gopath=$(git rev-parse --show-toplevel)
-    pkg_candidates="$( (cd "$_gopath" && find . m3/src -mindepth 1 -maxdepth ${_GG_MAXDEPTH} -type d -path "*/$1" -and -not -path '*/vendor/*' -print) | sed 's/^\.\///g')"
+    pkg_candidates="$( (cd "$_gopath" && find . m3/src -mindepth 1 -maxdepth ${_GG_MAXDEPTH} -type d -path "*/$1" -and -not -path '*/vendor/*' -print) | sed 's/^\.\///g' | sort -u)"
     echo "$pkg_candidates" | awk '{print length, $0 }' | sort -n | awk '{print $2}'
 }
 #
