@@ -215,10 +215,6 @@
               pingTarget = myData.hosts."mtworx.motiejus.jakst".jakstIP;
             }
             {
-              derivationTarget = ".#vno1-op5p";
-              pingTarget = myData.hosts."vno1-op5p.servers.jakst".jakstIP;
-            }
-            {
               derivationTarget = ".#vno3-rp3b";
               pingTarget = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
             }
@@ -498,10 +494,6 @@
         {
           job_name = "vno3-rp3b.servers.jakst";
           static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "vno1-op5p.servers.jakst";
-          static_configs = [{targets = ["${myData.hosts."vno1-op5p.servers.jakst".jakstIP}:${port}"];}];
         }
         {
           job_name = "fwminex.motiejus.jakst";

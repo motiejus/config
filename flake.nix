@@ -138,36 +138,6 @@
         vm-x86_64 = mkVM "x86_64-linux";
         vm-aarch64 = mkVM "aarch64-linux";
 
-        op5p = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            {nixpkgs.overlays = overlays;}
-            ./hosts/op5p/configuration.nix
-            home-manager.nixosModules.home-manager
-          ];
-          specialArgs = {inherit myData;} // inputs;
-        };
-
-        vno1-op5p = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            {nixpkgs.overlays = overlays;}
-            ./hosts/vno1-op5p/configuration.nix
-            home-manager.nixosModules.home-manager
-
-            agenix.nixosModules.default
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-              };
-            }
-          ];
-
-          specialArgs = {inherit myData;} // inputs;
-        };
-
         mtworx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
@@ -343,18 +313,6 @@
               sshUser = "motiejus";
               path =
                 self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
-              user = "root";
-            };
-          };
-        };
-
-        vno1-op5p = {
-          hostname = myData.hosts."vno1-op5p.servers.jakst".jakstIP;
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.vno1-op5p.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-op5p;
               user = "root";
             };
           };
