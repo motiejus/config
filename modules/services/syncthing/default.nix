@@ -82,7 +82,7 @@
       label = "stud-cache";
     };
     M-R = {
-      devices = ["fwminex" "rzj-744P2PE" "mxp10" "vno1-oh2"];
+      devices = ["fwminex" "rzj-744P2PE" "mxp10" "vno1-oh2" "mtworx"];
       id = "evgn9-ahngz";
       label = "M-R";
     };
@@ -202,6 +202,7 @@ in {
             lib.optionalAttrs (config.networking.hostName == "mtworx") {
               "${cfg.dataDir}/M-Active" = M-Active;
               "${cfg.dataDir}/M-Camera" = M-Camera;
+              "${cfg.dataDir}/M-R" = M-R;
               "${cfg.dataDir}/Vaikai" = Vaikai;
               "${cfg.dataDir}/Video" = video-shared;
               "${cfg.dataDir}/music" = Music;
