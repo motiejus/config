@@ -189,6 +189,7 @@ in {
           python3Full
           libva-utils # intel video tests
           pavucontrol
+          wirelesstools
           poppler_utils
           rkdeveloptool
           squashfsTools
