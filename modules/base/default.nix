@@ -131,7 +131,6 @@ in {
             mdadm
             parted
             bloaty
-            sqlite
             dhcpcd
             hdparm
             sdparm
@@ -165,6 +164,7 @@ in {
             smartmontools
             unixtools.xxd
             bcachefs-tools
+            sqlite-interactive
 
             # networking
             wol
