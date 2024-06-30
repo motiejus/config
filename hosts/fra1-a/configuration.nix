@@ -129,11 +129,10 @@
       '';
       virtualHosts = {
         "www.11sync.net".extraConfig = ''
-          redir https://11sync.net
+          redir https://jakstys.lt/2024/11sync-shutdown/
         '';
         "11sync.net".extraConfig = lib.mkForce ''
-          redir /admin/* http://admin.11sync.net{uri}
-          ${builtins.readFile "${pkgs.e11sync-caddyfile}"}
+          redir https://jakstys.lt/2024/11sync-shutdown/
         '';
         "http://admin.11sync.net".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
