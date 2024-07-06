@@ -53,14 +53,18 @@ Inputs:
     "compressor-${ext} needs to have exactly one '{}', found ${builtins.toString matches}";
   compressorMap = lib.filterAttrs (k: _: (lib.hasPrefix "compressor-" k)) args;
   mkCmd = ext: prog: let
-    fname = builtins.replaceStrings ["{}"] ["\"$fname\""] prog;
+    cmdline = builtins.replaceStrings ["{}"] ["\"$fname\""] prog;
   in
-    assert validProg ext prog; "${parallel}/bin/sem --id $$ -P$NIX_BUILD_CORES ${fname}";
+    assert validProg ext prog; "${parallel}/bin/sem --id $$ -P$NIX_BUILD_CORES ${cmdline}";
   formatsPipe = builtins.concatStringsSep "|" formats;
 in
   runCommand "${drv.name}-compressed" {} ''
     mkdir $out
+
     export PARALLEL_HOME=$(mktemp -d)
+    # Displaying the citation notice once per run of compressDrv is fair game
+    echo will cite | ${parallel}/bin/parallel --citation
+
     ${xorg.lndir}/bin/lndir ${drv}/ $out/
 
     while IFS= read -d "" -r fname; do
