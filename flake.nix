@@ -104,7 +104,8 @@
         deploy-rs-pkg = null;
       })
       (_: super: {
-        inherit (super.callPackage ./pkgs/compress-drv.nix {}) compressDrvWeb;
+        compressDrv = super.callPackage ./pkgs/compress-drv {};
+        compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix {};
 
         tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
         btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix {};
@@ -357,10 +358,10 @@
                 };
               };
 
-              #compress-drv-tests = let
-              #  pkgs = import nixpkgs {inherit system;};
-              #in
-              #  pkgs.callPackage ./pkgs/compress-drv-tests.nix {};
+              compress-drv-test = let
+                pkgs = import nixpkgs {inherit system overlays;};
+              in
+                pkgs.callPackage ./pkgs/compress-drv/test.nix {};
             }
         )
         deploy-rs.lib;

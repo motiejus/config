@@ -1,13 +1,11 @@
 {
   gzip,
-  callPackage,
-  runCommandNoCC,
+  runCommand,
+  compressDrv,
 }: let
-  compressDrv = (callPackage ./compress-drv.nix {}).compressDrv;
-
-  example = runCommandNoCC "sample-drv" {} ''
+  example = runCommand "sample-drv" {} ''
     mkdir $out
-    echo 1 > $out/1.txt
+    echo 42 > $out/1.txt
     touch $out/2.png
   '';
   drv = compressDrv example {
@@ -16,7 +14,7 @@
     compressor-gz = "${gzip}/bin/gzip --force --keep --fast {}";
   };
 in
-  runCommandNoCC "test-compressDrv" {} ''
+  runCommand "test-compressDrv" {} ''
     set -ex
     find ${drv}
     test -h ${drv}/1.txt
