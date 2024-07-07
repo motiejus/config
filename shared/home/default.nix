@@ -72,7 +72,7 @@ in {
       (lib.mkIf devTools [
         go_1_22
         go-tools
-        zig_0_12
+        pkgs-unstable.zig_0_13
       ])
 
       (lib.mkIf hmOnly [
