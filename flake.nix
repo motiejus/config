@@ -115,12 +115,6 @@
         pkgs-unstable = import nixpkgs-unstable {
           inherit (super) system;
         };
-
-        crossArm64 = import nixpkgs {
-          system = "x86_64-linux";
-          hostPlatform.config = "aarch64-linux";
-          buildPlatform.config = "x86_64-linux";
-        };
       })
     ];
 
