@@ -38,8 +38,6 @@ Inputs:
 {
   lib,
   runCommand,
-  parallel,
-  xorg,
 }: drv: {
   formats,
   compressors,
@@ -52,29 +50,22 @@ Inputs:
     (matches == 1)
     "compressor-${ext} needs to have exactly one '{}', found ${builtins.toString matches}";
   compressorMap = lib.filterAttrs (k: _: (lib.hasPrefix "compressor-" k)) args;
-  mkCmd = ext: prog: let
-    cmdline = builtins.replaceStrings ["{}"] ["\"$fname\""] prog;
-  in
-    assert validProg ext prog; "${parallel}/bin/sem --id $$ -P$NIX_BUILD_CORES ${cmdline}";
+  mkCmd = ext: prog:
+    assert validProg ext prog; ''
+      find -L $out -type f -regextype posix-extended -iregex '.*\.(${formatsPipe})' -print0 \
+        | xargs -0 -P$NIX_BUILD_CORES -I{} ${prog}
+    '';
   formatsPipe = builtins.concatStringsSep "|" formats;
 in
   runCommand "${drv.name}-compressed" {} ''
     mkdir $out
+    (cd ${drv}; find -L -type d -exec mkdir -p $out/{} ';')
+    (cd ${drv}; find -L -type f -exec ln -s ${drv}/{} $out/{} ';')
 
-    export PARALLEL_HOME=$(mktemp -d)
-    # Displaying the citation notice once per run of compressDrv is fair game
-    echo will cite | ${parallel}/bin/parallel --citation
-
-    ${xorg.lndir}/bin/lndir ${drv}/ $out/
-
-    while IFS= read -d "" -r fname; do
-      ${
+    ${
       lib.concatMapStringsSep
-      "\n"
+      "\n\n"
       (ext: mkCmd ext (builtins.getAttr "compressor-${ext}" compressorMap))
       compressors
     }
-    done < <(find -L $out -print0 -type f -regextype posix-extended -iregex '.*\.(${formatsPipe})')
-
-    ${parallel}/bin/sem --id ''$$ --wait
   ''
