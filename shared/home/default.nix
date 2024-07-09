@@ -152,6 +152,7 @@ in {
               pkgs.vimPlugins.vim-go
               pkgs.vimPlugins.zig-vim
               pkgs.vimPlugins.fzf-vim
+              pkgs.vimPlugins.vim-gh-line
               pkgs.vimPlugins.nvim-lspconfig
             ])
           ];
