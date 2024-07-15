@@ -126,6 +126,8 @@ in {
 
   users.extraGroups.vboxusers.members = ["motiejus"];
 
+  security.tpm2.enable = true;
+
   networking = {
     hostId = "b14a02aa";
     hostName = "mtworx";
