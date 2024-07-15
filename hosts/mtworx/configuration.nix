@@ -18,6 +18,7 @@ in {
     loader.systemd-boot.enable = true;
     initrd = {
       availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
+      systemd.enableTpm2 = true;
       luks.devices = {
         luksroot = {
           device = "${nvme}-part3";

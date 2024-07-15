@@ -186,6 +186,7 @@ in {
           borgbackup
           efibootmgr
           virtualenv
+          ventoy-full
           python3Full
           libva-utils # intel video tests
           pavucontrol
