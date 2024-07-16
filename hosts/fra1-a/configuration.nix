@@ -1,7 +1,6 @@
 {
   lib,
   config,
-  pkgs,
   myData,
   modulesPath,
   ...
@@ -48,20 +47,6 @@
       snapshot = {
         enable = true;
         mountpoints = ["/var/lib"];
-      };
-
-      zfsborg = {
-        enable = true;
-        passwordPath = config.age.secrets.borgbackup-password.path;
-        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        dirs = [
-          {
-            mountpoint = "/var/lib";
-            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
-            paths = ["private/e11sync-backend"];
-            backup_at = "*-*-* 01:00:00 UTC";
-          }
-        ];
       };
     };
 
@@ -111,13 +96,6 @@
     };
   };
 
-  e11sync = {
-    enable = true;
-    migrateOnStart = true;
-    secretKeyPath = config.age.secrets.e11sync-secret-key.path;
-    vhost = "11sync.net";
-  };
-
   services = {
     caddy = {
       enable = true;
@@ -133,12 +111,6 @@
         '';
         "11sync.net".extraConfig = lib.mkForce ''
           redir https://jakstys.lt/2024/11sync-shutdown/
-        '';
-        "http://admin.11sync.net".extraConfig = ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-
-          redir / /admin/
-          ${builtins.readFile "${pkgs.e11sync-caddyfile}"}
         '';
       };
     };

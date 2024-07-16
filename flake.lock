@@ -51,39 +51,6 @@
         "type": "github"
       }
     },
-    "e11sync": {
-      "inputs": {
-        "flake-compat": [
-          "flake-compat"
-        ],
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "geoip2-tarball": "geoip2-tarball",
-        "gitignore": [
-          "gitignore"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pre-commit-hooks": [
-          "pre-commit-hooks"
-        ]
-      },
-      "locked": {
-        "lastModified": 1717586525,
-        "narHash": "sha256-wnUwdn3sI2SFauM21CZGj9GCJxSTa6huBU6D4cwlNtU=",
-        "ref": "refs/heads/main",
-        "rev": "ece51ae1d4c39d98e6a54e03b71413779996b3ff",
-        "revCount": 188,
-        "type": "git",
-        "url": "https://git.jakstys.lt/motiejus/e11sync"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://git.jakstys.lt/motiejus/e11sync"
-      }
-    },
     "flake-compat": {
       "locked": {
         "lastModified": 1717312683,
@@ -115,19 +82,6 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
-      }
-    },
-    "geoip2-tarball": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1705308463,
-        "narHash": "sha256-Q+t6LnGy8R6QLugw25iC0WdVPU2C3eqZPlbvVQ9EpwE=",
-        "type": "tarball",
-        "url": "https://dl.jakstys.lt/_/2024.01.13.tar.zst"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://dl.jakstys.lt/_/2024.01.13.tar.zst"
       }
     },
     "gitignore": {
@@ -310,7 +264,6 @@
       "inputs": {
         "agenix": "agenix",
         "deploy-rs": "deploy-rs",
-        "e11sync": "e11sync",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "gitignore": "gitignore",
