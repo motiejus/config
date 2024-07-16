@@ -17,12 +17,16 @@ in {
     kernelModules = ["kvm-intel"];
     loader.systemd-boot.enable = true;
     initrd = {
-      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
-      systemd.enableTpm2 = true;
+      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid" "tpm_tis"];
+      systemd = {
+        enableTpm2 = true;
+        emergencyAccess = true;
+      };
       luks.devices = {
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
+          crypttabExtraOpts = ["tpm2-device=auto"];
         };
       };
     };
