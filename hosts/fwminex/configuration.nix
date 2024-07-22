@@ -1,4 +1,8 @@
-{myData, ...}: let
+{
+  myData,
+  pkgs,
+  ...
+}: let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A_1";
 in {
   imports = [
@@ -51,6 +55,12 @@ in {
 
   systemd.services.zfs-mount.enable = false;
 
+  services = {
+    pcscd.enable = true;
+    acpid.enable = true;
+    fwupd.enable = true;
+  };
+
   mj = {
     stateVersion = "24.05";
     timeZone = "Europe/Vilnius";
@@ -99,6 +109,12 @@ in {
       #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
       #};
     };
+  };
+
+  environment = {
+    systemPackages = with pkgs; [
+      age-plugin-yubikey
+    ];
   };
 
   networking = {
