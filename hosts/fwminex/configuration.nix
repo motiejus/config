@@ -60,6 +60,11 @@ in {
     pcscd.enable = true;
     acpid.enable = true;
     fwupd.enable = true;
+    logind = {
+      lidSwitch = "ignore";
+      powerKey = "suspend";
+      powerKeyLongPress = "poweroff";
+    };
   };
 
   mj = {
