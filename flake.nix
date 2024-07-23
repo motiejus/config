@@ -195,16 +195,16 @@
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.framework-12th-gen-intel
 
-            #agenix.nixosModules.default
-            #{
-            #  age.secrets = {
-            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-            #    syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
-            #    syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
-            #  };
-            #}
+            agenix.nixosModules.default
+            {
+              age.secrets = {
+                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+                #syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
+                #syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
+              };
+            }
           ];
 
           specialArgs = {inherit myData;} // inputs;

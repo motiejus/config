@@ -1,6 +1,7 @@
 {
   myData,
   pkgs,
+  config,
   ...
 }: let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A_1";
@@ -68,9 +69,8 @@ in {
 
     base.users = {
       enable = true;
-      user.initialPassword = "live";
-      #root.hashedPasswordFile = config.age.secrets.root-work-passwd-hash.path;
-      #user.hashedPasswordFile = config.age.secrets.motiejus-work-passwd-hash.path;
+      root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+      user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
     };
 
     services = {
@@ -104,10 +104,10 @@ in {
         };
       };
 
-      #postfix = {
-      #  enable = true;
-      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      #};
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
     };
   };
 
