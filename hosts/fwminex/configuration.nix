@@ -23,9 +23,9 @@ in {
           device = "${nvme}-part3";
           allowDiscards = true;
           #crypttabExtraOpts = ["tpm2-device=auto"]; # WIP
-          #keyFileOffset = 9728;
-          #keyFileSize = 512;
-          #keyFile = "/dev/sda";
+          keyFileOffset = 9728;
+          keyFileSize = 512;
+          keyFile = "/dev/sda";
         };
       };
     };
