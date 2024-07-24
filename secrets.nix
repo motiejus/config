@@ -54,6 +54,9 @@ in
     "secrets/mtworx/syncthing/cert.pem.age"
   ]
   // mk ([fwminex] ++ motiejus) [
+    "secrets/motiejus_server_passwd_hash.age"
+    "secrets/root_server_passwd_hash.age"
+
     "secrets/fwminex/syncthing/key.pem.age"
     "secrets/fwminex/syncthing/cert.pem.age"
   ]
