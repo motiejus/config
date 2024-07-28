@@ -132,6 +132,7 @@ in {
             };
             extensions = with pkgs.nur.repos.rycee.firefox-addons; [
               bitwarden
+              header-editor
               ublock-origin
               consent-o-matic
               multi-account-containers
