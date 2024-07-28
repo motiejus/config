@@ -23,7 +23,7 @@
   options.mj.services.deployerbot.follower = with lib.types; {
     enable = lib.mkEnableOption "Allow system to be deployed with deployerbot";
     sshAllowSubnets = lib.mkOption {type = listOf str;};
-    publicKey = lib.mkOption {type = str;};
+    publicKeys = lib.mkOption {type = listOf str;};
     uidgid = lib.mkOption {type = int;};
   };
 
@@ -129,9 +129,9 @@
           isSystemUser = true;
           createHome = true;
           uid = cfg.uidgid;
-          openssh.authorizedKeys.keys = let
-            restrictedPubKey = "from=\"${builtins.concatStringsSep "," cfg.sshAllowSubnets}\" " + cfg.publicKey;
-          in [restrictedPubKey];
+          openssh.authorizedKeys.keys =
+            map (k: "from=\"${builtins.concatStringsSep "," cfg.sshAllowSubnets}\" " + k)
+            cfg.publicKeys;
         };
         users.groups.deployerbot-follower.gid = cfg.uidgid;
         nix.settings.trusted-users = ["deployerbot-follower"];
