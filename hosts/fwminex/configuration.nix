@@ -22,10 +22,10 @@ in {
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
-          #crypttabExtraOpts = ["tpm2-device=auto"]; # WIP
-          keyFileOffset = 9728;
-          keyFileSize = 512;
-          keyFile = "/dev/sda";
+          crypttabExtraOpts = ["tpm2-device=auto"];
+          #keyFileOffset = 9728;
+          #keyFileSize = 512;
+          #keyFile = "/dev/sda";
         };
       };
     };
