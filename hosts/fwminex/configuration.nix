@@ -15,8 +15,8 @@ in {
     kernelModules = ["kvm-intel"];
     loader.systemd-boot.enable = true;
     initrd = {
-      kernelModules = ["usb_storage"];
-      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid" "tpm_tis"];
+      kernelModules = ["usb_storage" "tpm_tis"];
+      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid"];
       systemd.enableTpm2 = true;
       luks.devices = {
         luksroot = {
