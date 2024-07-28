@@ -197,30 +197,6 @@
       };
 
       deployerbot = {
-        main = {
-          enable = true;
-          uidgid = myData.uidgid.updaterbot-deployer;
-          repo = "git@git.jakstys.lt:motiejus/config";
-          deployDerivations = [
-            ".#vno1-oh2"
-            ".#fra1-a"
-          ];
-          deployIfPresent = [
-            {
-              derivationTarget = ".#fwminex";
-              pingTarget = myData.hosts."fwminex.motiejus.jakst".jakstIP;
-            }
-            {
-              derivationTarget = ".#mtworx";
-              pingTarget = myData.hosts."mtworx.motiejus.jakst".jakstIP;
-            }
-            {
-              derivationTarget = ".#vno3-rp3b";
-              pingTarget = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
-            }
-          ];
-        };
-
         follower = {
           publicKeys = [
             myData.hosts."vno1-oh2.servers.jakst".publicKey
