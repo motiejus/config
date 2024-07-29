@@ -94,6 +94,24 @@ in
         verboseLogs = false;
       };
 
+      btrfssnapshot = {
+        enable = true;
+        subvolumes = [
+          {
+            subvolume = "/var/lib";
+            label = "hourly";
+            keep = 24;
+            refreshInterval = "*:00:00";
+          }
+          {
+            subvolume = "/var/lib";
+            label = "nightly";
+            keep = 7;
+            refreshInterval = "00:00:00Z";
+          }
+        ];
+      };
+
       remote-builder.client =
         let
           host = myData.hosts."fra1-a.servers.jakst";
