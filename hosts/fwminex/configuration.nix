@@ -98,6 +98,18 @@ in
         enable = true;
         subvolumes = [
           {
+            subvolume = "/home";
+            label = "hourly";
+            keep = 24;
+            refreshInterval = "*:00:00";
+          }
+          {
+            subvolume = "/home";
+            label = "nightly";
+            keep = 7;
+            refreshInterval = "daily UTC";
+          }
+          {
             subvolume = "/var/lib";
             label = "hourly";
             keep = 24;
