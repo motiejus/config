@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   config,
   ...
@@ -26,7 +27,7 @@ in {
       };
     };
 
-    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark" "podman"];
+    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark" "podman" "docker"];
 
     services = {
       fwupd.enable = true;
@@ -100,7 +101,7 @@ in {
     };
 
     virtualisation.podman = {
-      enable = true;
+      enable = lib.mkDefault true;
       extraPackages = [pkgs.zfs];
     };
 

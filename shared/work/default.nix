@@ -55,10 +55,8 @@
     Group = "clamav";
   };
 
-  virtualisation.podman = {
-    dockerCompat = true;
-    dockerSocket.enable = true;
-  };
+  virtualisation.podman.enable = false;
+  virtualisation.docker.enable = true;
 
   home-manager.users.${config.mj.username} = {
     home.sessionVariables = {
