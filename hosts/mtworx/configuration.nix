@@ -81,18 +81,20 @@ in
 
       btrfssnapshot = {
         enable = true;
-        subvolumes = {
-          "/home" = {
+        subvolumes = [
+          {
+            subvolume = "/home";
             label = "5minutely";
             keep = 12;
             refreshInterval = "*:0/5";
-          };
-          #"/home" = {
-          #  label = "hourly";
-          #  keep = 24;
-          #  refreshInterval = "*:00:00";
-          #};
-        };
+          }
+          {
+            subvolume = "/home";
+            label = "hourly";
+            keep = 24;
+            refreshInterval = "*:00:00";
+          }
+        ];
       };
 
       wifibackup = {
