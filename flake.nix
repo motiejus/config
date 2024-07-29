@@ -61,65 +61,68 @@
     extra-experimental-features = "nix-command flakes";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    nixpkgs-unstable,
-    agenix,
-    deploy-rs,
-    flake-utils,
-    home-manager,
-    nixos-hardware,
-    nix-index-database,
-    pre-commit-hooks,
-    nur,
-    nixgl,
-    ...
-  } @ inputs: let
-    myData = import ./data.nix;
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      agenix,
+      deploy-rs,
+      flake-utils,
+      home-manager,
+      nixos-hardware,
+      nix-index-database,
+      pre-commit-hooks,
+      nur,
+      nixgl,
+      ...
+    }@inputs:
+    let
+      myData = import ./data.nix;
 
-    overlays = [
-      nur.overlay
-      nixgl.overlay
+      overlays = [
+        nur.overlay
+        nixgl.overlay
 
-      (_self: super: {deploy-rs-pkg = super.deploy-rs;})
-      deploy-rs.overlay
-      (_self: super: {
-        deploy-rs = {
-          deploy-rs = super.deploy-rs-pkg;
-          inherit (super.deploy-rs) lib;
+        (_self: super: { deploy-rs-pkg = super.deploy-rs; })
+        deploy-rs.overlay
+        (_self: super: {
+          deploy-rs = {
+            deploy-rs = super.deploy-rs-pkg;
+            inherit (super.deploy-rs) lib;
+          };
+          deploy-rs-pkg = null;
+        })
+        (_: super: {
+          compressDrv = super.callPackage ./pkgs/compress-drv { };
+          compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix { };
+
+          tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
+          btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix { };
+          nicer = super.callPackage ./pkgs/nicer.nix { };
+
+          pkgs-unstable = import nixpkgs-unstable { inherit (super) system; };
+        })
+      ];
+
+      mkVM =
+        system:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            { nixpkgs.overlays = overlays; }
+            ./hosts/vm/configuration.nix
+
+            ./modules
+            ./modules/profiles/desktop
+
+            home-manager.nixosModules.home-manager
+          ];
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
-        deploy-rs-pkg = null;
-      })
-      (_: super: {
-        compressDrv = super.callPackage ./pkgs/compress-drv {};
-        compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix {};
-
-        tmuxbash = super.callPackage ./pkgs/tmuxbash.nix {};
-        btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix {};
-        nicer = super.callPackage ./pkgs/nicer.nix {};
-
-        pkgs-unstable = import nixpkgs-unstable {
-          inherit (super) system;
-        };
-      })
-    ];
-
-    mkVM = system:
-      nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [
-          {nixpkgs.overlays = overlays;}
-          ./hosts/vm/configuration.nix
-
-          ./modules
-          ./modules/profiles/desktop
-
-          home-manager.nixosModules.home-manager
-        ];
-        specialArgs = {inherit myData;} // inputs;
-      };
-  in
+    in
     {
       nixosConfigurations = {
         vm-x86_64 = mkVM "x86_64-linux";
@@ -128,7 +131,7 @@
         mtworx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            {nixpkgs.overlays = overlays;}
+            { nixpkgs.overlays = overlays; }
             ./hosts/mtworx/configuration.nix
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
@@ -147,13 +150,15 @@
             }
           ];
 
-          specialArgs = {inherit myData;} // inputs;
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
 
         vno1-oh2 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            {nixpkgs.overlays = overlays;}
+            { nixpkgs.overlays = overlays; }
             ./hosts/vno1-oh2/configuration.nix
             ./modules
 
@@ -184,13 +189,15 @@
             }
           ];
 
-          specialArgs = {inherit myData;} // inputs;
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
 
         fwminex = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            {nixpkgs.overlays = overlays;}
+            { nixpkgs.overlays = overlays; }
             ./hosts/fwminex/configuration.nix
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.framework-12th-gen-intel
@@ -207,13 +214,15 @@
             }
           ];
 
-          specialArgs = {inherit myData;} // inputs;
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
 
         vno3-rp3b = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
-            {nixpkgs.overlays = overlays;}
+            { nixpkgs.overlays = overlays; }
             ./hosts/vno3-rp3b/configuration.nix
 
             ./modules
@@ -232,13 +241,15 @@
             }
           ];
 
-          specialArgs = {inherit myData;} // inputs;
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
 
         fra1-a = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
-            {nixpkgs.overlays = overlays;}
+            { nixpkgs.overlays = overlays; }
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
 
@@ -256,7 +267,9 @@
             }
           ];
 
-          specialArgs = {inherit myData;} // inputs;
+          specialArgs = {
+            inherit myData;
+          } // inputs;
         };
       };
 
@@ -266,8 +279,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.vno1-oh2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
+              path = self.nixosConfigurations.vno1-oh2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
               user = "root";
             };
           };
@@ -278,8 +290,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.fwminex.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
+              path = self.nixosConfigurations.fwminex.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
               user = "root";
             };
           };
@@ -290,8 +301,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
+              path = self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
               user = "root";
             };
           };
@@ -302,8 +312,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
+              path = self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
               user = "root";
             };
           };
@@ -314,51 +323,55 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path =
-                self.nixosConfigurations.fra1-a.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
+              path = self.nixosConfigurations.fra1-a.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
               user = "root";
             };
           };
         };
       };
 
-      checks =
-        builtins.mapAttrs (
-          system: deployLib:
-            deployLib.deployChecks self.deploy
-            // {
-              pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
-                src = ./.;
-                hooks = {
-                  alejandra.enable = true;
-                  deadnix.enable = true;
-                  statix.enable = true;
-                };
+      checks = builtins.mapAttrs (
+        system: deployLib:
+        let
+          pkgs = import nixpkgs { inherit system overlays; };
+        in
+        deployLib.deployChecks self.deploy
+        // {
+          pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixfmt = {
+                enable = true;
+                package = pkgs.nixfmt-rfc-style;
               };
+              deadnix.enable = true;
+              statix.enable = true;
+            };
+          };
 
-              compress-drv-test = let
-                pkgs = import nixpkgs {inherit system overlays;};
-              in
-                pkgs.callPackage ./pkgs/compress-drv/test.nix {};
-            }
-        )
-        deploy-rs.lib;
+          compress-drv-test = pkgs.callPackage ./pkgs/compress-drv/test.nix { };
+        }
+      ) deploy-rs.lib;
     }
-    // flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {inherit system overlays;};
-    in {
-      devShells.default = pkgs.mkShellNoCC {
-        GIT_AUTHOR_EMAIL = "motiejus@jakstys.lt";
-        packages = [
-          pkgs.nix-output-monitor
-          pkgs.rage
-          pkgs.age-plugin-yubikey
-          pkgs.deploy-rs.deploy-rs
-          agenix.packages.${system}.agenix
-        ];
-        inherit (self.checks.${system}.pre-commit-check) shellHook;
-      };
+    // flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system overlays; };
+      in
+      {
+        devShells.default = pkgs.mkShellNoCC {
+          GIT_AUTHOR_EMAIL = "motiejus@jakstys.lt";
+          packages = [
+            pkgs.nix-output-monitor
+            pkgs.rage
+            pkgs.age-plugin-yubikey
+            pkgs.deploy-rs.deploy-rs
+            agenix.packages.${system}.agenix
+          ];
+          inherit (self.checks.${system}.pre-commit-check) shellHook;
+        };
 
-      formatter = pkgs.alejandra;
-    });
+        formatter = pkgs.nixfmt-rfc-style;
+      }
+    );
 }

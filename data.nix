@@ -65,32 +65,45 @@ rec {
       jakstIP = "100.89.176.4";
     };
     "vno3-rp3b.servers.jakst" = rec {
-      extraHostNames = [jakstIP];
+      extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
       jakstIP = "100.89.176.2";
     };
     "fra1-a.servers.jakst" = rec {
-      extraHostNames = ["fra1-a.jakstys.lt" publicIP jakstIP];
+      extraHostNames = [
+        "fra1-a.jakstys.lt"
+        publicIP
+        jakstIP
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFj9Ktw9SZQlHe/Pl5MI7PRUcCyTgZgZ0SsvWUmO0wBM";
       initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtYwVhfmdHRK8YcaRQ3JGSIOK55lEMNSPh33Z0iI+pO";
       publicIP = "168.119.184.134";
       jakstIP = "100.89.176.5";
       system = "aarch64-linux";
-      supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "gccarch-armv8-a"];
+      supportedFeatures = [
+        "nixos-test"
+        "benchmark"
+        "big-parallel"
+        "kvm"
+        "gccarch-armv8-a"
+      ];
     };
     "fwminex.motiejus.jakst" = rec {
-      extraHostNames = [jakstIP vno1IP];
+      extraHostNames = [
+        jakstIP
+        vno1IP
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlWSZ/H6DR5i5aCrlrEQLVF9MXNvls/pjlLPLaav3f+";
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
     };
     "mtworx.motiejus.jakst" = rec {
-      extraHostNames = [jakstIP];
+      extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRrsOkKkpJ9ZJYhEdxjwrmdVYoPcGDGtcGfBkkpVF6l";
       jakstIP = "100.89.176.20";
     };
     "vno1-vinc.vincentas.jakst" = rec {
-      extraHostNames = [jakstIP];
+      extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
       jakstIP = "100.89.176.7";
     };
@@ -118,15 +131,14 @@ rec {
       range = "100.89.176.0-100.89.191.255";
       sshPattern = "100.89.176.*"; # until we have more hosts
     };
-    motiejus.cidrs = let
-      mHosts =
-        attrVals [
+    motiejus.cidrs =
+      let
+        mHosts = attrVals [
           "mxp10.motiejus.jakst"
           "mtworx.motiejus.jakst"
           "fwminex.motiejus.jakst"
-        ]
-        hosts;
-    in
+        ] hosts;
+      in
       builtins.catAttrs "jakstIP" mHosts;
 
     vno1 = {
@@ -136,99 +148,103 @@ rec {
     vno3.cidr = "192.168.100.0/24";
   };
 
-  e11syncZone = let
-    vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
-    fra1a = hosts."fra1-a.servers.jakst".publicIP;
-  in ''
-    $ORIGIN 11sync.net.
-    $TTL 3600
-    @                            SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
-    @                             NS   ns1.11sync.net.
-    @                             NS   ns2.11sync.net.
-    @                              A   ${vno1}
-    @                            TXT   google-site-verification=nvUYd7_ShhPKvTn_Xbw-vPFONOhPeaYQsGp34DbV-80
-    @                            TXT   "hosted-email-verify=qeuysotu"
-    @                             MX   10 aspmx1.migadu.com.
-    @                             MX   20 aspmx2.migadu.com.
-    @                            TXT   "v=spf1 include:spf.migadu.com -all"
-    ns1                            A   ${vno1}
-    ns2                            A   ${fra1a}
-    www                            A   ${vno1}
-    admin                          A   ${hosts."fra1-a.servers.jakst".jakstIP}
-    key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
-    key2._domainkey            CNAME   key2.11sync.net._domainkey.migadu.com.
-    key3._domainkey            CNAME   key3.11sync.net._domainkey.migadu.com.
-    _dmarc                       TXT   "v=DMARC1; p=quarantine;"
-    autoconfig                 CNAME   autoconfig.migadu.com.
-    _autodiscover._tcp           SRV   0 1 443 autodiscover.migadu.com.
-    _submissions._tcp            SRV   0 1 465 smtp.migadu.com.
-    _imaps._tcp                  SRV   0 1 993 imap.migadu.com.
-    _pop3s._tcp                  SRV   0 1 995 pop.migadu.com.
-    _github-challenge-11sync-org TXT   "ff5e813c58"
-  '';
+  e11syncZone =
+    let
+      vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+      fra1a = hosts."fra1-a.servers.jakst".publicIP;
+    in
+    ''
+      $ORIGIN 11sync.net.
+      $TTL 3600
+      @                            SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
+      @                             NS   ns1.11sync.net.
+      @                             NS   ns2.11sync.net.
+      @                              A   ${vno1}
+      @                            TXT   google-site-verification=nvUYd7_ShhPKvTn_Xbw-vPFONOhPeaYQsGp34DbV-80
+      @                            TXT   "hosted-email-verify=qeuysotu"
+      @                             MX   10 aspmx1.migadu.com.
+      @                             MX   20 aspmx2.migadu.com.
+      @                            TXT   "v=spf1 include:spf.migadu.com -all"
+      ns1                            A   ${vno1}
+      ns2                            A   ${fra1a}
+      www                            A   ${vno1}
+      admin                          A   ${hosts."fra1-a.servers.jakst".jakstIP}
+      key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
+      key2._domainkey            CNAME   key2.11sync.net._domainkey.migadu.com.
+      key3._domainkey            CNAME   key3.11sync.net._domainkey.migadu.com.
+      _dmarc                       TXT   "v=DMARC1; p=quarantine;"
+      autoconfig                 CNAME   autoconfig.migadu.com.
+      _autodiscover._tcp           SRV   0 1 443 autodiscover.migadu.com.
+      _submissions._tcp            SRV   0 1 465 smtp.migadu.com.
+      _imaps._tcp                  SRV   0 1 993 imap.migadu.com.
+      _pop3s._tcp                  SRV   0 1 995 pop.migadu.com.
+      _github-challenge-11sync-org TXT   "ff5e813c58"
+    '';
 
-  jakstysLTZone = let
-    fra1a = hosts."fra1-a.servers.jakst".publicIP;
-    vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
-  in ''
-    $ORIGIN jakstys.lt.
-    $TTL 86400
-    @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
-    @                               NS     ns1.jakstys.lt.
-    @                               NS     ns2.jakstys.lt.
-    @                                A     ${vno1}
-    www                              A     ${vno1}
-    ns1                              A     ${vno1}
-    ns2                              A     ${fra1a}
-    vpn                              A     ${vno1}
-    git                              A     ${vno1}
-    auth                             A     ${vno1}
-    dl                               A     ${vno1}
-    fra1-a                           A     ${fra1a}
-    vno1                             A     ${vno1}
+  jakstysLTZone =
+    let
+      fra1a = hosts."fra1-a.servers.jakst".publicIP;
+      vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+    in
+    ''
+      $ORIGIN jakstys.lt.
+      $TTL 86400
+      @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
+      @                               NS     ns1.jakstys.lt.
+      @                               NS     ns2.jakstys.lt.
+      @                                A     ${vno1}
+      www                              A     ${vno1}
+      ns1                              A     ${vno1}
+      ns2                              A     ${fra1a}
+      vpn                              A     ${vno1}
+      git                              A     ${vno1}
+      auth                             A     ${vno1}
+      dl                               A     ${vno1}
+      fra1-a                           A     ${fra1a}
+      vno1                             A     ${vno1}
 
-    @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
-    @                               TXT    hosted-email-verify=rvyd6h64
-    @                                MX    10 aspmx1.migadu.com.
-    @                                MX    20 aspmx2.migadu.com.
-    *                                MX    10 aspmx1.migadu.com.
-    *                                MX    20 aspmx2.migadu.com.
-    key1._domainkey               CNAME    key1.jakstys.lt._domainkey.migadu.com.
-    key2._domainkey               CNAME    key2.jakstys.lt._domainkey.migadu.com.
-    key3._domainkey               CNAME    key3.jakstys.lt._domainkey.migadu.com.
-    @                               TXT    "v=spf1 include:spf.migadu.com -all"
-    _dmarc                          TXT    "v=DMARC1; p=quarantine;"
-    *                                MX    10 aspmx1.migadu.com.
-    *                                MX    20 aspmx2.migadu.com.
-    autoconfig                    CNAME    autoconfig.migadu.com.
-    _autodiscover._tcp              SRV    0 1 443 autodiscover.migadu.com.
-    _submissions._tcp               SRV    0 1 465 smtp.migadu.com.
-    _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
-    _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
+      @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
+      @                               TXT    hosted-email-verify=rvyd6h64
+      @                                MX    10 aspmx1.migadu.com.
+      @                                MX    20 aspmx2.migadu.com.
+      *                                MX    10 aspmx1.migadu.com.
+      *                                MX    20 aspmx2.migadu.com.
+      key1._domainkey               CNAME    key1.jakstys.lt._domainkey.migadu.com.
+      key2._domainkey               CNAME    key2.jakstys.lt._domainkey.migadu.com.
+      key3._domainkey               CNAME    key3.jakstys.lt._domainkey.migadu.com.
+      @                               TXT    "v=spf1 include:spf.migadu.com -all"
+      _dmarc                          TXT    "v=DMARC1; p=quarantine;"
+      *                                MX    10 aspmx1.migadu.com.
+      *                                MX    20 aspmx2.migadu.com.
+      autoconfig                    CNAME    autoconfig.migadu.com.
+      _autodiscover._tcp              SRV    0 1 443 autodiscover.migadu.com.
+      _submissions._tcp               SRV    0 1 465 smtp.migadu.com.
+      _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
+      _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
 
-    grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.grafana      CNAME     _acme-endpoint.grafana
-    _acme-endpoint.grafana          NS     ns._acme-endpoint.grafana
-    ns._acme-endpoint.grafana        A     ${vno1}
+      grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.grafana      CNAME     _acme-endpoint.grafana
+      _acme-endpoint.grafana          NS     ns._acme-endpoint.grafana
+      ns._acme-endpoint.grafana        A     ${vno1}
 
-    irc                              A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.irc          CNAME     _acme-endpoint.irc
-    _acme-endpoint.irc              NS     ns._acme-endpoint.irc
-    ns._acme-endpoint.irc            A     ${vno1}
+      irc                              A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.irc          CNAME     _acme-endpoint.irc
+      _acme-endpoint.irc              NS     ns._acme-endpoint.irc
+      ns._acme-endpoint.irc            A     ${vno1}
 
-    hass                             A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.hass         CNAME     _acme-endpoint.hass
-    _acme-endpoint.hass             NS     ns._acme-endpoint.hass
-    ns._acme-endpoint.hass           A     ${vno1}
+      hass                             A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.hass         CNAME     _acme-endpoint.hass
+      _acme-endpoint.hass             NS     ns._acme-endpoint.hass
+      ns._acme-endpoint.hass           A     ${vno1}
 
-    bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-    _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
-    _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
-    ns._acme-endpoint.bitwarden      A     ${vno1}
+      bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
+      _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
+      ns._acme-endpoint.bitwarden      A     ${vno1}
 
-    hdd                              A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
-    _acme-challenge.hdd          CNAME     _acme-endpoint.hdd
-    _acme-endpoint.hdd              NS     ns._acme-endpoint.hdd
-    ns._acme-endpoint.hdd            A     ${vno1}
-  '';
+      hdd                              A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
+      _acme-challenge.hdd          CNAME     _acme-endpoint.hdd
+      _acme-endpoint.hdd              NS     ns._acme-endpoint.hdd
+      ns._acme-endpoint.hdd            A     ${vno1}
+    '';
 }

@@ -3,16 +3,18 @@
   lib,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj.services.jakstpub;
-in {
+in
+{
   options.mj.services.jakstpub = with lib.types; {
     enable = lib.mkEnableOption "Enable jakstpub";
-    dataDir = lib.mkOption {type = path;};
+    dataDir = lib.mkOption { type = path; };
     # RequiresMountsFor is used by upstream, hacking with the unit
-    requires = lib.mkOption {type = listOf str;};
-    uidgid = lib.mkOption {type = int;};
-    hostname = lib.mkOption {type = str;};
+    requires = lib.mkOption { type = listOf str; };
+    uidgid = lib.mkOption { type = int; };
+    hostname = lib.mkOption { type = str; };
   };
 
   config = lib.mkIf cfg.enable {
@@ -40,32 +42,30 @@ in {
           guest account = jakstpub
           server role = standalone server
         '';
-        shares = let
-          defaults = {
-            "public" = "yes";
-            "mangled names" = "no";
-            "guest ok" = "yes";
-            "force user" = "jakstpub";
-            "force group" = "jakstpub";
-          };
-        in {
-          public =
-            defaults
-            // {
+        shares =
+          let
+            defaults = {
+              "public" = "yes";
+              "mangled names" = "no";
+              "guest ok" = "yes";
+              "force user" = "jakstpub";
+              "force group" = "jakstpub";
+            };
+          in
+          {
+            public = defaults // {
               "path" = cfg.dataDir;
               "writeable" = "yes";
               "read only" = "no";
               "create mask" = "0664";
               "directory mask" = "0775";
             };
-          snapshots =
-            defaults
-            // {
+            snapshots = defaults // {
               "path" = cfg.dataDir + "/.zfs/snapshot";
               "writeable" = "no";
               "read only" = "yes";
             };
-        };
+          };
       };
 
       samba-wsdd = {
@@ -92,14 +92,18 @@ in {
 
     mj.services.friendlyport.ports = [
       {
-        subnets = with myData.subnets; [tailscale.cidr vno1.cidr vno3.cidr];
+        subnets = with myData.subnets; [
+          tailscale.cidr
+          vno1.cidr
+          vno3.cidr
+        ];
         tcp = [
           80 # caddy above
           139 # smbd
           445 # smbd
           5357 # wsdd
         ];
-        udp = [3702]; # wsdd
+        udp = [ 3702 ]; # wsdd
       }
     ];
   };

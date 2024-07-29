@@ -3,10 +3,18 @@
   lib,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj.services.tailscale;
-  inherit (lib) mkMerge types mkEnableOption mkOption mkIf;
-in {
+  inherit (lib)
+    mkMerge
+    types
+    mkEnableOption
+    mkOption
+    mkIf
+    ;
+in
+{
   options.mj.services.tailscale = with types; {
     enable = mkEnableOption "Enable tailscale";
     # https://github.com/tailscale/tailscale/issues/1548
@@ -20,13 +28,11 @@ in {
     {
       services.tailscale = {
         enable = true;
-        extraUpFlags = ["--operator=${config.mj.username}"];
+        extraUpFlags = [ "--operator=${config.mj.username}" ];
       };
       networking.firewall.checkReversePath = "loose";
-      networking.firewall.allowedUDPPorts = [myData.ports.tailscale];
+      networking.firewall.allowedUDPPorts = [ myData.ports.tailscale ];
     }
-    (mkIf (!cfg.verboseLogs) {
-      systemd.services.tailscaled.serviceConfig.StandardOutput = "null";
-    })
+    (mkIf (!cfg.verboseLogs) { systemd.services.tailscaled.serviceConfig.StandardOutput = "null"; })
   ]);
 }

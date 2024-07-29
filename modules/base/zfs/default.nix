@@ -1,8 +1,5 @@
+{ config, lib, ... }:
 {
-  config,
-  lib,
-  ...
-}: {
   options.mj.base.zfs = with lib.types; {
     enable = lib.mkEnableOption "Enable common zfs options";
   };
@@ -16,6 +13,6 @@
       expandOnBoot = "all";
     };
 
-    mj.base.unitstatus.units = ["zfs-scrub"];
+    mj.base.unitstatus.units = [ "zfs-scrub" ];
   };
 }

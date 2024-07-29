@@ -3,7 +3,8 @@
   lib,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj.services.syncthing;
 
   devices = {
@@ -20,17 +21,29 @@
   };
   folders = {
     Books = {
-      devices = ["fwminex" "vno1-oh2" "mxp10"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+        "mxp10"
+      ];
       id = "8lk0n-mm63y";
       label = "Books";
     };
     Mail = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "66fmz-x6f1a";
       label = "Mail";
     };
     M-Active = {
-      devices = ["mxp10" "fwminex" "mtworx" "vno1-oh2"];
+      devices = [
+        "mxp10"
+        "fwminex"
+        "mtworx"
+        "vno1-oh2"
+      ];
       id = "f6fma-unkxq";
       label = "M-Active";
       versioning = {
@@ -42,99 +55,157 @@
       };
     };
     M-Documents = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "4fu7z-z6es2";
       label = "M-Documents";
     };
     Vaikai = {
-      devices = ["vno1-vinc" "sqq1-desk" "fwminex" "mtworx" "vno1-oh2" "v-kfire" "rzj-744P2PE" "mxp10" "a-kfire"];
+      devices = [
+        "vno1-vinc"
+        "sqq1-desk"
+        "fwminex"
+        "mtworx"
+        "vno1-oh2"
+        "v-kfire"
+        "rzj-744P2PE"
+        "mxp10"
+        "a-kfire"
+      ];
       id = "xbrfr-mhszm";
       label = "Vaikai";
     };
     M-Camera = {
-      devices = ["mxp10" "fwminex" "mtworx" "vno1-oh2"];
+      devices = [
+        "mxp10"
+        "fwminex"
+        "mtworx"
+        "vno1-oh2"
+      ];
       id = "pixel_xl_dtm3-photos";
       label = "M-Camera";
     };
     R-Documents = {
-      devices = ["rzj-744P2PE" "vno1-oh2"];
+      devices = [
+        "rzj-744P2PE"
+        "vno1-oh2"
+      ];
       id = "nm23h-aog6k";
       label = "R-Documents";
     };
     Pictures = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "d3hur-cbzyw";
       label = "Pictures";
     };
     Music = {
-      devices = ["fwminex" "mtworx" "mxp10" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "mtworx"
+        "mxp10"
+        "vno1-oh2"
+      ];
       id = "tg94v-cqcwr";
       label = "music";
     };
     video-shared = {
-      devices = ["mxp10" "mtworx" "fwminex" "vno1-oh2"];
+      devices = [
+        "mxp10"
+        "mtworx"
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "byzmw-f6zhg";
       label = "video-shared";
     };
     stud-cache = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "2kq7n-jqzxj";
       label = "stud-cache";
     };
     M-R = {
-      devices = ["fwminex" "rzj-744P2PE" "mxp10" "vno1-oh2" "mtworx"];
+      devices = [
+        "fwminex"
+        "rzj-744P2PE"
+        "mxp10"
+        "vno1-oh2"
+        "mtworx"
+      ];
       id = "evgn9-ahngz";
       label = "M-R";
     };
     Irenos = {
-      devices = ["sqq1-desk" "vno1-oh2" "vno2-irena"];
+      devices = [
+        "sqq1-desk"
+        "vno1-oh2"
+        "vno2-irena"
+      ];
       id = "wuwai-qkcqj";
       label = "Irenos";
     };
     www-fwminex = {
-      devices = ["fwminex" "vno1-oh2"];
+      devices = [
+        "fwminex"
+        "vno1-oh2"
+      ];
       id = "7z9sw-2nubh";
       label = "www-fwminex";
     };
     www-mxp10 = {
-      devices = ["mxp10" "vno1-oh2"];
+      devices = [
+        "mxp10"
+        "vno1-oh2"
+      ];
       id = "gqrtz-prx9h";
       label = "www-mxp10";
     };
     mykolo = {
-      devices = ["mxp10"];
+      devices = [ "mxp10" ];
       id = "wslmq-fyw4w";
       label = "mykolo";
     };
   };
-in {
+in
+{
   options.mj.services.syncthing = with lib.types; {
     enable = lib.mkEnableOption "Enable services syncthing settings";
-    user = lib.mkOption {type = str;};
-    group = lib.mkOption {type = str;};
-    dataDir = lib.mkOption {type = path;};
+    user = lib.mkOption { type = str; };
+    group = lib.mkOption { type = str; };
+    dataDir = lib.mkOption { type = path; };
   };
 
   config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
         subnets = myData.subnets.motiejus.cidrs;
-        tcp = [8384];
+        tcp = [ 8384 ];
       }
     ];
 
     services.syncthing = {
-      inherit (cfg) enable user group dataDir;
+      inherit (cfg)
+        enable
+        user
+        group
+        dataDir
+        ;
       openDefaultPorts = true;
       key = config.age.secrets.syncthing-key.path;
       cert = config.age.secrets.syncthing-cert.path;
 
       settings = {
         devices =
-          {}
+          { }
           // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-            inherit
-              (devices)
+            inherit (devices)
               fwminex
               mtworx
               vno1-oh2
@@ -148,8 +219,7 @@ in {
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
-            inherit
-              (devices)
+            inherit (devices)
               fwminex
               mtworx
               vno1-oh2
@@ -162,8 +232,7 @@ in {
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
-            inherit
-              (devices)
+            inherit (devices)
               mtworx
               fwminex
               vno1-oh2
@@ -175,55 +244,50 @@ in {
               v-kfire
               ;
           })
-          // {};
-        folders = with folders;
-          {}
-          // (
-            lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-              "/var/www/dl/tel" = www-mxp10;
-              "/var/www/dl/fwminex" = www-fwminex;
-              "/var/www/dl/mykolo" = mykolo;
-              "${cfg.dataDir}/annex2/Books" = Books;
-              "${cfg.dataDir}/annex2/Mail" = Mail;
-              "${cfg.dataDir}/annex2/M-Active" = M-Active;
-              "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
-              "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
-              "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
-              "${cfg.dataDir}/annex2/Pictures" = Pictures;
-              "${cfg.dataDir}/annex2/M-R" = M-R;
-              "${cfg.dataDir}/stud-cache" = stud-cache;
-              "${cfg.dataDir}/video/shared" = video-shared;
-              "${cfg.dataDir}/video/Vaikai" = Vaikai;
-              "${cfg.dataDir}/music" = Music;
-              "${cfg.dataDir}/irenos" = Irenos;
-            }
-          )
-          // (
-            lib.optionalAttrs (config.networking.hostName == "mtworx") {
-              "${cfg.dataDir}/M-Active" = M-Active;
-              "${cfg.dataDir}/M-Camera" = M-Camera;
-              "${cfg.dataDir}/M-R" = M-R;
-              "${cfg.dataDir}/Vaikai" = Vaikai;
-              "${cfg.dataDir}/Video" = video-shared;
-              "${cfg.dataDir}/music" = Music;
-            }
-          )
-          // (
-            lib.optionalAttrs (config.networking.hostName == "fwminex") {
-              "${cfg.dataDir}/.cache/evolution" = Mail;
-              "${cfg.dataDir}/Books" = Books;
-              "${cfg.dataDir}/M-Active" = M-Active;
-              "${cfg.dataDir}/M-Documents" = M-Documents;
-              "${cfg.dataDir}/M-Camera" = M-Camera;
-              "${cfg.dataDir}/Pictures" = Pictures;
-              "${cfg.dataDir}/Music" = Music;
-              "${cfg.dataDir}/M-R" = M-R;
-              "${cfg.dataDir}/Vaikai" = Vaikai;
-              "${cfg.dataDir}/Video" = video-shared;
-              "${cfg.dataDir}/stud-cache" = stud-cache;
-              "${cfg.dataDir}/www" = www-fwminex;
-            }
-          );
+          // { };
+        folders =
+          with folders;
+          { }
+          // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
+            "/var/www/dl/tel" = www-mxp10;
+            "/var/www/dl/fwminex" = www-fwminex;
+            "/var/www/dl/mykolo" = mykolo;
+            "${cfg.dataDir}/annex2/Books" = Books;
+            "${cfg.dataDir}/annex2/Mail" = Mail;
+            "${cfg.dataDir}/annex2/M-Active" = M-Active;
+            "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
+            "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
+            "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
+            "${cfg.dataDir}/annex2/Pictures" = Pictures;
+            "${cfg.dataDir}/annex2/M-R" = M-R;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/video/shared" = video-shared;
+            "${cfg.dataDir}/video/Vaikai" = Vaikai;
+            "${cfg.dataDir}/music" = Music;
+            "${cfg.dataDir}/irenos" = Irenos;
+          })
+          // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
+            "${cfg.dataDir}/M-Active" = M-Active;
+            "${cfg.dataDir}/M-Camera" = M-Camera;
+            "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/Vaikai" = Vaikai;
+            "${cfg.dataDir}/Video" = video-shared;
+            "${cfg.dataDir}/music" = Music;
+          })
+          // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
+            "${cfg.dataDir}/.cache/evolution" = Mail;
+            "${cfg.dataDir}/Books" = Books;
+            "${cfg.dataDir}/M-Active" = M-Active;
+            "${cfg.dataDir}/M-Documents" = M-Documents;
+            "${cfg.dataDir}/M-Camera" = M-Camera;
+            "${cfg.dataDir}/Pictures" = Pictures;
+            "${cfg.dataDir}/Music" = Music;
+            "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/Vaikai" = Vaikai;
+            "${cfg.dataDir}/Video" = video-shared;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/www" = www-fwminex;
+          });
       };
     };
   };

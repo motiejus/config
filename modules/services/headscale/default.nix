@@ -3,28 +3,32 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   options.mj.services.headscale = with lib.types; {
     enable = lib.mkEnableOption "Enable headscale";
-    clientOidcPath = lib.mkOption {type = str;};
-    subnetCIDR = lib.mkOption {type = str;};
+    clientOidcPath = lib.mkOption { type = str; };
+    subnetCIDR = lib.mkOption { type = str; };
   };
 
   config = lib.mkIf config.mj.services.headscale.enable {
-    environment.systemPackages = [pkgs.headscale];
+    environment.systemPackages = [ pkgs.headscale ];
 
-    networking.firewall.allowedTCPPorts = [3478];
-    networking.firewall.allowedUDPPorts = [3478];
+    networking.firewall.allowedTCPPorts = [ 3478 ];
+    networking.firewall.allowedUDPPorts = [ 3478 ];
 
     services = {
       headscale = {
         enable = true;
         settings = {
           server_url = "https://vpn.jakstys.lt";
-          ip_prefixes = [config.mj.services.headscale.subnetCIDR];
+          ip_prefixes = [ config.mj.services.headscale.subnetCIDR ];
           log.level = "warn";
           dns_config = {
-            nameservers = ["1.1.1.1" "8.8.4.4"];
+            nameservers = [
+              "1.1.1.1"
+              "8.8.4.4"
+            ];
             magic_dns = false;
             base_domain = "jakst";
           };

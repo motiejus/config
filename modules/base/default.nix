@@ -4,9 +4,11 @@
   pkgs,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj;
-in {
+in
+{
   imports = [
     ./boot
     ./btrfssnapshot
@@ -32,7 +34,7 @@ in {
       description = "Time zone for this system";
     };
 
-    username = lib.mkOption {type = str;};
+    username = lib.mkOption { type = str; };
 
     skipPerf = lib.mkOption {
       type = bool;
@@ -51,7 +53,7 @@ in {
 
       kernelPackages = lib.mkDefault pkgs.linuxPackages;
 
-      supportedFilesystems = ["btrfs"];
+      supportedFilesystems = [ "btrfs" ];
     };
 
     nixpkgs.config.allowUnfree = true;
@@ -62,15 +64,15 @@ in {
 
     mj.services.friendlyport.ports = [
       {
-        subnets = [myData.subnets.tailscale.cidr];
-        tcp = [config.services.iperf3.port];
-        udp = [config.services.iperf3.port];
+        subnets = [ myData.subnets.tailscale.cidr ];
+        tcp = [ config.services.iperf3.port ];
+        udp = [ config.services.iperf3.port ];
       }
     ];
 
     i18n = {
       defaultLocale = "en_US.UTF-8";
-      supportedLocales = ["all"];
+      supportedLocales = [ "all" ];
     };
 
     nix = {
@@ -80,8 +82,11 @@ in {
         options = "--delete-older-than 14d";
       };
       settings = {
-        experimental-features = ["nix-command" "flakes"];
-        trusted-users = [cfg.username];
+        experimental-features = [
+          "nix-command"
+          "flakes"
+        ];
+        trusted-users = [ cfg.username ];
       };
     };
 
@@ -95,7 +100,8 @@ in {
     };
 
     environment = {
-      systemPackages = with pkgs;
+      systemPackages =
+        with pkgs;
         lib.mkMerge [
           [
             bc
@@ -165,7 +171,6 @@ in {
             smartmontools
             unixtools.xxd
             bcachefs-tools
-            nixfmt-rfc-style
             sqlite-interactive
 
             # networking
@@ -204,7 +209,7 @@ in {
             config.boot.kernelPackages.cpupower
             config.boot.kernelPackages.vm-tools
           ]
-          (lib.mkIf (!cfg.skipPerf) [config.boot.kernelPackages.perf])
+          (lib.mkIf (!cfg.skipPerf) [ config.boot.kernelPackages.perf ])
         ];
     };
 
@@ -233,7 +238,7 @@ in {
 
       chrony = {
         enable = true;
-        servers = ["time.cloudflare.com"];
+        servers = [ "time.cloudflare.com" ];
       };
 
       locate = {

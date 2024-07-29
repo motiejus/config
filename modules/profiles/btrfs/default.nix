@@ -1,5 +1,6 @@
-{pkgs, ...}: {
-  boot.supportedFilesystems = ["btrfs"];
+{ pkgs, ... }:
+{
+  boot.supportedFilesystems = [ "btrfs" ];
 
-  environment.systemPackages = [pkgs.btrfs-auto-snapshot];
+  environment.systemPackages = [ pkgs.btrfs-auto-snapshot ];
 }

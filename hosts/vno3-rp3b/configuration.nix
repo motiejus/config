@@ -6,24 +6,26 @@
   pkgs,
   myData,
   ...
-}: {
-  imports = [
-    ../../modules/profiles/sdcard
-  ];
+}:
+{
+  imports = [ ../../modules/profiles/sdcard ];
 
   boot = {
     initrd = {
-      availableKernelModules = ["usbhid"];
-      kernelModules = ["vc4" "bcm2835_dma"];
+      availableKernelModules = [ "usbhid" ];
+      kernelModules = [
+        "vc4"
+        "bcm2835_dma"
+      ];
     };
     loader = {
       grub.enable = false;
       generic-extlinux-compatible.enable = true;
     };
 
-    kernelModules = [];
-    extraModulePackages = [];
-    supportedFilesystems = ["zfs"];
+    kernelModules = [ ];
+    extraModulePackages = [ ];
+    supportedFilesystems = [ "zfs" ];
     zfs.forceImportRoot = false;
   };
 
@@ -48,7 +50,7 @@
     };
   };
 
-  swapDevices = [];
+  swapDevices = [ ];
 
   mj = {
     stateVersion = "23.05";
@@ -69,7 +71,7 @@
 
       snapshot = {
         enable = true;
-        mountpoints = ["/data/shared"];
+        mountpoints = [ "/data/shared" ];
       };
     };
 
@@ -100,7 +102,7 @@
           ];
 
           enable = true;
-          sshAllowSubnets = [myData.subnets.tailscale.sshPattern];
+          sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
           uidgid = myData.uidgid.updaterbot-deployee;
         };
       };
@@ -108,7 +110,7 @@
       jakstpub = {
         enable = true;
         dataDir = "/data/shared";
-        requires = ["data-shared.mount"];
+        requires = [ "data-shared.mount" ];
         uidgid = myData.uidgid.jakstpub;
         hostname = "hdd.jakstys.lt";
       };

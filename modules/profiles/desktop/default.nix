@@ -3,13 +3,13 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   username = config.mj.username;
   firefox =
-    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux")
-    then pkgs.firefox-bin
-    else pkgs.firefox;
-in {
+    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
+in
+{
   config = {
     hardware.bluetooth = {
       enable = true;
@@ -27,12 +27,18 @@ in {
       };
     };
 
-    mj.base.users.user.extraGroups = ["adbusers" "networkmanager" "wireshark" "podman" "docker"];
+    mj.base.users.user.extraGroups = [
+      "adbusers"
+      "networkmanager"
+      "wireshark"
+      "podman"
+      "docker"
+    ];
 
     services = {
       fwupd.enable = true;
       blueman.enable = true;
-      udev.packages = [pkgs.yubikey-personalization];
+      udev.packages = [ pkgs.yubikey-personalization ];
       acpid.enable = true;
       gnome.gnome-keyring.enable = true;
       openssh.settings.X11Forwarding = true;
@@ -46,8 +52,9 @@ in {
         enable = true;
         drivers = [
           pkgs.samsung-unified-linux-driver_4_01_17
-          (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd"
-            (builtins.readFile ../../../shared/HP_Color_Laser_15x_Series.ppd))
+          (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd" (
+            builtins.readFile ../../../shared/HP_Color_Laser_15x_Series.ppd
+          ))
         ];
       };
 
@@ -102,7 +109,7 @@ in {
 
     virtualisation.podman = {
       enable = lib.mkDefault true;
-      extraPackages = [pkgs.zfs];
+      extraPackages = [ pkgs.zfs ];
     };
 
     security.rtkit.enable = true;
@@ -127,7 +134,8 @@ in {
       };
     };
 
-    environment.systemPackages = with pkgs;
+    environment.systemPackages =
+      with pkgs;
       lib.mkMerge [
         [
           # packages defined here
@@ -225,8 +233,7 @@ in {
           xorg.xinit
 
           (texlive.combine {
-            inherit
-              (texlive)
+            inherit (texlive)
               scheme-medium
               dvisvgm
               dvipng
@@ -250,199 +257,200 @@ in {
           winetricks
           wineWowPackages.full
         ])
-        [pkgs.undocker]
+        [ pkgs.undocker ]
       ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
     systemd.services.NetworkManager-wait-online.enable = false;
 
-    home-manager.users.${username} = {
-      pkgs,
-      config,
-      ...
-    }: {
-      imports = [./plasma.nix];
-      xdg.configFile."awesome/rc.lua".source = ./rc.lua;
+    home-manager.users.${username} =
+      { pkgs, config, ... }:
+      {
+        imports = [ ./plasma.nix ];
+        xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
-      programs = {
-        mbsync.enable = true;
-        neomutt.enable = true;
-        notmuch.enable = true;
+        programs = {
+          mbsync.enable = true;
+          neomutt.enable = true;
+          notmuch.enable = true;
 
-        tmux.extraConfig = let
-          cmd = "${pkgs.extract_url}/bin/extract_url";
-          cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
-        in ''
-          bind-key u capture-pane -J \; \
-            save-buffer /tmp/tmux-buffer \; \
-            delete-buffer \; \
-            split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
-        '';
-      };
+          tmux.extraConfig =
+            let
+              cmd = "${pkgs.extract_url}/bin/extract_url";
+              cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
+            in
+            ''
+              bind-key u capture-pane -J \; \
+                save-buffer /tmp/tmux-buffer \; \
+                delete-buffer \; \
+                split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
+            '';
+        };
 
-      home.file.".cache/evolution/.stignore".text = "*.db";
+        home.file.".cache/evolution/.stignore".text = "*.db";
 
-      accounts.email = {
-        maildirBasePath = "Maildir";
+        accounts.email = {
+          maildirBasePath = "Maildir";
 
-        accounts.mj = {
-          primary = true;
-          userName = "motiejus@jakstys.lt";
-          address = "motiejus@jakstys.lt";
-          realName = "Motiejus Jakštys";
-          passwordCommand = "cat /home/${username}/.email-creds";
-          imap.host = "imap.migadu.com";
-          smtp.host = "smtp.migadu.com";
+          accounts.mj = {
+            primary = true;
+            userName = "motiejus@jakstys.lt";
+            address = "motiejus@jakstys.lt";
+            realName = "Motiejus Jakštys";
+            passwordCommand = "cat /home/${username}/.email-creds";
+            imap.host = "imap.migadu.com";
+            smtp.host = "smtp.migadu.com";
 
-          mbsync = {
-            enable = true;
-            create = "maildir";
-          };
+            mbsync = {
+              enable = true;
+              create = "maildir";
+            };
 
-          msmtp.enable = true;
+            msmtp.enable = true;
 
-          notmuch = {
-            enable = true;
-            neomutt.enable = true;
-          };
+            notmuch = {
+              enable = true;
+              neomutt.enable = true;
+            };
 
-          neomutt = {
-            enable = true;
-            extraConfig = ''
-              set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
+            neomutt = {
+              enable = true;
+              extraConfig = ''
+                set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
 
-              set mailcap_path = ${
-                pkgs.writeText "mailcaprc" ''
+                set mailcap_path = ${pkgs.writeText "mailcaprc" ''
                   text/html; ${pkgs.elinks}/bin/elinks -dump ; copiousoutput;
                   application/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
                   image/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
-                ''
-              }
-              auto_view text/html
-              unset record
-              set send_charset="utf-8"
+                ''}
+                auto_view text/html
+                unset record
+                set send_charset="utf-8"
 
-              macro attach 'V' "<pipe-entry>iconv -c --to-code=UTF8 > ~/.cache/mutt/mail.html<enter><shell-escape>firefox ~/.cache/mutt/mail.html<enter>"
-              macro index,pager \cb "<pipe-message> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
-              macro attach,compose \cb "<pipe-entry> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
+                macro attach 'V' "<pipe-entry>iconv -c --to-code=UTF8 > ~/.cache/mutt/mail.html<enter><shell-escape>firefox ~/.cache/mutt/mail.html<enter>"
+                macro index,pager \cb "<pipe-message> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
+                macro attach,compose \cb "<pipe-entry> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
 
-              set sort_browser=date
-              set sort=reverse-threads
-              set sort_aux=last-date-received
+                set sort_browser=date
+                set sort=reverse-threads
+                set sort_aux=last-date-received
 
-              bind pager g top
-              bind pager G bottom
-              bind attach,index g first-entry
-              bind attach,index G last-entry
-              bind attach,index,pager \CD half-down
-              bind attach,index,pager \CU half-up
-              bind attach,index,pager \Ce next-line
-              bind attach,index,pager \Cy previous-line
-              bind index,pager B sidebar-toggle-visible
-              bind index,pager R group-reply
+                bind pager g top
+                bind pager G bottom
+                bind attach,index g first-entry
+                bind attach,index G last-entry
+                bind attach,index,pager \CD half-down
+                bind attach,index,pager \CU half-up
+                bind attach,index,pager \Ce next-line
+                bind attach,index,pager \Cy previous-line
+                bind index,pager B sidebar-toggle-visible
+                bind index,pager R group-reply
 
-              set sidebar_visible = yes
-              set sidebar_width = 15
-              bind index,pager \Cp sidebar-prev
-              bind index,pager \Cn sidebar-next
-              bind index,pager \Co sidebar-open
-              bind index,pager B sidebar-toggle-visible
-              set sidebar_short_path = yes
-              set sidebar_delim_chars = '/'
-              set sidebar_format = '%B%* %?N?%N?'
-            '';
+                set sidebar_visible = yes
+                set sidebar_width = 15
+                bind index,pager \Cp sidebar-prev
+                bind index,pager \Cn sidebar-next
+                bind index,pager \Co sidebar-open
+                bind index,pager B sidebar-toggle-visible
+                set sidebar_short_path = yes
+                set sidebar_delim_chars = '/'
+                set sidebar_format = '%B%* %?N?%N?'
+              '';
+            };
           };
         };
-      };
 
-      services = {
-        cbatticon.enable = true;
-        blueman-applet.enable = true;
+        services = {
+          cbatticon.enable = true;
+          blueman-applet.enable = true;
 
-        syncthing.tray = {
+          syncthing.tray = {
+            enable = true;
+            #extraOptions = ["--wait"];
+          };
+
+          pasystray = {
+            enable = true;
+            extraOptions = [
+              "--key-grabbing"
+              "--notify=all"
+            ];
+          };
+
+          gpg-agent = {
+            enable = true;
+            enableSshSupport = true;
+            pinentryPackage = pkgs.pinentry-gtk2;
+          };
+
+          screen-locker = {
+            enable = true;
+            xautolock.enable = false;
+            lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+          };
+        };
+
+        # https://github.com/nix-community/home-manager/issues/2064
+        systemd.user.targets.tray = {
+          Unit = {
+            Description = "Home Manager System Tray";
+            Requires = [ "graphical-session-pre.target" ];
+          };
+        };
+
+        # thanks K900
+        gtk = {
           enable = true;
-          #extraOptions = ["--wait"];
+          theme = {
+            package = pkgs.plasma5Packages.breeze-gtk;
+            name = "Breeze";
+          };
+          cursorTheme = {
+            package = pkgs.plasma5Packages.breeze-icons;
+            name = "Breeze_Snow";
+          };
+          iconTheme = {
+            package = pkgs.papirus-icon-theme;
+            name = "Papirus-Dark";
+          };
+          gtk2 = {
+            configLocation = "${config.xdg.configHome}/gtk-2.0/gtkrc";
+            extraConfig = ''
+              gtk-alternative-button-order = 1
+            '';
+          };
+          gtk3.extraConfig = {
+            gtk-application-prefer-dark-theme = true;
+            gtk-decoration-layout = "icon:minimize,maximize,close";
+          };
+          gtk4.extraConfig = {
+            gtk-application-prefer-dark-theme = true;
+            gtk-decoration-layout = "icon:minimize,maximize,close";
+          };
         };
 
-        pasystray = {
-          enable = true;
-          extraOptions = ["--key-grabbing" "--notify=all"];
-        };
-
-        gpg-agent = {
-          enable = true;
-          enableSshSupport = true;
-          pinentryPackage = pkgs.pinentry-gtk2;
-        };
-
-        screen-locker = {
-          enable = true;
-          xautolock.enable = false;
-          lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+        mj.plasma.kconfig = {
+          kdeglobals = {
+            General.ColorScheme = "ArcDark";
+            Icons.Theme = "Papirus-Dark";
+            KDE.widgetStyle = "Breeze";
+          };
+          plasmarc.Theme.name = "Arc-Dark";
+          kscreenlockerrc.Greeter = {
+            Theme = "com.github.varlesh.arc-dark";
+          };
+          ksplashrc.KSplash = {
+            Engine = "KSplashQML";
+            Theme = "com.github.varlesh.arc-dark";
+          };
+          kwinrc."org.kde.kdecoration2" = {
+            library = "org.kde.kwin.aurorae";
+            theme = "__aurorae__svg__Arc-Dark";
+          };
+          kcminputrc.Mouse.cursorTheme = "Breeze_Snow";
+          # don't mess with GTK settings
+          kded5rc."Module-gtkconfig".autoload = false;
         };
       };
-
-      # https://github.com/nix-community/home-manager/issues/2064
-      systemd.user.targets.tray = {
-        Unit = {
-          Description = "Home Manager System Tray";
-          Requires = ["graphical-session-pre.target"];
-        };
-      };
-
-      # thanks K900
-      gtk = {
-        enable = true;
-        theme = {
-          package = pkgs.plasma5Packages.breeze-gtk;
-          name = "Breeze";
-        };
-        cursorTheme = {
-          package = pkgs.plasma5Packages.breeze-icons;
-          name = "Breeze_Snow";
-        };
-        iconTheme = {
-          package = pkgs.papirus-icon-theme;
-          name = "Papirus-Dark";
-        };
-        gtk2 = {
-          configLocation = "${config.xdg.configHome}/gtk-2.0/gtkrc";
-          extraConfig = ''
-            gtk-alternative-button-order = 1
-          '';
-        };
-        gtk3.extraConfig = {
-          gtk-application-prefer-dark-theme = true;
-          gtk-decoration-layout = "icon:minimize,maximize,close";
-        };
-        gtk4.extraConfig = {
-          gtk-application-prefer-dark-theme = true;
-          gtk-decoration-layout = "icon:minimize,maximize,close";
-        };
-      };
-
-      mj.plasma.kconfig = {
-        kdeglobals = {
-          General.ColorScheme = "ArcDark";
-          Icons.Theme = "Papirus-Dark";
-          KDE.widgetStyle = "Breeze";
-        };
-        plasmarc.Theme.name = "Arc-Dark";
-        kscreenlockerrc.Greeter = {
-          Theme = "com.github.varlesh.arc-dark";
-        };
-        ksplashrc.KSplash = {
-          Engine = "KSplashQML";
-          Theme = "com.github.varlesh.arc-dark";
-        };
-        kwinrc."org.kde.kdecoration2" = {
-          library = "org.kde.kwin.aurorae";
-          theme = "__aurorae__svg__Arc-Dark";
-        };
-        kcminputrc.Mouse.cursorTheme = "Breeze_Snow";
-        # don't mess with GTK settings
-        kded5rc."Module-gtkconfig".autoload = false;
-      };
-    };
   };
 }

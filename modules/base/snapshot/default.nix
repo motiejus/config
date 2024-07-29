@@ -1,13 +1,10 @@
+{ config, lib, ... }:
 {
-  config,
-  lib,
-  ...
-}: {
   options.mj.base.snapshot = {
     enable = lib.mkEnableOption "Enable zfs snapshots";
 
     mountpoints = lib.mkOption {
-      default = {};
+      default = { };
       type = with lib.types; listOf str;
     };
   };
@@ -21,23 +18,23 @@
         autosnap = true;
         autoprune = true;
       };
-      extraArgs = ["--verbose"];
-      datasets = let
-        fs_zfs = lib.filterAttrs (_: v: v.fsType == "zfs") config.fileSystems;
-        mountpoint2fs =
-          builtins.listToAttrs
-          (map (mountpoint: {
+      extraArgs = [ "--verbose" ];
+      datasets =
+        let
+          fs_zfs = lib.filterAttrs (_: v: v.fsType == "zfs") config.fileSystems;
+          mountpoint2fs = builtins.listToAttrs (
+            map (mountpoint: {
               name = mountpoint;
               value = builtins.getAttr mountpoint fs_zfs;
-            })
-            config.mj.base.snapshot.mountpoints);
-        s_datasets =
-          lib.mapAttrs' (_mountpoint: fs: {
+            }) config.mj.base.snapshot.mountpoints
+          );
+          s_datasets = lib.mapAttrs' (_mountpoint: fs: {
             name = fs.device;
-            value = {use_template = ["prod"];};
-          })
-          mountpoint2fs;
-      in
+            value = {
+              use_template = [ "prod" ];
+            };
+          }) mountpoint2fs;
+        in
         s_datasets;
     };
   };

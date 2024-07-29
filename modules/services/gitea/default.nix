@@ -4,7 +4,8 @@
   pkgs,
   myData,
   ...
-}: {
+}:
+{
   options.mj.services.gitea = with lib.types; {
     enable = lib.mkEnableOption "Enable gitea";
   };
@@ -79,7 +80,7 @@
           route /static/assets/* {
             uri strip_prefix /static
             file_server * {
-              root ${pkgs.compressDrvWeb pkgs.gitea.data {}}/public
+              root ${pkgs.compressDrvWeb pkgs.gitea.data { }}/public
               precompressed br gzip
             }
           }

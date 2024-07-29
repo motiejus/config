@@ -1,10 +1,8 @@
-{
-  config,
-  myData,
-  ...
-}: let
+{ config, myData, ... }:
+let
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
-in {
+in
+{
   imports = [
     ../../shared/work
     ../../modules
@@ -14,10 +12,16 @@ in {
   ];
 
   boot = {
-    kernelModules = ["kvm-intel"];
+    kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
     initrd = {
-      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid" "tpm_tis"];
+      availableKernelModules = [
+        "xhci_pci"
+        "thunderbolt"
+        "nvme"
+        "usbhid"
+        "tpm_tis"
+      ];
       systemd = {
         enableTpm2 = true;
         emergencyAccess = true;
@@ -26,7 +30,7 @@ in {
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
-          crypttabExtraOpts = ["tpm2-device=auto"];
+          crypttabExtraOpts = [ "tpm2-device=auto" ];
         };
       };
     };
@@ -43,7 +47,7 @@ in {
     "/" = {
       device = "/dev/mapper/luksroot";
       fsType = "btrfs";
-      options = ["compress=zstd"];
+      options = [ "compress=zstd" ];
     };
     "/boot" = {
       device = "${nvme}-part1";
@@ -81,18 +85,20 @@ in {
         toUser = config.mj.username;
       };
 
-      remote-builder.client = let
-        host = myData.hosts."fra1-a.servers.jakst";
-      in {
-        enable = true;
-        inherit (host) system supportedFeatures;
-        hostName = host.jakstIP;
-        sshKey = "/etc/ssh/ssh_host_ed25519_key";
-      };
+      remote-builder.client =
+        let
+          host = myData.hosts."fra1-a.servers.jakst";
+        in
+        {
+          enable = true;
+          inherit (host) system supportedFeatures;
+          hostName = host.jakstIP;
+          sshKey = "/etc/ssh/ssh_host_ed25519_key";
+        };
 
       node_exporter = {
         enable = true;
-        extraSubnets = [myData.subnets.vno1.cidr];
+        extraSubnets = [ myData.subnets.vno1.cidr ];
       };
 
       deployerbot = {
@@ -104,7 +110,7 @@ in {
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;
-          sshAllowSubnets = with myData.subnets; [tailscale.sshPattern];
+          sshAllowSubnets = with myData.subnets; [ tailscale.sshPattern ];
         };
       };
 
@@ -131,7 +137,7 @@ in {
     };
   };
 
-  users.extraGroups.vboxusers.members = ["motiejus"];
+  users.extraGroups.vboxusers.members = [ "motiejus" ];
 
   security.tpm2.enable = true;
 

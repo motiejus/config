@@ -1,8 +1,5 @@
+{ self, modulesPath, ... }:
 {
-  self,
-  modulesPath,
-  ...
-}: {
   imports = [
     "${modulesPath}/profiles/all-hardware.nix"
     "${modulesPath}/installer/cd-dvd/iso-image.nix"
@@ -21,7 +18,10 @@
   };
 
   boot.loader.systemd-boot.enable = true;
-  boot.supportedFilesystems = ["zfs" "btrfs"];
+  boot.supportedFilesystems = [
+    "zfs"
+    "btrfs"
+  ];
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
@@ -31,7 +31,7 @@
     makeUsbBootable = true; # USB booting
   };
 
-  swapDevices = [];
+  swapDevices = [ ];
 
   services = {
     getty.autologinUser = "nixos";
@@ -45,7 +45,7 @@
   networking = {
     hostName = "vm";
     domain = "jakstys.lt";
-    firewall.allowedTCPPorts = [22];
+    firewall.allowedTCPPorts = [ 22 ];
     hostId = "abefef01";
   };
 }

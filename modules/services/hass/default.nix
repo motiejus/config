@@ -3,9 +3,11 @@
   lib,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj.services.hass;
-in {
+in
+{
   options.mj.services.hass = with lib.types; {
     enable = lib.mkEnableOption "Enable home-assistant";
   };
@@ -13,12 +15,12 @@ in {
   config = lib.mkIf cfg.enable {
     mj.services.friendlyport.ports = [
       {
-        subnets = [myData.subnets.tailscale.cidr];
-        tcp = [myData.ports.hass];
+        subnets = [ myData.subnets.tailscale.cidr ];
+        tcp = [ myData.ports.hass ];
       }
     ];
 
-    environment.systemPackages = [];
+    environment.systemPackages = [ ];
 
     services = {
       home-assistant = {
@@ -36,11 +38,11 @@ in {
           "ipp"
         ];
         config = {
-          default_config = {};
+          default_config = { };
 
           http = {
             use_x_forwarded_for = true;
-            trusted_proxies = ["127.0.0.1"];
+            trusted_proxies = [ "127.0.0.1" ];
           };
           #homeassistant = {
           #  auth_providers = [
@@ -51,7 +53,7 @@ in {
           #  ];
           #};
 
-          wake_on_lan = {};
+          wake_on_lan = { };
 
           # requires a restore from backup
           "automation ui" = "!include automations.yaml";
@@ -67,7 +69,9 @@ in {
               action = [
                 {
                   service = "wake_on_lan.send_magic_packet";
-                  data = {mac = "74:e6:b8:4c:fb:b7";};
+                  data = {
+                    mac = "74:e6:b8:4c:fb:b7";
+                  };
                 }
               ];
             }

@@ -1,10 +1,7 @@
+{ config, pkgs, ... }:
 {
-  config,
-  pkgs,
-  ...
-}: {
   mj.base.users.email = null;
-  mj.base.users.user.extraGroups = ["docker"];
+  mj.base.users.user.extraGroups = [ "docker" ];
 
   environment.systemPackages = with pkgs; [
     #swc
@@ -71,9 +68,9 @@
         user.useConfigOnly = true;
       };
       chromium.extensions = [
-        {id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa";} # 1password
-        {id = "mdkgfdijbhbcbajcdlebbodoppgnmhab";} # GoLinks
-        {id = "kgjfgplpablkjnlkjmjdecgdpfankdle";} # Zoom
+        { id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa"; } # 1password
+        { id = "mdkgfdijbhbcbajcdlebbodoppgnmhab"; } # GoLinks
+        { id = "kgjfgplpablkjnlkjmjdecgdpfankdle"; } # Zoom
       ];
       bash.initExtra = ''
         mj_ps1_extra() {

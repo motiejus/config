@@ -4,14 +4,15 @@
   myData,
   pkgs,
   ...
-}: {
+}:
+{
   options.mj.services.postfix = with lib.types; {
     enable = lib.mkEnableOption "Enable postfix";
-    saslPasswdPath = lib.mkOption {type = path;};
+    saslPasswdPath = lib.mkOption { type = path; };
   };
 
   config = lib.mkIf config.mj.services.postfix.enable {
-    environment.systemPackages = [pkgs.mailutils];
+    environment.systemPackages = [ pkgs.mailutils ];
 
     services.postfix = {
       enable = true;

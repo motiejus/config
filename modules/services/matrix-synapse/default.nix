@@ -3,18 +3,19 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   options.mj.services.matrix-synapse = with lib.types; {
     enable = lib.mkEnableOption "Enable matrix-synapse";
-    signingKeyPath = lib.mkOption {type = path;};
-    registrationSharedSecretPath = lib.mkOption {type = path;};
-    macaroonSecretKeyPath = lib.mkOption {type = path;};
+    signingKeyPath = lib.mkOption { type = path; };
+    registrationSharedSecretPath = lib.mkOption { type = path; };
+    macaroonSecretKeyPath = lib.mkOption { type = path; };
   };
 
   config = lib.mkIf config.mj.services.matrix-synapse.enable {
     services.matrix-synapse = {
       enable = true;
-      extraConfigFiles = ["/run/matrix-synapse/secrets.yaml"];
+      extraConfigFiles = [ "/run/matrix-synapse/secrets.yaml" ];
       settings = {
         server_name = "jakstys.lt";
         admin_contact = "motiejus@jakstys.lt";
@@ -95,31 +96,34 @@
       };
     };
 
-    systemd.tmpfiles.rules = [
-      "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -"
-    ];
+    systemd.tmpfiles.rules = [ "d /run/matrix-synapse 0700 matrix-synapse matrix-synapse -" ];
 
     systemd.services = {
-      matrix-synapse = let
-        # I tried to move this to preStart, but it complains:
-        #   Config is missing macaroon_secret_key
-        secretsScript = pkgs.writeShellScript "write-secrets" ''
-          set -xeuo pipefail
-          umask 077
-          ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
-          cat > /run/matrix-synapse/secrets.yaml <<EOF
-          registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
-          macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
-          EOF
-        '';
-      in {
-        serviceConfig.ExecStartPre = ["" secretsScript];
-        serviceConfig.LoadCredential = with config.mj.services.matrix-synapse; [
-          "jakstys_lt_signing_key:${signingKeyPath}"
-          "registration_shared_secret:${registrationSharedSecretPath}"
-          "macaroon_secret_key:${macaroonSecretKeyPath}"
-        ];
-      };
+      matrix-synapse =
+        let
+          # I tried to move this to preStart, but it complains:
+          #   Config is missing macaroon_secret_key
+          secretsScript = pkgs.writeShellScript "write-secrets" ''
+            set -xeuo pipefail
+            umask 077
+            ln -sf ''${CREDENTIALS_DIRECTORY}/jakstys_lt_signing_key /run/matrix-synapse/jakstys_lt_signing_key
+            cat > /run/matrix-synapse/secrets.yaml <<EOF
+            registration_shared_secret: "$(cat ''${CREDENTIALS_DIRECTORY}/registration_shared_secret)"
+            macaroon_secret_key: "$(cat ''${CREDENTIALS_DIRECTORY}/macaroon_secret_key)"
+            EOF
+          '';
+        in
+        {
+          serviceConfig.ExecStartPre = [
+            ""
+            secretsScript
+          ];
+          serviceConfig.LoadCredential = with config.mj.services.matrix-synapse; [
+            "jakstys_lt_signing_key:${signingKeyPath}"
+            "registration_shared_secret:${registrationSharedSecretPath}"
+            "macaroon_secret_key:${macaroonSecretKeyPath}"
+          ];
+        };
     };
   };
 }

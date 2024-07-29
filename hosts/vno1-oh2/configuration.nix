@@ -4,12 +4,13 @@
   pkgs,
   myData,
   ...
-}: {
+}:
+{
   zfs-root = {
     boot = {
       enable = true;
       devNodes = "/dev/disk/by-id/";
-      bootDevices = ["nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NX0TA00913P"];
+      bootDevices = [ "nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NX0TA00913P" ];
       immutable = false;
       availableKernelModules = [
         "ahci"
@@ -26,14 +27,14 @@
       ];
       sshUnlock = {
         enable = true;
-        authorizedKeys =
-          (builtins.attrValues myData.people_pubkeys)
-          ++ [myData.hosts."fra1-a.servers.jakst".publicKey];
+        authorizedKeys = (builtins.attrValues myData.people_pubkeys) ++ [
+          myData.hosts."fra1-a.servers.jakst".publicKey
+        ];
       };
     };
   };
 
-  boot.binfmt.emulatedSystems = ["aarch64-linux"];
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   mj = {
     stateVersion = "23.05";
@@ -50,7 +51,11 @@
 
       snapshot = {
         enable = true;
-        mountpoints = ["/home" "/var/lib" "/var/log"];
+        mountpoints = [
+          "/home"
+          "/var/lib"
+          "/var/log"
+        ];
       };
 
       zfsborg = {
@@ -73,9 +78,7 @@
               "tailscale"
               "private/soju"
             ];
-            patterns = [
-              "- gitea/data/repo-archive/"
-            ];
+            patterns = [ "- gitea/data/repo-archive/" ];
             backup_at = "*-*-* 01:00:00 UTC";
             prune.keep = {
               within = "1d";
@@ -86,7 +89,9 @@
           }
           {
             mountpoint = "/var/lib";
-            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_lib";
+            repo = "borgstor@${
+              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
+            }:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
               "bitwarden_rs"
               "caddy"
@@ -98,9 +103,7 @@
               "tailscale"
               "private/soju"
             ];
-            patterns = [
-              "- gitea/data/repo-archive/"
-            ];
+            patterns = [ "- gitea/data/repo-archive/" ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
 
@@ -108,7 +111,7 @@
           {
             mountpoint = "/var/log";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = ["caddy"];
+            paths = [ "caddy" ];
             patterns = [
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
@@ -117,8 +120,10 @@
           }
           {
             mountpoint = "/var/log";
-            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = ["caddy"];
+            repo = "borgstor@${
+              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
+            }:${config.networking.hostName}.${config.networking.domain}-var_log";
+            paths = [ "caddy" ];
             patterns = [
               "+ caddy/access-jakstys.lt.log-*.zst"
               "- *"
@@ -138,7 +143,9 @@
           }
           {
             mountpoint = "/home";
-            repo = "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+            repo = "borgstor@${
+              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
+            }:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
             paths = [
               "motiejus/annex2"
               "motiejus/.config/syncthing"
@@ -157,7 +164,7 @@
     services = {
       friendlyport.ports = [
         {
-          subnets = [myData.subnets.tailscale.cidr];
+          subnets = [ myData.subnets.tailscale.cidr ];
           tcp = with myData.ports; [
             80
             443
@@ -181,18 +188,20 @@
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
-      nsd-acme = let
-        accountKey = config.age.secrets.letsencrypt-account-key.path;
-      in {
-        enable = true;
-        zones = {
-          "irc.jakstys.lt".accountKey = accountKey;
-          "hdd.jakstys.lt".accountKey = accountKey;
-          "hass.jakstys.lt".accountKey = accountKey;
-          "grafana.jakstys.lt".accountKey = accountKey;
-          "bitwarden.jakstys.lt".accountKey = accountKey;
+      nsd-acme =
+        let
+          accountKey = config.age.secrets.letsencrypt-account-key.path;
+        in
+        {
+          enable = true;
+          zones = {
+            "irc.jakstys.lt".accountKey = accountKey;
+            "hdd.jakstys.lt".accountKey = accountKey;
+            "hass.jakstys.lt".accountKey = accountKey;
+            "grafana.jakstys.lt".accountKey = accountKey;
+            "bitwarden.jakstys.lt".accountKey = accountKey;
+          };
         };
-      };
 
       deployerbot = {
         follower = {
@@ -202,7 +211,7 @@
           ];
 
           enable = true;
-          sshAllowSubnets = [myData.subnets.tailscale.sshPattern];
+          sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
           uidgid = myData.uidgid.updaterbot-deployee;
         };
       };
@@ -228,25 +237,29 @@
 
       zfsunlock = {
         enable = true;
-        targets."fra1-a.servers.jakst" = let
-          host = myData.hosts."fra1-a.servers.jakst";
-        in {
-          sshEndpoint = host.publicIP;
-          pingEndpoint = host.jakstIP;
-          remotePubkey = host.initrdPubKey;
-          pwFile = config.age.secrets.zfs-passphrase-fra1-a.path;
-          startAt = "*-*-* *:00/5:00";
-        };
+        targets."fra1-a.servers.jakst" =
+          let
+            host = myData.hosts."fra1-a.servers.jakst";
+          in
+          {
+            sshEndpoint = host.publicIP;
+            pingEndpoint = host.jakstIP;
+            remotePubkey = host.initrdPubKey;
+            pwFile = config.age.secrets.zfs-passphrase-fra1-a.path;
+            startAt = "*-*-* *:00/5:00";
+          };
       };
 
-      remote-builder.client = let
-        host = myData.hosts."fra1-a.servers.jakst";
-      in {
-        enable = true;
-        inherit (host) system supportedFeatures;
-        hostName = host.jakstIP;
-        sshKey = "/etc/ssh/ssh_host_ed25519_key";
-      };
+      remote-builder.client =
+        let
+          host = myData.hosts."fra1-a.servers.jakst";
+        in
+        {
+          enable = true;
+          inherit (host) system supportedFeatures;
+          hostName = host.jakstIP;
+          sshKey = "/etc/ssh/ssh_host_ed25519_key";
+        };
     };
   };
 
@@ -301,25 +314,27 @@
         "www.jakstys.lt".extraConfig = ''
           redir https://jakstys.lt
         '';
-        "irc.jakstys.lt".extraConfig = let
-          gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
-            gamjaConfig = {
-              server = {
-                url = "irc.jakstys.lt:6698";
-                nick = "motiejus";
+        "irc.jakstys.lt".extraConfig =
+          let
+            gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
+              gamjaConfig = {
+                server = {
+                  url = "irc.jakstys.lt:6698";
+                  nick = "motiejus";
+                };
               };
-            };
-          }) {};
-        in ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          abort @denied
-          tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+            }) { };
+          in
+          ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
-          root * ${gamja}
-          file_server browse {
-              precompressed br gzip
-          }
-        '';
+            root * ${gamja}
+            file_server browse {
+                precompressed br gzip
+            }
+          '';
         "dl.jakstys.lt".extraConfig = ''
           root * /var/www/dl
           file_server browse {
@@ -452,47 +467,52 @@
         evaluation_interval = "1m";
       };
 
-      scrapeConfigs = let
-        port = builtins.toString myData.ports.exporters.node;
-      in [
-        {
-          job_name = "prometheus";
-          static_configs = [{targets = ["127.0.0.1:${toString myData.ports.prometheus}"];}];
-        }
-        {
-          job_name = "caddy";
-          static_configs = [{targets = ["127.0.0.1:${toString myData.ports.exporters.caddy}"];}];
-        }
-        {
-          job_name = "${config.networking.hostName}.${config.networking.domain}";
-          static_configs = [{targets = ["127.0.0.1:${port}"];}];
-        }
-        {
-          job_name = "fra1-a.servers.jakst";
-          static_configs = [{targets = ["${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "vno3-rp3b.servers.jakst";
-          static_configs = [{targets = ["${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "fwminex.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."fwminex.motiejus.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "mtworx.motiejus.jakst";
-          static_configs = [{targets = ["${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}"];}];
-        }
-        {
-          job_name = "vno1-vinc.vincentas.jakst";
-          static_configs = [{targets = ["${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100"];}];
-        }
-      ];
+      scrapeConfigs =
+        let
+          port = builtins.toString myData.ports.exporters.node;
+        in
+        [
+          {
+            job_name = "prometheus";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
+          }
+          {
+            job_name = "caddy";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
+          }
+          {
+            job_name = "${config.networking.hostName}.${config.networking.domain}";
+            static_configs = [ { targets = [ "127.0.0.1:${port}" ]; } ];
+          }
+          {
+            job_name = "fra1-a.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "vno3-rp3b.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "fwminex.motiejus.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fwminex.motiejus.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "mtworx.motiejus.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "vno1-vinc.vincentas.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
+          }
+        ];
     };
 
     nsd = {
       enable = true;
-      interfaces = ["0.0.0.0" "::"];
+      interfaces = [
+        "0.0.0.0"
+        "::"
+      ];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
         "11sync.net.".data = myData.e11syncZone;
@@ -509,7 +529,7 @@
       tlsCertificate = "/run/soju/cert.pem";
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";
-      httpOrigins = ["*"];
+      httpOrigins = [ "*" ];
       extraConfig = ''
         message-store fs /var/lib/soju
       '';
@@ -544,7 +564,7 @@
       enable = true;
       openFirewall = true;
       settings = {
-        media_dir = ["/home/motiejus/video"];
+        media_dir = [ "/home/motiejus/video" ];
         friendly_name = "vno1-oh2";
         inotify = "yes";
       };
@@ -557,62 +577,64 @@
   };
 
   systemd.services = {
-    caddy = let
-      irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-      hass = config.mj.services.nsd-acme.zones."hass.jakstys.lt";
-      grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
-      bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
-    in {
-      serviceConfig.LoadCredential = [
-        "irc.jakstys.lt-cert.pem:${irc.certFile}"
-        "irc.jakstys.lt-key.pem:${irc.keyFile}"
-        "hass.jakstys.lt-cert.pem:${hass.certFile}"
-        "hass.jakstys.lt-key.pem:${hass.keyFile}"
-        "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
-        "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
-        "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
-        "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
-      ];
-      after = [
-        "nsd-acme-irc.jakstys.lt.service"
-        "nsd-acme-hass.jakstys.lt.service"
-        "nsd-acme-grafana.jakstys.lt.service"
-        "nsd-acme-bitwarden.jakstys.lt.service"
-      ];
-      requires = [
-        "nsd-acme-irc.jakstys.lt.service"
-        "nsd-acme-hass.jakstys.lt.service"
-        "nsd-acme-grafana.jakstys.lt.service"
-        "nsd-acme-bitwarden.jakstys.lt.service"
-      ];
-    };
-
-    soju = let
-      acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-    in {
-      serviceConfig = {
-        RuntimeDirectory = "soju";
-        LoadCredential = [
-          "irc.jakstys.lt-cert.pem:${acme.certFile}"
-          "irc.jakstys.lt-key.pem:${acme.keyFile}"
+    caddy =
+      let
+        irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+        hass = config.mj.services.nsd-acme.zones."hass.jakstys.lt";
+        grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+        bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
+      in
+      {
+        serviceConfig.LoadCredential = [
+          "irc.jakstys.lt-cert.pem:${irc.certFile}"
+          "irc.jakstys.lt-key.pem:${irc.keyFile}"
+          "hass.jakstys.lt-cert.pem:${hass.certFile}"
+          "hass.jakstys.lt-key.pem:${hass.keyFile}"
+          "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
+          "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
+          "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
+          "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
+        ];
+        after = [
+          "nsd-acme-irc.jakstys.lt.service"
+          "nsd-acme-hass.jakstys.lt.service"
+          "nsd-acme-grafana.jakstys.lt.service"
+          "nsd-acme-bitwarden.jakstys.lt.service"
+        ];
+        requires = [
+          "nsd-acme-irc.jakstys.lt.service"
+          "nsd-acme-hass.jakstys.lt.service"
+          "nsd-acme-grafana.jakstys.lt.service"
+          "nsd-acme-bitwarden.jakstys.lt.service"
         ];
       };
-      preStart = ''
-        ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
-        ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
-      '';
-      after = ["nsd-acme-irc.jakstys.lt.service"];
-      requires = ["nsd-acme-irc.jakstys.lt.service"];
-    };
+
+    soju =
+      let
+        acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+      in
+      {
+        serviceConfig = {
+          RuntimeDirectory = "soju";
+          LoadCredential = [
+            "irc.jakstys.lt-cert.pem:${acme.certFile}"
+            "irc.jakstys.lt-key.pem:${acme.keyFile}"
+          ];
+        };
+        preStart = ''
+          ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
+          ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
+        '';
+        after = [ "nsd-acme-irc.jakstys.lt.service" ];
+        requires = [ "nsd-acme-irc.jakstys.lt.service" ];
+      };
 
     vaultwarden = {
       preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/vaultwarden/secrets.env";
       serviceConfig = {
-        EnvironmentFile = ["-/run/vaultwarden/secrets.env"];
+        EnvironmentFile = [ "-/run/vaultwarden/secrets.env" ];
         RuntimeDirectory = "vaultwarden";
-        LoadCredential = [
-          "secrets.env:${config.age.secrets.vaultwarden-secrets-env.path}"
-        ];
+        LoadCredential = [ "secrets.env:${config.age.secrets.vaultwarden-secrets-env.path}" ];
       };
     };
 
@@ -621,13 +643,13 @@
       serviceConfig = {
         LogsDirectory = "grafana";
         RuntimeDirectory = "grafana";
-        LoadCredential = ["oidc:${config.age.secrets.grafana-oidc.path}"];
+        LoadCredential = [ "oidc:${config.age.secrets.grafana-oidc.path}" ];
       };
     };
 
     cert-watcher = {
       description = "Restart caddy when tls keys/certs change";
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       unitConfig = {
         StartLimitIntervalSec = 10;
         StartLimitBurst = 5;
@@ -642,7 +664,7 @@
       serviceConfig = {
         ProtectSystem = "strict";
         ProtectHome = "tmpfs";
-        BindReadOnlyPaths = ["/home/motiejus/video"];
+        BindReadOnlyPaths = [ "/home/motiejus/video" ];
       };
     };
 
@@ -659,7 +681,7 @@
 
   systemd.paths = {
     cert-watcher = {
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       pathConfig = {
         PathChanged = [
           config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
@@ -672,15 +694,17 @@
     };
   };
 
-  users = let
-    uidgid = myData.uidgid.photoprism;
-  in {
-    groups.photoprism.gid = uidgid;
-    users.photoprism = {
-      group = "photoprism";
-      uid = uidgid;
+  users =
+    let
+      uidgid = myData.uidgid.photoprism;
+    in
+    {
+      groups.photoprism.gid = uidgid;
+      users.photoprism = {
+        group = "photoprism";
+        uid = uidgid;
+      };
     };
-  };
 
   environment.systemPackages = with pkgs; [
     yt-dlp
@@ -694,7 +718,7 @@
     hostName = "vno1-oh2";
     domain = "servers.jakst";
     defaultGateway = "192.168.189.4";
-    nameservers = ["192.168.189.4"];
+    nameservers = [ "192.168.189.4" ];
     interfaces.enp0s21f0u2.ipv4.addresses = [
       {
         address = "192.168.189.1";
@@ -702,7 +726,11 @@
       }
     ];
     firewall = {
-      allowedUDPPorts = [53 80 443];
+      allowedUDPPorts = [
+        53
+        80
+        443
+      ];
       allowedTCPPorts = [
         53
         80

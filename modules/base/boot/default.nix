@@ -3,11 +3,25 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.zfs-root.boot;
-  inherit (lib) mkIf types mkDefault mkOption mkMerge strings;
-  inherit (builtins) head toString map tail;
-in {
+  inherit (lib)
+    mkIf
+    types
+    mkDefault
+    mkOption
+    mkMerge
+    strings
+    ;
+  inherit (builtins)
+    head
+    toString
+    map
+    tail
+    ;
+in
+{
   options.zfs-root.boot = {
     enable = mkOption {
       description = "Enable root on ZFS support";
@@ -17,9 +31,10 @@ in {
     devNodes = mkOption {
       description = "Specify where to discover ZFS pools";
       type = types.str;
-      apply = x:
-        assert (strings.hasSuffix "/" x
-          || abort "devNodes '${x}' must have trailing slash!"); x;
+      apply =
+        x:
+        assert (strings.hasSuffix "/" x || abort "devNodes '${x}' must have trailing slash!");
+        x;
       default = "/dev/disk/by-id/";
     };
     bootDevices = mkOption {
@@ -28,11 +43,15 @@ in {
     };
     availableKernelModules = mkOption {
       type = types.nonEmptyListOf types.str;
-      default = ["uas" "nvme" "ahci"];
+      default = [
+        "uas"
+        "nvme"
+        "ahci"
+      ];
     };
     kernelParams = mkOption {
       type = types.listOf types.str;
-      default = [];
+      default = [ ];
     };
     immutable = mkOption {
       description = "Enable root on ZFS immutable root support";
@@ -62,7 +81,7 @@ in {
       };
       authorizedKeys = mkOption {
         type = types.listOf types.str;
-        default = [];
+        default = [ ];
       };
     };
   };
@@ -77,7 +96,9 @@ in {
       };
     }
     (mkIf (!cfg.immutable) {
-      zfs-root.fileSystems.datasets = {"rpool/nixos/root" = "/";};
+      zfs-root.fileSystems.datasets = {
+        "rpool/nixos/root" = "/";
+      };
     })
     (mkIf cfg.immutable {
       zfs-root.fileSystems = {
@@ -100,32 +121,25 @@ in {
     })
     {
       zfs-root.fileSystems = {
-        efiSystemPartitions =
-          map (diskName: diskName + cfg.partitionScheme.efiBoot)
-          cfg.bootDevices;
+        efiSystemPartitions = map (diskName: diskName + cfg.partitionScheme.efiBoot) cfg.bootDevices;
         swapPartitions =
-          if cfg.partitionScheme ? swap
-          then map (diskName: diskName + cfg.partitionScheme.swap) cfg.bootDevices
-          else [];
+          if cfg.partitionScheme ? swap then
+            map (diskName: diskName + cfg.partitionScheme.swap) cfg.bootDevices
+          else
+            [ ];
       };
       boot = {
         initrd.availableKernelModules = cfg.availableKernelModules;
         kernelParams = cfg.kernelParams;
-        supportedFilesystems = ["zfs"];
+        supportedFilesystems = [ "zfs" ];
         zfs = {
           devNodes = cfg.devNodes;
           forceImportRoot = mkDefault false;
         };
         loader = {
           efi = {
-            canTouchEfiVariables =
-              if cfg.removableEfi
-              then false
-              else true;
-            efiSysMountPoint =
-              "/boot/efis/"
-              + (head cfg.bootDevices)
-              + cfg.partitionScheme.efiBoot;
+            canTouchEfiVariables = if cfg.removableEfi then false else true;
+            efiSysMountPoint = "/boot/efis/" + (head cfg.bootDevices) + cfg.partitionScheme.efiBoot;
           };
           generationsDir.copyKernels = true;
           grub = {
@@ -135,11 +149,13 @@ in {
             copyKernels = true;
             efiSupport = true;
             zfsSupport = true;
-            extraInstallCommands = toString (map (diskName: ''
-              set -x
-              ${pkgs.coreutils-full}/bin/cp -r ${config.boot.loader.efi.efiSysMountPoint}/EFI /boot/efis/${diskName}${cfg.partitionScheme.efiBoot}
-              set +x
-            '') (tail cfg.bootDevices));
+            extraInstallCommands = toString (
+              map (diskName: ''
+                set -x
+                ${pkgs.coreutils-full}/bin/cp -r ${config.boot.loader.efi.efiSysMountPoint}/EFI /boot/efis/${diskName}${cfg.partitionScheme.efiBoot}
+                set +x
+              '') (tail cfg.bootDevices)
+            );
           };
         };
       };

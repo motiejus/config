@@ -3,20 +3,28 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A_1";
-in {
+in
+{
   imports = [
     ../../modules
     ../../modules/profiles/btrfs
   ];
 
   boot = {
-    kernelModules = ["kvm-intel"];
+    kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
     initrd = {
-      kernelModules = ["usb_storage"];
-      availableKernelModules = ["xhci_pci" "thunderbolt" "nvme" "usbhid" "tpm_tis"];
+      kernelModules = [ "usb_storage" ];
+      availableKernelModules = [
+        "xhci_pci"
+        "thunderbolt"
+        "nvme"
+        "usbhid"
+        "tpm_tis"
+      ];
       systemd.enableTpm2 = true;
       luks.devices = {
         luksroot = {
@@ -44,7 +52,7 @@ in {
     "/" = {
       device = "/dev/mapper/luksroot";
       fsType = "btrfs";
-      options = ["compress=zstd"];
+      options = [ "compress=zstd" ];
     };
     "/boot" = {
       device = "${nvme}-part1";
@@ -86,18 +94,20 @@ in {
         verboseLogs = false;
       };
 
-      remote-builder.client = let
-        host = myData.hosts."fra1-a.servers.jakst";
-      in {
-        enable = true;
-        inherit (host) system supportedFeatures;
-        hostName = host.jakstIP;
-        sshKey = "/etc/ssh/ssh_host_ed25519_key";
-      };
+      remote-builder.client =
+        let
+          host = myData.hosts."fra1-a.servers.jakst";
+        in
+        {
+          enable = true;
+          inherit (host) system supportedFeatures;
+          hostName = host.jakstIP;
+          sshKey = "/etc/ssh/ssh_host_ed25519_key";
+        };
 
       node_exporter = {
         enable = true;
-        extraSubnets = [myData.subnets.vno1.cidr];
+        extraSubnets = [ myData.subnets.vno1.cidr ];
       };
 
       deployerbot = {
@@ -127,7 +137,7 @@ in {
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;
-          sshAllowSubnets = with myData.subnets; [tailscale.sshPattern];
+          sshAllowSubnets = with myData.subnets; [ tailscale.sshPattern ];
         };
       };
 

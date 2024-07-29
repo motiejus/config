@@ -1,7 +1,4 @@
-{
-  coreutils,
-  writeShellApplication,
-}:
+{ coreutils, writeShellApplication }:
 writeShellApplication {
   name = "nicer";
   text = ''

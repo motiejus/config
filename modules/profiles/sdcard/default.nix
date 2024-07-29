@@ -1,3 +1,1 @@
-_: {
-  services.journald.extraConfig = "Storage=volatile";
-}
+_: { services.journald.extraConfig = "Storage=volatile"; }

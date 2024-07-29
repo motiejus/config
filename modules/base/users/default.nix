@@ -3,7 +3,8 @@
   lib,
   myData,
   ...
-}: let
+}:
+let
   cfg = config.mj.base.users;
   props = with lib.types; {
     hashedPasswordFile = lib.mkOption {
@@ -21,10 +22,11 @@
 
     extraGroups = lib.mkOption {
       type = listOf str;
-      default = [];
+      default = [ ];
     };
   };
-in {
+in
+{
   options.mj.base.users = with lib.types; {
     enable = lib.mkEnableOption "enable motiejus and root";
     devTools = lib.mkOption {
@@ -44,33 +46,37 @@ in {
       mutableUsers = false;
 
       users = {
-        ${config.mj.username} =
-          {
-            isNormalUser = true;
-            extraGroups = ["wheel" "dialout" "video"] ++ cfg.user.extraGroups;
-            uid = myData.uidgid.motiejus;
-            openssh.authorizedKeys.keys = let
+        ${config.mj.username} = {
+          isNormalUser = true;
+          extraGroups = [
+            "wheel"
+            "dialout"
+            "video"
+          ] ++ cfg.user.extraGroups;
+          uid = myData.uidgid.motiejus;
+          openssh.authorizedKeys.keys =
+            let
               fqdn = "${config.networking.hostName}.${config.networking.domain}";
             in
-              lib.mkMerge [
-                [
-                  myData.people_pubkeys.motiejus
-                  myData.people_pubkeys.motiejus_work
-                ]
+            lib.mkMerge [
+              [
+                myData.people_pubkeys.motiejus
+                myData.people_pubkeys.motiejus_work
+              ]
 
-                (lib.mkIf (builtins.hasAttr fqdn myData.hosts) [
-                  ("from=\"127.0.0.1,::1\" " + myData.hosts.${fqdn}.publicKey)
-                ])
-              ];
-          }
-          // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or {};
+              (lib.mkIf (builtins.hasAttr fqdn myData.hosts) [
+                (''from="127.0.0.1,::1" '' + myData.hosts.${fqdn}.publicKey)
+              ])
+            ];
+        } // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or { };
 
         root = lib.filterAttrs (_: v: v != null) cfg.root;
       };
     };
 
     home-manager.useGlobalPkgs = true;
-    home-manager.users.${config.mj.username} = {pkgs, ...}:
+    home-manager.users.${config.mj.username} =
+      { pkgs, ... }:
       import ../../../shared/home {
         inherit lib;
         inherit pkgs;

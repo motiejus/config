@@ -3,7 +3,8 @@
   lib,
   myData,
   ...
-}: {
+}:
+{
   options.mj.services.sshguard = with lib.types; {
     enable = lib.mkOption {
       type = bool;
@@ -15,9 +16,10 @@
     services.sshguard = {
       enable = true;
       blocktime = 900;
-      whitelist =
-        ["192.168.0.0/16" myData.subnets.tailscale.cidr]
-        ++ (lib.catAttrs "publicIP" (lib.attrValues myData.hosts));
+      whitelist = [
+        "192.168.0.0/16"
+        myData.subnets.tailscale.cidr
+      ] ++ (lib.catAttrs "publicIP" (lib.attrValues myData.hosts));
     };
   };
 }
