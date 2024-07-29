@@ -67,47 +67,24 @@ Inputs:
 
     Extra extensions to compress in addition to `formats`.
 
-- compressors :: [String]
+- compressors :: {String -> String}
 
-    A list of compressor names to use. Each element will need to have
-    an associated compressor in the same arguments (see below).
-
-    Default: ["gz" "br"]
-
-  - extraCompressors :: [String]
-
-    Extra compressors in addition to `compressors`.
-
-- compressor-<COMPRESSOR> :: String
-
-    Map a desired extension (e.g. `gz`) to a compress program.
-
-    The compressor program that will be executed to get the `COMPRESSOR`
-    extension. The program is passed to xargs like this:
-
-      xargs -I{} -n1 ${prog}
-
-    Default:
-
-      compressor-gz = "${zopfli}/bin/zopfli --keep {}";
-      compressor-br = "${brotli}/bin/brotli --keep --no-copy-stat {}";
+    See parameter `compressors` of compressDrv.
 */
 {
-  lib,
   zopfli,
   brotli,
   compressDrv,
 }: drv: {
   formats ? ["css" "js" "svg" "ttf" "eot" "txt" "xml" "map" "html" "json" "webmanifest"],
   extraFormats ? [],
-  compressors ? ["gz" "br"],
-  extraCompressors ? [],
+  compressors ? {
+    "gz" = "${zopfli}/bin/zopfli --keep {}";
+    "br" = "${brotli}/bin/brotli --keep --no-copy-stat {}";
+  },
   ...
-} @ args:
-compressDrv drv ({
-    formats = formats ++ extraFormats;
-    compressors = compressors ++ extraCompressors;
-    compressor-gz = "${zopfli}/bin/zopfli --keep {}";
-    compressor-br = "${brotli}/bin/brotli --keep --no-copy-stat {}";
-  }
-  // lib.filterAttrs (k: _: (lib.hasPrefix "compressor-" k)) args)
+}:
+compressDrv drv {
+  formats = formats ++ extraFormats;
+  compressors = compressors;
+}
