@@ -31,7 +31,6 @@ in
       "adbusers"
       "networkmanager"
       "wireshark"
-      "podman"
       "docker"
     ];
 
@@ -107,11 +106,6 @@ in
       command-not-found.enable = false;
     };
 
-    virtualisation.podman = {
-      enable = lib.mkDefault true;
-      extraPackages = [ pkgs.zfs ];
-    };
-
     security.rtkit.enable = true;
 
     networking.networkmanager.enable = true;
@@ -122,6 +116,8 @@ in
     #  enableWifi = true;
     #};
     #location.provider = "geoclue2";
+
+    virtualisation.docker.enable = true;
 
     documentation = {
       dev.enable = true;

@@ -1,7 +1,6 @@
 { config, pkgs, ... }:
 {
   mj.base.users.email = null;
-  mj.base.users.user.extraGroups = [ "docker" ];
 
   environment.systemPackages = with pkgs; [
     #swc
@@ -52,14 +51,10 @@
     Group = "clamav";
   };
 
-  virtualisation.podman.enable = false;
-  virtualisation.docker.enable = true;
-
   home-manager.users.${config.mj.username} = {
     home.sessionVariables = {
       GOFLAGS = "-tags=integration,cluster_integration";
       GOPRIVATE = "github.com/chronosphereio";
-      CONTAINER_HOST = "unix://run/podman/podman.sock";
       BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
     };
     programs = {
