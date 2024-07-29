@@ -159,6 +159,14 @@ let
       id = "7z9sw-2nubh";
       label = "www-fwminex";
     };
+    www-mtworx = {
+      devices = [
+        "mtworx"
+        "vno1-oh2"
+      ];
+      id = "7z9sw-aaaa";
+      label = "www-mtworx";
+    };
     www-mxp10 = {
       devices = [
         "mxp10"
@@ -251,6 +259,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
             "/var/www/dl/tel" = www-mxp10;
             "/var/www/dl/fwminex" = www-fwminex;
+            "/var/www/dl/mtworx" = www-mtworx;
             "/var/www/dl/mykolo" = mykolo;
             "${cfg.dataDir}/annex2/Books" = Books;
             "${cfg.dataDir}/annex2/Mail" = Mail;
@@ -273,6 +282,7 @@ in
             "${cfg.dataDir}/Vaikai" = Vaikai;
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/music" = Music;
+            "${cfg.dataDir}/www" = www-mtworx;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             "${cfg.dataDir}/.cache/evolution" = Mail;
