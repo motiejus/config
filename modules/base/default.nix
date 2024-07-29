@@ -165,6 +165,7 @@ in {
             smartmontools
             unixtools.xxd
             bcachefs-tools
+            nixfmt-rfc-style
             sqlite-interactive
 
             # networking
