@@ -5,10 +5,10 @@
   ...
 }:
 let
-  cfg = config.mj.base.btrfssnapshot;
+  cfg = config.mj.services.btrfssnapshot;
 in
 {
-  options.mj.base.btrfssnapshot = {
+  options.mj.services.btrfssnapshot = {
     enable = lib.mkEnableOption "Enable btrfs snapshots";
 
     subvolumes = lib.mkOption {
@@ -30,10 +30,10 @@ in
       services = lib.mapAttrs' (
         subvolume: params:
         lib.nameValuePair "btrfs-snapshot-${lib.strings.sanitizeDerivationName subvolume}" {
-          description = "${params.label} btrfs snapshot for ${subvolume} (keep ${params.keep}";
-          serviceConfig.ExecStart = "${pkgs.btrfs-auto-snapshot} --verbose --label=${params.label} --keep=${params.keep} ${subvolume}";
+          description = "${params.label} btrfs snapshot for ${subvolume} (keep ${builtins.toString params.keep})";
+          serviceConfig.ExecStart = "${pkgs.btrfs-auto-snapshot}/bin/btrfs-auto-snapshot --verbose --label=${params.label} --keep=${builtins.toString params.keep} ${subvolume}";
         }
-      );
+      ) cfg.subvolumes;
 
       timers = lib.mapAttrs' (
         subvolume: params:
@@ -42,7 +42,7 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig.OnCalendar = params.refreshInterval;
         }
-      );
+      ) cfg.subvolumes;
     };
   };
 }

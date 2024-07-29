@@ -79,6 +79,22 @@ in
         verboseLogs = true;
       };
 
+      btrfssnapshot = {
+        enable = true;
+        subvolumes = {
+          "/home" = {
+            label = "5minutely";
+            keep = 12;
+            refreshInterval = "*:0/5";
+          };
+          #"/home" = {
+          #  label = "hourly";
+          #  keep = 24;
+          #  refreshInterval = "*:00:00";
+          #};
+        };
+      };
+
       wifibackup = {
         enable = true;
         toPath = "/home/${config.mj.username}/M-Active/.wifi";

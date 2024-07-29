@@ -2,6 +2,7 @@
 {
   imports = [
     ./borgstor
+    ./btrfssnapshot
     ./deployerbot
     ./friendlyport
     ./gitea

@@ -11,7 +11,6 @@ in
 {
   imports = [
     ./boot
-    ./btrfssnapshot
     ./fileSystems
     ./snapshot
     ./sshd
