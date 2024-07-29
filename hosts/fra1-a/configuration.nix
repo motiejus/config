@@ -1,5 +1,4 @@
 {
-  lib,
   config,
   myData,
   modulesPath,
@@ -108,24 +107,6 @@
   };
 
   services = {
-    caddy = {
-      enable = true;
-      email = "motiejus+acme@jakstys.lt";
-      globalConfig = ''
-        servers {
-          metrics
-        }
-      '';
-      virtualHosts = {
-        "www.11sync.net".extraConfig = ''
-          redir https://jakstys.lt/2024/11sync-shutdown/
-        '';
-        "11sync.net".extraConfig = lib.mkForce ''
-          redir https://jakstys.lt/2024/11sync-shutdown/
-        '';
-      };
-    };
-
     nsd = {
       enable = true;
       interfaces = [
@@ -145,15 +126,10 @@
     domain = "servers.jakst";
     useDHCP = true;
     firewall = {
-      allowedUDPPorts = [
-        53
-        443
-      ];
+      allowedUDPPorts = [ 53 ];
       allowedTCPPorts = [
         22
         53
-        80
-        443
       ];
     };
   };
