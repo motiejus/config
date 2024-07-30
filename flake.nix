@@ -208,8 +208,8 @@
                 motiejus-server-passwd-hash.file = ./secrets/motiejus_server_passwd_hash.age;
                 root-server-passwd-hash.file = ./secrets/root_server_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-                #syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
-                #syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
+                syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
+                syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
               };
             }
           ];
