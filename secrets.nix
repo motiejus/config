@@ -9,10 +9,12 @@ let
   fwminex = (import ./data.nix).hosts."fwminex.motiejus.jakst".publicKey;
   mtworx = (import ./data.nix).hosts."mtworx.motiejus.jakst".publicKey;
   fra1-a = (import ./data.nix).hosts."fra1-a.servers.jakst".publicKey;
+  fra1-b = (import ./data.nix).hosts."fra1-b.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   vno3-rp3b = (import ./data.nix).hosts."vno3-rp3b.servers.jakst".publicKey;
   systems = [
     fra1-a
+    fra1-b
     vno1-oh2
     vno3-rp3b
     fwminex

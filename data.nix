@@ -88,6 +88,24 @@ rec {
         "gccarch-armv8-a"
       ];
     };
+    "fra1-b.servers.jakst" = rec {
+      extraHostNames = [
+        "fra1-b.jakstys.lt"
+        publicIP
+        jakstIP
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1tL1FQeKE+28ATuD4USa4oAdPkONfk4uF/McMm+2sy";
+      publicIP = "188.245.84.21";
+      jakstIP = "100.89.176.18";
+      system = "aarch64-linux";
+      supportedFeatures = [
+        "nixos-test"
+        "benchmark"
+        "big-parallel"
+        "kvm"
+        "gccarch-armv8-a"
+      ];
+    };
     "fwminex.motiejus.jakst" = rec {
       extraHostNames = [
         jakstIP
