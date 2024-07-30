@@ -483,6 +483,10 @@
             static_configs = [ { targets = [ "${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
+            job_name = "fra1-b.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
             job_name = "vno3-rp3b.servers.jakst";
             static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
           }
