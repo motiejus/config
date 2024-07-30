@@ -135,10 +135,7 @@
           {
             mountpoint = "/home";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [
-              "motiejus/annex2"
-              "motiejus/.config/syncthing"
-            ];
+            paths = [ "motiejus/annex2" ];
             backup_at = "*-*-* 02:00:00 UTC";
           }
           {
@@ -146,10 +143,7 @@
             repo = "borgstor@${
               myData.hosts."vno3-rp3b.servers.jakst".jakstIP
             }:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [
-              "motiejus/annex2"
-              "motiejus/.config/syncthing"
-            ];
+            paths = [ "motiejus/annex2" ];
             backup_at = "*-*-* 02:00:00 UTC";
           }
         ];

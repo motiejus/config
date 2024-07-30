@@ -212,33 +212,23 @@ in
       settings = {
         devices =
           { }
-          // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-            inherit (devices)
-              fwminex
-              mtworx
-              vno1-oh2
-              mxp10
-              rzj-744P2PE
-              sqq1-desk
-              vno1-vinc
-              vno2-irena
-              v-kfire
-              a-kfire
-              ;
-          })
-          // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
-            inherit (devices)
-              fwminex
-              mtworx
-              vno1-oh2
-              mxp10
-              rzj-744P2PE
-              sqq1-desk
-              vno1-vinc
-              v-kfire
-              a-kfire
-              ;
-          })
+          // (lib.optionalAttrs
+            (config.networking.hostName == "vno1-oh2" || config.networking.hostName == "fwminex")
+            {
+              inherit (devices)
+                fwminex
+                mtworx
+                vno1-oh2
+                mxp10
+                rzj-744P2PE
+                sqq1-desk
+                vno1-vinc
+                vno2-irena
+                v-kfire
+                a-kfire
+                ;
+            }
+          )
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
               mtworx
@@ -256,25 +246,28 @@ in
         folders =
           with folders;
           { }
-          // (lib.optionalAttrs (config.networking.hostName == "vno1-oh2") {
-            "/var/www/dl/tel" = www-mxp10;
-            "/var/www/dl/fwminex" = www-fwminex;
-            "/var/www/dl/mtworx" = www-mtworx;
-            "/var/www/dl/mykolo" = mykolo;
-            "${cfg.dataDir}/annex2/Books" = Books;
-            "${cfg.dataDir}/annex2/Mail" = Mail;
-            "${cfg.dataDir}/annex2/M-Active" = M-Active;
-            "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
-            "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
-            "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
-            "${cfg.dataDir}/annex2/Pictures" = Pictures;
-            "${cfg.dataDir}/annex2/M-R" = M-R;
-            "${cfg.dataDir}/stud-cache" = stud-cache;
-            "${cfg.dataDir}/video/shared" = video-shared;
-            "${cfg.dataDir}/video/Vaikai" = Vaikai;
-            "${cfg.dataDir}/music" = Music;
-            "${cfg.dataDir}/irenos" = Irenos;
-          })
+          // (lib.optionalAttrs
+            (config.networking.hostName == "vno1-oh2" || config.networking.hostName == "fwminex")
+            {
+              "/var/www/dl/tel" = www-mxp10;
+              "/var/www/dl/fwminex" = www-fwminex;
+              "/var/www/dl/mtworx" = www-mtworx;
+              "/var/www/dl/mykolo" = mykolo;
+              "${cfg.dataDir}/annex2/Books" = Books;
+              "${cfg.dataDir}/annex2/Mail" = Mail;
+              "${cfg.dataDir}/annex2/M-Active" = M-Active;
+              "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
+              "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
+              "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
+              "${cfg.dataDir}/annex2/Pictures" = Pictures;
+              "${cfg.dataDir}/annex2/M-R" = M-R;
+              "${cfg.dataDir}/stud-cache" = stud-cache;
+              "${cfg.dataDir}/video/shared" = video-shared;
+              "${cfg.dataDir}/video/Vaikai" = Vaikai;
+              "${cfg.dataDir}/music" = Music;
+              "${cfg.dataDir}/irenos" = Irenos;
+            }
+          )
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             "${cfg.dataDir}/M-Active" = M-Active;
             "${cfg.dataDir}/M-Camera" = M-Camera;
@@ -283,20 +276,6 @@ in
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/music" = Music;
             "${cfg.dataDir}/www" = www-mtworx;
-          })
-          // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
-            "${cfg.dataDir}/.cache/evolution" = Mail;
-            "${cfg.dataDir}/Books" = Books;
-            "${cfg.dataDir}/M-Active" = M-Active;
-            "${cfg.dataDir}/M-Documents" = M-Documents;
-            "${cfg.dataDir}/M-Camera" = M-Camera;
-            "${cfg.dataDir}/Pictures" = Pictures;
-            "${cfg.dataDir}/Music" = Music;
-            "${cfg.dataDir}/M-R" = M-R;
-            "${cfg.dataDir}/Vaikai" = Vaikai;
-            "${cfg.dataDir}/Video" = video-shared;
-            "${cfg.dataDir}/stud-cache" = stud-cache;
-            "${cfg.dataDir}/www" = www-fwminex;
           });
       };
     };

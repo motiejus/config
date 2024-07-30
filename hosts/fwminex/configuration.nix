@@ -124,6 +124,13 @@ in
         ];
       };
 
+      syncthing = {
+        enable = true;
+        dataDir = "/home/motiejus/";
+        user = "motiejus";
+        group = "users";
+      };
+
       remote-builder.client =
         let
           host = myData.hosts."fra1-a.servers.jakst";
