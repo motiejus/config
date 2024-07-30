@@ -112,6 +112,7 @@ in
           inherit (host) system supportedFeatures;
           hostName = host.jakstIP;
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
+          maxJobs = 2;
         };
 
       node_exporter = {

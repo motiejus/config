@@ -18,6 +18,10 @@
       hostName = lib.mkOption { type = str; };
       sshKey = lib.mkOption { type = path; };
       supportedFeatures = lib.mkOption { type = listOf str; };
+      maxJobs = lib.mkOption {
+        type = int;
+        default = 1;
+      };
     };
   };
 
