@@ -6,7 +6,6 @@ in
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
   boot = {
-    kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
     initrd = {
       kernelModules = [ "usb_storage" ];
