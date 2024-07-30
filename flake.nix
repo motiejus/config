@@ -246,6 +246,32 @@
           } // inputs;
         };
 
+        fra1-b = nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
+          modules = [
+            { nixpkgs.overlays = overlays; }
+            agenix.nixosModules.default
+            home-manager.nixosModules.home-manager
+
+            ./hosts/fra1-b/configuration.nix
+            ./modules
+
+            #{
+            #  age.secrets = {
+            #    zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
+            #    borgbackup-password.file = ./secrets/fra1-a/borgbackup-password.age;
+            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            #  };
+            #}
+          ];
+
+          specialArgs = {
+            inherit myData;
+          } // inputs;
+        };
+
         fra1-a = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
