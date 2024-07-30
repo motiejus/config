@@ -122,7 +122,6 @@ in
             ncdu # disk usage navigator
             lshw
             entr
-            qemu
             cloc
             poop # hopefully poof some day
             flex
@@ -151,7 +150,6 @@ in
             keyutils
             libkcapi
             usbutils
-            bpftrace
             pciutils
             bsdgames
             parallel

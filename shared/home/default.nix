@@ -99,7 +99,7 @@ in
         generateCaches = true;
       };
 
-      chromium = {
+      chromium = lib.mkIf devTools {
         enable = true;
         extensions = [
           { id = "cjpalhdlnbpafiamejdnhcphjbkeiagm"; } # ublock origin
