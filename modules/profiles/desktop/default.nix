@@ -39,6 +39,7 @@ in
       blueman.enable = true;
       udev.packages = [ pkgs.yubikey-personalization ];
       acpid.enable = true;
+      pcscd.enable = true;
       gnome.gnome-keyring.enable = true;
       openssh.settings.X11Forwarding = true;
 
@@ -207,6 +208,7 @@ in
           element-desktop
           netsurf-browser
           man-pages-posix
+          age-plugin-yubikey
           hunspellDicts.en_US
           python3Packages.ipython
           samsung-unified-linux-driver
