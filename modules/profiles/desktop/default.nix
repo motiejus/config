@@ -144,6 +144,7 @@ in
           acpi
           gimp
           josm
+          qemu
           xclip
           pdftk
           putty
