@@ -133,7 +133,7 @@ in
 
       remote-builder.client =
         let
-          host = myData.hosts."fra1-a.servers.jakst";
+          host = myData.hosts."fra1-b.servers.jakst";
         in
         {
           enable = true;
@@ -156,6 +156,7 @@ in
             ".#fwminex"
             ".#vno1-oh2"
             ".#fra1-a"
+            ".#fra1-b"
             ".#vno3-rp3b"
           ];
           deployIfPresent = [

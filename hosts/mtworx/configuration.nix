@@ -105,7 +105,7 @@ in
 
       remote-builder.client =
         let
-          host = myData.hosts."fra1-a.servers.jakst";
+          host = myData.hosts."fra1-b.servers.jakst";
         in
         {
           enable = true;
