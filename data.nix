@@ -168,8 +168,8 @@ rec {
 
   e11syncZone =
     let
+      fra1b = hosts."fra1-b.servers.jakst".publicIP;
       vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
-      fra1a = hosts."fra1-a.servers.jakst".publicIP;
     in
     ''
       $ORIGIN 11sync.net.
@@ -184,7 +184,7 @@ rec {
       @                             MX   20 aspmx2.migadu.com.
       @                            TXT   "v=spf1 include:spf.migadu.com -all"
       ns1                            A   ${vno1}
-      ns2                            A   ${fra1a}
+      ns2                            A   ${fra1b}
       www                            A   ${vno1}
       admin                          A   ${hosts."fra1-a.servers.jakst".jakstIP}
       key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
@@ -201,7 +201,7 @@ rec {
 
   jakstysLTZone =
     let
-      fra1a = hosts."fra1-a.servers.jakst".publicIP;
+      fra1b = hosts."fra1-b.servers.jakst".publicIP;
       vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
     in
     ''
@@ -213,12 +213,12 @@ rec {
       @                                A     ${vno1}
       www                              A     ${vno1}
       ns1                              A     ${vno1}
-      ns2                              A     ${fra1a}
+      ns2                              A     ${fra1b}
       vpn                              A     ${vno1}
       git                              A     ${vno1}
       auth                             A     ${vno1}
       dl                               A     ${vno1}
-      fra1-a                           A     ${fra1a}
+      fra1-b                           A     ${fra1b}
       vno1                             A     ${vno1}
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
