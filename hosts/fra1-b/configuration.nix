@@ -1,4 +1,9 @@
-{ myData, modulesPath, ... }:
+{
+  config,
+  myData,
+  modulesPath,
+  ...
+}:
 let
   disk = "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_50294864";
 in
