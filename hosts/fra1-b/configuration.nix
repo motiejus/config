@@ -18,9 +18,23 @@ in
     };
   };
 
-  fileSystems."/" = {
-    device = "${disk}-part1";
-    fsType = "btrfs";
+  fileSystems = {
+    "/boot" = {
+      device = "${disk}-part1";
+      fsType = "vfat";
+      options = [
+        "fmask=0022"
+        "dmask=0022"
+      ];
+    };
+    "/" = {
+      device = "${disk}-part3";
+      fsType = "btrfs";
+      options = [
+        "compress=zstd"
+        "noatime"
+      ];
+    };
   };
 
   swapDevices = [ { device = "${disk}-part2"; } ];
