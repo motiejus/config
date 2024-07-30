@@ -46,10 +46,8 @@ in
     base = {
       users = {
         enable = true;
-        root.initialPassword = "live";
-        user.initialPassword = "live";
-        #root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-        #user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+        root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+        user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
       };
 
       unitstatus = {

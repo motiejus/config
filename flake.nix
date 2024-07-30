@@ -256,15 +256,13 @@
             ./hosts/fra1-b/configuration.nix
             ./modules
 
-            #{
-            #  age.secrets = {
-            #    zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
-            #    borgbackup-password.file = ./secrets/fra1-a/borgbackup-password.age;
-            #    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-            #    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-            #    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-            #  };
-            #}
+            {
+              age.secrets = {
+                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+              };
+            }
           ];
 
           specialArgs = {
@@ -350,6 +348,17 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.fra1-a.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
+              user = "root";
+            };
+          };
+        };
+
+        fra1-b = {
+          hostname = myData.hosts."fra1-b.servers.jakst".jakstIP;
+          profiles = {
+            system = {
+              sshUser = "motiejus";
+              path = self.nixosConfigurations.fra1-b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-b;
               user = "root";
             };
           };
