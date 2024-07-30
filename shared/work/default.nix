@@ -11,9 +11,10 @@
     unzip
     mysql80
     kubectl
-    kubectl-node-shell
     kubectx
+    terraform
     google-cloud-sdk
+    kubectl-node-shell
   ];
 
   services.clamav = {
