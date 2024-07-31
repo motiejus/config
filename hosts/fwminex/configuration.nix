@@ -106,6 +106,13 @@ in
         passwordPath = config.age.secrets.borgbackup-password.path;
         sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
         dirs = [
+          # TODO: merge
+          {
+            subvolume = "/home";
+            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+            paths = [ "motiejus/annex2" ];
+            backup_at = "*-*-* 02:30:01 UTC";
+          }
           {
             subvolume = "/home";
             repo = "borgstor@${
