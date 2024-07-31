@@ -105,23 +105,20 @@ in
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;
         sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        dirs = [
-          # TODO: merge
-          {
-            subvolume = "/home";
-            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [ "motiejus/annex2" ];
-            backup_at = "*-*-* 02:30:01 UTC";
-          }
-          {
-            subvolume = "/home";
-            repo = "borgstor@${
-              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
-            }:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [ "motiejus/annex2" ];
-            backup_at = "*-*-* 02:30:01 UTC";
-          }
-        ];
+        dirs =
+          builtins.concatMap
+            (host: [
+              {
+                repo = "${host}:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+                subvolume = "/home";
+                paths = [ "motiejus/annex2" ];
+                backup_at = "*-*-* 02:30:01 UTC";
+              }
+            ])
+            [
+              "zh2769@zh2769.rsync.net"
+              "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}"
+            ];
       };
 
       btrfssnapshot = {
