@@ -225,7 +225,7 @@ in
   networking = {
     hostId = "a6b19da0";
     hostName = "fwminex";
-    domain = "motiejus.jakst";
+    domain = "servers.jakst";
     firewall.rejectPackets = true;
   };
 }
