@@ -85,10 +85,7 @@ in
 
       deployerbot = {
         follower = {
-          publicKeys = [
-            myData.hosts."vno1-oh2.servers.jakst".publicKey
-            myData.hosts."fwminex.motiejus.jakst".publicKey
-          ];
+          publicKeys = [ myData.hosts."fwminex.motiejus.jakst".publicKey ];
 
           enable = true;
           sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
