@@ -63,7 +63,7 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  systemd.services.zfs-mount.enable = false;
+  systemd.tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
 
   services = {
     pcscd.enable = true;
