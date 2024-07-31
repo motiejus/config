@@ -155,7 +155,6 @@ in
           deployDerivations = [
             ".#fwminex"
             ".#vno1-oh2"
-            ".#fra1-a"
             ".#fra1-b"
             ".#vno3-rp3b"
           ];

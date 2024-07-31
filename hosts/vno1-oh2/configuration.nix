@@ -25,12 +25,6 @@
       kernelParams = [
         "ip=192.168.189.1::192.168.189.4:255.255.255.0:vno1-oh2.jakstys.lt:enp0s21f0u2:off"
       ];
-      sshUnlock = {
-        enable = true;
-        authorizedKeys = (builtins.attrValues myData.people_pubkeys) ++ [
-          myData.hosts."fra1-a.servers.jakst".publicKey
-        ];
-      };
     };
   };
 
@@ -229,24 +223,9 @@
         macaroonSecretKeyPath = config.age.secrets.synapse-macaroon-secret-key.path;
       };
 
-      zfsunlock = {
-        enable = true;
-        targets."fra1-a.servers.jakst" =
-          let
-            host = myData.hosts."fra1-a.servers.jakst";
-          in
-          {
-            sshEndpoint = host.publicIP;
-            pingEndpoint = host.jakstIP;
-            remotePubkey = host.initrdPubKey;
-            pwFile = config.age.secrets.zfs-passphrase-fra1-a.path;
-            startAt = "*-*-* *:00/5:00";
-          };
-      };
-
       remote-builder.client =
         let
-          host = myData.hosts."fra1-a.servers.jakst";
+          host = myData.hosts."fra1-b.servers.jakst";
         in
         {
           enable = true;
@@ -477,10 +456,6 @@
           {
             job_name = "${config.networking.hostName}.${config.networking.domain}";
             static_configs = [ { targets = [ "127.0.0.1:${port}" ]; } ];
-          }
-          {
-            job_name = "fra1-a.servers.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."fra1-a.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
             job_name = "fra1-b.servers.jakst";

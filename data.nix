@@ -69,25 +69,6 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
       jakstIP = "100.89.176.2";
     };
-    "fra1-a.servers.jakst" = rec {
-      extraHostNames = [
-        "fra1-a.jakstys.lt"
-        publicIP
-        jakstIP
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFj9Ktw9SZQlHe/Pl5MI7PRUcCyTgZgZ0SsvWUmO0wBM";
-      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtYwVhfmdHRK8YcaRQ3JGSIOK55lEMNSPh33Z0iI+pO";
-      publicIP = "168.119.184.134";
-      jakstIP = "100.89.176.5";
-      system = "aarch64-linux";
-      supportedFeatures = [
-        "nixos-test"
-        "benchmark"
-        "big-parallel"
-        "kvm"
-        "gccarch-armv8-a"
-      ];
-    };
     "fra1-b.servers.jakst" = rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
@@ -186,7 +167,6 @@ rec {
       ns1                            A   ${vno1}
       ns2                            A   ${fra1b}
       www                            A   ${vno1}
-      admin                          A   ${hosts."fra1-a.servers.jakst".jakstIP}
       key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
       key2._domainkey            CNAME   key2.11sync.net._domainkey.migadu.com.
       key3._domainkey            CNAME   key3.11sync.net._domainkey.migadu.com.

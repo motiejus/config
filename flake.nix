@@ -169,7 +169,6 @@
               age.secrets = {
                 motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                zfs-passphrase-fra1-a.file = ./secrets/fra1-a/zfs-passphrase.age;
 
                 photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
                 headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
@@ -270,31 +269,6 @@
           } // inputs;
         };
 
-        fra1-a = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            { nixpkgs.overlays = overlays; }
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-
-            ./hosts/fra1-a/configuration.nix
-            ./modules
-
-            {
-              age.secrets = {
-                zfs-passphrase-vno1-oh2.file = ./secrets/vno1-oh2/zfs-passphrase.age;
-                borgbackup-password.file = ./secrets/fra1-a/borgbackup-password.age;
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-              };
-            }
-          ];
-
-          specialArgs = {
-            inherit myData;
-          } // inputs;
-        };
       };
 
       deploy.nodes = {
@@ -337,17 +311,6 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
-              user = "root";
-            };
-          };
-        };
-
-        fra1-a = {
-          hostname = myData.hosts."fra1-a.servers.jakst".jakstIP;
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.fra1-a.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-a;
               user = "root";
             };
           };

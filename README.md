@@ -5,7 +5,7 @@ Flakes:
 
     $ deploy --interactive '#vno1-oh2'
 
-    $ nix build .#deploy.nodes.fra1-a.profiles.system.path
+    $ nix build .#deploy.nodes.fra1-b.profiles.system.path
 
 Other:
 
