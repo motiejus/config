@@ -180,7 +180,6 @@ in
           graphviz
           powertop
           gpicview
-          bpftrace # requires clang
           imapsync
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           trayscale

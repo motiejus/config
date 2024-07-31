@@ -147,6 +147,7 @@ in
             ripgrep
             ethtool
             gettext
+            bpftrace
             keyutils
             libkcapi
             usbutils
