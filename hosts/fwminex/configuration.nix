@@ -81,10 +81,17 @@ in
     timeZone = "Europe/Vilnius";
     username = "motiejus";
 
-    base.users = {
-      enable = true;
-      root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
-      user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
+    base = {
+      users = {
+        enable = true;
+        root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
+        user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
+      };
+
+      unitstatus = {
+        enable = true;
+        email = "motiejus+alerts@jakstys.lt";
+      };
     };
 
     services = {
@@ -92,6 +99,22 @@ in
       tailscale = {
         enable = true;
         verboseLogs = false;
+      };
+
+      btrfsborg = {
+        enable = true;
+        passwordPath = config.age.secrets.borgbackup-password.path;
+        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+        dirs = [
+          {
+            subvolume = "/home";
+            repo = "borgstor@${
+              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
+            }:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
+            paths = [ "motiejus/annex2" ];
+            backup_at = "*-*-* 02:30:01 UTC";
+          }
+        ];
       };
 
       btrfssnapshot = {

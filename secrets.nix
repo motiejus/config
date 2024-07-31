@@ -57,6 +57,7 @@ in
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"
 
+  "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
 ]

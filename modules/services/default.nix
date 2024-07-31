@@ -2,6 +2,7 @@
 {
   imports = [
     ./borgstor
+    ./btrfsborg
     ./btrfssnapshot
     ./deployerbot
     ./friendlyport
