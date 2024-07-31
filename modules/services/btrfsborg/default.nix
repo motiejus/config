@@ -1,12 +1,11 @@
-{ config, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   cfg = config.mj.services.btrfsborg;
-  mkPreHook = btrfs_name: i: ''
-    set -x
-    sleep ${toString i}
-    SNAPSHOT=$(btrfs subvolume list --sort=-gen -r -o ${btrfs_name} | awk '{print $9; exit}')
-    cd ${btrfs_name}/$SNAPSHOT
-  '';
 in
 {
   options.mj.services.btrfsborg = with lib.types; {
@@ -71,7 +70,13 @@ in
             compression = "auto,zstd,10";
             extraCreateArgs = "--chunker-params buzhash,10,23,16,4095";
             startAt = attrs.backup_at;
-            preHook = mkPreHook subvolume i;
+            preHook = ''
+              set -x
+              sleep ${toString i}
+              SNAPSHOT=$(${pkgs.btrfs-progs}/bin/btrfs subvolume list --sort=-gen -r -o ${subvolume} | \
+                  ${pkgs.gawk}/bin/awk '{print $9; exit}')
+              cd "/$SNAPSHOT"
+            '';
             prune.keep = {
               within = "1d";
               daily = 7;
