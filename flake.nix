@@ -284,7 +284,7 @@
         };
 
         fwminex = {
-          hostname = myData.hosts."fwminex.motiejus.jakst".jakstIP;
+          hostname = myData.hosts."fwminex.servers.jakst".jakstIP;
           profiles = {
             system = {
               sshUser = "motiejus";

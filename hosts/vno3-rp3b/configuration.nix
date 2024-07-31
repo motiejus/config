@@ -85,7 +85,7 @@
         dataDir = "/data/borg";
         sshKeys = with myData; [
           hosts."vno1-oh2.servers.jakst".publicKey
-          hosts."fwminex.motiejus.jakst".publicKey
+          hosts."fwminex.servers.jakst".publicKey
           people_pubkeys.motiejus
         ];
       };
@@ -97,7 +97,7 @@
 
       deployerbot = {
         follower = {
-          publicKeys = [ myData.hosts."fwminex.motiejus.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
 
           enable = true;
           sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];

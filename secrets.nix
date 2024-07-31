@@ -6,7 +6,7 @@ let
     bk2 = "age14f39j0wx84n93lgqn6d9gcd3yhuwak6qwrxy8v83ydn7266uafts09ecva";
   };
 
-  fwminex = (import ./data.nix).hosts."fwminex.motiejus.jakst".publicKey;
+  fwminex = (import ./data.nix).hosts."fwminex.servers.jakst".publicKey;
   mtworx = (import ./data.nix).hosts."mtworx.motiejus.jakst".publicKey;
   fra1-b = (import ./data.nix).hosts."fra1-b.servers.jakst".publicKey;
   vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;

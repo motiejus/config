@@ -87,7 +87,7 @@ rec {
         "gccarch-armv8-a"
       ];
     };
-    "fwminex.motiejus.jakst" = rec {
+    "fwminex.servers.jakst" = rec {
       extraHostNames = [
         jakstIP
         vno1IP
@@ -135,7 +135,7 @@ rec {
         mHosts = attrVals [
           "mxp10.motiejus.jakst"
           "mtworx.motiejus.jakst"
-          "fwminex.motiejus.jakst"
+          "fwminex.servers.jakst"
         ] hosts;
       in
       builtins.catAttrs "jakstIP" mHosts;

@@ -122,7 +122,7 @@ in
 
       deployerbot = {
         follower = {
-          publicKeys = [ myData.hosts."fwminex.motiejus.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;

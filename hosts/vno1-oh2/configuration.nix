@@ -193,7 +193,7 @@
 
       deployerbot = {
         follower = {
-          publicKeys = [ myData.hosts."fwminex.motiejus.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
 
           enable = true;
           sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
@@ -463,8 +463,8 @@
             static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
-            job_name = "fwminex.motiejus.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."fwminex.motiejus.jakst".jakstIP}:${port}" ]; } ];
+            job_name = "fwminex.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fwminex.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
             job_name = "mtworx.motiejus.jakst";
