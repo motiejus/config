@@ -84,6 +84,7 @@ in
               monthly = 3;
             };
             environment = {
+              BORG_RELOCATED_REPO_ACCESS_IS_OK = "yes";
               BORG_HOST_ID =
                 let
                   h = config.networking;
