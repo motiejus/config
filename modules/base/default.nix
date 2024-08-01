@@ -120,6 +120,7 @@ in
             lsof # lsof yay
             rage # encrypt-decrypt
             ncdu # disk usage navigator
+            btdu
             lshw
             entr
             cloc
