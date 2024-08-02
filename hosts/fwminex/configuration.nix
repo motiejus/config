@@ -116,6 +116,16 @@ in
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
+      photoprism = {
+        enable = true;
+        uidgid = myData.uidgid.photoprism;
+        paths = {
+          "M-Camera" = "/home/motiejus/annex2/M-Active";
+          "Pictures" = "/home/motiejus/annex2/Pictures";
+        };
+        passwordFile = config.age.secrets.photoprism-admin-passwd.path;
+      };
+
       btrfsborg = {
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;

@@ -13,6 +13,7 @@
     ./matrix-synapse
     ./node_exporter
     ./nsd-acme
+    ./photoprism
     ./postfix
     ./remote-builder
     ./sshguard
