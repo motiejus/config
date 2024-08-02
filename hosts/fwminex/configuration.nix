@@ -120,6 +120,12 @@ in
               in
               [
                 {
+                  subvolume = "/var/lib";
+                  repo = "${prefix}-var_lib";
+                  paths = [ "headscale" ];
+                  backup_at = "*-*-* 01:00:01 UTC";
+                }
+                {
                   subvolume = "/home";
                   repo = "${prefix}-home-motiejus-annex2";
                   paths = [ "motiejus/annex2" ];
