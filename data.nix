@@ -50,10 +50,8 @@ rec {
     "vno1-oh2.servers.jakst" = rec {
       extraHostNames = [
         "dl.jakstys.lt"
-        "git.jakstys.lt"
         "irc.jakstys.lt"
         "vno1-oh2.jakstys.lt"
-        "jakstys.lt"
         "www.jakstys.lt"
         "vpn.jakstys.lt"
         publicIP
@@ -89,6 +87,8 @@ rec {
     };
     "fwminex.servers.jakst" = rec {
       extraHostNames = [
+        "jakstys.lt"
+        "git.jakstys.lt"
         jakstIP
         vno1IP
       ];
