@@ -240,7 +240,7 @@
         "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
         "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
         "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${
-          myData.hosts."fwminex.servers.jakst".jakstIP
+          myData.hosts."fwminex.servers.jakst".vno1IP
         }:8080"'';
         "hass.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
