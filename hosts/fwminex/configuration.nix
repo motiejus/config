@@ -119,10 +119,10 @@ in
       photoprism = {
         enable = true;
         uidgid = myData.uidgid.photoprism;
-        paths = { };
-        #  "M-Camera" = "/home/motiejus/annex2/M-Active";
-        #  "Pictures" = "/home/motiejus/annex2/Pictures";
-        #};
+        paths = {
+          "M-Camera" = "/home/motiejus/annex2/M-Active";
+          "Pictures" = "/home/motiejus/annex2/Pictures";
+        };
         passwordFile = config.age.secrets.photoprism-admin-passwd.path;
       };
 
