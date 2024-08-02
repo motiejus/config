@@ -64,14 +64,12 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "gitea"
               "grafana"
               "hass"
               "nsd-acme"
               "tailscale"
               "private/soju"
             ];
-            patterns = [ "- gitea/data/repo-archive/" ];
             backup_at = "*-*-* 01:00:00 UTC";
             prune.keep = {
               within = "1d";
@@ -88,14 +86,12 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "gitea"
               "grafana"
               "hass"
               "nsd-acme"
               "tailscale"
               "private/soju"
             ];
-            patterns = [ "- gitea/data/repo-archive/" ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
 

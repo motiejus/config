@@ -131,7 +131,11 @@ in
                 {
                   subvolume = "/var/lib";
                   repo = "${prefix}-var_lib";
-                  paths = [ "headscale" ];
+                  paths = [
+                    "headscale"
+                    "gitea"
+                  ];
+                  patterns = [ "- gitea/data/repo-archive/" ];
                   backup_at = "*-*-* 01:00:01 UTC";
                 }
                 {
