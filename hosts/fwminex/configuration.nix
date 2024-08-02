@@ -83,7 +83,7 @@ in
     };
 
     prometheus = {
-      enable = true;
+      enable = false;
       port = myData.ports.prometheus;
       retentionTime = "1y";
 
