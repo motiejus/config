@@ -56,6 +56,7 @@ in
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"
+  "secrets/headscale/oidc_client_secret2.age"
 
   "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
