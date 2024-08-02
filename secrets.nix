@@ -34,7 +34,6 @@ in
   "secrets/vno1-oh2/borgbackup/password.age"
   "secrets/grafana.jakstys.lt/oidc.age"
   "secrets/letsencrypt/account.key.age"
-  "secrets/headscale/oidc_client_secret2.age"
   "secrets/vaultwarden/secrets.env.age"
   "secrets/photoprism/admin_password.age"
 
@@ -53,10 +52,16 @@ in
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
 ]
+// mk (
+  [
+    fwminex
+    vno1-oh2
+  ]
+  ++ motiejus
+) [ "secrets/headscale/oidc_client_secret2.age" ]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"
-  "secrets/headscale/oidc_client_secret2.age"
 
   "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
