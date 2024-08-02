@@ -20,6 +20,7 @@
     services = {
       headscale = {
         enable = true;
+        address = "0.0.0.0";
         settings = {
           server_url = "https://vpn.jakstys.lt";
           ip_prefixes = [ config.mj.services.headscale.subnetCIDR ];
