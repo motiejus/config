@@ -239,7 +239,9 @@
         "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${
           myData.hosts."fwminex.servers.jakst".vno1IP
         }:8080'';
-        "git.jakstys.lt".extraConfig = ''reverse_proxy ${myData.hosts."fwminex.servers.jakst".vno1IP}'';
+        "git.jakstys.lt".extraConfig = ''reverse_proxy http://${
+          myData.hosts."fwminex.servers.jakst".vno1IP
+        }'';
         "hass.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
