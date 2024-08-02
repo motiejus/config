@@ -81,6 +81,56 @@ in
         auto_https off
       '';
     };
+
+    prometheus = {
+      enable = true;
+      port = myData.ports.prometheus;
+      retentionTime = "1y";
+
+      globalConfig = {
+        scrape_interval = "15s";
+        evaluation_interval = "1m";
+      };
+
+      scrapeConfigs =
+        let
+          port = builtins.toString myData.ports.exporters.node;
+        in
+        [
+          {
+            job_name = "prometheus";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
+          }
+          {
+            job_name = "caddy";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
+          }
+          {
+            job_name = "${config.networking.hostName}.${config.networking.domain}";
+            static_configs = [ { targets = [ "127.0.0.1:${port}" ]; } ];
+          }
+          {
+            job_name = "fra1-b.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "vno3-rp3b.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "fwminex.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."fwminex.servers.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "mtworx.motiejus.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}" ]; } ];
+          }
+          {
+            job_name = "vno1-vinc.vincentas.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
+          }
+        ];
+    };
   };
 
   mj = {
@@ -248,6 +298,21 @@ in
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
+
+      friendlyport.ports = [
+        {
+          subnets = [ myData.subnets.tailscale.cidr ];
+          tcp = with myData.ports; [
+            80
+            443
+            #grafana
+            prometheus
+            #soju
+            #soju-ws
+          ];
+        }
+      ];
+
     };
   };
 
