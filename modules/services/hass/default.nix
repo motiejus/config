@@ -42,7 +42,10 @@ in
 
           http = {
             use_x_forwarded_for = true;
-            trusted_proxies = [ "127.0.0.1" ];
+            trusted_proxies = [
+              "127.0.0.1"
+              "${myData.hosts."vno1-oh2.servers.jakst".jakstIP}"
+            ];
           };
           #homeassistant = {
           #  auth_providers = [
