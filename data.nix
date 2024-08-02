@@ -2,7 +2,7 @@ rec {
   uidgid = {
     motiejus = 1000;
 
-    gitea = 995;
+    gitea = 20000;
     updaterbot-deployer = 501;
     updaterbot-deployee = 502;
 
