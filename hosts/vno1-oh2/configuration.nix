@@ -266,9 +266,6 @@
             X-Frame-Options "SAMEORIGIN"
           }
 
-          # deprecated from vaultwarden 1.29.0
-          reverse_proxy /notifications/hub 127.0.0.1:${toString myData.ports.vaultwarden_ws}
-
           reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
              header_up X-Real-IP {remote_host}
           }
@@ -508,11 +505,6 @@
         SIGNUPS_ALLOWED = false;
         INVITATION_ORG_NAME = "jakstys";
         PUSH_ENABLED = true;
-
-        # TODO remove after 1.29.0
-        WEBSOCKET_ENABLED = true;
-        WEBSOCKET_ADDRESS = "127.0.0.1";
-        WEBSOCKET_PORT = myData.ports.vaultwarden_ws;
 
         SMTP_HOST = "localhost";
         SMTP_PORT = 25;
