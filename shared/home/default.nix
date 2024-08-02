@@ -225,6 +225,7 @@ in
         enable = true;
         shellAliases = {
           "l" = "echo -n ł | ${pkgs.xclip}/bin/xclip -selection clipboard";
+          "L" = "echo -n Ł | ${pkgs.xclip}/bin/xclip -selection clipboard";
           "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
         };
         initExtra = ''
