@@ -170,12 +170,6 @@
       sshguard.enable = true;
       hass.enable = true;
 
-      headscale = {
-        enable = true;
-        clientOidcPath = config.age.secrets.headscale-client-oidc.path;
-        subnetCIDR = myData.subnets.tailscale.cidr;
-      };
-
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
@@ -245,7 +239,9 @@
       virtualHosts = {
         "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
         "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-
+        "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${
+          myData.hosts."fwminex.servers.jakst".jakstIP
+        }:8080"'';
         "hass.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied

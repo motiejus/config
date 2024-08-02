@@ -14,7 +14,10 @@
   config = lib.mkIf config.mj.services.headscale.enable {
     environment.systemPackages = [ pkgs.headscale ];
 
-    networking.firewall.allowedTCPPorts = [ 3478 ];
+    networking.firewall.allowedTCPPorts = [
+      3478
+      8080
+    ];
     networking.firewall.allowedUDPPorts = [ 3478 ];
 
     services = {
@@ -41,11 +44,6 @@
         };
       };
 
-      caddy = {
-        virtualHosts."vpn.jakstys.lt".extraConfig = ''
-          reverse_proxy 127.0.0.1:8080
-        '';
-      };
     };
 
     systemd.services.headscale = {

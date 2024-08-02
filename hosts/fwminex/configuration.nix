@@ -1,7 +1,7 @@
 {
-  myData,
   pkgs,
   config,
+  myData,
   ...
 }:
 let
@@ -99,6 +99,12 @@ in
       tailscale = {
         enable = true;
         verboseLogs = false;
+      };
+
+      headscale = {
+        enable = true;
+        clientOidcPath = config.age.secrets.headscale-client-oidc.path;
+        subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
       btrfsborg = {
