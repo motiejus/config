@@ -74,6 +74,13 @@ in
       powerKey = "suspend";
       powerKeyLongPress = "poweroff";
     };
+
+    caddy = {
+      enable = true;
+      globalConfig = ''
+        auto_https off
+      '';
+    };
   };
 
   mj = {
@@ -96,6 +103,8 @@ in
 
     services = {
       sshguard.enable = false;
+      gitea.enable = true;
+
       tailscale = {
         enable = true;
         verboseLogs = false;
