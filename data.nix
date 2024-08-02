@@ -220,29 +220,29 @@ rec {
       _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
       _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
 
-      grafana                          A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-      _acme-challenge.grafana      CNAME     _acme-endpoint.grafana
-      _acme-endpoint.grafana          NS     ns._acme-endpoint.grafana
-      ns._acme-endpoint.grafana        A     ${vno1}
+      grafana                   300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.grafana   300   CNAME     _acme-endpoint.grafana
+      _acme-endpoint.grafana    300      NS     ns._acme-endpoint.grafana
+      ns._acme-endpoint.grafana 300       A     ${vno1}
 
-      irc                              A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-      _acme-challenge.irc          CNAME     _acme-endpoint.irc
-      _acme-endpoint.irc              NS     ns._acme-endpoint.irc
-      ns._acme-endpoint.irc            A     ${vno1}
+      irc                       300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.irc       300   CNAME     _acme-endpoint.irc
+      _acme-endpoint.irc        300      NS     ns._acme-endpoint.irc
+      ns._acme-endpoint.irc     300       A     ${vno1}
 
-      hass                             A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-      _acme-challenge.hass         CNAME     _acme-endpoint.hass
-      _acme-endpoint.hass             NS     ns._acme-endpoint.hass
-      ns._acme-endpoint.hass           A     ${vno1}
+      hass                      300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.hass      300   CNAME     _acme-endpoint.hass
+      _acme-endpoint.hass       300      NS     ns._acme-endpoint.hass
+      ns._acme-endpoint.hass    300       A     ${vno1}
 
-      bitwarden                        A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
-      _acme-challenge.bitwarden    CNAME     _acme-endpoint.bitwarden
-      _acme-endpoint.bitwarden        NS     ns._acme-endpoint.bitwarden
-      ns._acme-endpoint.bitwarden      A     ${vno1}
+      bitwarden                 300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      _acme-challenge.bitwarden 300   CNAME     _acme-endpoint.bitwarden
+      _acme-endpoint.bitwarden  300      NS     ns._acme-endpoint.bitwarden
+      ns._acme-endpoint.bitwarden 300     A     ${vno1}
 
-      hdd                              A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
-      _acme-challenge.hdd          CNAME     _acme-endpoint.hdd
-      _acme-endpoint.hdd              NS     ns._acme-endpoint.hdd
-      ns._acme-endpoint.hdd            A     ${vno1}
+      hdd                       300       A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
+      _acme-challenge.hdd       300   CNAME     _acme-endpoint.hdd
+      _acme-endpoint.hdd        300      NS     ns._acme-endpoint.hdd
+      ns._acme-endpoint.hdd     300       A     ${vno1}
     '';
 }
