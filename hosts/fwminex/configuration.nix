@@ -144,6 +144,7 @@ in
                   paths = [
                     "headscale"
                     "gitea"
+                    "private/photoprism"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];
                   backup_at = "*-*-* 01:00:01 UTC";
