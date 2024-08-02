@@ -13,16 +13,17 @@ in
   config = lib.mkIf cfg.enable {
     services.photoprism = {
       enable = true;
-      originalsPath = "/run/photoprism/userdata";
+      originalsPath = "/var/cache/photoprism/userdata";
       passwordFile = cfg.passwordFile;
     };
 
     systemd = {
-      tmpfiles.rules = [ "d /run/photoprism/userdata 0700 photoprism photoprism -" ];
+      tmpfiles.rules = [ "d /var/cache/photoprism/userdata 0700 photoprism photoprism -" ];
       services.photoprism.serviceConfig = {
         ProtectHome = lib.mkForce "tmpfs";
+        CacheDirectory = "photoprism";
         BindPaths = lib.mapAttrsToList (
-          name: srcpath: "${srcpath}:/run/photoprism/userdata/${name}"
+          name: srcpath: "${srcpath}:/var/cache/photoprism/userdata/${name}"
         ) cfg.paths;
       };
     };
