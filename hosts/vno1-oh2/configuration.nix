@@ -1,6 +1,5 @@
 {
   config,
-  lib,
   pkgs,
   myData,
   ...
@@ -343,12 +342,6 @@
       };
     };
 
-    photoprism = {
-      enable = true;
-      originalsPath = "/data";
-      passwordFile = config.age.secrets.photoprism-admin-passwd.path;
-    };
-
     logrotate = {
       settings = {
         "/var/log/caddy/access-jakstys.lt.log" = {
@@ -610,13 +603,6 @@
 
     syncthing-relay.restartIfChanged = false;
 
-    photoprism.serviceConfig = {
-      ProtectHome = lib.mkForce "tmpfs";
-      BindPaths = [
-        "/home/motiejus/annex2/M-Active:/data/M-Camera"
-        "/home/motiejus/annex2/Pictures:/data/Pictures"
-      ];
-    };
   };
 
   systemd.paths = {
@@ -631,18 +617,6 @@
       };
     };
   };
-
-  users =
-    let
-      uidgid = myData.uidgid.photoprism;
-    in
-    {
-      groups.photoprism.gid = uidgid;
-      users.photoprism = {
-        group = "photoprism";
-        uid = uidgid;
-      };
-    };
 
   environment.systemPackages = with pkgs; [
     yt-dlp
