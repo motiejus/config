@@ -247,6 +247,20 @@ in
     hostId = "a6b19da0";
     hostName = "fwminex";
     domain = "servers.jakst";
-    firewall.rejectPackets = true;
+    firewall = {
+      rejectPackets = true;
+      allowedUDPPorts = [
+        53
+        80
+        443
+      ];
+      allowedTCPPorts = [
+        53
+        80
+        443
+        config.services.syncthing.relay.port
+        config.services.syncthing.relay.statusPort
+      ];
+    };
   };
 }
