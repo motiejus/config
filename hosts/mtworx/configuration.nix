@@ -58,8 +58,6 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  systemd.services.zfs-mount.enable = false;
-
   mj = {
     stateVersion = "23.11";
     timeZone = "Europe/Vilnius";

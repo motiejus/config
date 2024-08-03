@@ -10,14 +10,11 @@ let
 in
 {
   imports = [
-    ./boot
-    ./fileSystems
     ./snapshot
     ./sshd
     ./unitstatus
     ./users
     ./zfs
-    ./zfsborg
   ];
 
   options.mj = with lib.types; {

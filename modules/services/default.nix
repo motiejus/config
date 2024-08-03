@@ -22,6 +22,5 @@
     ./tailscale
     ./vaultwarden
     ./wifibackup
-    ./zfsunlock
   ];
 }

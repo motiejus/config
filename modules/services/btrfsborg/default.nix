@@ -9,7 +9,7 @@ let
 in
 {
   options.mj.services.btrfsborg = with lib.types; {
-    enable = lib.mkEnableOption "backup zfs snapshots with borg";
+    enable = lib.mkEnableOption "backup btrfs snapshots with borg";
 
     passwordPath = lib.mkOption { type = str; };
     sshKeyPath = lib.mkOption {
