@@ -83,7 +83,7 @@ in
     };
 
     prometheus = {
-      enable = false;
+      enable = true;
       port = myData.ports.prometheus;
       retentionTime = "1y";
 
@@ -118,8 +118,8 @@ in
             static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
-            job_name = "fwminex.servers.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."fwminex.servers.jakst".jakstIP}:${port}" ]; } ];
+            job_name = "vno1-oh2.servers.jakst";
+            static_configs = [ { targets = [ "${myData.hosts."vno1-oh2.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
             job_name = "mtworx.motiejus.jakst";
