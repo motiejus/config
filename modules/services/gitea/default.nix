@@ -76,8 +76,7 @@
       '';
 
       caddy = {
-        # TODO: http migration
-        virtualHosts."git.jakstys.lt:80".extraConfig = ''
+        virtualHosts."git.jakstys.lt".extraConfig = ''
           route /static/assets/* {
             uri strip_prefix /static
             file_server * {

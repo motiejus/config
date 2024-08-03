@@ -63,7 +63,87 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  systemd.tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
+  systemd = {
+    tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
+
+    services = {
+      caddy =
+        let
+          irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+          grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
+          bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
+        in
+        {
+          serviceConfig.LoadCredential = [
+            "irc.jakstys.lt-cert.pem:${irc.certFile}"
+            "irc.jakstys.lt-key.pem:${irc.keyFile}"
+            "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
+            "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
+            "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
+            "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
+          ];
+          after = [
+            "nsd-acme-irc.jakstys.lt.service"
+            "nsd-acme-grafana.jakstys.lt.service"
+            "nsd-acme-bitwarden.jakstys.lt.service"
+          ];
+          requires = [
+            "nsd-acme-irc.jakstys.lt.service"
+            "nsd-acme-grafana.jakstys.lt.service"
+            "nsd-acme-bitwarden.jakstys.lt.service"
+          ];
+        };
+
+      #soju =
+      #  let
+      #    acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+      #  in
+      #  {
+      #    serviceConfig = {
+      #      RuntimeDirectory = "soju";
+      #      LoadCredential = [
+      #        "irc.jakstys.lt-cert.pem:${acme.certFile}"
+      #        "irc.jakstys.lt-key.pem:${acme.keyFile}"
+      #      ];
+      #    };
+      #    preStart = ''
+      #      ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
+      #      ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
+      #    '';
+      #    after = [ "nsd-acme-irc.jakstys.lt.service" ];
+      #    requires = [ "nsd-acme-irc.jakstys.lt.service" ];
+      #  };
+
+      cert-watcher = {
+        description = "Restart caddy when tls keys/certs change";
+        wantedBy = [ "multi-user.target" ];
+        unitConfig = {
+          StartLimitIntervalSec = 10;
+          StartLimitBurst = 5;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.systemd}/bin/systemctl restart caddy.service";
+        };
+      };
+
+      #syncthing-relay.restartIfChanged = false;
+    };
+
+    paths = {
+      cert-watcher = {
+        wantedBy = [ "multi-user.target" ];
+        pathConfig = {
+          PathChanged = [
+            config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
+            config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
+            config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
+          ];
+          Unit = "cert-watcher.service";
+        };
+      };
+    };
+  };
 
   services = {
     pcscd.enable = true;
@@ -77,12 +157,101 @@ in
 
     caddy = {
       enable = true;
+      email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
         servers {
           metrics
         }
-        auto_https off
       '';
+      virtualHosts =
+        let
+          fwminex-vno1 = "127.0.0.1";
+          fwminex-jakst = "127.0.0.1";
+        in
+        {
+          "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+          "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:${toString myData.ports.headscale}'';
+          "hass.jakstys.lt:80".extraConfig = ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            reverse_proxy ${fwminex-jakst}:${toString myData.ports.hass}
+          '';
+          "grafana.jakstys.lt".extraConfig = ''
+              @denied not remote_ip ${myData.subnets.tailscale.cidr}
+              abort @denied
+              reverse_proxy ${fwminex-jakst}:${toString myData.ports.grafana}
+            tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+          '';
+          "bitwarden.jakstys.lt".extraConfig = ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
+
+            # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
+            encode gzip
+            header {
+              # Enable HTTP Strict Transport Security (HSTS)
+              Strict-Transport-Security "max-age=31536000;"
+              # Enable cross-site filter (XSS) and tell browser to block detected attacks
+              X-XSS-Protection "1; mode=block"
+              # Disallow the site to be rendered within a frame (clickjacking protection)
+              X-Frame-Options "SAMEORIGIN"
+            }
+
+            reverse_proxy ${fwminex-jakst}:${toString myData.ports.vaultwarden} {
+               header_up X-Real-IP {remote_host}
+            }
+          '';
+          "www.jakstys.lt".extraConfig = ''
+            redir https://jakstys.lt
+          '';
+          "irc.jakstys.lt".extraConfig =
+            let
+              gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
+                gamjaConfig = {
+                  server = {
+                    url = "irc.jakstys.lt:6698";
+                    nick = "motiejus";
+                  };
+                };
+              }) { };
+            in
+            ''
+              @denied not remote_ip ${myData.subnets.tailscale.cidr}
+              abort @denied
+              tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+
+              root * ${gamja}
+              file_server browse {
+                  precompressed br gzip
+              }
+            '';
+          "dl.jakstys.lt".extraConfig = ''
+            root * /var/www/dl
+            file_server browse {
+              hide .stfolder
+            }
+            encode gzip
+          '';
+          "jakstys.lt".extraConfig = ''
+            header Strict-Transport-Security "max-age=31536000"
+
+            header /_/* Cache-Control "public, max-age=31536000, immutable"
+
+            root * /var/www/jakstys.lt
+            file_server {
+              precompressed br gzip
+            }
+
+            handle /.well-known/carddav {
+              redir https://cdav.migadu.com/
+            }
+            handle /.well-known/caldav {
+              redir https://cdav.migadu.com/
+            }
+          '';
+        };
     };
 
     nsd = {
@@ -210,6 +379,20 @@ in
         passwordFile = config.age.secrets.photoprism-admin-passwd.path;
       };
 
+      nsd-acme =
+        let
+          accountKey = config.age.secrets.letsencrypt-account-key.path;
+        in
+        {
+          enable = true;
+          zones = {
+            "irc.jakstys.lt".accountKey = accountKey;
+            "hdd.jakstys.lt".accountKey = accountKey;
+            "grafana.jakstys.lt".accountKey = accountKey;
+            "bitwarden.jakstys.lt".accountKey = accountKey;
+          };
+        };
+
       btrfsborg = {
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;
@@ -228,6 +411,7 @@ in
                   paths = [
                     "hass"
                     "gitea"
+                    "caddy"
                     "grafana"
                     "headscale"
                     "bitwarden_rs"
@@ -347,9 +531,7 @@ in
             #soju-ws
           ];
         }
-
       ];
-
     };
   };
 
