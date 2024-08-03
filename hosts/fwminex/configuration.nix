@@ -180,6 +180,7 @@ in
     services = {
       sshguard.enable = false;
       gitea.enable = true;
+      hass.enable = true;
 
       grafana = {
         enable = true;
@@ -224,8 +225,10 @@ in
                   subvolume = "/var/lib";
                   repo = "${prefix}-var_lib";
                   paths = [
-                    "headscale"
+                    "hass"
                     "gitea"
+                    "grafana"
+                    "headscale"
                     "private/photoprism"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];

@@ -63,7 +63,6 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "hass"
               "nsd-acme"
               "tailscale"
               "private/soju"
@@ -84,7 +83,6 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "hass"
               "nsd-acme"
               "tailscale"
               "private/soju"
@@ -156,7 +154,6 @@
       tailscale.enable = true;
       node_exporter.enable = true;
       sshguard.enable = true;
-      hass.enable = true;
 
       nsd-acme =
         let
@@ -235,7 +232,7 @@
           "hass.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            reverse_proxy 127.0.0.1:${toString myData.ports.hass}
+            reverse_proxy ${fwminex-jakst}:${toString myData.ports.hass}
           '';
           "grafana.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
