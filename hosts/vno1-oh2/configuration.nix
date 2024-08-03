@@ -231,12 +231,12 @@
         {
           "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
           "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:8080'';
+          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:${toString myData.ports.headscale}'';
           "git.jakstys.lt".extraConfig = ''reverse_proxy http://${fwminex-vno1}'';
           "hass.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            reverse_proxy 127.0.0.1:8123
+            reverse_proxy 127.0.0.1:${toString mydata.ports.hass}
           '';
           "grafana.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}

@@ -31,7 +31,7 @@ rec {
     soju-ws = 6698;
     matrix-synapse = 8008;
     vaultwarden = 8222;
-    kodi = 8080;
+    headscale = 8080;
     hass = 8123;
     prometheus = 9001;
     tailscale = 41641;
