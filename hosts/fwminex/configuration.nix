@@ -312,7 +312,6 @@ in
           tcp = with myData.ports; [
             80
             443
-            #grafana
             prometheus
             #soju
             #soju-ws

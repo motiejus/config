@@ -63,7 +63,6 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "grafana"
               "hass"
               "nsd-acme"
               "tailscale"
@@ -85,7 +84,6 @@
             paths = [
               "bitwarden_rs"
               "caddy"
-              "grafana"
               "hass"
               "nsd-acme"
               "tailscale"
@@ -149,7 +147,6 @@
           tcp = with myData.ports; [
             80
             443
-            grafana
             prometheus
             soju
             soju-ws
@@ -226,120 +223,121 @@
           metrics
         }
       '';
-      virtualHosts = {
-        "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-        "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-        "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${
-          myData.hosts."fwminex.servers.jakst".vno1IP
-        }:8080'';
-        "git.jakstys.lt".extraConfig = ''reverse_proxy http://${
-          myData.hosts."fwminex.servers.jakst".vno1IP
-        }'';
-        "hass.jakstys.lt:80".extraConfig = ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          abort @denied
-          reverse_proxy 127.0.0.1:8123
-        '';
-        "grafana.jakstys.lt:80".extraConfig = ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          abort @denied
-          reverse_proxy 127.0.0.1:3000
-        '';
-        "bitwarden.jakstys.lt".extraConfig = ''
-          @denied not remote_ip ${myData.subnets.tailscale.cidr}
-          abort @denied
-          tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
-
-          # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
-          encode gzip
-          header {
-            # Enable HTTP Strict Transport Security (HSTS)
-            Strict-Transport-Security "max-age=31536000;"
-            # Enable cross-site filter (XSS) and tell browser to block detected attacks
-            X-XSS-Protection "1; mode=block"
-            # Disallow the site to be rendered within a frame (clickjacking protection)
-            X-Frame-Options "SAMEORIGIN"
-          }
-
-          reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
-             header_up X-Real-IP {remote_host}
-          }
-        '';
-        "www.jakstys.lt".extraConfig = ''
-          redir https://jakstys.lt
-        '';
-        "irc.jakstys.lt".extraConfig =
-          let
-            gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
-              gamjaConfig = {
-                server = {
-                  url = "irc.jakstys.lt:6698";
-                  nick = "motiejus";
-                };
-              };
-            }) { };
-          in
-          ''
+      virtualHosts =
+        let
+          fwminex-vno1 = myData.hosts."fwminex.servers.jakst".vno1IP;
+          fwminex-jakst = myData.hosts."fwminex.servers.jakst".jakstIP;
+        in
+        {
+          "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+          "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:8080'';
+          "git.jakstys.lt".extraConfig = ''reverse_proxy http://${fwminex-vno1}'';
+          "hass.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+            reverse_proxy 127.0.0.1:8123
+          '';
+          "grafana.jakstys.lt:80".extraConfig = ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            reverse_proxy ${fwminex-jakst}:3000
+          '';
+          "bitwarden.jakstys.lt".extraConfig = ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
 
-            root * ${gamja}
+            # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
+            encode gzip
+            header {
+              # Enable HTTP Strict Transport Security (HSTS)
+              Strict-Transport-Security "max-age=31536000;"
+              # Enable cross-site filter (XSS) and tell browser to block detected attacks
+              X-XSS-Protection "1; mode=block"
+              # Disallow the site to be rendered within a frame (clickjacking protection)
+              X-Frame-Options "SAMEORIGIN"
+            }
+
+            reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
+               header_up X-Real-IP {remote_host}
+            }
+          '';
+          "www.jakstys.lt".extraConfig = ''
+            redir https://jakstys.lt
+          '';
+          "irc.jakstys.lt".extraConfig =
+            let
+              gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
+                gamjaConfig = {
+                  server = {
+                    url = "irc.jakstys.lt:6698";
+                    nick = "motiejus";
+                  };
+                };
+              }) { };
+            in
+            ''
+              @denied not remote_ip ${myData.subnets.tailscale.cidr}
+              abort @denied
+              tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+
+              root * ${gamja}
+              file_server browse {
+                  precompressed br gzip
+              }
+            '';
+          "dl.jakstys.lt".extraConfig = ''
+            root * /var/www/dl
             file_server browse {
+              hide .stfolder
+            }
+            encode gzip
+          '';
+          "jakstys.lt" = {
+            logFormat = ''
+              output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
+                roll_disabled
+              }
+            '';
+            extraConfig = ''
+              header Strict-Transport-Security "max-age=31536000"
+
+              header /_/* Cache-Control "public, max-age=31536000, immutable"
+
+              root * /var/www/jakstys.lt
+              file_server {
                 precompressed br gzip
-            }
-          '';
-        "dl.jakstys.lt".extraConfig = ''
-          root * /var/www/dl
-          file_server browse {
-            hide .stfolder
-          }
-          encode gzip
-        '';
-        "jakstys.lt" = {
-          logFormat = ''
-            output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
-              roll_disabled
-            }
-          '';
-          extraConfig = ''
-            header Strict-Transport-Security "max-age=31536000"
+              }
 
-            header /_/* Cache-Control "public, max-age=31536000, immutable"
+              handle /.well-known/carddav {
+                redir https://cdav.migadu.com/
+              }
+              handle /.well-known/caldav {
+                redir https://cdav.migadu.com/
+              }
 
-            root * /var/www/jakstys.lt
-            file_server {
-              precompressed br gzip
-            }
+              @matrixMatch {
+                path /.well-known/matrix/client
+                path /.well-known/matrix/server
+              }
+              header @matrixMatch Content-Type application/json
+              header @matrixMatch Access-Control-Allow-Origin *
+              header @matrixMatch Cache-Control "public, max-age=3600, immutable"
 
-            handle /.well-known/carddav {
-              redir https://cdav.migadu.com/
-            }
-            handle /.well-known/caldav {
-              redir https://cdav.migadu.com/
-            }
+              handle /.well-known/matrix/client {
+                respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+              }
+              handle /.well-known/matrix/server {
+                respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+              }
 
-            @matrixMatch {
-              path /.well-known/matrix/client
-              path /.well-known/matrix/server
-            }
-            header @matrixMatch Content-Type application/json
-            header @matrixMatch Access-Control-Allow-Origin *
-            header @matrixMatch Cache-Control "public, max-age=3600, immutable"
-
-            handle /.well-known/matrix/client {
-              respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-            }
-            handle /.well-known/matrix/server {
-              respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-            }
-
-            handle /_matrix/* {
-              reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
-            }
-          '';
+              handle /_matrix/* {
+                reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+              }
+            '';
+          };
         };
-      };
     };
 
     logrotate = {
@@ -356,52 +354,6 @@
           uncompresscmd = "${pkgs.zstd}/bin/unzstd";
           postrotate = "${pkgs.systemd}/bin/systemctl restart caddy";
         };
-      };
-    };
-
-    grafana = {
-      enable = true;
-      provision = {
-        enable = true;
-        datasources.settings = {
-          apiVersion = 1;
-          datasources = [
-            {
-              name = "Prometheus";
-              type = "prometheus";
-              access = "proxy";
-              url = "http://127.0.0.1:${toString config.services.prometheus.port}";
-              isDefault = true;
-              jsonData.timeInterval = "10s";
-            }
-          ];
-        };
-      };
-      settings = {
-        paths.logs = "/var/log/grafana";
-        server = {
-          domain = "grafana.jakstys.lt";
-          root_url = "http://grafana.jakstys.lt";
-          enable_gzip = true;
-          http_addr = "0.0.0.0";
-          http_port = myData.ports.grafana;
-        };
-        users.auto_assign_org = true;
-        users.auto_assign_org_role = "Editor";
-
-        # https://github.com/grafana/grafana/issues/70203#issuecomment-1612823390
-        auth.oauth_allow_insecure_email_lookup = true;
-
-        "auth.generic_oauth" = {
-          enabled = true;
-          auto_login = true;
-          client_id = "5349c113-467d-4b95-a61b-264f2d844da8";
-          client_secret = "$__file{/run/grafana/oidc-secret}";
-          auth_url = "https://git.jakstys.lt/login/oauth/authorize";
-          api_url = "https://git.jakstys.lt/login/oauth/userinfo";
-          token_url = "https://git.jakstys.lt/login/oauth/access_token";
-        };
-        feature_toggles.accessTokenExpirationCheck = true;
       };
     };
 
@@ -568,15 +520,6 @@
         EnvironmentFile = [ "-/run/vaultwarden/secrets.env" ];
         RuntimeDirectory = "vaultwarden";
         LoadCredential = [ "secrets.env:${config.age.secrets.vaultwarden-secrets-env.path}" ];
-      };
-    };
-
-    grafana = {
-      preStart = "ln -sf $CREDENTIALS_DIRECTORY/oidc /run/grafana/oidc-secret";
-      serviceConfig = {
-        LogsDirectory = "grafana";
-        RuntimeDirectory = "grafana";
-        LoadCredential = [ "oidc:${config.age.secrets.grafana-oidc.path}" ];
       };
     };
 
