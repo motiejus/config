@@ -98,7 +98,6 @@
           compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix { };
 
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
-          btrfs-auto-snapshot = super.callPackage ./pkgs/btrfs-auto-snapshot.nix { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
 
           pkgs-unstable = import nixpkgs-unstable { inherit (super) system; };
