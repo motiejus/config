@@ -33,7 +33,6 @@ in
 // mk ([ vno1-oh2 ] ++ motiejus) [
   "secrets/vno1-oh2/borgbackup/password.age"
   "secrets/letsencrypt/account.key.age"
-  "secrets/vaultwarden/secrets.env.age"
 
   "secrets/synapse/jakstys_lt_signing_key.age"
   "secrets/synapse/registration_shared_secret.age"
@@ -50,13 +49,19 @@ in
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
 ]
-// mk (
-  [
-    fwminex
-    vno1-oh2
-  ]
-  ++ motiejus
-) [ "secrets/grafana.jakstys.lt/oidc.age" ]
+//
+  mk
+    (
+      [
+        fwminex
+        vno1-oh2
+      ]
+      ++ motiejus
+    )
+    [
+      "secrets/grafana.jakstys.lt/oidc.age"
+      "secrets/vaultwarden/secrets.env.age"
+    ]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"

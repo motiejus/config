@@ -20,6 +20,7 @@
     ./sshguard
     ./syncthing
     ./tailscale
+    ./vaultwarden
     ./wifibackup
     ./zfsunlock
   ];

@@ -61,7 +61,6 @@
             mountpoint = "/var/lib";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "bitwarden_rs"
               "caddy"
               "nsd-acme"
               "tailscale"
@@ -81,7 +80,6 @@
               myData.hosts."vno3-rp3b.servers.jakst".jakstIP
             }:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "bitwarden_rs"
               "caddy"
               "nsd-acme"
               "tailscale"
@@ -255,7 +253,7 @@
               X-Frame-Options "SAMEORIGIN"
             }
 
-            reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
+            reverse_proxy ${fwminex-jakst}:${toString myData.ports.vaultwarden} {
                header_up X-Real-IP {remote_host}
             }
           '';
@@ -381,40 +379,10 @@
       '';
     };
 
-    vaultwarden = {
-      enable = true;
-
-      config = {
-        ROCKET_ADDRESS = "127.0.0.1";
-        ROCKET_PORT = myData.ports.vaultwarden;
-        LOG_LEVEL = "warn";
-        DOMAIN = "https://bitwarden.jakstys.lt";
-        SIGNUPS_ALLOWED = false;
-        INVITATION_ORG_NAME = "jakstys";
-        PUSH_ENABLED = true;
-
-        SMTP_HOST = "localhost";
-        SMTP_PORT = 25;
-        SMTP_SECURITY = "off";
-        SMTP_FROM = "admin@jakstys.lt";
-        SMTP_FROM_NAME = "Bitwarden at jakstys.lt";
-      };
-    };
-
-    minidlna = {
-      enable = true;
-      openFirewall = true;
-      settings = {
-        media_dir = [ "/home/motiejus/video" ];
-        friendly_name = "vno1-oh2";
-        inotify = "yes";
-      };
-    };
-
-    syncthing.relay = {
-      enable = true;
-      providedBy = "11sync.net";
-    };
+    #syncthing.relay = {
+    #  enable = true;
+    #  providedBy = "11sync.net";
+    #};
   };
 
   systemd.services = {
@@ -459,15 +427,6 @@
         after = [ "nsd-acme-irc.jakstys.lt.service" ];
         requires = [ "nsd-acme-irc.jakstys.lt.service" ];
       };
-
-    vaultwarden = {
-      preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/vaultwarden/secrets.env";
-      serviceConfig = {
-        EnvironmentFile = [ "-/run/vaultwarden/secrets.env" ];
-        RuntimeDirectory = "vaultwarden";
-        LoadCredential = [ "secrets.env:${config.age.secrets.vaultwarden-secrets-env.path}" ];
-      };
-    };
 
     cert-watcher = {
       description = "Restart caddy when tls keys/certs change";

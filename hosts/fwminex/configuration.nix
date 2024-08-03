@@ -178,9 +178,14 @@ in
     };
 
     services = {
-      sshguard.enable = false;
+      sshguard.enable = true;
       gitea.enable = true;
       hass.enable = true;
+      vaultwarden = {
+        enable = true;
+        port = myData.ports.vaultwarden;
+        secretsEnvFile = config.age.secrets.vaultwarden-secrets-env.path;
+      };
 
       grafana = {
         enable = true;
@@ -229,6 +234,7 @@ in
                     "gitea"
                     "grafana"
                     "headscale"
+                    "bitwarden_rs"
                     "private/photoprism"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];

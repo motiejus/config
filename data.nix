@@ -24,9 +24,6 @@ rec {
     grafana = 3000;
     gitea = 3001;
 
-    # not necessary from vaultwarden 1.29.0
-    vaultwarden_ws = 3012;
-
     soju = 6697;
     soju-ws = 6698;
     matrix-synapse = 8008;
