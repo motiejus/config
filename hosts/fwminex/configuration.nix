@@ -351,6 +351,9 @@ in
   environment = {
     systemPackages = with pkgs; [
       acpi
+      yt-dlp
+      ffmpeg
+      imapsync
       age-plugin-yubikey
     ];
   };

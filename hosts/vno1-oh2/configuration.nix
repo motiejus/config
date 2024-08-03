@@ -147,7 +147,6 @@
           tcp = with myData.ports; [
             80
             443
-            prometheus
             soju
             soju-ws
           ];
