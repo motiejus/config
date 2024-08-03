@@ -3,14 +3,14 @@ Config
 
 Flakes:
 
-    $ deploy --interactive '#vno1-oh2'
+    $ deploy --interactive '#fwminex'
 
     $ nix build .#deploy.nodes.fra1-b.profiles.system.path
 
 Other:
 
     $ nix build .#nixosConfigurations.vno3-rp3b.config.system.build.toplevel
-    $ nix eval .#nixosConfigurations.vno1-oh2.config.services.nsd
+    $ nix eval .#nixosConfigurations.fwminex.config.services.nsd
 
 Encoding host-only secrets
 --------------------------

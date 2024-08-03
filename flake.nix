@@ -155,36 +155,6 @@
           } // inputs;
         };
 
-        vno1-oh2 = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            { nixpkgs.overlays = overlays; }
-            ./hosts/vno1-oh2/configuration.nix
-            ./modules
-
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-                borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
-                letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
-
-                syncthing-key.file = ./secrets/vno1-oh2/syncthing/key.pem.age;
-                syncthing-cert.file = ./secrets/vno1-oh2/syncthing/cert.pem.age;
-              };
-            }
-          ];
-
-          specialArgs = {
-            inherit myData;
-          } // inputs;
-        };
-
         fwminex = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
@@ -270,17 +240,6 @@
       };
 
       deploy.nodes = {
-        vno1-oh2 = {
-          hostname = myData.hosts."vno1-oh2.servers.jakst".jakstIP;
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.vno1-oh2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-oh2;
-              user = "root";
-            };
-          };
-        };
-
         fwminex = {
           hostname = myData.hosts."fwminex.servers.jakst".jakstIP;
           profiles = {

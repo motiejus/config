@@ -10,7 +10,6 @@ let
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
     "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
-    "vno1-oh2".id = "W45ROUW-CHKI3I6-C4VCOCU-NJYQ3ZS-MJDHH23-YYCDXTI-HTJSBZJ-KZMWTAF";
     "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
@@ -23,17 +22,13 @@ let
     Books = {
       devices = [
         "fwminex"
-        "vno1-oh2"
         "mxp10"
       ];
       id = "8lk0n-mm63y";
       label = "Books";
     };
     Mail = {
-      devices = [
-        "fwminex"
-        "vno1-oh2"
-      ];
+      devices = [ "fwminex" ];
       id = "66fmz-x6f1a";
       label = "Mail";
     };
@@ -42,7 +37,6 @@ let
         "mxp10"
         "fwminex"
         "mtworx"
-        "vno1-oh2"
       ];
       id = "f6fma-unkxq";
       label = "M-Active";
@@ -55,10 +49,7 @@ let
       };
     };
     M-Documents = {
-      devices = [
-        "fwminex"
-        "vno1-oh2"
-      ];
+      devices = [ "fwminex" ];
       id = "4fu7z-z6es2";
       label = "M-Documents";
     };
@@ -68,7 +59,6 @@ let
         "sqq1-desk"
         "fwminex"
         "mtworx"
-        "vno1-oh2"
         "v-kfire"
         "rzj-744P2PE"
         "mxp10"
@@ -82,24 +72,17 @@ let
         "mxp10"
         "fwminex"
         "mtworx"
-        "vno1-oh2"
       ];
       id = "pixel_xl_dtm3-photos";
       label = "M-Camera";
     };
     R-Documents = {
-      devices = [
-        "rzj-744P2PE"
-        "vno1-oh2"
-      ];
+      devices = [ "rzj-744P2PE" ];
       id = "nm23h-aog6k";
       label = "R-Documents";
     };
     Pictures = {
-      devices = [
-        "fwminex"
-        "vno1-oh2"
-      ];
+      devices = [ "fwminex" ];
       id = "d3hur-cbzyw";
       label = "Pictures";
     };
@@ -108,7 +91,6 @@ let
         "fwminex"
         "mtworx"
         "mxp10"
-        "vno1-oh2"
       ];
       id = "tg94v-cqcwr";
       label = "music";
@@ -118,16 +100,12 @@ let
         "mxp10"
         "mtworx"
         "fwminex"
-        "vno1-oh2"
       ];
       id = "byzmw-f6zhg";
       label = "video-shared";
     };
     stud-cache = {
-      devices = [
-        "fwminex"
-        "vno1-oh2"
-      ];
+      devices = [ "fwminex" ];
       id = "2kq7n-jqzxj";
       label = "stud-cache";
     };
@@ -136,7 +114,6 @@ let
         "fwminex"
         "rzj-744P2PE"
         "mxp10"
-        "vno1-oh2"
         "mtworx"
       ];
       id = "evgn9-ahngz";
@@ -145,33 +122,23 @@ let
     Irenos = {
       devices = [
         "sqq1-desk"
-        "vno1-oh2"
         "vno2-irena"
       ];
       id = "wuwai-qkcqj";
       label = "Irenos";
     };
     www-fwminex = {
-      devices = [
-        "fwminex"
-        "vno1-oh2"
-      ];
+      devices = [ "fwminex" ];
       id = "7z9sw-2nubh";
       label = "www-fwminex";
     };
     www-mtworx = {
-      devices = [
-        "mtworx"
-        "vno1-oh2"
-      ];
+      devices = [ "mtworx" ];
       id = "7z9sw-aaaa";
       label = "www-mtworx";
     };
     www-mxp10 = {
-      devices = [
-        "mxp10"
-        "vno1-oh2"
-      ];
+      devices = [ "mxp10" ];
       id = "gqrtz-prx9h";
       label = "www-mxp10";
     };
@@ -212,28 +179,23 @@ in
       settings = {
         devices =
           { }
-          // (lib.optionalAttrs
-            (config.networking.hostName == "vno1-oh2" || config.networking.hostName == "fwminex")
-            {
-              inherit (devices)
-                fwminex
-                mtworx
-                vno1-oh2
-                mxp10
-                rzj-744P2PE
-                sqq1-desk
-                vno1-vinc
-                vno2-irena
-                v-kfire
-                a-kfire
-                ;
-            }
-          )
+          // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
+            inherit (devices)
+              fwminex
+              mtworx
+              mxp10
+              rzj-744P2PE
+              sqq1-desk
+              vno1-vinc
+              vno2-irena
+              v-kfire
+              a-kfire
+              ;
+          })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
               mtworx
               fwminex
-              vno1-oh2
               vno1-vinc
               sqq1-desk
               rzj-744P2PE
@@ -246,28 +208,25 @@ in
         folders =
           with folders;
           { }
-          // (lib.optionalAttrs
-            (config.networking.hostName == "vno1-oh2" || config.networking.hostName == "fwminex")
-            {
-              "/var/www/dl/tel" = www-mxp10;
-              "/var/www/dl/fwminex" = www-fwminex;
-              "/var/www/dl/mtworx" = www-mtworx;
-              "/var/www/dl/mykolo" = mykolo;
-              "${cfg.dataDir}/annex2/Books" = Books;
-              "${cfg.dataDir}/annex2/Mail" = Mail;
-              "${cfg.dataDir}/annex2/M-Active" = M-Active;
-              "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
-              "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
-              "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
-              "${cfg.dataDir}/annex2/Pictures" = Pictures;
-              "${cfg.dataDir}/annex2/M-R" = M-R;
-              "${cfg.dataDir}/stud-cache" = stud-cache;
-              "${cfg.dataDir}/video/shared" = video-shared;
-              "${cfg.dataDir}/video/Vaikai" = Vaikai;
-              "${cfg.dataDir}/music" = Music;
-              "${cfg.dataDir}/irenos" = Irenos;
-            }
-          )
+          // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
+            "/var/www/dl/tel" = www-mxp10;
+            "/var/www/dl/fwminex" = www-fwminex;
+            "/var/www/dl/mtworx" = www-mtworx;
+            "/var/www/dl/mykolo" = mykolo;
+            "${cfg.dataDir}/annex2/Books" = Books;
+            "${cfg.dataDir}/annex2/Mail" = Mail;
+            "${cfg.dataDir}/annex2/M-Active" = M-Active;
+            "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
+            "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
+            "${cfg.dataDir}/annex2/R-Documents" = R-Documents;
+            "${cfg.dataDir}/annex2/Pictures" = Pictures;
+            "${cfg.dataDir}/annex2/M-R" = M-R;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/video/shared" = video-shared;
+            "${cfg.dataDir}/video/Vaikai" = Vaikai;
+            "${cfg.dataDir}/music" = Music;
+            "${cfg.dataDir}/irenos" = Irenos;
+          })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             "${cfg.dataDir}/M-Active" = M-Active;
             "${cfg.dataDir}/M-Camera" = M-Camera;

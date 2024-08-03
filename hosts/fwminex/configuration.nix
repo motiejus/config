@@ -317,10 +317,6 @@ in
             static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
           }
           {
-            job_name = "vno1-oh2.servers.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."vno1-oh2.servers.jakst".jakstIP}:${port}" ]; } ];
-          }
-          {
             job_name = "mtworx.motiejus.jakst";
             static_configs = [ { targets = [ "${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}" ]; } ];
           }
@@ -510,7 +506,6 @@ in
           repo = "git@git.jakstys.lt:motiejus/config";
           deployDerivations = [
             ".#fwminex"
-            ".#vno1-oh2"
             ".#fra1-b"
             ".#vno3-rp3b"
           ];

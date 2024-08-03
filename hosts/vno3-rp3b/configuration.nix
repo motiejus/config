@@ -84,7 +84,6 @@
         enable = true;
         dataDir = "/data/borg";
         sshKeys = with myData; [
-          hosts."vno1-oh2.servers.jakst".publicKey
           hosts."fwminex.servers.jakst".publicKey
           people_pubkeys.motiejus
         ];

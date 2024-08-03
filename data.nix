@@ -43,21 +43,6 @@ rec {
   };
 
   hosts = {
-    "vno1-oh2.servers.jakst" = rec {
-      extraHostNames = [
-        "dl.jakstys.lt"
-        "irc.jakstys.lt"
-        "vno1-oh2.jakstys.lt"
-        "www.jakstys.lt"
-        "vpn.jakstys.lt"
-        publicIP
-        jakstIP
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHtYsaht57g2sp6UmLHqsCK+fHjiiZ0rmGceFmFt88pY";
-      initrdPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKns3+EIPqKeoB5OIxANIkppb5ICOmkW8X1DOKJPeRWr";
-      publicIP = "88.223.107.21";
-      jakstIP = "100.89.176.4";
-    };
     "vno3-rp3b.servers.jakst" = rec {
       extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBudUFFEBpUVdr26vLJup8Hk6wj1iDbOPPQnJbv6GUGC";
@@ -85,10 +70,16 @@ rec {
       extraHostNames = [
         "jakstys.lt"
         "git.jakstys.lt"
+        "dl.jakstys.lt"
+        "irc.jakstys.lt"
+        "www.jakstys.lt"
+        "vpn.jakstys.lt"
         jakstIP
         vno1IP
+        publicIP
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlWSZ/H6DR5i5aCrlrEQLVF9MXNvls/pjlLPLaav3f+";
+      publicIP = "88.223.107.21";
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
     };
@@ -146,7 +137,7 @@ rec {
   e11syncZone =
     let
       fra1b = hosts."fra1-b.servers.jakst".publicIP;
-      vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+      vno1 = hosts."fwminex.servers.jakst".publicIP;
     in
     ''
       $ORIGIN 11sync.net.
@@ -178,7 +169,7 @@ rec {
   jakstysLTZone =
     let
       fra1b = hosts."fra1-b.servers.jakst".publicIP;
-      vno1 = hosts."vno1-oh2.servers.jakst".publicIP;
+      vno1 = hosts."fwminex.servers.jakst".publicIP;
     in
     ''
       $ORIGIN jakstys.lt.

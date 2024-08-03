@@ -9,11 +9,9 @@ let
   fwminex = (import ./data.nix).hosts."fwminex.servers.jakst".publicKey;
   mtworx = (import ./data.nix).hosts."mtworx.motiejus.jakst".publicKey;
   fra1-b = (import ./data.nix).hosts."fra1-b.servers.jakst".publicKey;
-  vno1-oh2 = (import ./data.nix).hosts."vno1-oh2.servers.jakst".publicKey;
   vno3-rp3b = (import ./data.nix).hosts."vno3-rp3b.servers.jakst".publicKey;
   systems = [
     fra1-b
-    vno1-oh2
     vno3-rp3b
     fwminex
   ];
@@ -30,12 +28,6 @@ let
     );
 in
 { }
-// mk ([ vno1-oh2 ] ++ motiejus) [
-  "secrets/vno1-oh2/borgbackup/password.age"
-
-  "secrets/vno1-oh2/syncthing/key.pem.age"
-  "secrets/vno1-oh2/syncthing/cert.pem.age"
-]
 // mk ([ vno3-rp3b ] ++ motiejus) [ "secrets/vno3-rp3b/datapool-passphrase.age" ]
 // mk ([ mtworx ] ++ motiejus) [
   "secrets/motiejus_work_passwd_hash.age"
@@ -44,26 +36,15 @@ in
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
 ]
-//
-  mk
-    (
-      [
-        fwminex
-        vno1-oh2
-      ]
-      ++ motiejus
-    )
-    [
-      "secrets/grafana.jakstys.lt/oidc.age"
-      "secrets/vaultwarden/secrets.env.age"
-      "secrets/letsencrypt/account.key.age"
-    ]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"
 
   "secrets/headscale/oidc_client_secret2.age"
   "secrets/photoprism/admin_password.age"
+  "secrets/grafana.jakstys.lt/oidc.age"
+  "secrets/vaultwarden/secrets.env.age"
+  "secrets/letsencrypt/account.key.age"
 
   "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
