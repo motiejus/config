@@ -65,14 +65,6 @@ in
 
   systemd.tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
 
-  systemd.services.minidlna = {
-    serviceConfig = {
-      ProtectSystem = "strict";
-      ProtectHome = "tmpfs";
-      BindReadOnlyPaths = [ "/home/motiejus/video" ];
-    };
-  };
-
   services = {
     pcscd.enable = true;
     acpid.enable = true;
@@ -102,16 +94,6 @@ in
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
         "11sync.net.".data = myData.e11syncZone;
-      };
-    };
-
-    minidlna = {
-      enable = true;
-      openFirewall = true;
-      settings = {
-        media_dir = [ "/home/motiejus/video" ];
-        friendly_name = "vno1-oh2";
-        inotify = "yes";
       };
     };
 
@@ -189,10 +171,16 @@ in
       sshguard.enable = true;
       gitea.enable = true;
       hass.enable = true;
+
       vaultwarden = {
         enable = true;
         port = myData.ports.vaultwarden;
         secretsEnvFile = config.age.secrets.vaultwarden-secrets-env.path;
+      };
+
+      minidlna = {
+        enable = true;
+        paths = [ "/home/motiejus/video" ];
       };
 
       grafana = {
