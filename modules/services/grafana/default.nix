@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  myData,
+  ...
+}:
 let
   cfg = config.mj.services.grafana;
 in
@@ -64,6 +69,13 @@ in
         LoadCredential = [ "oidc:${cfg.oidcSecretFile}" ];
       };
     };
+
+    mj.services.friendlyport.ports = [
+      {
+        subnets = [ myData.subnets.tailscale.cidr ];
+        tcp = [ cfg.port ];
+      }
+    ];
 
   };
 
