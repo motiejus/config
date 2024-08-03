@@ -8,8 +8,7 @@ in
     paths = lib.mkOption { type = listOf path; };
   };
 
-  config = {
-
+  config = lib.mkIf cfg.enable {
     services.minidlna = {
       enable = true;
       openFirewall = true;
