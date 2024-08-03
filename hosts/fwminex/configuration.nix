@@ -65,6 +65,14 @@ in
 
   systemd.tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
 
+  systemd.services.minidlna = {
+    serviceConfig = {
+      ProtectSystem = "strict";
+      ProtectHome = "tmpfs";
+      BindReadOnlyPaths = [ "/home/motiejus/video" ];
+    };
+  };
+
   services = {
     pcscd.enable = true;
     acpid.enable = true;

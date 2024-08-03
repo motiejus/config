@@ -441,14 +441,6 @@
       };
     };
 
-    minidlna = {
-      serviceConfig = {
-        ProtectSystem = "strict";
-        ProtectHome = "tmpfs";
-        BindReadOnlyPaths = [ "/home/motiejus/video" ];
-      };
-    };
-
     syncthing-relay.restartIfChanged = false;
 
   };
