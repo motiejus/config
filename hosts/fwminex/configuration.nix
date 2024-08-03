@@ -85,6 +85,28 @@ in
       '';
     };
 
+    nsd = {
+      enable = true;
+      interfaces = [
+        "0.0.0.0"
+        "::"
+      ];
+      zones = {
+        "jakstys.lt.".data = myData.jakstysLTZone;
+        "11sync.net.".data = myData.e11syncZone;
+      };
+    };
+
+    minidlna = {
+      enable = true;
+      openFirewall = true;
+      settings = {
+        media_dir = [ "/home/motiejus/video" ];
+        friendly_name = "vno1-oh2";
+        inotify = "yes";
+      };
+    };
+
     prometheus = {
       enable = true;
       port = myData.ports.prometheus;
