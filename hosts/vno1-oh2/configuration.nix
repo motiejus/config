@@ -146,13 +146,6 @@
         group = "users";
       };
 
-      matrix-synapse = {
-        enable = true;
-        signingKeyPath = config.age.secrets.synapse-jakstys-signing-key.path;
-        registrationSharedSecretPath = config.age.secrets.synapse-registration-shared-secret.path;
-        macaroonSecretKeyPath = config.age.secrets.synapse-macaroon-secret-key.path;
-      };
-
       remote-builder.client =
         let
           host = myData.hosts."fra1-b.servers.jakst";

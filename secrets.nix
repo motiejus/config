@@ -33,10 +33,6 @@ in
 // mk ([ vno1-oh2 ] ++ motiejus) [
   "secrets/vno1-oh2/borgbackup/password.age"
 
-  "secrets/synapse/jakstys_lt_signing_key.age"
-  "secrets/synapse/registration_shared_secret.age"
-  "secrets/synapse/macaroon_secret_key.age"
-
   "secrets/vno1-oh2/syncthing/key.pem.age"
   "secrets/vno1-oh2/syncthing/cert.pem.age"
 ]

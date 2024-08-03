@@ -26,7 +26,6 @@ rec {
 
     soju = 6697;
     soju-ws = 6698;
-    matrix-synapse = 8008;
     vaultwarden = 8222;
     headscale = 8080;
     hass = 8123;

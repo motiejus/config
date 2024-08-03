@@ -170,17 +170,9 @@
                 motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
 
-                photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
-                headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
                 borgbackup-password.file = ./secrets/vno1-oh2/borgbackup/password.age;
-                grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
                 letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
-                vaultwarden-secrets-env.file = ./secrets/vaultwarden/secrets.env.age;
-
-                synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
-                synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
-                synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
 
                 syncthing-key.file = ./secrets/vno1-oh2/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/vno1-oh2/syncthing/cert.pem.age;

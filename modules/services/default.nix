@@ -11,7 +11,6 @@
     ./hass
     ./headscale
     ./jakstpub
-    ./matrix-synapse
     ./minidlna
     ./node_exporter
     ./nsd-acme
