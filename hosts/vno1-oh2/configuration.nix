@@ -241,7 +241,7 @@
           "grafana.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            reverse_proxy ${fwminex-jakst}:3000
+            reverse_proxy ${fwminex-jakst}:${myData.ports.grafana}
           '';
           "bitwarden.jakstys.lt".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
