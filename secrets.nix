@@ -46,6 +46,10 @@ in
   "secrets/vaultwarden/secrets.env.age"
   "secrets/letsencrypt/account.key.age"
 
+  "secrets/synapse/jakstys_lt_signing_key.age"
+  "secrets/synapse/registration_shared_secret.age"
+  "secrets/synapse/macaroon_secret_key.age"
+
   "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
