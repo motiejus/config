@@ -235,7 +235,7 @@
           "hass.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            reverse_proxy 127.0.0.1:${toString mydata.ports.hass}
+            reverse_proxy 127.0.0.1:${toString myData.ports.hass}
           '';
           "grafana.jakstys.lt:80".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
