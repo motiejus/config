@@ -131,6 +131,7 @@ in
           }
         ];
     };
+
   };
 
   mj = {
@@ -154,6 +155,12 @@ in
     services = {
       sshguard.enable = false;
       gitea.enable = true;
+
+      grafana = {
+        enable = true;
+        port = myData.ports.grafana;
+        oidcSecretFile = config.age.secrets.grafana-oidc.path;
+      };
 
       tailscale = {
         enable = true;

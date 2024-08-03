@@ -209,6 +209,7 @@
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
                 headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
                 borgbackup-password.file = ./secrets/fwminex/borgbackup-password.age;
+                grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
                 photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
                 syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;

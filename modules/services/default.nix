@@ -7,6 +7,7 @@
     ./deployerbot
     ./friendlyport
     ./gitea
+    ./grafana
     ./hass
     ./headscale
     ./jakstpub

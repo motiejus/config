@@ -32,7 +32,6 @@ in
 { }
 // mk ([ vno1-oh2 ] ++ motiejus) [
   "secrets/vno1-oh2/borgbackup/password.age"
-  "secrets/grafana.jakstys.lt/oidc.age"
   "secrets/letsencrypt/account.key.age"
   "secrets/vaultwarden/secrets.env.age"
 
@@ -57,7 +56,7 @@ in
     vno1-oh2
   ]
   ++ motiejus
-) [ ]
+) [ "secrets/grafana.jakstys.lt/oidc.age" ]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"
