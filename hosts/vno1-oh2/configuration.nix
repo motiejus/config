@@ -60,10 +60,7 @@
           {
             mountpoint = "/var/lib";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
-            paths = [
-              "tailscale"
-              "private/soju"
-            ];
+            paths = [ "tailscale" ];
             backup_at = "*-*-* 01:00:00 UTC";
             prune.keep = {
               within = "1d";
@@ -77,10 +74,7 @@
             repo = "borgstor@${
               myData.hosts."vno3-rp3b.servers.jakst".jakstIP
             }:${config.networking.hostName}.${config.networking.domain}-var_lib";
-            paths = [
-              "tailscale"
-              "private/soju"
-            ];
+            paths = [ "tailscale" ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
 
@@ -100,8 +94,6 @@
           tcp = with myData.ports; [
             80
             443
-            soju
-            soju-ws
           ];
         }
       ];
@@ -173,22 +165,6 @@
       };
     };
 
-    soju = {
-      enable = true;
-      listen = [
-        #"unix+admin://"
-        ":${toString myData.ports.soju}"
-        "wss://:${toString myData.ports.soju-ws}"
-      ];
-      tlsCertificate = "/run/soju/cert.pem";
-      tlsCertificateKey = "/run/soju/key.pem";
-      hostName = "irc.jakstys.lt";
-      httpOrigins = [ "*" ];
-      extraConfig = ''
-        message-store fs /var/lib/soju
-      '';
-    };
-
     #syncthing.relay = {
     #  enable = true;
     #  providedBy = "11sync.net";
@@ -196,26 +172,6 @@
   };
 
   systemd.services = {
-    soju =
-      let
-        acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-      in
-      {
-        serviceConfig = {
-          RuntimeDirectory = "soju";
-          LoadCredential = [
-            "irc.jakstys.lt-cert.pem:${acme.certFile}"
-            "irc.jakstys.lt-key.pem:${acme.keyFile}"
-          ];
-        };
-        preStart = ''
-          ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
-          ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
-        '';
-        after = [ "nsd-acme-irc.jakstys.lt.service" ];
-        requires = [ "nsd-acme-irc.jakstys.lt.service" ];
-      };
-
     syncthing-relay.restartIfChanged = false;
 
   };

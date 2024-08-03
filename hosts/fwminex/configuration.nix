@@ -94,25 +94,25 @@ in
           ];
         };
 
-      #soju =
-      #  let
-      #    acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-      #  in
-      #  {
-      #    serviceConfig = {
-      #      RuntimeDirectory = "soju";
-      #      LoadCredential = [
-      #        "irc.jakstys.lt-cert.pem:${acme.certFile}"
-      #        "irc.jakstys.lt-key.pem:${acme.keyFile}"
-      #      ];
-      #    };
-      #    preStart = ''
-      #      ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
-      #      ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
-      #    '';
-      #    after = [ "nsd-acme-irc.jakstys.lt.service" ];
-      #    requires = [ "nsd-acme-irc.jakstys.lt.service" ];
-      #  };
+      soju =
+        let
+          acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+        in
+        {
+          serviceConfig = {
+            RuntimeDirectory = "soju";
+            LoadCredential = [
+              "irc.jakstys.lt-cert.pem:${acme.certFile}"
+              "irc.jakstys.lt-key.pem:${acme.keyFile}"
+            ];
+          };
+          preStart = ''
+            ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
+            ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
+          '';
+          after = [ "nsd-acme-irc.jakstys.lt.service" ];
+          requires = [ "nsd-acme-irc.jakstys.lt.service" ];
+        };
 
       cert-watcher = {
         description = "Restart caddy when tls keys/certs change";
@@ -153,6 +153,21 @@ in
       lidSwitch = "ignore";
       powerKey = "suspend";
       powerKeyLongPress = "poweroff";
+    };
+
+    soju = {
+      enable = true;
+      listen = [
+        ":${toString myData.ports.soju}"
+        "wss://:${toString myData.ports.soju-ws}"
+      ];
+      tlsCertificate = "/run/soju/cert.pem";
+      tlsCertificateKey = "/run/soju/key.pem";
+      hostName = "irc.jakstys.lt";
+      httpOrigins = [ "*" ];
+      extraConfig = ''
+        message-store fs /var/lib/soju
+      '';
     };
 
     caddy = {
@@ -415,6 +430,7 @@ in
                     "grafana"
                     "headscale"
                     "bitwarden_rs"
+                    "private/soju"
                     "private/photoprism"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];
@@ -526,9 +542,9 @@ in
           tcp = with myData.ports; [
             80
             443
+            soju
+            soju-ws
             prometheus
-            #soju
-            #soju-ws
           ];
         }
       ];
@@ -560,8 +576,8 @@ in
         53
         80
         443
-        config.services.syncthing.relay.port
-        config.services.syncthing.relay.statusPort
+        #config.services.syncthing.relay.port
+        #config.services.syncthing.relay.statusPort
       ];
     };
   };
