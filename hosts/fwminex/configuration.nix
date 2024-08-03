@@ -436,6 +436,7 @@ in
                     "grafana"
                     "headscale"
                     "bitwarden_rs"
+                    "matrix-synapse"
                     "private/soju"
                     "private/photoprism"
                   ];
