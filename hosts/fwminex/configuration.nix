@@ -78,6 +78,9 @@ in
     caddy = {
       enable = true;
       globalConfig = ''
+        servers {
+          metrics
+        }
         auto_https off
       '';
     };
