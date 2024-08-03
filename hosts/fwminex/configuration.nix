@@ -178,95 +178,90 @@ in
           metrics
         }
       '';
-      virtualHosts =
-        let
-          fwminex-vno1 = "127.0.0.1";
-          fwminex-jakst = "127.0.0.1";
-        in
-        {
-          "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-          "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:${toString myData.ports.headscale}'';
-          "hass.jakstys.lt:80".extraConfig = ''
+      virtualHosts = {
+        "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+        "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
+        "vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
+        "hass.jakstys.lt:80".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+          reverse_proxy 127.0.0.1:${toString myData.ports.hass}
+        '';
+        "grafana.jakstys.lt".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            reverse_proxy ${fwminex-jakst}:${toString myData.ports.hass}
-          '';
-          "grafana.jakstys.lt".extraConfig = ''
-              @denied not remote_ip ${myData.subnets.tailscale.cidr}
-              abort @denied
-              reverse_proxy ${fwminex-jakst}:${toString myData.ports.grafana}
-            tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
-          '';
-          "bitwarden.jakstys.lt".extraConfig = ''
-            @denied not remote_ip ${myData.subnets.tailscale.cidr}
-            abort @denied
-            tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
+            reverse_proxy 127.0.0.1:${toString myData.ports.grafana}
+          tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+        '';
+        "bitwarden.jakstys.lt".extraConfig = ''
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+          tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
 
-            # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
-            encode gzip
-            header {
-              # Enable HTTP Strict Transport Security (HSTS)
-              Strict-Transport-Security "max-age=31536000;"
-              # Enable cross-site filter (XSS) and tell browser to block detected attacks
-              X-XSS-Protection "1; mode=block"
-              # Disallow the site to be rendered within a frame (clickjacking protection)
-              X-Frame-Options "SAMEORIGIN"
-            }
+          # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
+          encode gzip
+          header {
+            # Enable HTTP Strict Transport Security (HSTS)
+            Strict-Transport-Security "max-age=31536000;"
+            # Enable cross-site filter (XSS) and tell browser to block detected attacks
+            X-XSS-Protection "1; mode=block"
+            # Disallow the site to be rendered within a frame (clickjacking protection)
+            X-Frame-Options "SAMEORIGIN"
+          }
 
-            reverse_proxy ${fwminex-jakst}:${toString myData.ports.vaultwarden} {
-               header_up X-Real-IP {remote_host}
-            }
-          '';
-          "www.jakstys.lt".extraConfig = ''
-            redir https://jakstys.lt
-          '';
-          "irc.jakstys.lt".extraConfig =
-            let
-              gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
-                gamjaConfig = {
-                  server = {
-                    url = "irc.jakstys.lt:6698";
-                    nick = "motiejus";
-                  };
+          reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
+             header_up X-Real-IP {remote_host}
+          }
+        '';
+        "www.jakstys.lt".extraConfig = ''
+          redir https://jakstys.lt
+        '';
+        "irc.jakstys.lt".extraConfig =
+          let
+            gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
+              gamjaConfig = {
+                server = {
+                  url = "irc.jakstys.lt:6698";
+                  nick = "motiejus";
                 };
-              }) { };
-            in
-            ''
-              @denied not remote_ip ${myData.subnets.tailscale.cidr}
-              abort @denied
-              tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+              };
+            }) { };
+          in
+          ''
+            @denied not remote_ip ${myData.subnets.tailscale.cidr}
+            abort @denied
+            tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
 
-              root * ${gamja}
-              file_server browse {
-                  precompressed br gzip
-              }
-            '';
-          "dl.jakstys.lt".extraConfig = ''
-            root * /var/www/dl
+            root * ${gamja}
             file_server browse {
-              hide .stfolder
-            }
-            encode gzip
-          '';
-          "jakstys.lt".extraConfig = ''
-            header Strict-Transport-Security "max-age=31536000"
-
-            header /_/* Cache-Control "public, max-age=31536000, immutable"
-
-            root * /var/www/jakstys.lt
-            file_server {
-              precompressed br gzip
-            }
-
-            handle /.well-known/carddav {
-              redir https://cdav.migadu.com/
-            }
-            handle /.well-known/caldav {
-              redir https://cdav.migadu.com/
+                precompressed br gzip
             }
           '';
-        };
+        "dl.jakstys.lt".extraConfig = ''
+          root * /var/www/dl
+          file_server browse {
+            hide .stfolder
+          }
+          encode gzip
+        '';
+        "jakstys.lt".extraConfig = ''
+          header Strict-Transport-Security "max-age=31536000"
+
+          header /_/* Cache-Control "public, max-age=31536000, immutable"
+
+          root * /var/www/jakstys.lt
+          file_server {
+            precompressed br gzip
+          }
+
+          handle /.well-known/carddav {
+            redir https://cdav.migadu.com/
+          }
+          handle /.well-known/caldav {
+            redir https://cdav.migadu.com/
+          }
+        '';
+      };
     };
 
     nsd = {
