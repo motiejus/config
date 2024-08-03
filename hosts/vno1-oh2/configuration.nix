@@ -61,8 +61,6 @@
             mountpoint = "/var/lib";
             repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "caddy"
-              "nsd-acme"
               "tailscale"
               "private/soju"
             ];
@@ -80,53 +78,12 @@
               myData.hosts."vno3-rp3b.servers.jakst".jakstIP
             }:${config.networking.hostName}.${config.networking.domain}-var_lib";
             paths = [
-              "caddy"
-              "nsd-acme"
               "tailscale"
               "private/soju"
             ];
             backup_at = "*-*-* 01:00:00 UTC";
           }
 
-          # TODO: merge
-          {
-            mountpoint = "/var/log";
-            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = [ "caddy" ];
-            patterns = [
-              "+ caddy/access-jakstys.lt.log-*.zst"
-              "- *"
-            ];
-            backup_at = "*-*-* 01:30:00 UTC";
-          }
-          {
-            mountpoint = "/var/log";
-            repo = "borgstor@${
-              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
-            }:${config.networking.hostName}.${config.networking.domain}-var_log";
-            paths = [ "caddy" ];
-            patterns = [
-              "+ caddy/access-jakstys.lt.log-*.zst"
-              "- *"
-            ];
-            backup_at = "*-*-* 01:30:00 UTC";
-          }
-
-          # TODO merge
-          {
-            mountpoint = "/home";
-            repo = "zh2769@zh2769.rsync.net:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [ "motiejus/annex2" ];
-            backup_at = "*-*-* 02:00:00 UTC";
-          }
-          {
-            mountpoint = "/home";
-            repo = "borgstor@${
-              myData.hosts."vno3-rp3b.servers.jakst".jakstIP
-            }:${config.networking.hostName}.${config.networking.domain}-home-motiejus-annex2";
-            paths = [ "motiejus/annex2" ];
-            backup_at = "*-*-* 02:00:00 UTC";
-          }
         ];
       };
 
@@ -210,148 +167,6 @@
   };
 
   services = {
-    caddy = {
-      enable = true;
-      email = "motiejus+acme@jakstys.lt";
-      globalConfig = ''
-        servers {
-          metrics
-        }
-      '';
-      virtualHosts =
-        let
-          fwminex-vno1 = myData.hosts."fwminex.servers.jakst".vno1IP;
-          fwminex-jakst = myData.hosts."fwminex.servers.jakst".jakstIP;
-        in
-        {
-          "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-          "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-          "vpn.jakstys.lt".extraConfig = ''reverse_proxy ${fwminex-vno1}:${toString myData.ports.headscale}'';
-          "git.jakstys.lt".extraConfig = ''reverse_proxy http://${fwminex-vno1}'';
-          "hass.jakstys.lt:80".extraConfig = ''
-            @denied not remote_ip ${myData.subnets.tailscale.cidr}
-            abort @denied
-            reverse_proxy ${fwminex-jakst}:${toString myData.ports.hass}
-          '';
-          "grafana.jakstys.lt".extraConfig = ''
-              @denied not remote_ip ${myData.subnets.tailscale.cidr}
-              abort @denied
-              reverse_proxy ${fwminex-jakst}:${toString myData.ports.grafana}
-            tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
-          '';
-          "bitwarden.jakstys.lt".extraConfig = ''
-            @denied not remote_ip ${myData.subnets.tailscale.cidr}
-            abort @denied
-            tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
-
-            # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
-            encode gzip
-            header {
-              # Enable HTTP Strict Transport Security (HSTS)
-              Strict-Transport-Security "max-age=31536000;"
-              # Enable cross-site filter (XSS) and tell browser to block detected attacks
-              X-XSS-Protection "1; mode=block"
-              # Disallow the site to be rendered within a frame (clickjacking protection)
-              X-Frame-Options "SAMEORIGIN"
-            }
-
-            reverse_proxy ${fwminex-jakst}:${toString myData.ports.vaultwarden} {
-               header_up X-Real-IP {remote_host}
-            }
-          '';
-          "www.jakstys.lt".extraConfig = ''
-            redir https://jakstys.lt
-          '';
-          "irc.jakstys.lt".extraConfig =
-            let
-              gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
-                gamjaConfig = {
-                  server = {
-                    url = "irc.jakstys.lt:6698";
-                    nick = "motiejus";
-                  };
-                };
-              }) { };
-            in
-            ''
-              @denied not remote_ip ${myData.subnets.tailscale.cidr}
-              abort @denied
-              tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
-
-              root * ${gamja}
-              file_server browse {
-                  precompressed br gzip
-              }
-            '';
-          "dl.jakstys.lt".extraConfig = ''
-            root * /var/www/dl
-            file_server browse {
-              hide .stfolder
-            }
-            encode gzip
-          '';
-          "jakstys.lt" = {
-            logFormat = ''
-              output file ${config.services.caddy.logDir}/access-jakstys.lt.log {
-                roll_disabled
-              }
-            '';
-            extraConfig = ''
-              header Strict-Transport-Security "max-age=31536000"
-
-              header /_/* Cache-Control "public, max-age=31536000, immutable"
-
-              root * /var/www/jakstys.lt
-              file_server {
-                precompressed br gzip
-              }
-
-              handle /.well-known/carddav {
-                redir https://cdav.migadu.com/
-              }
-              handle /.well-known/caldav {
-                redir https://cdav.migadu.com/
-              }
-
-              @matrixMatch {
-                path /.well-known/matrix/client
-                path /.well-known/matrix/server
-              }
-              header @matrixMatch Content-Type application/json
-              header @matrixMatch Access-Control-Allow-Origin *
-              header @matrixMatch Cache-Control "public, max-age=3600, immutable"
-
-              handle /.well-known/matrix/client {
-                respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-              }
-              handle /.well-known/matrix/server {
-                respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-              }
-
-              handle /_matrix/* {
-                reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
-              }
-            '';
-          };
-        };
-    };
-
-    logrotate = {
-      settings = {
-        "/var/log/caddy/access-jakstys.lt.log" = {
-          rotate = -1;
-          frequency = "daily";
-          dateext = true;
-          dateyesterday = true;
-          compress = true;
-          compresscmd = "${pkgs.zstd}/bin/zstd";
-          compressext = ".zst";
-          compressoptions = "--long -19";
-          uncompresscmd = "${pkgs.zstd}/bin/unzstd";
-          postrotate = "${pkgs.systemd}/bin/systemctl restart caddy";
-        };
-      };
-    };
 
     nsd = {
       enable = true;
@@ -388,33 +203,6 @@
   };
 
   systemd.services = {
-    caddy =
-      let
-        irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-        grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
-        bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
-      in
-      {
-        serviceConfig.LoadCredential = [
-          "irc.jakstys.lt-cert.pem:${irc.certFile}"
-          "irc.jakstys.lt-key.pem:${irc.keyFile}"
-          "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
-          "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
-          "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
-          "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
-        ];
-        after = [
-          "nsd-acme-irc.jakstys.lt.service"
-          "nsd-acme-grafana.jakstys.lt.service"
-          "nsd-acme-bitwarden.jakstys.lt.service"
-        ];
-        requires = [
-          "nsd-acme-irc.jakstys.lt.service"
-          "nsd-acme-grafana.jakstys.lt.service"
-          "nsd-acme-bitwarden.jakstys.lt.service"
-        ];
-      };
-
     soju =
       let
         acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
@@ -435,35 +223,8 @@
         requires = [ "nsd-acme-irc.jakstys.lt.service" ];
       };
 
-    cert-watcher = {
-      description = "Restart caddy when tls keys/certs change";
-      wantedBy = [ "multi-user.target" ];
-      unitConfig = {
-        StartLimitIntervalSec = 10;
-        StartLimitBurst = 5;
-      };
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.systemd}/bin/systemctl restart caddy.service";
-      };
-    };
-
     syncthing-relay.restartIfChanged = false;
 
-  };
-
-  systemd.paths = {
-    cert-watcher = {
-      wantedBy = [ "multi-user.target" ];
-      pathConfig = {
-        PathChanged = [
-          config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
-          config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
-          config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
-        ];
-        Unit = "cert-watcher.service";
-      };
-    };
   };
 
   environment.systemPackages = with pkgs; [
