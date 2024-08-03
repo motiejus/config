@@ -127,7 +127,6 @@ in
         };
       };
 
-      #syncthing-relay.restartIfChanged = false;
     };
 
     paths = {
@@ -300,26 +299,22 @@ in
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
           }
           {
-            job_name = "${config.networking.hostName}.${config.networking.domain}";
-            static_configs = [ { targets = [ "127.0.0.1:${port}" ]; } ];
-          }
-          {
-            job_name = "fra1-b.servers.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}" ]; } ];
-          }
-          {
-            job_name = "vno3-rp3b.servers.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}:${port}" ]; } ];
-          }
-          {
-            job_name = "mtworx.motiejus.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."mtworx.motiejus.jakst".jakstIP}:${port}" ]; } ];
-          }
-          {
             job_name = "vno1-vinc.vincentas.jakst";
             static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
           }
-        ];
+        ]
+        ++
+          map
+            (s: {
+              job_name = s;
+              static_configs = [ { targets = [ "${myData.hosts.${s}.jakstIP}:${port}" ]; } ];
+            })
+            [
+              "fra1-b.servers.jakst"
+              "fwminex.servers.jakst"
+              "mtworx.motiejus.jakst"
+              "vno3-rp3b.servers.jakst"
+            ];
     };
 
   };
@@ -346,6 +341,7 @@ in
       sshguard.enable = true;
       gitea.enable = true;
       hass.enable = true;
+      syncthing-relay.enable = true;
 
       vaultwarden = {
         enable = true;
@@ -566,8 +562,6 @@ in
         53
         80
         443
-        #config.services.syncthing.relay.port
-        #config.services.syncthing.relay.statusPort
       ];
     };
   };

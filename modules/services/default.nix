@@ -19,6 +19,7 @@
     ./remote-builder
     ./sshguard
     ./syncthing
+    ./syncthing-relay
     ./tailscale
     ./vaultwarden
     ./wifibackup
