@@ -216,22 +216,22 @@ rec {
       _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
       _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
 
-      grafana                   300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      grafana                   300       A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.grafana   300   CNAME     _acme-endpoint.grafana
       _acme-endpoint.grafana    300      NS     ns._acme-endpoint.grafana
       ns._acme-endpoint.grafana 300       A     ${vno1}
 
-      irc                       300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      irc                       300       A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.irc       300   CNAME     _acme-endpoint.irc
       _acme-endpoint.irc        300      NS     ns._acme-endpoint.irc
       ns._acme-endpoint.irc     300       A     ${vno1}
 
-      hass                      300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      hass                      300       A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.hass      300   CNAME     _acme-endpoint.hass
       _acme-endpoint.hass       300      NS     ns._acme-endpoint.hass
       ns._acme-endpoint.hass    300       A     ${vno1}
 
-      bitwarden                 300       A     ${hosts."vno1-oh2.servers.jakst".jakstIP}
+      bitwarden                 300       A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.bitwarden 300   CNAME     _acme-endpoint.bitwarden
       _acme-endpoint.bitwarden  300      NS     ns._acme-endpoint.bitwarden
       ns._acme-endpoint.bitwarden 300     A     ${vno1}
