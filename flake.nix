@@ -175,6 +175,9 @@
                 letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
                 vaultwarden-secrets-env.file = ./secrets/vaultwarden/secrets.env.age;
                 photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
+                synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
+                synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
+                synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
                 syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
               };

@@ -259,6 +259,25 @@ in
           handle /.well-known/caldav {
             redir https://cdav.migadu.com/
           }
+
+            @matrixMatch {
+              path /.well-known/matrix/client
+              path /.well-known/matrix/server
+            }
+            header @matrixMatch Content-Type application/json
+            header @matrixMatch Access-Control-Allow-Origin *
+            header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+
+            handle /.well-known/matrix/client {
+              respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+            }
+            handle /.well-known/matrix/server {
+              respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+            }
+
+            handle /_matrix/* {
+              reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+            }
         '';
       };
     };
@@ -472,6 +491,13 @@ in
         dataDir = "/home/motiejus/";
         user = "motiejus";
         group = "users";
+      };
+
+      matrix-synapse = {
+        enable = true;
+        signingKeyPath = config.age.secrets.synapse-jakstys-signing-key.path;
+        registrationSharedSecretPath = config.age.secrets.synapse-registration-shared-secret.path;
+        macaroonSecretKeyPath = config.age.secrets.synapse-macaroon-secret-key.path;
       };
 
       remote-builder.client =
