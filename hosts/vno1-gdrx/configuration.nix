@@ -6,7 +6,7 @@ in
   imports = [
     ../../modules
     ../../modules/profiles/desktop
-    #../../modules/profiles/autorandr
+    ../../modules/profiles/autorandr
     ../../modules/profiles/btrfs
   ];
 
