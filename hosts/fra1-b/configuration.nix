@@ -72,7 +72,7 @@ in
         uidgid = myData.uidgid.remote-builder;
         sshAllowSubnet = myData.subnets.tailscale.sshPattern;
         publicKeys = map (h: myData.hosts.${h}.publicKey) [
-          "vno1-gdrx.servers.jakst"
+          "vno1-gdrx.motiejus.jakst"
           "fwminex.servers.jakst"
           "mtworx.motiejus.jakst"
         ];
