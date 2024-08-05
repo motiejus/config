@@ -129,7 +129,7 @@ in
       };
 
       postfix = {
-        enable = false;
+        enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
