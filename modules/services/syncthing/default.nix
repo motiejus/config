@@ -213,7 +213,6 @@ in
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
-              vno2-irena
               v-kfire
               a-kfire
               ;
