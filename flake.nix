@@ -199,8 +199,8 @@
             agenix.nixosModules.default
             {
               age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
+                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
 
                 #syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
