@@ -333,6 +333,7 @@ in
               "fwminex.servers.jakst"
               "mtworx.motiejus.jakst"
               "vno3-rp3b.servers.jakst"
+              "vno1-gdrx.motiejus.jakst"
             ];
     };
 
@@ -531,6 +532,10 @@ in
             {
               derivationTarget = ".#mtworx";
               pingTarget = myData.hosts."mtworx.motiejus.jakst".jakstIP;
+            }
+            {
+              derivationTarget = ".#vno1-gdrx";
+              pingTarget = myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP;
             }
           ];
         };
