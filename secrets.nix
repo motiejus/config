@@ -16,6 +16,7 @@ let
     vno1-gdrx
     vno3-rp3b
     fwminex
+    mtworx
   ];
 
   mk =
@@ -34,7 +35,6 @@ in
 // mk ([ mtworx ] ++ motiejus) [
   "secrets/motiejus_work_passwd_hash.age"
   "secrets/root_work_passwd_hash.age"
-  "secrets/postfix_sasl_passwd.age"
 
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
