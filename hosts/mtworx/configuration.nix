@@ -130,7 +130,7 @@ in
 
       postfix = {
         enable = false;
-        #saslPasswdPath = config.age.secrets.sasl-passwd.path;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
       syncthing = {
