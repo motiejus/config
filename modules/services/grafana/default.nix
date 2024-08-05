@@ -37,7 +37,7 @@ in
         paths.logs = "/var/log/grafana";
         server = {
           domain = "grafana.jakstys.lt";
-          root_url = "http://grafana.jakstys.lt";
+          root_url = "https://grafana.jakstys.lt";
           enable_gzip = true;
           http_addr = "0.0.0.0";
           http_port = cfg.port;
