@@ -68,7 +68,10 @@ rec {
       ];
     };
     "vno1-gdrx.motiejus.jakst" = rec {
-      extraHostNames = [ vno1IP ];
+      extraHostNames = [
+        vno1IP
+        jakstIP
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPW7k8wMOIWKERGiMlz5kX/PXJ/EbzUnJK6jVgPtAbNF";
       vno1IP = "192.168.189.12";
       jakstIP = "100.89.176.21";
