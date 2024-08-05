@@ -148,7 +148,10 @@ let
       label = "Irenos";
     };
     www-vno1-gdrx = {
-      devices = [ "vno1-gdrx" ];
+      devices = [
+        "fwminex"
+        "vno1-gdrx"
+      ];
       id = "7z7ao-3hbxi";
       label = "www-vno1-gdrx";
     };
