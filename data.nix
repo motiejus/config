@@ -71,6 +71,7 @@ rec {
       extraHostNames = [ vno1IP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPW7k8wMOIWKERGiMlz5kX/PXJ/EbzUnJK6jVgPtAbNF";
       vno1IP = "192.168.189.12";
+      jakstIP = "100.89.176.21";
     };
     "fwminex.servers.jakst" = rec {
       extraHostNames = [
