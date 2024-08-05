@@ -79,29 +79,23 @@ in
         group = "users";
       };
 
-      #btrfssnapshot = {
-      #  enable = true;
-      #  subvolumes = [
-      #    {
-      #      subvolume = "/home";
-      #      label = "5minutely";
-      #      keep = 12;
-      #      refreshInterval = "*:0/5";
-      #    }
-      #    {
-      #      subvolume = "/home";
-      #      label = "hourly";
-      #      keep = 24;
-      #      refreshInterval = "*:00:00";
-      #    }
-      #  ];
-      #};
-
-      #wifibackup = {
-      #  enable = true;
-      #  toPath = "/home/${config.mj.username}/M-Active/.wifi";
-      #  toUser = config.mj.username;
-      #};
+      btrfssnapshot = {
+        enable = true;
+        subvolumes = [
+          {
+            subvolume = "/home";
+            label = "5minutely";
+            keep = 12;
+            refreshInterval = "*:0/5";
+          }
+          {
+            subvolume = "/home";
+            label = "hourly";
+            keep = 24;
+            refreshInterval = "*:00:00";
+          }
+        ];
+      };
 
       remote-builder.client =
         let
