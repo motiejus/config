@@ -152,11 +152,6 @@ let
       id = "7z7ao-3hbxi";
       label = "www-vno1-gdrx";
     };
-    www-fwminex = {
-      devices = [ "fwminex" ];
-      id = "7z9sw-2nubh";
-      label = "www-fwminex";
-    };
     www-mtworx = {
       devices = [ "mtworx" ];
       id = "7z9sw-aaaa";
