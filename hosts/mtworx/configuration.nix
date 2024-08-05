@@ -129,8 +129,8 @@ in
       };
 
       postfix = {
-        enable = true;
-        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+        enable = false;
+        #saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
       syncthing = {
