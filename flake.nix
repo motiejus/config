@@ -196,17 +196,17 @@
             home-manager.nixosModules.home-manager
             nix-index-database.nixosModules.nix-index
 
-            #agenix.nixosModules.default
-            #{
-            #  age.secrets = {
-            #    motiejus-work-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
-            #    root-work-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
-            #    #sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+            agenix.nixosModules.default
+            {
+              age.secrets = {
+                motiejus-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
+                root-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
+                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
 
-            #    #syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
-            #    #syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
-            #  };
-            #}
+                #syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
+                #syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
+              };
+            }
           ];
 
           specialArgs = {

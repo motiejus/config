@@ -64,10 +64,8 @@ in
     base.users = {
       enable = true;
       devTools = true;
-      root.initialPassword = "live";
-      user.initialPassword = "live";
-      #root.hashedPasswordFile = config.age.secrets.root-work-passwd-hash.path;
-      #user.hashedPasswordFile = config.age.secrets.motiejus-work-passwd-hash.path;
+      root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
+      user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
     };
 
     services = {
@@ -101,17 +99,17 @@ in
       #  toUser = config.mj.username;
       #};
 
-      #remote-builder.client =
-      #  let
-      #    host = myData.hosts."fra1-b.servers.jakst";
-      #  in
-      #  {
-      #    enable = true;
-      #    inherit (host) system supportedFeatures;
-      #    hostName = host.jakstIP;
-      #    sshKey = "/etc/ssh/ssh_host_ed25519_key";
-      #    maxJobs = 2;
-      #  };
+      remote-builder.client =
+        let
+          host = myData.hosts."fra1-b.servers.jakst";
+        in
+        {
+          enable = true;
+          inherit (host) system supportedFeatures;
+          hostName = host.jakstIP;
+          sshKey = "/etc/ssh/ssh_host_ed25519_key";
+          maxJobs = 2;
+        };
 
       node_exporter = {
         enable = true;
@@ -128,10 +126,10 @@ in
         };
       };
 
-      #postfix = {
-      #  enable = true;
-      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      #};
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
 
       #syncthing = {
       #  enable = true;
