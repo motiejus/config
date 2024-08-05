@@ -14,6 +14,7 @@ let
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
+    "vno1-gdrx".id = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
     "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
@@ -21,6 +22,7 @@ let
   folders = {
     Books = {
       devices = [
+        "vno1-gdrx"
         "fwminex"
         "mxp10"
       ];
@@ -28,12 +30,16 @@ let
       label = "Books";
     };
     Mail = {
-      devices = [ "fwminex" ];
+      devices = [
+        "vno1-gdrx"
+        "fwminex"
+      ];
       id = "66fmz-x6f1a";
       label = "Mail";
     };
     M-Active = {
       devices = [
+        "vno1-gdrx"
         "mxp10"
         "fwminex"
         "mtworx"
@@ -49,7 +55,10 @@ let
       };
     };
     M-Documents = {
-      devices = [ "fwminex" ];
+      devices = [
+        "vno1-gdrx"
+        "fwminex"
+      ];
       id = "4fu7z-z6es2";
       label = "M-Documents";
     };
@@ -57,6 +66,7 @@ let
       devices = [
         "vno1-vinc"
         "sqq1-desk"
+        "vno1-gdrx"
         "fwminex"
         "mtworx"
         "v-kfire"
@@ -70,6 +80,7 @@ let
     M-Camera = {
       devices = [
         "mxp10"
+        "vno1-gdrx"
         "fwminex"
         "mtworx"
       ];
@@ -82,12 +93,16 @@ let
       label = "R-Documents";
     };
     Pictures = {
-      devices = [ "fwminex" ];
+      devices = [
+        "vno1-gdrx"
+        "fwminex"
+      ];
       id = "d3hur-cbzyw";
       label = "Pictures";
     };
     Music = {
       devices = [
+        "vno1-gdrx"
         "fwminex"
         "mtworx"
         "mxp10"
@@ -97,6 +112,7 @@ let
     };
     video-shared = {
       devices = [
+        "vno1-gdrx"
         "mxp10"
         "mtworx"
         "fwminex"
@@ -105,12 +121,16 @@ let
       label = "video-shared";
     };
     stud-cache = {
-      devices = [ "fwminex" ];
+      devices = [
+        "vno1-gdrx"
+        "fwminex"
+      ];
       id = "2kq7n-jqzxj";
       label = "stud-cache";
     };
     M-R = {
       devices = [
+        "vno1-gdrx"
         "fwminex"
         "rzj-744P2PE"
         "mxp10"
@@ -126,6 +146,11 @@ let
       ];
       id = "wuwai-qkcqj";
       label = "Irenos";
+    };
+    www-vno1-gdrx = {
+      devices = [ "vno1-gdrx" ];
+      id = "7z7ao-3hbxi";
+      label = "www-vno1-gdrx";
     };
     www-fwminex = {
       devices = [ "fwminex" ];
@@ -179,8 +204,23 @@ in
       settings = {
         devices =
           { }
+          // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
+            inherit (devices)
+              vno1-gdrx
+              fwminex
+              mtworx
+              mxp10
+              rzj-744P2PE
+              sqq1-desk
+              vno1-vinc
+              vno2-irena
+              v-kfire
+              a-kfire
+              ;
+          })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             inherit (devices)
+              vno1-gdrx
               fwminex
               mtworx
               mxp10
@@ -194,6 +234,7 @@ in
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
+              vno1-gdrx
               mtworx
               fwminex
               vno1-vinc
@@ -235,6 +276,20 @@ in
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/music" = Music;
             "${cfg.dataDir}/www" = www-mtworx;
+          })
+          // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
+            "${cfg.dataDir}/Books" = Books;
+            "${cfg.dataDir}/Mail" = Mail;
+            "${cfg.dataDir}/M-Active" = M-Active;
+            "${cfg.dataDir}/M-Camera" = M-Camera;
+            "${cfg.dataDir}/M-Documents" = M-Documents;
+            "${cfg.dataDir}/Pictures" = Pictures;
+            "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
+            "${cfg.dataDir}/video/shared" = video-shared;
+            "${cfg.dataDir}/video/Vaikai" = Vaikai;
+            "${cfg.dataDir}/music" = Music;
+            "${cfg.dataDir}/www" = www-vno1-gdrx;
           });
       };
     };

@@ -38,6 +38,10 @@ in
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
 ]
+// mk ([ vno1-gdrx ] ++ motiejus) [
+  "secrets/vno1-gdrx/syncthing/key.pem.age"
+  "secrets/vno1-gdrx/syncthing/cert.pem.age"
+]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/motiejus_server_passwd_hash.age"
   "secrets/root_server_passwd_hash.age"

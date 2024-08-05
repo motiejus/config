@@ -203,8 +203,8 @@
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
 
-                #syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
-                #syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
+                syncthing-key.file = ./secrets/vno1-gdrx/syncthing/key.pem.age;
+                syncthing-cert.file = ./secrets/vno1-gdrx/syncthing/cert.pem.age;
               };
             }
           ];

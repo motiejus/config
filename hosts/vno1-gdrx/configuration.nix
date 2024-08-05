@@ -66,9 +66,17 @@ in
 
     services = {
       sshguard.enable = false;
+
       tailscale = {
         enable = true;
         verboseLogs = true;
+      };
+
+      syncthing = {
+        enable = true;
+        dataDir = "/home/motiejus/";
+        user = "motiejus";
+        group = "users";
       };
 
       #btrfssnapshot = {
