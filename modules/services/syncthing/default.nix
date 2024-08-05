@@ -245,7 +245,7 @@ in
           { }
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             "/var/www/dl/tel" = www-mxp10;
-            "/var/www/dl/fwminex" = www-fwminex;
+            "/var/www/dl/www-vno1-gdrx" = www-vno1-gdrx;
             "/var/www/dl/mtworx" = www-mtworx;
             "/var/www/dl/mykolo" = mykolo;
             "${cfg.dataDir}/annex2/Books" = Books;
