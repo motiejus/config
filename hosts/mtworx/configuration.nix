@@ -143,6 +143,14 @@ in
     };
   };
 
+  services.tlp = {
+    enable = true;
+    settings = {
+      START_CHARGE_THRESH_BAT0 = 80;
+      STOP_CHARGE_THRESH_BAT0 = 87;
+    };
+  };
+
   users.extraGroups.vboxusers.members = [ "motiejus" ];
 
   security.tpm2.enable = true;
