@@ -70,7 +70,6 @@ let
         "fwminex"
         "mtworx"
         "v-kfire"
-        "rzj-744P2PE"
         "mxp10"
         "a-kfire"
       ];
