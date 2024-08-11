@@ -140,6 +140,7 @@ let
     };
     Irenos = {
       devices = [
+        "fwminex"
         "sqq1-desk"
         "vno2-irena"
       ];
