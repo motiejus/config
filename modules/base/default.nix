@@ -241,6 +241,7 @@ in
         enable = true;
         package = pkgs.plocate;
         localuser = null;
+        prunePaths = [ "/home/.btrfs" ];
       };
     };
   };
