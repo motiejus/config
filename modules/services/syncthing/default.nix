@@ -156,7 +156,10 @@ let
       label = "www-vno1-gdrx";
     };
     www-mtworx = {
-      devices = [ "mtworx" ];
+      devices = [
+        "mtworx"
+        "fwminex"
+      ];
       id = "7z9sw-aaaa";
       label = "www-mtworx";
     };
