@@ -46,7 +46,6 @@ in
       logind = {
         powerKey = "suspend";
         powerKeyLongPress = "poweroff";
-        lidSwitchExternalPower = "ignore";
       };
 
       printing = {
