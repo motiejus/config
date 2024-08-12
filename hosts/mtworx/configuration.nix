@@ -92,6 +92,12 @@ in
             keep = 24;
             refreshInterval = "*:00:00";
           }
+          {
+            subvolume = "/home";
+            label = "daily";
+            keep = 7;
+            refreshInterval = "daily UTC";
+          }
         ];
       };
 
