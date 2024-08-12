@@ -1,4 +1,9 @@
-{ config, myData, ... }:
+{
+  config,
+  pkgs,
+  myData,
+  ...
+}:
 let
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
 in
@@ -148,6 +153,11 @@ in
 
     };
   };
+
+  environment.systemPackages = with pkgs; [
+    sof-firmware
+    alsa-utils
+  ];
 
   users.extraGroups.vboxusers.members = [ "motiejus" ];
 
