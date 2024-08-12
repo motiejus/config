@@ -52,6 +52,7 @@ in
             "wheel"
             "dialout"
             "video"
+            "audio"
           ] ++ cfg.user.extraGroups;
           uid = myData.uidgid.motiejus;
           openssh.authorizedKeys.keys =
