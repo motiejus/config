@@ -1,4 +1,9 @@
-{ self, modulesPath, ... }:
+{
+  self,
+  pkgs,
+  modulesPath,
+  ...
+}:
 {
   imports = [
     "${modulesPath}/profiles/all-hardware.nix"
@@ -6,7 +11,7 @@
   ];
 
   mj = {
-    stateVersion = "23.11";
+    stateVersion = "24.05";
     timeZone = "UTC";
     username = "nixos";
 
@@ -17,11 +22,14 @@
     };
   };
 
-  boot.loader.systemd-boot.enable = true;
-  boot.supportedFilesystems = [
-    "zfs"
-    "btrfs"
-  ];
+  boot = {
+    loader.systemd-boot.enable = true;
+    kernelPackages = pkgs.zfs.latestCompatibleLinuxPackages;
+    supportedFilesystems = [
+      "zfs"
+      "btrfs"
+    ];
+  };
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
@@ -36,6 +44,7 @@
   services = {
     getty.autologinUser = "nixos";
     xserver.autorun = false;
+    autorandr.enable = true;
   };
 
   security.pam.services.lightdm.text = ''
