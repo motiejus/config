@@ -189,6 +189,7 @@ in
           distrobox
           miniupnpc
           evolution
+          alsa-utils
           shellcheck
           borgbackup
           efibootmgr
