@@ -207,6 +207,7 @@ in
           aspellDicts.lt
           libreoffice-qt
           graphicsmagick
+          magic-wormhole
           signal-desktop
           element-desktop
           netsurf-browser
