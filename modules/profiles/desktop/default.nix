@@ -160,6 +160,7 @@ in
           pandoc
           evince
           okular
+          motion
           gparted
           scribus
           gnumake
@@ -189,6 +190,7 @@ in
           distrobox
           miniupnpc
           evolution
+          v4l-utils
           alsa-utils
           shellcheck
           borgbackup
