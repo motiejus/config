@@ -102,7 +102,13 @@
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
-            overlays = [ (_self: super: { go = super.go_1_23; }) ];
+            overlays = [
+              (_self: super: {
+                go = super.go_1_23;
+                buildGoModule = super.buildGo123Module;
+                buildGoPackage = super.buildGo123Package;
+              })
+            ];
           };
         })
       ];
