@@ -100,7 +100,10 @@
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
 
-          pkgs-unstable = import nixpkgs-unstable { inherit (super) system; };
+          pkgs-unstable = import nixpkgs-unstable {
+            inherit (super) system;
+            overlays = [ (_self: super: { go = super.go_1_23; }) ];
+          };
         })
       ];
 
