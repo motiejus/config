@@ -66,8 +66,8 @@ in
       [ extract_url ]
 
       (lib.mkIf devTools [
-        go_1_22
-        go-tools
+        pkgs-unstable.go_1_23
+        pkgs-unstable.go-tools
         pkgs-unstable.zig_0_13
       ])
 
@@ -143,11 +143,12 @@ in
           plugins = lib.mkMerge [
             [ pkgs.vimPlugins.fugitive ]
             (lib.mkIf devTools [
-              pkgs.vimPlugins.vim-go
-              pkgs.vimPlugins.zig-vim
               pkgs.vimPlugins.fzf-vim
               pkgs.vimPlugins.vim-gh-line
               pkgs.vimPlugins.nvim-lspconfig
+
+              pkgs.pkgs-unstable.vimPlugins.vim-go
+              pkgs.pkgs-unstable.vimPlugins.zig-vim
             ])
           ];
           extraConfig = builtins.readFile ./vimrc;
