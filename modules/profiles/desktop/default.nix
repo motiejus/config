@@ -11,6 +11,8 @@ let
 in
 {
   config = {
+    boot.supportedFilesystems = [ "ntfs" ];
+
     hardware.bluetooth = {
       enable = true;
       powerOnBoot = true;
