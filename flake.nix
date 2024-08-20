@@ -97,8 +97,9 @@
           compressDrv = super.callPackage ./pkgs/compress-drv { };
           compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix { };
 
-          tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
+          tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
+          vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
@@ -375,6 +376,10 @@
         };
 
         formatter = pkgs.nixfmt-rfc-style;
+
+        packages = {
+          inherit (pkgs) vanta-agent nicer tmuxbash;
+        };
       }
     );
 }
