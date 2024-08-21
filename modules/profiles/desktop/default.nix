@@ -198,6 +198,7 @@ in
           borgbackup
           efibootmgr
           virtualenv
+          imagemagick
           ventoy-full
           python3Full
           libva-utils # intel video tests
