@@ -333,7 +333,6 @@
           };
         };
       };
-
       checks = builtins.mapAttrs (
         system: deployLib:
         let
@@ -377,9 +376,18 @@
 
         formatter = pkgs.nixfmt-rfc-style;
 
-        packages = {
-          inherit (pkgs) vanta-agent nicer tmuxbash;
-        };
       }
-    );
+    )
+
+    // {
+      packages.x86_64-linux.vanta-agent =
+        let
+          pkgs = import nixpkgs {
+            inherit overlays;
+            system = "x86_64-linux";
+          };
+        in
+        pkgs.vanta-agent;
+    };
+
 }
