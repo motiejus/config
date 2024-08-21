@@ -202,6 +202,7 @@ in
           imagemagick
           ventoy-full
           python3Full
+          ghostscript
           libva-utils # intel video tests
           pavucontrol
           wirelesstools
