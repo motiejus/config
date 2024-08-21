@@ -186,6 +186,7 @@ in
           gpicview
           imapsync
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
+          tesseract
           trayscale
           man-pages
           rox-filer
