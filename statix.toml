@@ -1,2 +1,0 @@
-ignore = ['modules/base/boot']
-disabled = ["manual_inherit", "manual_inherit_from"]
