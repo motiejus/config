@@ -75,15 +75,18 @@ in
       };
     };
 
-    home-manager.useGlobalPkgs = true;
-    home-manager.users.${config.mj.username} =
-      { pkgs, ... }:
-      import ../../../shared/home {
-        inherit lib;
-        inherit pkgs;
-        inherit (config.mj) stateVersion username;
-        inherit (cfg) devTools email;
-        hmOnly = false;
-      };
+    home-manager = {
+      useGlobalPkgs = true;
+      backupFileExtension = "bk";
+      users.${config.mj.username} =
+        { pkgs, ... }:
+        import ../../../shared/home {
+          inherit lib;
+          inherit pkgs;
+          inherit (config.mj) stateVersion username;
+          inherit (cfg) devTools email;
+          hmOnly = false;
+        };
+    };
   };
 }
