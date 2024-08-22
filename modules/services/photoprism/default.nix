@@ -12,9 +12,9 @@ in
 
   config = lib.mkIf cfg.enable {
     services.photoprism = {
+      inherit (cfg) passwordFile;
       enable = true;
       originalsPath = "/var/cache/photoprism/userdata";
-      passwordFile = cfg.passwordFile;
     };
 
     systemd = {

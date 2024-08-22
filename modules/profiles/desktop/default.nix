@@ -5,7 +5,7 @@
   ...
 }:
 let
-  username = config.mj.username;
+  inherit (config.mj) username;
   firefox =
     if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
 in

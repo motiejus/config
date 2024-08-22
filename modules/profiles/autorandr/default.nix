@@ -38,11 +38,11 @@ in
         };
         config = {
           eDP-1 = {
+            inherit (eDP-1.${config.networking.hostName}) mode;
             enable = true;
             primary = true;
             crtc = 0;
             position = "0x0";
-            mode = eDP-1.${config.networking.hostName}.mode;
           };
         };
       };
@@ -76,10 +76,10 @@ in
             position = "1920x0";
           };
           eDP-1 = {
+            inherit (eDP-1.${config.networking.hostName}) mode;
             enable = true;
             crtc = 1;
             position = "0x480";
-            mode = eDP-1.${config.networking.hostName}.mode;
           };
         };
       };
