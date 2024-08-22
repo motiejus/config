@@ -171,6 +171,7 @@ in
           neomutt
           picocom
           inferno
+          libheif
           inkscape
           chromium
           hunspell

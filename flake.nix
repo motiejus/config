@@ -94,9 +94,6 @@
           deploy-rs-pkg = null;
         })
         (_: super: {
-          compressDrv = super.callPackage ./pkgs/compress-drv { };
-          compressDrvWeb = super.callPackage ./pkgs/compress-drv/web.nix { };
-
           nicer = super.callPackage ./pkgs/nicer.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
@@ -351,8 +348,6 @@
               statix.enable = true;
             };
           };
-
-          compress-drv-test = pkgs.callPackage ./pkgs/compress-drv/test.nix { };
         }
       ) deploy-rs.lib;
     }
