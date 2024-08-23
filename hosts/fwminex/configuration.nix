@@ -247,6 +247,9 @@ in
           header Strict-Transport-Security "max-age=31536000"
           header Content-Security-Policy "default-src 'self'"
           header X-Content-Type-Options "nosniff"
+          header Content-Security-Policy: "frame-ancestors 'none'"
+          header X-Frame-Options: "DENY"
+
 
           header /_/* Cache-Control "public, max-age=31536000, immutable"
 
