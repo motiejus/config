@@ -245,6 +245,7 @@ in
         '';
         "jakstys.lt".extraConfig = ''
           header Strict-Transport-Security "max-age=31536000"
+          Content-Security-Policy: default-src 'self'
 
           header /_/* Cache-Control "public, max-age=31536000, immutable"
 
