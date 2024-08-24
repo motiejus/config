@@ -132,6 +132,7 @@ in
             pwgen
             below # tracking cgroups
             mdadm
+            spiped
             parted
             bloaty
             dhcpcd
