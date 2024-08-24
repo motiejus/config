@@ -233,7 +233,7 @@ in
 
             root * ${gamja}
             file_server browse {
-                precompressed br gzip
+                precompressed zstd br gzip
             }
           '';
         "dl.jakstys.lt".extraConfig = ''
@@ -255,7 +255,7 @@ in
 
           root * /var/www/jakstys.lt
           file_server {
-            precompressed br gzip
+            precompressed zstd br gzip
           }
 
           handle /.well-known/carddav {

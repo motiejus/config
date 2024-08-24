@@ -82,7 +82,7 @@
             uri strip_prefix /static
             file_server * {
               root ${pkgs.pkgs-unstable.compressDrvWeb pkgs.gitea.data { }}/public
-              precompressed br gzip
+              precompressed zstd br gzip
             }
           }
 
