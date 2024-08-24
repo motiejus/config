@@ -86,10 +86,11 @@
           }
 
           header {
-            Strict-Transport-Security "max-age=2592000"
-            Content-Security-Policy "default-src 'self'"
+            Strict-Transport-Security "max-age=15768000"
+
+            # https://github.com/go-gitea/gitea/issues/305#issuecomment-1049290764
+            Content-Security-Policy "default-src 'none'; connect-src 'self'; font-src 'self' data:; form-action 'self'; img-src 'self' https://ga-beacon.appspot.com https://raw.githubusercontent.com https://secure.gravatar.com https://sourcethemes.com; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self';"
             X-Content-Type-Options "nosniff"
-            Content-Security-Policy "frame-ancestors 'none'"
             X-Frame-Options "DENY"
           }
 

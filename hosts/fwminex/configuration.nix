@@ -245,10 +245,9 @@ in
         '';
         "jakstys.lt".extraConfig = ''
           header {
-            Strict-Transport-Security "max-age=2592000"
+            Strict-Transport-Security "max-age=15768000"
             Content-Security-Policy "default-src 'self'"
             X-Content-Type-Options "nosniff"
-            Content-Security-Policy "frame-ancestors 'none'"
             X-Frame-Options "DENY"
 
             /_/* Cache-Control "public, max-age=31536000, immutable"
