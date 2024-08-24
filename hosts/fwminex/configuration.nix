@@ -364,6 +364,7 @@ in
 
     services = {
       sshguard.enable = true;
+      ssh8022.enable = true;
       gitea.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;

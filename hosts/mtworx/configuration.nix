@@ -81,6 +81,8 @@ in
 
     services = {
       sshguard.enable = false;
+      ssh8022.enable = true;
+
       tailscale = {
         enable = true;
         verboseLogs = true;
