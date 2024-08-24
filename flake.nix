@@ -152,6 +152,11 @@
 
                 syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
+
+                ssh8022 = {
+                  file = ./secrets/ssh8022.age;
+                  owner = "motiejus";
+                };
               };
             }
           ];
@@ -186,6 +191,11 @@
                 synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
                 syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
+
+                ssh8022 = {
+                  file = ./secrets/ssh8022.age;
+                  owner = "motiejus";
+                };
               };
             }
           ];
