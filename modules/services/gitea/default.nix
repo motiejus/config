@@ -85,6 +85,14 @@
             }
           }
 
+          header {
+            Strict-Transport-Security "max-age=2592000"
+            Content-Security-Policy "default-src 'self'"
+            X-Content-Type-Options "nosniff"
+            Content-Security-Policy "frame-ancestors 'none'"
+            X-Frame-Options "DENY"
+          }
+
           reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
         '';
       };
