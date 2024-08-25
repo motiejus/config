@@ -40,7 +40,7 @@
             ssh8022 = {
               inherit (cfg) keyfile;
               decrypt = true;
-              source = "*:8022";
+              source = "[0.0.0.0]:8022";
               target = "127.0.0.1:22";
             };
           };
