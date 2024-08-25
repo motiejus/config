@@ -10,6 +10,12 @@ in
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
+  age.secrets.ssh8022-server = {
+    file = ../../secrets/ssh8022.age;
+    owner = "spiped";
+    path = "/var/lib/spiped/ssh8022.key";
+  };
+
   boot = {
     loader.systemd-boot.enable = true;
     initrd = {
@@ -66,6 +72,11 @@ in
       node_exporter.enable = true;
       sshguard.enable = true;
       tailscale.enable = true;
+
+      ssh8022.server = {
+        enable = true;
+        keyfile = config.age.secrets.ssh8022-server.path;
+      };
 
       remote-builder.server = {
         enable = true;

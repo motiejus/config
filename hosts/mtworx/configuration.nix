@@ -18,7 +18,7 @@ in
 
   age.secrets.ssh8022-client = {
     file = ../../secrets/ssh8022.age;
-    owner = "motiejus";
+    mode = "444";
   };
 
   boot = {
@@ -89,7 +89,6 @@ in
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;
-
       };
 
       tailscale = {

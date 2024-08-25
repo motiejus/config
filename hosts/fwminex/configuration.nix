@@ -373,6 +373,7 @@ in
       gitea.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
+
       ssh8022.server = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-server.path;
