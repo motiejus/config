@@ -13,6 +13,12 @@ in
     ../../modules/profiles/btrfs
   ];
 
+  age.secrets.ssh8022-server = {
+    file = ../../secrets/ssh8022.age;
+    owner = "spiped";
+    path = "/var/lib/spiped/ssh8022.key";
+  };
+
   boot = {
     kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
@@ -364,10 +370,13 @@ in
 
     services = {
       sshguard.enable = true;
-      ssh8022.enable = true;
       gitea.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
+      ssh8022.server = {
+        enable = true;
+        keyfile = config.age.secrets.ssh8022-server.path;
+      };
 
       vaultwarden = {
         enable = true;

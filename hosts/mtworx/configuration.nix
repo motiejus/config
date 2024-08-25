@@ -16,6 +16,11 @@ in
     ../../modules/profiles/btrfs
   ];
 
+  age.secrets.ssh8022-client = {
+    file = ../../secrets/ssh8022.age;
+    owner = "motiejus";
+  };
+
   boot = {
     kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
@@ -81,7 +86,11 @@ in
 
     services = {
       sshguard.enable = false;
-      ssh8022.enable = true;
+      ssh8022.client = {
+        enable = true;
+        keyfile = config.age.secrets.ssh8022-client.path;
+
+      };
 
       tailscale = {
         enable = true;

@@ -152,11 +152,6 @@
 
                 syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
-
-                ssh8022 = {
-                  file = ./secrets/ssh8022.age;
-                  owner = "motiejus";
-                };
               };
             }
           ];
@@ -191,11 +186,6 @@
                 synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
                 syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
-
-                ssh8022 = {
-                  file = ./secrets/ssh8022.age;
-                  owner = "motiejus";
-                };
               };
             }
           ];
@@ -222,11 +212,6 @@
 
                 syncthing-key.file = ./secrets/vno1-gdrx/syncthing/key.pem.age;
                 syncthing-cert.file = ./secrets/vno1-gdrx/syncthing/cert.pem.age;
-
-                ssh8022 = {
-                  file = ./secrets/ssh8022.age;
-                  owner = "motiejus";
-                };
               };
             }
           ];
@@ -254,11 +239,6 @@
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
 
                 datapool-passphrase.file = ./secrets/vno3-rp3b/datapool-passphrase.age;
-
-                ssh8022 = {
-                  file = ./secrets/ssh8022.age;
-                  owner = "motiejus";
-                };
               };
             }
           ];
@@ -284,10 +264,6 @@
                 root-passwd-hash.file = ./secrets/root_passwd_hash.age;
                 sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
 
-                ssh8022 = {
-                  file = ./secrets/ssh8022.age;
-                  owner = "motiejus";
-                };
               };
             }
           ];
