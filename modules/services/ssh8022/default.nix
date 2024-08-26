@@ -46,6 +46,10 @@
           };
         };
         networking.firewall.allowedTCPPorts = [ myData.ports.ssh8022 ];
+        systemd.services."spiped@ssh8022" = {
+          wantedBy = [ "multi-user.target" ];
+          overrideStrategy = "asDropin";
+        };
       }
     )
   ];
