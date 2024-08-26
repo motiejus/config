@@ -23,6 +23,10 @@
           ] (_: null);
         in
         lib.mapAttrs (_name: builtins.intersectAttrs sshAttrs) myData.hosts;
+      extraConfig = ''
+        Host git.jakstys.lt
+          HostName ${myData.hosts."fwminex.servers.jakst".jakstIP}
+      '';
     };
   };
 }

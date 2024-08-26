@@ -25,7 +25,7 @@
       lib.mkIf cfg.enable {
         programs.ssh.extraConfig = ''
           Host dl.jakstys.lt fra1-b.jakstys.lt
-          ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${cfg.keyfile}
+            ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${cfg.keyfile}
         '';
       }
     )
