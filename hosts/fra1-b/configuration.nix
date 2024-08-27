@@ -75,6 +75,7 @@ in
       ssh8022.server = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-server.path;
+        openGlobalFirewall = false;
       };
 
       remote-builder.server = {

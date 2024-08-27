@@ -14,6 +14,10 @@
     server = {
       enable = lib.mkEnableOption "Enable ssh8022 server";
       keyfile = lib.mkOption { type = str; };
+      openGlobalFirewall = lib.mkOption {
+        type = bool;
+        default = true;
+      };
     };
   };
 
@@ -35,7 +39,7 @@
       in
       lib.mkIf cfg.enable {
 
-        mj.services.friendlyport.ports = [
+        mj.services.friendlyport.ports = lib.mkIf (!cfg.openGlobalFirewall) [
           {
             subnets = [ myData.subnets.tailscale.cidr ];
             tcp = [ 22 ];
@@ -43,7 +47,7 @@
         ];
 
         services = {
-          openssh.openFirewall = false;
+          openssh.openFirewall = cfg.openGlobalFirewall;
 
           spiped = {
             enable = true;
