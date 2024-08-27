@@ -187,21 +187,9 @@
           modules = [
             { nixpkgs.overlays = overlays; }
             ./hosts/vno3-rp3b/configuration.nix
-
             ./modules
-
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
-
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-
-                datapool-passphrase.file = ./secrets/vno3-rp3b/datapool-passphrase.age;
-              };
-            }
           ];
 
           specialArgs = {

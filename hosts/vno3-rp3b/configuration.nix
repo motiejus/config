@@ -10,6 +10,14 @@
 {
   imports = [ ../../modules/profiles/sdcard ];
 
+  age.secrets = {
+    motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
+    root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
+    sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
+
+    datapool-passphrase.file = ../../secrets/vno3-rp3b/datapool-passphrase.age;
+  };
+
   boot = {
     initrd = {
       availableKernelModules = [ "usbhid" ];
