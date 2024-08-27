@@ -142,18 +142,7 @@
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
             nix-index-database.nixosModules.nix-index
-
             agenix.nixosModules.default
-            {
-              age.secrets = {
-                motiejus-work-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
-                root-work-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-
-                syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
-                syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
-              };
-            }
           ];
 
           specialArgs = {
@@ -170,24 +159,6 @@
             nixos-hardware.nixosModules.framework-12th-gen-intel
 
             agenix.nixosModules.default
-            {
-              age.secrets = {
-                motiejus-server-passwd-hash.file = ./secrets/motiejus_server_passwd_hash.age;
-                root-server-passwd-hash.file = ./secrets/root_server_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-                headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
-                borgbackup-password.file = ./secrets/fwminex/borgbackup-password.age;
-                grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
-                letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
-                vaultwarden-secrets-env.file = ./secrets/vaultwarden/secrets.env.age;
-                photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
-                synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
-                synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
-                synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
-                syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
-                syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
-              };
-            }
           ];
 
           specialArgs = {
@@ -204,16 +175,6 @@
             nix-index-database.nixosModules.nix-index
 
             agenix.nixosModules.default
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-
-                syncthing-key.file = ./secrets/vno1-gdrx/syncthing/key.pem.age;
-                syncthing-cert.file = ./secrets/vno1-gdrx/syncthing/cert.pem.age;
-              };
-            }
           ];
 
           specialArgs = {
@@ -254,18 +215,8 @@
             { nixpkgs.overlays = overlays; }
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
-
             ./hosts/fra1-b/configuration.nix
             ./modules
-
-            {
-              age.secrets = {
-                motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
-                root-passwd-hash.file = ./secrets/root_passwd_hash.age;
-                sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
-
-              };
-            }
           ];
 
           specialArgs = {

@@ -10,10 +10,16 @@ in
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
-  age.secrets.ssh8022-server = {
-    file = ../../secrets/ssh8022.age;
-    owner = "spiped";
-    path = "/var/lib/spiped/ssh8022.key";
+  age.secrets = {
+    motiejus-passwd-hash.file = ./secrets/motiejus_passwd_hash.age;
+    root-passwd-hash.file = ./secrets/root_passwd_hash.age;
+    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+    ssh8022-server = {
+      file = ../../secrets/ssh8022.age;
+      owner = "spiped";
+      path = "/var/lib/spiped/ssh8022.key";
+    };
+
   };
 
   boot = {

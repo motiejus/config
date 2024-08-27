@@ -16,9 +16,18 @@ in
     ../../modules/profiles/btrfs
   ];
 
-  age.secrets.ssh8022-client = {
-    file = ../../secrets/ssh8022.age;
-    mode = "444";
+  age.secrets = {
+    motiejus-work-passwd-hash.file = ./secrets/motiejus_work_passwd_hash.age;
+    root-work-passwd-hash.file = ./secrets/root_work_passwd_hash.age;
+    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+
+    syncthing-key.file = ./secrets/mtworx/syncthing/key.pem.age;
+    syncthing-cert.file = ./secrets/mtworx/syncthing/cert.pem.age;
+
+    ssh8022-client = {
+      file = ../../secrets/ssh8022.age;
+      mode = "444";
+    };
   };
 
   boot = {

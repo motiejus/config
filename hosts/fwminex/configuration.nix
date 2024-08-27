@@ -13,10 +13,27 @@ in
     ../../modules/profiles/btrfs
   ];
 
-  age.secrets.ssh8022-server = {
-    file = ../../secrets/ssh8022.age;
-    owner = "spiped";
-    path = "/var/lib/spiped/ssh8022.key";
+  age.secrets = {
+    motiejus-server-passwd-hash.file = ./secrets/motiejus_server_passwd_hash.age;
+    root-server-passwd-hash.file = ./secrets/root_server_passwd_hash.age;
+    sasl-passwd.file = ./secrets/postfix_sasl_passwd.age;
+    headscale-client-oidc.file = ./secrets/headscale/oidc_client_secret2.age;
+    borgbackup-password.file = ./secrets/fwminex/borgbackup-password.age;
+    grafana-oidc.file = ./secrets/grafana.jakstys.lt/oidc.age;
+    letsencrypt-account-key.file = ./secrets/letsencrypt/account.key.age;
+    vaultwarden-secrets-env.file = ./secrets/vaultwarden/secrets.env.age;
+    photoprism-admin-passwd.file = ./secrets/photoprism/admin_password.age;
+    synapse-jakstys-signing-key.file = ./secrets/synapse/jakstys_lt_signing_key.age;
+    synapse-registration-shared-secret.file = ./secrets/synapse/registration_shared_secret.age;
+    synapse-macaroon-secret-key.file = ./secrets/synapse/macaroon_secret_key.age;
+    syncthing-key.file = ./secrets/fwminex/syncthing/key.pem.age;
+    syncthing-cert.file = ./secrets/fwminex/syncthing/cert.pem.age;
+
+    ssh8022-server = {
+      file = ../../secrets/ssh8022.age;
+      owner = "spiped";
+      path = "/var/lib/spiped/ssh8022.key";
+    };
   };
 
   boot = {
