@@ -14,13 +14,17 @@ in
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    borgbackup-fwminex.file = ../../secrets/fwminex/borgbackup-password.age;
     syncthing-key.file = ../../secrets/vno1-gdrx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/vno1-gdrx/syncthing/cert.pem.age;
 
     ssh8022-client = {
       file = ../../secrets/ssh8022.age;
       mode = "444";
+    };
+
+    borgbackup-fwminex = {
+      file = ../../secrets/fwminex/borgbackup-password.age;
+      owner = "motiejus";
     };
   };
 
