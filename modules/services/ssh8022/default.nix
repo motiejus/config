@@ -34,14 +34,26 @@
         cfg = config.mj.services.ssh8022.server;
       in
       lib.mkIf cfg.enable {
-        services.spiped = {
-          enable = true;
-          config = {
-            ssh8022 = {
-              inherit (cfg) keyfile;
-              decrypt = true;
-              source = "[0.0.0.0]:8022";
-              target = "127.0.0.1:22";
+
+        mj.services.friendlyport.ports = [
+          {
+            subnets = [ myData.subnets.tailscale.cidr ];
+            tcp = [ 22 ];
+          }
+        ];
+
+        services = {
+          openssh.openFirewall = false;
+
+          spiped = {
+            enable = true;
+            config = {
+              ssh8022 = {
+                inherit (cfg) keyfile;
+                decrypt = true;
+                source = "[0.0.0.0]:8022";
+                target = "127.0.0.1:22";
+              };
             };
           };
         };

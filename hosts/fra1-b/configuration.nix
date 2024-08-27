@@ -70,7 +70,6 @@ in
 
     services = {
       node_exporter.enable = true;
-      sshguard.enable = true;
       tailscale.enable = true;
 
       ssh8022.server = {
@@ -127,10 +126,7 @@ in
     useDHCP = true;
     firewall = {
       allowedUDPPorts = [ 53 ];
-      allowedTCPPorts = [
-        22
-        53
-      ];
+      allowedTCPPorts = [ 53 ];
     };
   };
 
