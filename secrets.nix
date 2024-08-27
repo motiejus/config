@@ -57,10 +57,16 @@ in
   "secrets/synapse/registration_shared_secret.age"
   "secrets/synapse/macaroon_secret_key.age"
 
-  "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
 ]
+// mk (
+  [
+    fwminex
+    vno1-gdrx
+  ]
+  ++ motiejus
+) [ "secrets/fwminex/borgbackup-password.age" ]
 // mk (systems ++ motiejus) [
   "secrets/motiejus_passwd_hash.age"
   "secrets/root_passwd_hash.age"
