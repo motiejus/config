@@ -163,6 +163,7 @@ in
           evince
           okular
           motion
+          calibre
           gparted
           scribus
           gnumake
