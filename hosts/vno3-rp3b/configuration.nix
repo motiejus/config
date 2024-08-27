@@ -78,7 +78,6 @@
     services = {
       tailscale.enable = true;
       node_exporter.enable = true;
-      sshguard.enable = true;
 
       borgstor = {
         enable = true;

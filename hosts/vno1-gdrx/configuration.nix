@@ -70,8 +70,6 @@ in
     };
 
     services = {
-      sshguard.enable = false;
-
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;

@@ -19,7 +19,6 @@
     ./postfix
     ./remote-builder
     ./ssh8022
-    ./sshguard
     ./syncthing
     ./syncthing-relay
     ./tailscale

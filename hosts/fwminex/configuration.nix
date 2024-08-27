@@ -369,7 +369,6 @@ in
     };
 
     services = {
-      sshguard.enable = true;
       gitea.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
