@@ -32,6 +32,7 @@ in
     kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
     initrd = {
+      systemd.enable = true;
       availableKernelModules = [
         "xhci_pci"
         "thunderbolt"
