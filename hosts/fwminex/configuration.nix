@@ -40,6 +40,7 @@ in
     kernelModules = [ "kvm-intel" ];
     loader.systemd-boot.enable = true;
     initrd = {
+      systemd.enable = true;
       kernelModules = [ "usb_storage" ];
       availableKernelModules = [
         "xhci_pci"
@@ -48,21 +49,14 @@ in
         "usbhid"
         "tpm_tis"
       ];
-      systemd.enableTpm2 = true;
       luks.devices = {
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
-          #crypttabExtraOpts = ["tpm2-device=auto"];
-          keyFileOffset = 9728;
-          keyFileSize = 512;
-          keyFile = "/dev/sda";
         };
       };
     };
   };
-
-  security.tpm2.enable = true;
 
   swapDevices = [
     {
