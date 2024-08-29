@@ -9,6 +9,7 @@
     #concurrently
     bats
     unzip
+    zoom-us
     mysql80
     kubectl
     kubectx
