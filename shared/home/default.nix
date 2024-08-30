@@ -169,10 +169,11 @@ in
         userName = "Motiejus Jakštys";
         aliases.yolo = "commit --amend --no-edit -a";
         extraConfig = {
-          rerere.enabled = true;
+          log.date = "iso-strict-local";
           pull.ff = "only";
-          merge.conflictstyle = "zdiff3";
           init.defaultBranch = "main";
+          merge.conflictstyle = "zdiff3";
+          rerere.enabled = true;
         };
       };
 
