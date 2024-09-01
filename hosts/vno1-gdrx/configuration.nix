@@ -1,4 +1,9 @@
-{ config, myData, ... }:
+{
+  config,
+  myData,
+  pkgs,
+  ...
+}:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NX0TA00913P";
 in
@@ -166,6 +171,8 @@ in
 
     };
   };
+
+  environment.systemPackages = with pkgs; [ librecad ];
 
   networking = {
     hostName = "vno1-gdrx";
