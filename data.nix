@@ -200,17 +200,17 @@ rec {
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                               TXT    hosted-email-verify=rvyd6h64
-      @                                MX    10 aspmx1.migadu.com.
-      @                                MX    20 aspmx2.migadu.com.
-      *                                MX    10 aspmx1.migadu.com.
-      *                                MX    20 aspmx2.migadu.com.
+      @                          600   MX    10 aspmx1.migadu.com.
+      @                          600   MX    20 aspmx2.migadu.com.
+      *                          600   MX    10 aspmx1.migadu.com.
+      *                          600   MX    20 aspmx2.migadu.com.
       key1._domainkey               CNAME    key1.jakstys.lt._domainkey.migadu.com.
       key2._domainkey               CNAME    key2.jakstys.lt._domainkey.migadu.com.
       key3._domainkey               CNAME    key3.jakstys.lt._domainkey.migadu.com.
       @                               TXT    "v=spf1 include:spf.migadu.com -all"
       _dmarc                          TXT    "v=DMARC1; p=quarantine;"
-      *                                MX    10 aspmx1.migadu.com.
-      *                                MX    20 aspmx2.migadu.com.
+      *                          600   MX    10 aspmx1.migadu.com.
+      *                          600   MX    20 aspmx2.migadu.com.
       autoconfig                    CNAME    autoconfig.migadu.com.
       _autodiscover._tcp              SRV    0 1 443 autodiscover.migadu.com.
       _submissions._tcp               SRV    0 1 465 smtp.migadu.com.
