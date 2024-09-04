@@ -95,6 +95,7 @@
         })
         (_: super: {
           nicer = super.callPackage ./pkgs/nicer.nix { };
+          imapsync = super.callPackage ./pkgs/imapsync.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
 
