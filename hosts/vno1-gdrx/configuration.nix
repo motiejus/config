@@ -172,7 +172,7 @@ in
     };
   };
 
-  environment.systemPackages = with pkgs; [ librecad ];
+  environment.systemPackages = with pkgs; [ thunderbird ];
 
   networking = {
     hostName = "vno1-gdrx";

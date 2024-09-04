@@ -188,6 +188,7 @@ in
           powertop
           gpicview
           imapsync
+          librecad
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           tesseract
           trayscale
