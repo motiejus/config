@@ -155,6 +155,7 @@ in
             parallel
             yamllint
             binutils
+            dos2unix
             patchelf
             compsize # compression ratio on btrfs
             hyperfine
