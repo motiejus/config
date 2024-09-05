@@ -198,11 +198,13 @@ in
 
             # compression/decompression
             xz
+            rar
+            unrar
             pigz
             zstd
+            p7zip # TODO: p7zip-rar in 24.11+
             zopfli
             brotli
-            p7zip-rar
 
             config.boot.kernelPackages.cpupower
             config.boot.kernelPackages.vm-tools
