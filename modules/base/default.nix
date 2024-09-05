@@ -200,9 +200,9 @@ in
             xz
             pigz
             zstd
-            p7zip
             zopfli
             brotli
+            p7zip-rar
 
             config.boot.kernelPackages.cpupower
             config.boot.kernelPackages.vm-tools
