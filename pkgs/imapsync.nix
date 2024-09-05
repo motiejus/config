@@ -7,13 +7,13 @@
   stdenv,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "imapsync";
   version = "2.290";
 
   src = fetchurl {
-    url = "https://imapsync.lamiral.info/dist/old_releases/2.290/imapsync-${version}.tgz";
-    sha256 = "sha256-uFhTxnaUDP793isfpF/7T8d4AnXDL4uN6zU8igY+EFE=";
+    url = "https://imapsync.lamiral.info/dist/old_releases/${finalAttrs.version}/imapsync-${finalAttrs.version}.tgz";
+    hash = "sha256-uFhTxnaUDP793isfpF/7T8d4AnXDL4uN6zU8igY+EFE=";
   };
 
   postPatch = ''
@@ -73,4 +73,4 @@ stdenv.mkDerivation rec {
     ];
     platforms = platforms.unix;
   };
-}
+})
