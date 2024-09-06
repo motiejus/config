@@ -211,6 +211,7 @@ in
         keyMode = "vi";
         historyLimit = 1000000;
         extraConfig = ''
+          bind  k  clear-history
           bind  c  new-window      -c "#{pane_current_path}"
           bind  %  split-window -h -c "#{pane_current_path}"
           bind '"' split-window -v -c "#{pane_current_path}"
