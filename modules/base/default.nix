@@ -198,7 +198,6 @@ in
 
             # compression/decompression
             xz
-            rar
             unrar
             pigz
             zstd
