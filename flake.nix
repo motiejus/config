@@ -273,20 +273,14 @@
       };
       checks = builtins.mapAttrs (
         system: deployLib:
-        let
-          pkgs = import nixpkgs { inherit system overlays; };
-        in
         deployLib.deployChecks self.deploy
         // {
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
-              nixfmt = {
-                enable = true;
-                package = pkgs.nixfmt-rfc-style;
-              };
-              deadnix.enable = true;
               statix.enable = true;
+              deadnix.enable = true;
+              nixfmt-rfc-style.enable = true;
             };
           };
         }
