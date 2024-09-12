@@ -200,22 +200,22 @@ rec {
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                               TXT    hosted-email-verify=rvyd6h64
-      @                          600   MX    10 aspmx1.migadu.com.
-      @                          600   MX    20 aspmx2.migadu.com.
-      *                          600   MX    10 aspmx1.migadu.com.
-      *                          600   MX    20 aspmx2.migadu.com.
-      key1._domainkey               CNAME    key1.jakstys.lt._domainkey.migadu.com.
-      key2._domainkey               CNAME    key2.jakstys.lt._domainkey.migadu.com.
-      key3._domainkey               CNAME    key3.jakstys.lt._domainkey.migadu.com.
-      @                               TXT    "v=spf1 include:spf.migadu.com -all"
-      _dmarc                          TXT    "v=DMARC1; p=quarantine;"
-      *                          600   MX    10 aspmx1.migadu.com.
-      *                          600   MX    20 aspmx2.migadu.com.
-      autoconfig                    CNAME    autoconfig.migadu.com.
-      _autodiscover._tcp              SRV    0 1 443 autodiscover.migadu.com.
-      _submissions._tcp               SRV    0 1 465 smtp.migadu.com.
-      _imaps._tcp                     SRV    0 1 993 imap.migadu.com.
-      _pop3s._tcp                     SRV    0 1 995 imap.migadu.com.
+      @                         600    MX    10 aspmx1.migadu.com.
+      @                         600    MX    20 aspmx2.migadu.com.
+      *                         600    MX    10 aspmx1.migadu.com.
+      *                         600    MX    20 aspmx2.migadu.com.
+      key1._domainkey           600 CNAME    key1.jakstys.lt._domainkey.migadu.com.
+      key2._domainkey           600 CNAME    key2.jakstys.lt._domainkey.migadu.com.
+      key3._domainkey           600 CNAME    key3.jakstys.lt._domainkey.migadu.com.
+      @                         600   TXT    "v=spf1 include:spf.migadu.com -all"
+      _dmarc                    600   TXT    "v=DMARC1; p=quarantine;"
+      *                         600    MX    10 aspmx1.migadu.com.
+      *                         600    MX    20 aspmx2.migadu.com.
+      autoconfig                600 CNAME    autoconfig.migadu.com.
+      _autodiscover._tcp        600   SRV    0 1 443 autodiscover.migadu.com.
+      _submissions._tcp         600   SRV    0 1 465 smtp.migadu.com.
+      _imaps._tcp               600   SRV    0 1 993 imap.migadu.com.
+      _pop3s._tcp               600   SRV    0 1 995 imap.migadu.com.
 
       grafana                             A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
