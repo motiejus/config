@@ -61,7 +61,6 @@ in
             requires_auth = false;
             filter = {
               include_entity_globs = [
-                "weather.*"
                 "media_player.*"
                 "sensor.hp_color_laser*"
 
