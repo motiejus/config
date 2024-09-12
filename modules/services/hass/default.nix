@@ -59,16 +59,6 @@ in
           prometheus = {
             namespace = "hass";
             requires_auth = false;
-            filter = {
-              include_entity_globs = [
-                "media_player.*"
-                "sensor.hp_color_laser*"
-
-                "sensor.daikin*"
-                "switch.daikin*"
-                "climate.daikin*"
-              ];
-            };
           };
 
           # requires a restore from backup
