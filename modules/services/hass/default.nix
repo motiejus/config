@@ -36,6 +36,7 @@ in
           "webostv"
           "daikin"
           "ipp"
+          "prometheus"
         ];
         config = {
           default_config = { };
@@ -54,6 +55,20 @@ in
           };
 
           wake_on_lan = { };
+
+          prometheus = {
+            namespace = "hass";
+            filter = {
+              include_entity_globs = [
+                "media_player.*"
+                "sensor.hp_color_laser*"
+
+                "sensor.daikin*"
+                "switch.daikin*"
+                "climate.daikin*"
+              ];
+            };
+          };
 
           # requires a restore from backup
           "automation ui" = "!include automations.yaml";
