@@ -58,6 +58,7 @@ in
 
           prometheus = {
             namespace = "hass";
+            requires_auth = false;
             filter = {
               include_entity_globs = [
                 "media_player.*"
