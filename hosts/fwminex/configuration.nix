@@ -340,6 +340,11 @@ in
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
           }
           {
+            job_name = "hass_p7_50";
+            metrics_path = "/api/prometheus";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.hass}" ]; } ];
+          }
+          {
             job_name = "vno1-vinc.vincentas.jakst";
             static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
           }
