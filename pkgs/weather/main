@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATION=vilniaus-ams
+TODAY=${1:-$(date +%F)}
+
+export TZ=UTC
+cat <<EOF
+HTTP/1.0 200 OK
+Content-Type: text/plain; version=0.0.4; charset=utf-8; escaping=values
+
+EOF
+
+get() { jq -r ".$1 // 0" <<< "$2"; }
+
+while IFS= read -r obs; do
+    #{
+    #  "observationTimeUtc": "2024-09-13 12:00:00",
+    #  "airTemperature": 20.9,
+    #  "feelsLikeTemperature": 20.9,
+    #  "windSpeed": 1.4,
+    #  "windGust": 5.7,
+    #  "windDirection": 103,
+    #  "cloudCover": 88,
+    #  "seaLevelPressure": 1010.3,
+    #  "relativeHumidity": 82,
+    #  "precipitation": 0,
+    #  "conditionCode": "rain"
+    #}
+    ts=$(date +%s000 --date="$(get observationTimeUtc "$obs")")
+    cat <<EOF
+weather_station_air_temperature_celsius{station="$STATION"} $(get airTemperature "$obs") $ts
+weather_station_air_feels_like_celsius{station="$STATION"} $(get feelsLikeTemperature "$obs") $ts
+weather_station_wind_speed_ms{station="$STATION"} $(get windSpeed "$obs") $ts
+weather_station_wind_gust_ms{station="$STATION"} $(get windGust "$obs") $ts
+weather_station_wind_direction_degrees{station="$STATION"} $(get windDirection "$obs") $ts
+weather_station_cloud_cover_percent{station="$STATION"} $(get cloudCover "$obs") $ts
+weather_station_sea_level_pressure_hpa{station="$STATION"} $(get seaLevelPressure "$obs") $ts
+weather_station_relative_humidity_percent{station="$STATION"} $(get relativeHumidity "$obs") $ts
+weather_station_precipitation_mm{station="$STATION"} $(get precipitation "$obs") $ts
+weather_station_condition{station="$STATION",code="$(get conditionCode "$obs")"} 1 $ts
+EOF
+done < <(curl -f -s "https://api.meteo.lt/v1/stations/$STATION/observations/$TODAY" | jq -c '.observations[]')
