@@ -203,22 +203,14 @@ rec {
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                               TXT    hosted-email-verify=rvyd6h64
-      @                         600    MX    10 aspmx1.migadu.com.
-      @                         600    MX    20 aspmx2.migadu.com.
-      *                         600    MX    10 aspmx1.migadu.com.
-      *                         600    MX    20 aspmx2.migadu.com.
-      key1._domainkey           600 CNAME    key1.jakstys.lt._domainkey.migadu.com.
-      key2._domainkey           600 CNAME    key2.jakstys.lt._domainkey.migadu.com.
-      key3._domainkey           600 CNAME    key3.jakstys.lt._domainkey.migadu.com.
-      @                         600   TXT    "v=spf1 include:spf.migadu.com -all"
-      _dmarc                    600   TXT    "v=DMARC1; p=quarantine;"
-      *                         600    MX    10 aspmx1.migadu.com.
-      *                         600    MX    20 aspmx2.migadu.com.
-      autoconfig                600 CNAME    autoconfig.migadu.com.
-      _autodiscover._tcp        600   SRV    0 1 443 autodiscover.migadu.com.
-      _submissions._tcp         600   SRV    0 1 465 smtp.migadu.com.
-      _imaps._tcp               600   SRV    0 1 993 imap.migadu.com.
-      _pop3s._tcp               600   SRV    0 1 995 imap.migadu.com.
+      @                          600   MX    10 smtp.google.com.
+      _submission._tcp           600  SRV    0 1 587 smtp.gmail.com.
+      _imaps._tcp                600  SRV    0 1 993 imap.gmail.com.
+      _pop3s._tcp                600  SRV    0 1 995 pop.gmail.com.
+      @                          600  TXT    "v=spf1 include:_spf.google.com ~all"
+      _dmarc                     600  TXT    "v=DMARC1; p=reject; rua=mailto:postmaster@jakstys.lt, mailto:postmaster@jakstys.lt; pct=100; adkim=s; aspf=s."
+
+      google._domainkey          600  TXT    "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuqOyONnWKk7lgAVB1UcVu/I02gTDjROpQGDNUJHS34faQ9DnM/8uSOaIwCe4oV1GrI8N2ET+f96WPCCs1LzlEA0QwuUoXRLGojjQoXxCntLfMCnRWtehzmZq6Yv8nVva7N0gz/n/LThpPvGfEoKzYjmhjzM5d8y60DGsKxS8r4Lc9TzwtzuYkxKDhcSzVBQQiMvKMi6m6mUsxFya7ZTurd5i7iiZXpA3SFBYLAsjhQd6vS7K13vwAZTKjGNijfM40i7KXC5XA5WtojiSY0lZzAMqaHGLDaMUFkWRJJntRheQ+AU9RvOGAufphRAjdQTCMy0BLzC0rilT2JaTGe4MdQIDAQAB"
 
       grafana                             A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
