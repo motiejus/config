@@ -319,7 +319,7 @@ in
     prometheus = {
       enable = true;
       port = myData.ports.prometheus;
-      retentionTime = "1y";
+      retentionTime = "2y";
 
       globalConfig = {
         scrape_interval = "10s";
@@ -341,6 +341,7 @@ in
           }
           {
             job_name = "hass_p7_50";
+            scrape_interval = "1m";
             metrics_path = "/api/prometheus";
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.hass}" ]; } ];
           }
