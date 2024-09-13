@@ -33,10 +33,13 @@ rec {
     hass = 8123;
     prometheus = 9001;
     tailscale = 41641;
-    exporters.node = 9002;
+    exporters = {
 
-    # non-configurable in caddy as of 2023-09-06
-    exporters.caddy = 2019;
+      node = 9002;
+      weather = 9011;
+      # non-configurable in caddy as of 2023-09-06
+      caddy = 2019;
+    };
   };
 
   people_pubkeys = {

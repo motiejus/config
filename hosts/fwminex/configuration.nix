@@ -84,6 +84,22 @@ in
     tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
 
     services = {
+      weather-exporter = {
+        description = "Weather exporter for Vilnius";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "network.target.target" ];
+        path = with pkgs; [
+          coreutils
+          jq
+          curl
+          bash
+        ];
+        serviceConfig = {
+          type = "notify";
+          ExecStart = "${pkgs.systemd}/bin/systemd-socket-activate -a --inetd -l ${toString myData.ports.exporters.weather} ${../../pkgs/weather/main}";
+          ProtectSystem = "strict";
+        };
+      };
       caddy =
         let
           irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
