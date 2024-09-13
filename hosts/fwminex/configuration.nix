@@ -363,7 +363,7 @@ in
           }
           {
             job_name = "weather";
-            scrape_interval = "1m";
+            scrape_interval = "29m";
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
           }
           {
