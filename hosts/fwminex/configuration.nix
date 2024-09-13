@@ -362,6 +362,11 @@ in
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.hass}" ]; } ];
           }
           {
+            job_name = "weather";
+            scrape_interval = "1m";
+            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
+          }
+          {
             job_name = "vno1-vinc.vincentas.jakst";
             static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
           }
