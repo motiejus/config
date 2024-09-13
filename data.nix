@@ -209,6 +209,7 @@ rec {
       _pop3s._tcp                600  SRV    0 1 995 pop.gmail.com.
       @                          600  TXT    "v=spf1 include:_spf.google.com ~all"
       _dmarc                     600  TXT    "v=DMARC1; p=reject; rua=mailto:postmaster@jakstys.lt, mailto:postmaster@jakstys.lt; pct=100; adkim=s; aspf=s."
+      google._domainkey          600  TXT    "v=DKIM1; k=rsa;" "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuqOyONnWKk7lgAVB1UcVu/I02gTDjROpQGDNUJHS34faQ9DnM/8uSOaIwCe4oV1GrI8N2ET+f96WPCCs1LzlEA0QwuUoXRLGojjQoXxCntLfMCnRWtehzmZq6Yv8nVva7N0gz/n/LThpPvGfEoKzYjmhjzM5d8y60DGsKxS8r4Lc9TzwtzuYkxKDhcSzVBQQiMvKMi6m6mUsxFya7" "ZTurd5i7iiZXpA3SFBYLAsjhQd6vS7K13vwAZTKjGNijfM40i7KXC5XA5WtojiSY0lZzAMqaHGLDaMUFkWRJJntRheQ+AU9RvOGAufphRAjdQTCMy0BLzC0rilT2JaTGe4MdQIDAQAB"
 
       grafana                             A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
