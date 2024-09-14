@@ -5,7 +5,7 @@ STATION=vilniaus-ams
 TODAY=${1:-$(date +%F)}
 
 export TZ=UTC
-cat <<EOF
+sed -e 's/$/\r/' <<EOF
 HTTP/1.0 200 OK
 Content-Type: text/plain; version=0.0.4; charset=utf-8; escaping=values
 
