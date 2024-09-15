@@ -345,8 +345,14 @@ in
       exporters.ping = {
         enable = true;
         settings = {
+          ping = {
+            interval = "10s";
+            timeout = "5s";
+            history-size = 6;
+          };
           targets = [
             "1.1.1.1"
+            "8.8.4.4"
 
             "fra1-b.jakstys.lt"
             myData.hosts."fra1-b.servers.jakst".jakstIP
@@ -359,6 +365,12 @@ in
           port = builtins.toString myData.ports.exporters.node;
         in
         [
+          {
+            job_name = "ping";
+            static_configs = [
+              { targets = [ "127.0.0.1:${toString config.services.prometheus.exporters.ping.port}" ]; }
+            ];
+          }
           {
             job_name = "prometheus";
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
