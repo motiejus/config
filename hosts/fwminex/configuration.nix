@@ -97,7 +97,7 @@ in
         serviceConfig = {
           type = "simple";
           ExecStart = "${pkgs.weather}/bin/weather -l 127.0.0.1:${toString myData.ports.exporters.weather}";
-          ProtectSystem = "strict";
+          DynamicUser = true;
         };
       };
       caddy =
