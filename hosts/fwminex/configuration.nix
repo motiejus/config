@@ -342,6 +342,18 @@ in
         evaluation_interval = "1m";
       };
 
+      exporters.ping = {
+        enable = true;
+        settings = {
+          targets = [
+            "1.1.1.1"
+
+            "fra1-b.jakstys.lt"
+            myData.hosts."fra1-b".jakstIP
+          ];
+        };
+      };
+
       scrapeConfigs =
         let
           port = builtins.toString myData.ports.exporters.node;
