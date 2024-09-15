@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +13,6 @@ import (
 )
 
 const (
-	_listen       = ":9011"
 	_urlTemplate  = "https://api.meteo.lt/v1/stations/%s/observations/%s"
 	_station      = "vilniaus-ams"
 	_promTemplate = `weather_station_air_temperature_celsius{station="{{ .Station }}"} {{ .AirTemperature }} {{ .TS }}
@@ -28,12 +28,16 @@ weather_station_condition{station="{{ .Station }}",code="{{ .ConditionCode }}"} 
 `
 )
 
-var tpl = template.Must(template.New("prom").Parse(_promTemplate))
+var (
+	_tpl    = template.Must(template.New("prom").Parse(_promTemplate))
+	_listen = flag.String("l", "127.0.0.1:9011", "listen on")
+)
 
 func main() {
-	log.Printf("Listening on %s\n", _listen)
+	flag.Parse()
+	log.Printf("Listening on %s\n", *_listen)
 	log.Fatal((&http.Server{
-		Addr:    _listen,
+		Addr:    *_listen,
 		Handler: http.HandlerFunc(handler),
 	}).ListenAndServe())
 }
@@ -82,7 +86,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		observation.TS = ts.UnixMilli()
 		observation.Station = _station
 
-		if err := tpl.Execute(bw, observation); err != nil {
+		if err := _tpl.Execute(bw, observation); err != nil {
 			log.Printf("error executing template: %v", err)
 			return
 		}
