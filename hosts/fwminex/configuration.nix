@@ -349,7 +349,7 @@ in
             "1.1.1.1"
 
             "fra1-b.jakstys.lt"
-            myData.hosts."fra1-b".jakstIP
+            myData.hosts."fra1-b.servers.jakst".jakstIP
           ];
         };
       };
