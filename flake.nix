@@ -94,6 +94,7 @@
           deploy-rs-pkg = null;
         })
         (_: super: {
+          weather = super.callPackage ./pkgs/weather { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
           imapsync = super.callPackage ./pkgs/imapsync.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
@@ -305,19 +306,20 @@
         };
 
         formatter = pkgs.nixfmt-rfc-style;
-
       }
     )
 
-    // {
-      packages.x86_64-linux.vanta-agent =
-        let
-          pkgs = import nixpkgs {
-            inherit overlays;
-            system = "x86_64-linux";
-          };
-        in
-        pkgs.vanta-agent;
-    };
+    // (
+      let
+        pkgs = import nixpkgs {
+          inherit overlays;
+          system = "x86_64-linux";
+        };
+      in
+      {
+        packages.x86_64-linux.vanta-agent = pkgs.vanta-agent;
+        packages.x86_64-linux.weather = pkgs.weather;
+      }
+    );
 
 }

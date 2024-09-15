@@ -95,8 +95,8 @@ in
           bash
         ];
         serviceConfig = {
-          type = "notify";
-          ExecStart = "${pkgs.systemd}/bin/systemd-socket-activate -a --inetd -l ${toString myData.ports.exporters.weather} ${../../pkgs/weather/main}";
+          type = "simple";
+          ExecStart = "${pkgs.weather}/bin/weather";
           ProtectSystem = "strict";
         };
       };
