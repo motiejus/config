@@ -360,7 +360,7 @@ in
                 source_labels = [ "__address__" ];
                 regex = "${myData.hosts.${hostname}.jakstIP}:${port}";
                 replacement = "${hostname}:${port}";
-                target_label = "__address__";
+                target_label = "instance";
               }) hosts;
               static_configs = [
                 {
