@@ -354,6 +354,7 @@ in
           targets = [
             "1.1.1.1"
             "8.8.4.4"
+            "fb.com"
             "rrt.lt"
             "kam.lt"
             "lrs.lt"
