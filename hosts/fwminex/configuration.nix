@@ -345,6 +345,7 @@ in
       exporters.ping = {
         enable = true;
         settings = {
+          settings.disableIPv6 = true;
           ping = {
             interval = "1s";
             timeout = "5s";
