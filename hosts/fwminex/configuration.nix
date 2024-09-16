@@ -344,24 +344,31 @@ in
 
       scrapeConfigs =
         [
-          {
-            job_name = "ping";
-            static_configs = [
-              (
-                let
-                  port = toString config.services.prometheus.exporters.ping.port;
-                in
+          (
+            let
+              port = toString config.services.prometheus.exporters.ping.port;
+              hosts = [
+                "fwminex.servers.jakst"
+                "fra1-b.servers.jakst"
+                "vno1-gdrx.motiejus.jakst"
+              ];
+            in
+
+            {
+              job_name = "ping";
+              relabel_configs = map (hostname: {
+                source_labels = [ "__address__" ];
+                regex = "${myData.hosts.${hostname}.jakstIP}:${port}";
+                replacement = "${hostname}:${port}";
+                target_label = "__address__";
+              }) hosts;
+              static_configs = [
                 {
-                  targets = [
-                    "127.0.0.1:${port}"
-                    "${myData.hosts."fwminex.servers.jakst".jakstIP}:${port}"
-                    "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}"
-                    "${myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP}:${port}"
-                  ];
+                  targets = [ "127.0.0.1:${port}" ] ++ map (host: "${myData.hosts.${host}.jakstIP}:${port}") hosts;
                 }
-              )
-            ];
-          }
+              ];
+            }
+          )
           {
             job_name = "prometheus";
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
