@@ -354,6 +354,7 @@ in
                 {
                   targets = [
                     "127.0.0.1:${port}"
+                    "${myData.hosts."fwminex.servers.jakst".jakstIP}:${port}"
                     "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}"
                     "${myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP}:${port}"
                   ];
