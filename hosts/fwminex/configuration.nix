@@ -362,11 +362,7 @@ in
                 replacement = "${hostname}:${port}";
                 target_label = "instance";
               }) hosts;
-              static_configs = [
-                {
-                  targets = [ "127.0.0.1:${port}" ] ++ map (host: "${myData.hosts.${host}.jakstIP}:${port}") hosts;
-                }
-              ];
+              static_configs = [ { targets = map (host: "${myData.hosts.${host}.jakstIP}:${port}") hosts; } ];
             }
           )
           {
