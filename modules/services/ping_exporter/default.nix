@@ -25,14 +25,15 @@ in
         targets = [
           "1.1.1.1"
           "8.8.4.4"
-          "fb.com"
-          "rrt.lt"
-          "kam.lt"
-          "lrs.lt"
-          "15min.lt"
+          "9.9.9.9"
 
+          # NB: make sure only 1 ip address is returned for DNS domains
+          "fb.com"
+          "lrt.lt"
+          "bite.lt"
+
+          "jakstys.lt"
           "fra1-b.jakstys.lt"
-          myData.hosts."fra1-b.servers.jakst".jakstIP
         ];
       };
     };
