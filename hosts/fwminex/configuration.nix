@@ -346,13 +346,17 @@ in
         enable = true;
         settings = {
           ping = {
-            interval = "10s";
+            interval = "1s";
             timeout = "5s";
-            history-size = 6;
+            history-size = 10;
           };
           targets = [
             "1.1.1.1"
             "8.8.4.4"
+            "rrt.lt"
+            "kam.lt"
+            "lrs.lt"
+            "15min.lt"
 
             "fra1-b.jakstys.lt"
             myData.hosts."fra1-b.servers.jakst".jakstIP
