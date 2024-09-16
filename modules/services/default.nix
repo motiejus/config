@@ -15,6 +15,7 @@
     ./minidlna
     ./node_exporter
     ./nsd-acme
+    ./ping_exporter
     ./photoprism
     ./postfix
     ./remote-builder

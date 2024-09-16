@@ -342,39 +342,23 @@ in
         evaluation_interval = "1m";
       };
 
-      exporters.ping = {
-        enable = true;
-        settings = {
-          options.disableIPv6 = true;
-          ping = {
-            interval = "1s";
-            timeout = "5s";
-            history-size = 10;
-          };
-          targets = [
-            "1.1.1.1"
-            "8.8.4.4"
-            "fb.com"
-            "rrt.lt"
-            "kam.lt"
-            "lrs.lt"
-            "15min.lt"
-
-            "fra1-b.jakstys.lt"
-            myData.hosts."fra1-b.servers.jakst".jakstIP
-          ];
-        };
-      };
-
       scrapeConfigs =
-        let
-          port = builtins.toString myData.ports.exporters.node;
-        in
         [
           {
             job_name = "ping";
             static_configs = [
-              { targets = [ "127.0.0.1:${toString config.services.prometheus.exporters.ping.port}" ]; }
+              (
+                let
+                  port = toString config.services.prometheus.exporters.ping.port;
+                in
+                {
+                  targets = [
+                    "127.0.0.1:${port}"
+                    "${myData.hosts."fra1-b.servers.jakst".jakstIP}:${port}"
+                    "${myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP}:${port}"
+                  ];
+                }
+              )
             ];
           }
           {
@@ -401,19 +385,23 @@ in
             static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
           }
         ]
-        ++
-          map
-            (s: {
+        ++ map
+          (
+            let
+              port = builtins.toString myData.ports.exporters.node;
+            in
+            s: {
               job_name = s;
               static_configs = [ { targets = [ "${myData.hosts.${s}.jakstIP}:${port}" ]; } ];
-            })
-            [
-              "fra1-b.servers.jakst"
-              "fwminex.servers.jakst"
-              "mtworx.motiejus.jakst"
-              "vno3-rp3b.servers.jakst"
-              "vno1-gdrx.motiejus.jakst"
-            ];
+            }
+          )
+          [
+            "fra1-b.servers.jakst"
+            "fwminex.servers.jakst"
+            "mtworx.motiejus.jakst"
+            "vno3-rp3b.servers.jakst"
+            "vno1-gdrx.motiejus.jakst"
+          ];
     };
 
   };
@@ -440,6 +428,13 @@ in
       gitea.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
+
+      ping_exporter.enable = true;
+
+      node_exporter = {
+        enable = true;
+        extraSubnets = [ myData.subnets.vno1.cidr ];
+      };
 
       ssh8022.server = {
         enable = true;
@@ -595,11 +590,6 @@ in
           hostName = host.jakstIP;
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
         };
-
-      node_exporter = {
-        enable = true;
-        extraSubnets = [ myData.subnets.vno1.cidr ];
-      };
 
       deployerbot = {
         main = {

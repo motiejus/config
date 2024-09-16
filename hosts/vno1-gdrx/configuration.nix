@@ -89,6 +89,13 @@ in
     };
 
     services = {
+      ping_exporter.enable = true;
+
+      node_exporter = {
+        enable = true;
+        extraSubnets = [ myData.subnets.vno1.cidr ];
+      };
+
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;
@@ -141,11 +148,6 @@ in
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
           maxJobs = 2;
         };
-
-      node_exporter = {
-        enable = true;
-        extraSubnets = [ myData.subnets.vno1.cidr ];
-      };
 
       deployerbot = {
         follower = {

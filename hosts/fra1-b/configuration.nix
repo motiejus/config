@@ -76,6 +76,7 @@ in
 
     services = {
       node_exporter.enable = true;
+      ping_exporter.enable = true;
       tailscale.enable = true;
 
       ssh8022.server = {
