@@ -350,6 +350,7 @@ in
               hosts = [
                 "fwminex.servers.jakst"
                 "fra1-b.servers.jakst"
+                "vno3-rp3b.servers.jakst"
                 "vno1-gdrx.motiejus.jakst"
               ];
             in

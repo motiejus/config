@@ -86,6 +86,7 @@
     services = {
       tailscale.enable = true;
       node_exporter.enable = true;
+      ping_exporter.enable = true;
 
       borgstor = {
         enable = true;
