@@ -96,7 +96,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func getObservations(date time.Time, station string) ([]observation, error) {
 	url := fmt.Sprintf(_urlTemplate, station, date.Format(time.DateOnly))
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "jakstys.lt/contact")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("get %q: %w", url, err)
 	}
