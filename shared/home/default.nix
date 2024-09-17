@@ -66,6 +66,7 @@ in
       [ extract_url ]
 
       (lib.mkIf devTools [
+        pkgs-unstable.delve
         pkgs-unstable.go_1_23
         pkgs-unstable.go-tools
         pkgs-unstable.zig_0_13
