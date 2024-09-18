@@ -145,6 +145,7 @@ in
 
           iw
           vlc
+          mpv
           acpi
           gimp
           josm
@@ -164,6 +165,7 @@ in
           evince
           okular
           motion
+          mplayer
           calibre
           gparted
           scribus
