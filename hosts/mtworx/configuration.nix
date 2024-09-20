@@ -178,6 +178,8 @@ in
 
   users.extraGroups.vboxusers.members = [ "motiejus" ];
 
+  environment.systemPackages = with pkgs; [ dnsmasq ];
+
   security.tpm2.enable = true;
 
   networking = {
