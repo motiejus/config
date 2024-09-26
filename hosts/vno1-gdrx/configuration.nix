@@ -174,10 +174,7 @@ in
     };
   };
 
-  environment.systemPackages = with pkgs; [
-    thunderbird
-    tilemaker
-  ];
+  environment.systemPackages = with pkgs; [ thunderbird ];
 
   networking = {
     hostName = "vno1-gdrx";
