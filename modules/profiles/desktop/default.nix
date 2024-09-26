@@ -198,7 +198,6 @@ in
           rox-filer
           distrobox
           miniupnpc
-          evolution
           v4l-utils
           alsa-utils
           shellcheck
@@ -301,8 +300,6 @@ in
                 split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
             '';
         };
-
-        home.file.".cache/evolution/.stignore".text = "*.db";
 
         accounts.email = {
           maildirBasePath = "Maildir";

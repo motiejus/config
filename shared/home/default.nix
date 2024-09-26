@@ -54,7 +54,6 @@ in
   };
 
   home.file = {
-    ".cache/evolution/.stignore".text = "*.db";
     ".parallel/will-cite".text = "";
   };
 
