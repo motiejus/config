@@ -443,7 +443,8 @@ in
 
       immich = {
         enable = true;
-        paths = {
+        bindAsUser = "motiejus";
+        bindPaths = {
           "M-Camera" = "/home/motiejus/annex2/M-Active";
           "Pictures" = "/home/motiejus/annex2/Pictures";
         };
