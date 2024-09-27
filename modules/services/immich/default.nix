@@ -24,7 +24,7 @@ in
       package = pkgs.pkgs-unstable.immich;
     };
 
-    services.caddy.virtualHosts."photos.jakstys.lt:80".extraConfig = ''
+    services.caddy.virtualHosts."photos2.jakstys.lt:80".extraConfig = ''
       @denied not remote_ip ${myData.subnets.tailscale.cidr}
       reverse_proxy 127.0.0.1:${toString myData.ports.immich-server}
     '';
