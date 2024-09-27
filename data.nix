@@ -23,7 +23,8 @@ rec {
   ports = {
     grafana = 3000;
     gitea = 3001;
-    immich = 3003;
+    immich-server = 3002;
+    immich-machine-learning = 3003; # as of writing, hardcoded in the immich module
 
     soju = 6697;
     soju-ws = 6698;
