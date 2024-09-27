@@ -189,7 +189,7 @@ rec {
     in
     ''
       $ORIGIN jakstys.lt.
-      $TTL 86400
+      $TTL 3600
       @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
       @                               NS     ns1.jakstys.lt.
       @                               NS     ns2.jakstys.lt.
