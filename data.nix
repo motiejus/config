@@ -195,7 +195,7 @@ rec {
       @                               NS     ns2.jakstys.lt.
       @                                A     ${vno1}
       www                              A     ${vno1}
-      photos                           A     ${vno1}
+      photos                           A     ${hosts."fwminex.servers.jakst".jakstIP}
       ns1                              A     ${vno1}
       ns2                              A     ${fra1b}
       vpn                              A     ${vno1}
