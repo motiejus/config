@@ -24,12 +24,10 @@ in
       package = pkgs.pkgs-unstable.immich;
     };
 
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ myData.ports.immich-server ];
-      }
-    ];
+    services.caddy.virtualHosts."photos.jakstys.lt:80".extraConfig = ''
+      @denied not remote_ip ${myData.subnets.tailscale.cidr}
+      reverse_proxy 127.0.0.1:${toString myData.ports.immich-server}
+    '';
 
     #systemd = {
     #  #tmpfiles.rules = [ "d /var/cache/immich/userdata 0700 immich immich -" ];
