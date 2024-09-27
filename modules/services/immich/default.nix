@@ -31,16 +31,16 @@ in
       }
     ];
 
-    systemd = {
-      #tmpfiles.rules = [ "d /var/cache/immich/userdata 0700 immich immich -" ];
-      services.immich-server.serviceConfig = {
-        ProtectHome = lib.mkForce "tmpfs";
-        CacheDirectory = "immich";
-        #BindPaths = lib.mapAttrsToList (
-        #  name: srcpath: "${srcpath}:/var/cache/immich/userdata/${name}"
-        #) cfg.paths;
-      };
-    };
+    #systemd = {
+    #  #tmpfiles.rules = [ "d /var/cache/immich/userdata 0700 immich immich -" ];
+    #  services.immich-server.serviceConfig = {
+    #    #ProtectHome = lib.mkForce "tmpfs";
+    #    #CacheDirectory = "immich";
+    #    #BindPaths = lib.mapAttrsToList (
+    #    #  name: srcpath: "${srcpath}:/var/cache/immich/userdata/${name}"
+    #    #) cfg.paths;
+    #  };
+    #};
 
   };
 
