@@ -441,6 +441,14 @@ in
         extraSubnets = [ myData.subnets.vno1.cidr ];
       };
 
+      immich = {
+        enable = true;
+        paths = {
+          "M-Camera" = "/home/motiejus/annex2/M-Active";
+          "Pictures" = "/home/motiejus/annex2/Pictures";
+        };
+      };
+
       ssh8022.server = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-server.path;

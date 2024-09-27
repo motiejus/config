@@ -23,6 +23,7 @@ rec {
   ports = {
     grafana = 3000;
     gitea = 3001;
+    immich = 3003;
 
     soju = 6697;
     soju-ws = 6698;

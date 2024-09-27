@@ -10,6 +10,7 @@
     ./grafana
     ./hass
     ./headscale
+    ./immich
     ./jakstpub
     ./matrix-synapse
     ./minidlna
