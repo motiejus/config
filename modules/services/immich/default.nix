@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.mj.services.immich;
+  immich-package = pkgs.pkgs-unstable.immich;
 in
 {
   options.mj.services.immich = with lib.types; {
@@ -20,9 +21,9 @@ in
 
   config = lib.mkIf cfg.enable {
     services.immich = {
+      package = immich-package;
       enable = true;
       port = myData.ports.immich-server;
-      package = pkgs.pkgs-unstable.immich;
     };
 
     services.caddy.virtualHosts."photos2.jakstys.lt:80".extraConfig = ''
@@ -31,14 +32,20 @@ in
     '';
 
     systemd = {
-      tmpfiles.rules = [
-        "d /var/cache/immich/userdata 0700 immich immich -"
-      ] ++ lib.mapAttrsToList (name: _: "/var/cache/immich/userdata/${name}") cfg.bindPaths;
+      tmpfiles.rules = [ "d /data 0755 root root -" ];
       services.immich-server.serviceConfig = {
-        ExecStartPre = lib.mapAttrsToList (
-          name: srcpath:
-          "+${pkgs.bindfs}/bin/bindfs -u ${cfg.bindAsUser} ${srcpath} /var/cache/immich/userdata/${name}"
-        ) cfg.bindPaths;
+        TemporaryFileSystem = "/data";
+        PrivateDevices = lib.mkForce false; # /dev/fuse
+        #ExecStart = ''
+        #  ${lib.concatMapStringsSep "\n" (name: "+${pkgs.coreutils}/bin/install -o immich -d /data/${name}") cfg.bindPaths}
+        #  exec ${lib.getExe immich-package}
+        #'';
+        #  #++ lib.mapAttrsToList (
+        #  #  name: srcpath: "+${pkgs.bindfs}/bin/bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}"
+        #  #) cfg.bindPaths;
+        #ExecStopPost = lib.mapAttrsToList (
+        #  name: _: "+${pkgs.util-linux}/bin/umount /data/${name}"
+        #) cfg.bindPaths;
       };
     };
 
