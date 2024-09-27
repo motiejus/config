@@ -22,7 +22,6 @@ in
       enable = true;
       port = myData.ports.immich-server;
       package = pkgs.pkgs-unstable.immich;
-      mediaLocation = "/var/cache/immich/userdata";
     };
 
     mj.services.friendlyport.ports = [
