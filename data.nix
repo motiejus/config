@@ -190,29 +190,29 @@ rec {
     ''
       $ORIGIN jakstys.lt.
       $TTL 3600
-      @                              SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
-      @                               NS     ns1.jakstys.lt.
-      @                               NS     ns2.jakstys.lt.
+      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
+      @                       86400    NS     ns1.jakstys.lt.
+      @                       86400    NS     ns2.jakstys.lt.
       @                                A     ${vno1}
       www                              A     ${vno1}
       photos                           A     ${hosts."fwminex.servers.jakst".jakstIP}
-      ns1                              A     ${vno1}
-      ns2                              A     ${fra1b}
+      ns1                     86400    A     ${vno1}
+      ns2                     86400    A     ${fra1b}
       vpn                              A     ${vno1}
       git                              A     ${vno1}
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       fra1-b                           A     ${fra1b}
 
-      @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
-      @                               TXT    hosted-email-verify=rvyd6h64
-      @                                MX    10 smtp.google.com.
-      _submission._tcp                SRV    0 1 587 smtp.gmail.com.
-      _imaps._tcp                     SRV    0 1 993 imap.gmail.com.
-      _pop3s._tcp                     SRV    0 1 995 pop.gmail.com.
-      @                               TXT    "v=spf1 include:_spf.google.com ~all"
-      _dmarc                          TXT    "v=DMARC1; p=none;"
-      google._domainkey               TXT    "v=DKIM1; k=rsa;" "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuqOyONnWKk7lgAVB1UcVu/I02gTDjROpQGDNUJHS34faQ9DnM/8uSOaIwCe4oV1GrI8N2ET+f96WPCCs1LzlEA0QwuUoXRLGojjQoXxCntLfMCnRWtehzmZq6Yv8nVva7N0gz/n/LThpPvGfEoKzYjmhjzM5d8y60DGsKxS8r4Lc9TzwtzuYkxKDhcSzVBQQiMvKMi6m6mUsxFya7" "ZTurd5i7iiZXpA3SFBYLAsjhQd6vS7K13vwAZTKjGNijfM40i7KXC5XA5WtojiSY0lZzAMqaHGLDaMUFkWRJJntRheQ+AU9RvOGAufphRAjdQTCMy0BLzC0rilT2JaTGe4MdQIDAQAB"
+      @                       86400   TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
+      @                       86400   TXT    hosted-email-verify=rvyd6h64
+      @                       86400    MX    10 smtp.google.com.
+      _submission._tcp        86400   SRV    0 1 587 smtp.gmail.com.
+      _imaps._tcp             86400   SRV    0 1 993 imap.gmail.com.
+      _pop3s._tcp             86400   SRV    0 1 995 pop.gmail.com.
+      @                       86400   TXT    "v=spf1 include:_spf.google.com ~all"
+      _dmarc                  86400   TXT    "v=DMARC1; p=none;"
+      google._domainkey       86400   TXT    "v=DKIM1; k=rsa;" "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuqOyONnWKk7lgAVB1UcVu/I02gTDjROpQGDNUJHS34faQ9DnM/8uSOaIwCe4oV1GrI8N2ET+f96WPCCs1LzlEA0QwuUoXRLGojjQoXxCntLfMCnRWtehzmZq6Yv8nVva7N0gz/n/LThpPvGfEoKzYjmhjzM5d8y60DGsKxS8r4Lc9TzwtzuYkxKDhcSzVBQQiMvKMi6m6mUsxFya7" "ZTurd5i7iiZXpA3SFBYLAsjhQd6vS7K13vwAZTKjGNijfM40i7KXC5XA5WtojiSY0lZzAMqaHGLDaMUFkWRJJntRheQ+AU9RvOGAufphRAjdQTCMy0BLzC0rilT2JaTGe4MdQIDAQAB"
 
       grafana                             A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
