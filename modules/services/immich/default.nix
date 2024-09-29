@@ -22,7 +22,7 @@ let
       ${lib.concatMapStringsSep "\n"
         (name: ''
           mkdir /data/${name}
-          bindfs -u ${cfg.bindAsUser} /var/run/immich/bind-paths/${name} /data/${name}'')
+          bindfs -u ${immich-user} /var/run/immich/bind-paths/${name} /data/${name}'')
         (lib.attrNames cfg.bindPaths)
       }
       exec setpriv \
@@ -36,7 +36,6 @@ in
   options.mj.services.immich = with lib.types; {
     enable = lib.mkEnableOption "enable immich";
     bindPaths = lib.mkOption { type = attrsOf str; };
-    bindAsUser = lib.mkOption { type = str; };
   };
 
   imports = [ "${nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix" ];
