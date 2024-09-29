@@ -60,7 +60,6 @@ in
           name: srcpath: "${srcpath}:/var/cache/immich/bind-paths/${name}"
         ) cfg.bindPaths;
         PrivateDevices = lib.mkForce false; # /dev/fuse
-        ProtectHome = lib.mkForce false; # binding /home/motiejus
         CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
 
         # testing
@@ -71,13 +70,6 @@ in
         PrivateMounts = lib.mkForce false;
         ProtectClock = lib.mkForce false;
         ProtectControlGroups = lib.mkForce false;
-        ProtectHostname = lib.mkForce false;
-        ProtectKernelLogs = lib.mkForce false;
-        ProtectKernelModules = lib.mkForce false;
-        ProtectKernelTunables = lib.mkForce false;
-        RestrictNamespaces = lib.mkForce false;
-        RestrictRealtime = lib.mkForce false;
-        RestrictSUIDSGID = lib.mkForce false;
       };
     };
 
