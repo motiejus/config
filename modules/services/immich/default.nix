@@ -22,7 +22,7 @@ let
       ${lib.concatMapStringsSep "\n"
         (name: ''
           mkdir /data/${name}
-          bindfs -u ${immich-user} /var/run/immich/bind-paths/${name} /data/${name}'')
+          bindfs -u ${immich-user} -g ${immich-group} /var/run/immich/bind-paths/${name} /data/${name}'')
         (lib.attrNames cfg.bindPaths)
       }
       exec setpriv \
