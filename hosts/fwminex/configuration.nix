@@ -445,7 +445,7 @@ in
         enable = true;
         bindAsUser = "motiejus";
         bindPaths = {
-          "M-Camera" = "/home/motiejus/annex2/M-Active";
+          "M-Camera" = "/home/motiejus/annex2/M-Camera";
           "Pictures" = "/home/motiejus/annex2/Pictures";
         };
       };

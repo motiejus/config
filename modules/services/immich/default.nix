@@ -9,24 +9,23 @@
 let
   cfg = config.mj.services.immich;
   immich-package = pkgs.pkgs-unstable.immich;
+  immich-user = config.services.immich.user;
+  immich-group = config.services.immich.group;
+  startScript = pkgs.writeShellApplication {
+    name = "immich-mj";
+    runtimeInputs = with pkgs; [ bindfs ];
+    text = ''
+      set -x
+      ${lib.concatLines (
+        map (name: ''
+          mkdir /data/${name}
+          bindfs -u ${cfg.bindAsUser} /var/cache/immich/bind-paths/${name} /data/${name}
+        '') (lib.attrNames cfg.bindPaths)
+      )}
+      exec ${config.security.wrapperDir}/doas -u ${immich-user} ${lib.getExe immich-package}
+    '';
+  };
 in
-#startScript = pkgs.writeShellApplication {
-#  name = "immich-mj";
-#  runtimeInputs = with pkgs; [
-#    sudo
-#    bindfs
-#    util-linux
-#  ];
-#  text = ''
-#    ${lib.concatLines (
-#      lib.mapAttrsToList (name: srcpath: ''
-#        mkdir /data/${name}
-#        bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}
-#      '') cfg.bindPaths
-#    )}
-#    exec sudo -u ${config.services.immich.user} -- ${lib.getExe immich-package}
-#  '';
-#};
 {
   options.mj.services.immich = with lib.types; {
     enable = lib.mkEnableOption "enable immich";
@@ -37,6 +36,7 @@ in
   imports = [ "${nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix" ];
 
   config = lib.mkIf cfg.enable {
+    security.doas.enable = true;
     services.immich = {
       package = immich-package;
       enable = true;
@@ -49,16 +49,35 @@ in
     '';
 
     systemd = {
-      tmpfiles.rules = [ "d /data 0755 root root -" ];
+      tmpfiles.rules = [
+        "d /data 0755 root root -"
+        "d /var/cache/immich/bind-paths 0755 ${immich-user} ${immich-group} -"
+      ];
       services.immich-server.serviceConfig = {
+        RuntimeDirectory = "immich";
         TemporaryFileSystem = "/data";
+        BindPaths = lib.mapAttrsToList (
+          name: srcpath: "${srcpath}:/var/cache/immich/bind-paths/${name}"
+        ) cfg.bindPaths;
         PrivateDevices = lib.mkForce false; # /dev/fuse
         ProtectHome = lib.mkForce false; # binding /home/motiejus
+        CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
 
         # testing
+        ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
+        NoNewPrivileges = lib.mkForce false;
+        PrivateUsers = lib.mkForce false;
+        PrivateTmp = lib.mkForce false;
         PrivateMounts = lib.mkForce false;
-
-        #ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
+        ProtectClock = lib.mkForce false;
+        ProtectControlGroups = lib.mkForce false;
+        ProtectHostname = lib.mkForce false;
+        ProtectKernelLogs = lib.mkForce false;
+        ProtectKernelModules = lib.mkForce false;
+        ProtectKernelTunables = lib.mkForce false;
+        RestrictNamespaces = lib.mkForce false;
+        RestrictRealtime = lib.mkForce false;
+        RestrictSUIDSGID = lib.mkForce false;
       };
     };
 
