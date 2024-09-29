@@ -9,25 +9,24 @@
 let
   cfg = config.mj.services.immich;
   immich-package = pkgs.pkgs-unstable.immich;
-  startScript = pkgs.writeShellApplication {
-    name = "immich-mj";
-    runtimeInputs = with pkgs; [
-      sudo
-      bindfs
-      util-linux
-    ];
-    text = ''
-      ${lib.concatLines (
-        lib.mapAttrsToList (name: srcpath: ''
-          #mkdir /data/${name}
-          #bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}
-        '') cfg.bindPaths
-      )}
-      #exec sudo -u ${config.services.immich.user} -- ${lib.getExe immich-package}
-      exec ${lib.getExe immich-package}
-    '';
-  };
 in
+#startScript = pkgs.writeShellApplication {
+#  name = "immich-mj";
+#  runtimeInputs = with pkgs; [
+#    sudo
+#    bindfs
+#    util-linux
+#  ];
+#  text = ''
+#    ${lib.concatLines (
+#      lib.mapAttrsToList (name: srcpath: ''
+#        mkdir /data/${name}
+#        bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}
+#      '') cfg.bindPaths
+#    )}
+#    exec sudo -u ${config.services.immich.user} -- ${lib.getExe immich-package}
+#  '';
+#};
 {
   options.mj.services.immich = with lib.types; {
     enable = lib.mkEnableOption "enable immich";
@@ -59,7 +58,7 @@ in
         # testing
         PrivateMounts = lib.mkForce false;
 
-        ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
+        #ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
       };
     };
 
