@@ -132,6 +132,7 @@ in
             pwgen
             below # tracking cgroups
             mdadm
+            bindfs
             spiped
             parted
             bloaty
