@@ -48,7 +48,7 @@ in
       port = myData.ports.immich-server;
     };
 
-    services.caddy.virtualHosts."photos2.jakstys.lt:80".extraConfig = ''
+    services.caddy.virtualHosts."photos.jakstys.lt:80".extraConfig = ''
       @denied not remote_ip ${myData.subnets.tailscale.cidr}
       reverse_proxy localhost:${toString myData.ports.immich-server}
     '';
