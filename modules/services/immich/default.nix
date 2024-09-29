@@ -13,16 +13,23 @@ let
   immich-group = config.services.immich.group;
   startScript = pkgs.writeShellApplication {
     name = "immich-mj";
-    runtimeInputs = with pkgs; [ bindfs ];
+    runtimeInputs = with pkgs; [
+      bindfs
+      util-linux
+    ];
     text = ''
       set -x
       ${lib.concatLines (
-        map (name: ''
-          mkdir /data/${name}
-          bindfs -u ${cfg.bindAsUser} /var/cache/immich/bind-paths/${name} /data/${name}
-        '') (lib.attrNames cfg.bindPaths)
+        map
+          (name: ''
+            mkdir /data/${name}
+            bindfs -u ${cfg.bindAsUser} /var/run/immich/bind-paths/${name} /data/${name}'')
+          (lib.attrNames cfg.bindPaths)
       )}
-      exec ${config.security.wrapperDir}/doas -u ${immich-user} ${lib.getExe immich-package}
+      exec setpriv \
+          --ruid ${immich-user} \
+          --inh-caps -sys_admin,-setuid,-setgid \
+        ${lib.getExe immich-package}
     '';
   };
 in
@@ -36,7 +43,6 @@ in
   imports = [ "${nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix" ];
 
   config = lib.mkIf cfg.enable {
-    security.doas.enable = true;
     services.immich = {
       package = immich-package;
       enable = true;
@@ -51,13 +57,13 @@ in
     systemd = {
       tmpfiles.rules = [
         "d /data 0755 root root -"
-        "d /var/cache/immich/bind-paths 0755 ${immich-user} ${immich-group} -"
+        "d /var/run/immich/bind-paths 0755 ${immich-user} ${immich-group} -"
       ];
       services.immich-server.serviceConfig = {
         RuntimeDirectory = "immich";
         TemporaryFileSystem = "/data";
         BindPaths = lib.mapAttrsToList (
-          name: srcpath: "${srcpath}:/var/cache/immich/bind-paths/${name}"
+          name: srcpath: "${srcpath}:/var/run/immich/bind-paths/${name}"
         ) cfg.bindPaths;
         PrivateDevices = lib.mkForce false; # /dev/fuse
         CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
