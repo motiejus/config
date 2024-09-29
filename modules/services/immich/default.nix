@@ -61,15 +61,8 @@ in
         ) cfg.bindPaths;
         PrivateDevices = lib.mkForce false; # /dev/fuse
         CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
-
-        # testing
         ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
-        NoNewPrivileges = lib.mkForce false;
-        PrivateUsers = lib.mkForce false;
-        PrivateTmp = lib.mkForce false;
-        PrivateMounts = lib.mkForce false;
-        ProtectClock = lib.mkForce false;
-        ProtectControlGroups = lib.mkForce false;
+        PrivateUsers = lib.mkForce false; # bindfs fails otherwise
       };
     };
 
