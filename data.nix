@@ -196,7 +196,6 @@ rec {
       @                                A     ${vno1}
       www                              A     ${vno1}
       photos                           A     ${hosts."fwminex.servers.jakst".jakstIP}
-      photos2                          A     ${hosts."fwminex.servers.jakst".jakstIP}
       ns1                              A     ${vno1}
       ns2                              A     ${fra1b}
       vpn                              A     ${vno1}
