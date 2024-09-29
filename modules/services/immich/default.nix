@@ -9,6 +9,24 @@
 let
   cfg = config.mj.services.immich;
   immich-package = pkgs.pkgs-unstable.immich;
+  startScript = pkgs.writeShellApplication {
+    name = "immich-mj";
+    runtimeInputs = with pkgs; [
+      sudo
+      bindfs
+      util-linux
+    ];
+    text = ''
+      ${lib.concatLines (
+        lib.mapAttrsToList (name: srcpath: ''
+          #mkdir /data/${name}
+          #bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}
+        '') cfg.bindPaths
+      )}
+      #exec sudo -u ${config.services.immich.user} -- ${lib.getExe immich-package}
+      exec ${lib.getExe immich-package}
+    '';
+  };
 in
 {
   options.mj.services.immich = with lib.types; {
@@ -36,16 +54,12 @@ in
       services.immich-server.serviceConfig = {
         TemporaryFileSystem = "/data";
         PrivateDevices = lib.mkForce false; # /dev/fuse
-        #ExecStart = ''
-        #  ${lib.concatMapStringsSep "\n" (name: "+${pkgs.coreutils}/bin/install -o immich -d /data/${name}") cfg.bindPaths}
-        #  exec ${lib.getExe immich-package}
-        #'';
-        #  #++ lib.mapAttrsToList (
-        #  #  name: srcpath: "+${pkgs.bindfs}/bin/bindfs -u ${cfg.bindAsUser} ${srcpath} /data/${name}"
-        #  #) cfg.bindPaths;
-        #ExecStopPost = lib.mapAttrsToList (
-        #  name: _: "+${pkgs.util-linux}/bin/umount /data/${name}"
-        #) cfg.bindPaths;
+        ProtectHome = lib.mkForce false; # binding /home/motiejus
+
+        # testing
+        PrivateMounts = lib.mkForce false;
+
+        ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
       };
     };
 
