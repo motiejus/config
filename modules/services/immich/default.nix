@@ -19,16 +19,15 @@ let
     ];
     text = ''
       set -x
-      ${lib.concatLines (
-        map
-          (name: ''
-            mkdir /data/${name}
-            bindfs -u ${cfg.bindAsUser} /var/run/immich/bind-paths/${name} /data/${name}'')
-          (lib.attrNames cfg.bindPaths)
-      )}
+      ${lib.concatMapStringsSep "\n"
+        (name: ''
+          mkdir /data/${name}
+          bindfs -u ${cfg.bindAsUser} /var/run/immich/bind-paths/${name} /data/${name}'')
+        (lib.attrNames cfg.bindPaths)
+      }
       exec setpriv \
-          --ruid ${immich-user} \
-          --inh-caps -sys_admin,-setuid,-setgid \
+        --ruid ${immich-user} \
+        --inh-caps -sys_admin,-setuid,-setgid \
         ${lib.getExe immich-package}
     '';
   };
