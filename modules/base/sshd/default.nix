@@ -27,11 +27,19 @@
         ''
           Host git.jakstys.lt
             HostName ${myData.hosts."fwminex.servers.jakst".jakstIP}
+
         ''
-        + (lib.concatMapStringsSep "\n" (host: ''
-          Host ${builtins.elemAt (lib.splitString "." host) 0}
-            HostName ${myData.hosts.${host}.jakstIP}
-        '') (builtins.attrNames (lib.filterAttrs (_: props: props ? jakstIP) myData.hosts)));
+        + (lib.concatMapStringsSep "\n"
+          (host: ''
+            Host ${builtins.elemAt (lib.splitString "." host) 0}
+              HostName ${myData.hosts.${host}.jakstIP}
+          '')
+          (
+            builtins.attrNames (
+              lib.filterAttrs (name: props: name != "fra1-b.servers.jakst" && props ? jakstIP) myData.hosts
+            )
+          )
+        );
     };
   };
 }

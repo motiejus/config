@@ -159,13 +159,6 @@ in
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
-      #syncthing = {
-      #  enable = true;
-      #  dataDir = "/home/motiejus/";
-      #  user = "motiejus";
-      #  group = "users";
-      #};
-
     };
   };
 
