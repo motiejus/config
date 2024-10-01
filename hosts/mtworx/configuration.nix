@@ -186,12 +186,15 @@ in
     groups.mount-test = { };
   };
 
+  systemd.tmpfiles.rules = [ "d /data 0755 root root -" ];
+
   systemd.services.mount-test = {
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       RuntimeDirectory = "mount-test";
-      BindPaths = [ "/home/motiejus/x:/var/run/mount-test/x" ];
+      TemporaryFileSystem = "/data";
+      BindPaths = [ "/home/motiejus/x:/var/run/mount-test/bind-paths/x" ];
       PrivateDevices = false;
 
       Type = "simple";
@@ -217,6 +220,7 @@ in
       RestrictNamespaces = true;
       RestrictRealtime = true;
       RestrictSUIDSGID = true;
+      CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
 
       User = "mount-test";
       Group = "mount-test";
@@ -231,12 +235,13 @@ in
             ];
             text = ''
               set -x
-              mkdir -p /var/run/mount-test/inner
-              bindfs -u motiejus -g users /var/run/mount-test/x /var/run/mount-test/inner
-              exec setpriv \
-                --ruid mount-test \
-                --inh-caps -sys_admin,-setuid,-setgid \
-                touch /var/run/mount-test/inner/foo
+              mkdir -p /data/x
+              bindfs -d -u motiejus -g users /var/run/mount-test/bind-paths/x /data/x &
+              sleep 1
+              #exec setpriv \
+              #  --ruid mount-test \
+              #  --inh-caps -sys_admin,-setuid,-setgid \
+              touch /data/x/foo
             '';
           }
         ));

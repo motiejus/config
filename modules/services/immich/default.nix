@@ -27,7 +27,7 @@ let
       }
       exec setpriv \
         --ruid ${immich-user} \
-        --inh-caps -sys_admin,-setuid,-setgid \
+        --inh-caps -all \
         ${lib.getExe immich-package}
     '';
   };
@@ -61,7 +61,7 @@ in
           name: srcpath: "${srcpath}:/var/run/immich/bind-paths/${name}"
         ) cfg.bindPaths;
         PrivateDevices = lib.mkForce false; # /dev/fuse
-        CapabilityBoundingSet = lib.mkForce "CAP_SYS_ADMIN | CAP_SETUID | CAP_SETGID";
+        CapabilityBoundingSet = lib.mkForce "~";
         ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
         PrivateUsers = lib.mkForce false; # bindfs fails otherwise
       };
