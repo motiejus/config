@@ -519,6 +519,12 @@ in
                     "bitwarden_rs"
                     "matrix-synapse"
                     "private/soju"
+
+                    # https://immich.app/docs/administration/backup-and-restore/
+                    "immich/library"
+                    "immich/upload"
+                    "immich/profile"
+                    "postgresql"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];
                   backup_at = "*-*-* 01:00:01 UTC";
