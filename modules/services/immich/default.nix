@@ -19,7 +19,6 @@ let
     ];
     text = ''
       set -x
-      mkdir -p /var/run/immich/bind-paths
       ${lib.concatMapStringsSep "\n"
         (name: ''
           mkdir /data/${name}
