@@ -22,7 +22,6 @@ in
     grafana-oidc.file = ../../secrets/grafana.jakstys.lt/oidc.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
     vaultwarden-secrets-env.file = ../../secrets/vaultwarden/secrets.env.age;
-    photoprism-admin-passwd.file = ../../secrets/photoprism/admin_password.age;
     synapse-jakstys-signing-key.file = ../../secrets/synapse/jakstys_lt_signing_key.age;
     synapse-registration-shared-secret.file = ../../secrets/synapse/registration_shared_secret.age;
     synapse-macaroon-secret-key.file = ../../secrets/synapse/macaroon_secret_key.age;
@@ -482,16 +481,6 @@ in
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
-      photoprism = {
-        enable = true;
-        uidgid = myData.uidgid.photoprism;
-        paths = {
-          "M-Camera" = "/home/motiejus/annex2/M-Active";
-          "Pictures" = "/home/motiejus/annex2/Pictures";
-        };
-        passwordFile = config.age.secrets.photoprism-admin-passwd.path;
-      };
-
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
@@ -530,7 +519,6 @@ in
                     "bitwarden_rs"
                     "matrix-synapse"
                     "private/soju"
-                    "private/photoprism"
                   ];
                   patterns = [ "- gitea/data/repo-archive/" ];
                   backup_at = "*-*-* 01:00:01 UTC";

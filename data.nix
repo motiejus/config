@@ -15,8 +15,6 @@ rec {
 
     jakstpub = 505;
 
-    photoprism = 507;
-
     remote-builder = 508;
   };
 

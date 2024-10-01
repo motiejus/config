@@ -48,7 +48,6 @@ in
   "secrets/root_server_passwd_hash.age"
 
   "secrets/headscale/oidc_client_secret2.age"
-  "secrets/photoprism/admin_password.age"
   "secrets/grafana.jakstys.lt/oidc.age"
   "secrets/vaultwarden/secrets.env.age"
   "secrets/letsencrypt/account.key.age"
