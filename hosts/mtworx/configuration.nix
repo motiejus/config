@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   myData,
@@ -173,6 +174,72 @@ in
         group = "users";
       };
 
+    };
+  };
+
+  users = {
+    users.mount-test = {
+      name = "mount-test";
+      group = "mount-test";
+      isSystemUser = true;
+    };
+    groups.mount-test = { };
+  };
+
+  systemd.services.mount-test = {
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      RuntimeDirectory = "mount-test";
+      BindPaths = [ "/home/motiejus/x:/var/run/mount-test/x" ];
+      PrivateDevices = false;
+
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = 10;
+
+      # Hardening
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      PrivateMounts = true;
+      ProtectClock = true;
+      ProtectControlGroups = true;
+      ProtectHome = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+        "AF_UNIX"
+      ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+
+      User = "mount-test";
+      Group = "mount-test";
+      ExecStart =
+        "!"
+        + (lib.getExe (
+          pkgs.writeShellApplication {
+            name = "mount-test";
+            runtimeInputs = with pkgs; [
+              bindfs
+              util-linux
+            ];
+            text = ''
+              set -x
+              mkdir -p /var/run/mount-test/inner
+              bindfs -u motiejus -g users /var/run/mount-test/x /var/run/mount-test/inner
+              exec setpriv \
+                --ruid mount-test \
+                --inh-caps -sys_admin,-setuid,-setgid \
+                touch /var/run/mount-test/inner/foo
+            '';
+          }
+        ));
     };
   };
 

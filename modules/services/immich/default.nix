@@ -19,6 +19,7 @@ let
     ];
     text = ''
       set -x
+      mkdir -p /var/run/immich/bind-paths
       ${lib.concatMapStringsSep "\n"
         (name: ''
           mkdir /data/${name}
@@ -53,10 +54,7 @@ in
     '';
 
     systemd = {
-      tmpfiles.rules = [
-        "d /data 0755 root root -"
-        "d /var/run/immich/bind-paths 0755 ${immich-user} ${immich-group} -"
-      ];
+      tmpfiles.rules = [ "d /data 0755 root root -" ];
       services.immich-server.serviceConfig = {
         RuntimeDirectory = "immich";
         TemporaryFileSystem = "/data";
