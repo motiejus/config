@@ -97,8 +97,8 @@ in
       tlp = {
         enable = true;
         settings = {
-          START_CHARGE_THRESH_BAT0 = 80;
-          STOP_CHARGE_THRESH_BAT0 = 87;
+          START_CHARGE_THRESH_BAT0 = lib.mkDefault 80;
+          STOP_CHARGE_THRESH_BAT0 = lib.mkDefault 87;
         };
       };
 
