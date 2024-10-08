@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   myData,
@@ -177,11 +178,14 @@ in
     };
   };
 
+  # Comment this to enable iodione client
+  systemd.services.iodine-fra1-b.wantedBy = lib.mkForce [ ];
+
   services = {
     iodine.clients.fra1-b = {
       server = "i.jakstys.lt";
       passwordFile = config.age.secrets.iodine-passwd.path;
-      relay = "1.1.1.1";
+      #relay = "1.1.1.1";
     };
     tlp = {
       enable = true;
