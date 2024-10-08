@@ -202,7 +202,7 @@ rec {
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       fra1-b                           A     ${fra1b}
-      i                                A     ${fra1b}
+      i                               NS     fra1-b.jakstys.lt.
 
       @                       86400   TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                       86400   TXT    hosted-email-verify=rvyd6h64
