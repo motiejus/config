@@ -24,7 +24,6 @@ rec {
     immich-server = 3002;
     immich-machine-learning = 3003; # as of writing, hardcoded in the immich module
 
-    nsd-unwrapped = 5353;
     soju = 6697;
     soju-ws = 6698;
     matrix-synapse = 8008;

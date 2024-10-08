@@ -1,5 +1,4 @@
 {
-  lib,
   config,
   pkgs,
   myData,
@@ -21,7 +20,6 @@ in
     motiejus-work-passwd-hash.file = ../../secrets/motiejus_work_passwd_hash.age;
     root-work-passwd-hash.file = ../../secrets/root_work_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    iodine-passwd.file = ../../secrets/iodine.age;
 
     syncthing-key.file = ../../secrets/mtworx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/mtworx/syncthing/cert.pem.age;
@@ -178,16 +176,7 @@ in
     };
   };
 
-  # Comment this to enable iodione client
-  systemd.services.iodine-fra1-b.wantedBy = lib.mkForce [ ];
-
   services = {
-    iodine.clients.fra1-b = {
-      server = "i.jakstys.lt";
-      passwordFile = config.age.secrets.iodine-passwd.path;
-      extraConfig = "-L0";
-      #relay = "1.1.1.1";
-    };
     tlp = {
       enable = true;
       settings = {

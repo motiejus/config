@@ -14,7 +14,6 @@ in
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    iodine-passwd.file = ../../secrets/iodine.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
       owner = "spiped";
@@ -116,18 +115,8 @@ in
   };
 
   services = {
-    iodine.server = {
-      enable = true;
-      ip = "100.89.175.1/24";
-      domain = "i.jakstys.lt";
-      passwordFile = config.age.secrets.iodine-passwd.path;
-      #extraConfig = "-c -b ${toString myData.ports.nsd-unwrapped}";
-      extraConfig = "-c";
-    };
-
     nsd = {
       enable = true;
-      port = myData.ports.nsd-unwrapped;
       interfaces = [
         "0.0.0.0"
         "::"

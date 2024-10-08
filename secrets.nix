@@ -71,5 +71,4 @@ in
   "secrets/root_passwd_hash.age"
   "secrets/postfix_sasl_passwd.age"
   "secrets/ssh8022.age"
-  "secrets/iodine.age"
 ]
