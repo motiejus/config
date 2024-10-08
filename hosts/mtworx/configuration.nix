@@ -185,6 +185,7 @@ in
     iodine.clients.fra1-b = {
       server = "i.jakstys.lt";
       passwordFile = config.age.secrets.iodine-passwd.path;
+      extraConfig = "-L0";
       #relay = "1.1.1.1";
     };
     tlp = {
