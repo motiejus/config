@@ -20,6 +20,7 @@ in
     motiejus-work-passwd-hash.file = ../../secrets/motiejus_work_passwd_hash.age;
     root-work-passwd-hash.file = ../../secrets/root_work_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
+    iodine-passwd.file = ../../secrets/iodine.age;
 
     syncthing-key.file = ../../secrets/mtworx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/mtworx/syncthing/cert.pem.age;
@@ -176,11 +177,18 @@ in
     };
   };
 
-  services.tlp = {
-    enable = true;
-    settings = {
-      START_CHARGE_THRESH_BAT0 = 95;
-      STOP_CHARGE_THRESH_BAT0 = 100;
+  services = {
+    iodine.clients.fra1-b = {
+      server = "i.jakstys.lt";
+      passwordFile = config.age.secrets.iodine-passwd.path;
+      relay = "1.1.1.1";
+    };
+    tlp = {
+      enable = true;
+      settings = {
+        START_CHARGE_THRESH_BAT0 = 95;
+        STOP_CHARGE_THRESH_BAT0 = 100;
+      };
     };
   };
 
