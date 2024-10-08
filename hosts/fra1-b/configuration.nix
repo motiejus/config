@@ -121,7 +121,8 @@ in
       ip = "172.16.10.1/24";
       domain = "i.jakstys.lt";
       passwordFile = config.age.secrets.iodine-passwd.path;
-      extraConfig = "-c -b ${toString myData.ports.nsd-unwrapped}";
+      #extraConfig = "-c -b ${toString myData.ports.nsd-unwrapped}";
+      extraConfig = "-c";
     };
 
     nsd = {
