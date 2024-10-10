@@ -191,6 +191,7 @@ rec {
       @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
       @                       86400    NS     ns1.jakstys.lt.
       @                       86400    NS     ns2.jakstys.lt.
+      @                        3600 HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       @                                A     ${vno1}
       www                              A     ${vno1}
       photos                           A     ${hosts."fwminex.servers.jakst".jakstIP}
@@ -202,7 +203,6 @@ rec {
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       fra1-b                           A     ${fra1b}
-      i                               NS     fra1-b.jakstys.lt.
 
       @                       86400   TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                       86400   TXT    hosted-email-verify=rvyd6h64
@@ -234,6 +234,9 @@ rec {
       _acme-endpoint.hass                NS     ns._acme-endpoint.hass
       ns._acme-endpoint.hass              A     ${vno1}
 
+      bitwarden                  3600 HTTPS     1 . alpn="h3,h2" ipv4hint="${
+        hosts."fwminex.servers.jakst".jakstIP
+      }"
       bitwarden                           A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.bitwarden       CNAME     _acme-endpoint.bitwarden
       _acme-endpoint.bitwarden           NS     ns._acme-endpoint.bitwarden
