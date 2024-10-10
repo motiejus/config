@@ -205,6 +205,7 @@ in
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
+        experimental_http3
         servers {
           metrics
         }
@@ -637,6 +638,7 @@ in
       friendlyport.ports = [
         {
           subnets = [ myData.subnets.tailscale.cidr ];
+          udp = [ 443 ];
           tcp = with myData.ports; [
             80
             443

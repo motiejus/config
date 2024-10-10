@@ -179,7 +179,6 @@ in
             # broken on aarch64-linux
             #wrk2
             wget
-            curl
             btop
             ngrep
             iftop
@@ -192,6 +191,7 @@ in
             tcpdump
             testssl
             dnsutils
+            curlHTTP3
             bandwhich
             bridge-utils
             speedtest-cli
