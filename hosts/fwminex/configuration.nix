@@ -238,6 +238,7 @@ in
             X-XSS-Protection "1; mode=block"
             # Disallow the site to be rendered within a frame (clickjacking protection)
             X-Frame-Options "SAMEORIGIN"
+            Alt-Svc "h3=\":443\"; ma=86400"
           }
 
           reverse_proxy 127.0.0.1:${toString myData.ports.vaultwarden} {
@@ -281,6 +282,7 @@ in
             Content-Security-Policy "default-src 'self'"
             X-Content-Type-Options "nosniff"
             X-Frame-Options "DENY"
+            Alt-Svc "h3=\":443\"; ma=86400"
 
             /_/* Cache-Control "public, max-age=31536000, immutable"
           }
