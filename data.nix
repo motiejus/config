@@ -198,6 +198,7 @@ rec {
       ns2                     86400    A     ${fra1b}
       vpn                              A     ${vno1}
       git                              A     ${vno1}
+      git                     3600 HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       fra1-b                           A     ${fra1b}
