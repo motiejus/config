@@ -205,7 +205,6 @@ in
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
-        experimental_http3
         servers {
           metrics
         }
