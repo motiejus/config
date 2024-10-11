@@ -188,7 +188,7 @@ in
           audacity
           graphviz
           powertop
-          gpicview
+          gthumb
           imapsync
           librecad
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
