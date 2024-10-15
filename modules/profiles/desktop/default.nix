@@ -153,6 +153,7 @@ in
           xclip
           pdftk
           putty
+          scrot
           tracy
           x11vnc
           yt-dlp
