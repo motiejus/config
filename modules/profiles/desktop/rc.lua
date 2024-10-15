@@ -234,7 +234,7 @@ globalkeys = gears.table.join(
     --awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
     --          {description="show help", group="awesome"}),
     awful.key({ modkey }, "s", function()
-        awful.spawn.with_shell("scrot --select --file '%F_%T_$wx$h.png' --exec 'zopflipng -y $f $f && xclip -selection clipboard -target image/png -i $f'")
+        awful.spawn.with_shell("scrot --select --file '%F_%T_$wx$h.png' --exec 'xclip -selection clipboard -target image/png -i $f'")
     end),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
               {description = "view previous", group = "tag"}),
