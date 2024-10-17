@@ -31,6 +31,7 @@ in
           "fb.com"
           "lrt.lt"
           "bite.lt"
+          "github.com"
 
           "jakstys.lt"
           "fra1-b.jakstys.lt"
