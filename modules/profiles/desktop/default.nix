@@ -155,6 +155,7 @@ in
           putty
           scrot
           tracy
+          kazam # alternative to gtk-recordMyDesktop
           x11vnc
           yt-dlp
           skopeo
