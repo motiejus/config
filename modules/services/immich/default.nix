@@ -46,6 +46,15 @@ in
       package = immich-package;
       enable = true;
       port = myData.ports.immich-server;
+
+      # TODO: remove the whole block 24.11: redis should listen on the unix socket
+      # if immich can't find/connect to redis, it will fail on boot, so it's
+      # safe to experiment.
+      redis = {
+        enable = true;
+        host = "127.0.0.1";
+        port = 6379;
+      };
     };
 
     services.caddy.virtualHosts."photos.jakstys.lt:80".extraConfig = ''
@@ -65,8 +74,6 @@ in
         CapabilityBoundingSet = lib.mkForce "~";
         ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
         PrivateUsers = lib.mkForce false; # bindfs fails otherwise
-
-        SupplementaryGroups = lib.mkForce [ "immich" ]; # TODO remove on 24.11
       };
     };
 
