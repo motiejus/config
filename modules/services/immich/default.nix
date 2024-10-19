@@ -41,6 +41,7 @@ in
   imports = [ "${nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix" ];
 
   config = lib.mkIf cfg.enable {
+
     services.immich = {
       package = immich-package;
       enable = true;
@@ -64,6 +65,8 @@ in
         CapabilityBoundingSet = lib.mkForce "~";
         ExecStart = lib.mkForce ("!" + (lib.getExe startScript));
         PrivateUsers = lib.mkForce false; # bindfs fails otherwise
+
+        SupplementaryGroups = lib.mkForce [ "immich" ]; # TODO remove on 24.11
       };
     };
 
