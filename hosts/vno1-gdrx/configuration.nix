@@ -1,5 +1,4 @@
 {
-  lib,
   pkgs,
   config,
   myData,
@@ -77,19 +76,6 @@ in
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
-
-  services.mediamtx = {
-    enable = true;
-    allowVideoAccess = true;
-    settings = {
-      paths = {
-        cam = {
-          runOnInit = "${lib.getExe pkgs.ffmpeg} -f v4l2 -i /dev/video0 -f rtsp rtsp://localhost:$RTSP_PORT/$RTSP_PATH";
-          runOnInitRestart = true;
-        };
-      };
-    };
-  };
 
   mj = {
     stateVersion = "24.05";
