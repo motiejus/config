@@ -100,6 +100,7 @@ in
         with pkgs;
         lib.mkMerge [
           [
+            at
             bc
             jc # parse different formats and command outputs to json
             jq # parse, format and query json documents
