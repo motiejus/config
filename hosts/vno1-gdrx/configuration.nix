@@ -77,6 +77,10 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  services.mediamtx = {
+    enable = true;
+  };
+
   mj = {
     stateVersion = "24.05";
     timeZone = "Europe/Vilnius";
