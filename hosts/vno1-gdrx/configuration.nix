@@ -168,7 +168,7 @@ in
     };
   };
 
-  #environment.systemPackages = with pkgs; [ ];
+  environment.systemPackages = with pkgs; [ tcpflow ];
 
   networking = {
     hostName = "vno1-gdrx";
