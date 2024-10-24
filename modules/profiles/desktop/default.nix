@@ -167,7 +167,6 @@ in
           evince
           okular
           motion
-          mplayer
           calibre
           gparted
           scribus
@@ -178,6 +177,8 @@ in
           picocom
           inferno
           libheif
+          mplayer
+          smplayer
           inkscape
           chromium
           hunspell
