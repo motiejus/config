@@ -167,6 +167,7 @@ in
           evince
           okular
           motion
+          gthumb
           calibre
           gparted
           scribus
@@ -178,6 +179,7 @@ in
           inferno
           libheif
           mplayer
+          tcpflow
           smplayer
           inkscape
           chromium
@@ -191,7 +193,6 @@ in
           audacity
           graphviz
           powertop
-          gthumb
           imapsync
           librecad
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
