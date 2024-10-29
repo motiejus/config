@@ -147,6 +147,7 @@ in
             ripgrep
             ethtool
             gettext
+            exiftool
             bpftrace
             keyutils
             libkcapi
