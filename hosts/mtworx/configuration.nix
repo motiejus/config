@@ -35,7 +35,7 @@ in
     loader.systemd-boot.enable = true;
 
     # 6.10+ to fix audio. Thanks https://github.com/ilian/cfg/blob/4588b90e674827304cd8e0b9d1aecd75416d1cde/hosts/carbon/configuration.nix#L19
-    kernelPackages = pkgs.linuxPackages_6_10;
+    kernelPackages = pkgs.linuxPackages_6_11;
 
     initrd = {
       availableKernelModules = [
