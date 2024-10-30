@@ -93,7 +93,9 @@
                 --targets ${deployDerivationsStr} -- \
                   --accept-flake-config || EXITCODE=1
 
-              if [[ $EXITCODE == 0 ]]; then
+              if [[ $EXITCODE != 0 ]]; then
+                exit $EXITCODE
+              else
                 git push origin main
               fi
 
