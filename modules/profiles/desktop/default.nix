@@ -145,6 +145,7 @@ in
 
           iw
           vlc
+          sox
           mpv
           acpi
           gimp
@@ -198,6 +199,7 @@ in
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           tesseract
           trayscale
+          espeak-ng
           man-pages
           rox-filer
           distrobox
