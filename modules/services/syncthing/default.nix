@@ -62,7 +62,6 @@ let
         "fwminex"
         "mtworx"
         "v-kfire"
-        "mxp10"
         "a-kfire"
       ];
       id = "xbrfr-mhszm";
