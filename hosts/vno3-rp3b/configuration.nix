@@ -122,7 +122,14 @@
     };
   };
 
-  services.printing.enable = true;
+  services.printing = {
+    enable = true;
+    drivers = [
+      (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd" (
+        builtins.readFile ../../shared/CNCUPSMF3010ZK.ppd
+      ))
+    ];
+  };
 
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
