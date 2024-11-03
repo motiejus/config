@@ -84,6 +84,7 @@
     };
 
     services = {
+      printing.enable = true;
       tailscale.enable = true;
       node_exporter.enable = true;
       ping_exporter.enable = true;
@@ -122,6 +123,7 @@
     };
   };
 
+  # shared printing
   services.avahi = {
     enable = true;
     nssmdns = true;
@@ -133,16 +135,10 @@
   };
 
   services.printing = {
-    enable = true;
     openFirewall = true;
     allowFrom = [ "all" ];
     browsing = true;
     defaultShared = true;
-    drivers = [
-      (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd" (
-        builtins.readFile ../../shared/CNCUPSMF3010ZK.ppd
-      ))
-    ];
   };
 
   environment.etc = {
