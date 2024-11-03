@@ -122,6 +122,8 @@
     };
   };
 
+  services.printing.enable = true;
+
   environment.etc = {
     "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
   };
