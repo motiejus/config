@@ -124,6 +124,7 @@
 
   services.printing = {
     enable = true;
+    openFirewall = true;
     drivers = [
       (pkgs.writeTextDir "share/cups/model/HP_Color_Laser_15x_Series.ppd" (
         builtins.readFile ../../shared/CNCUPSMF3010ZK.ppd
