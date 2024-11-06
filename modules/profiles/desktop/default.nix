@@ -222,6 +222,7 @@ in
           element-desktop
           netsurf-browser
           man-pages-posix
+          git-filter-repo
           age-plugin-yubikey
           hunspellDicts.en_US
           python3Packages.ipython
