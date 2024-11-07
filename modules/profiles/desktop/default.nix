@@ -10,6 +10,7 @@ let
     if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
 in
 {
+  imports = [ ../dev ];
   config = {
     boot.supportedFilesystems = [ "ntfs" ];
 
@@ -115,17 +116,6 @@ in
     #location.provider = "geoclue2";
 
     virtualisation.docker.enable = true;
-
-    documentation = {
-      dev.enable = true;
-      doc.enable = true;
-      info.enable = true;
-      man = {
-        enable = true;
-        man-db.enable = false;
-        mandoc.enable = true;
-      };
-    };
 
     environment.systemPackages =
       with pkgs;
