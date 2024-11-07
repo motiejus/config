@@ -186,7 +186,6 @@ in
           audacity
           graphviz
           powertop
-          imapsync
           librecad
           qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
           tesseract

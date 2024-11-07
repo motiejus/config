@@ -657,7 +657,6 @@ in
       acpi
       yt-dlp
       ffmpeg
-      imapsync
       rtorrent
       age-plugin-yubikey
     ];
