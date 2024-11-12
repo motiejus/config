@@ -305,6 +305,10 @@ in
             mbsync = {
               enable = true;
               create = "maildir";
+              patterns = [
+                "*"
+                "![Gmail]/All Mail"
+              ];
             };
 
             msmtp = {
