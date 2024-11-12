@@ -272,6 +272,7 @@ in
         xdg.configFile."awesome/rc.lua".source = ./rc.lua;
 
         programs = {
+          msmtp.enable = true;
           mbsync.enable = true;
           neomutt.enable = true;
           notmuch.enable = true;
@@ -297,16 +298,18 @@ in
             userName = "motiejus@jakstys.lt";
             address = "motiejus@jakstys.lt";
             realName = "Motiejus Jakštys";
-            passwordCommand = "cat /home/${username}/.email-creds";
-            imap.host = "imap.migadu.com";
-            smtp.host = "smtp.migadu.com";
+            passwordCommand = "cat /home/${username}/.mail-appcode";
+            imap.host = "imap.gmail.com";
+            smtp.host = "smtp.gmail.com";
 
             mbsync = {
               enable = true;
               create = "maildir";
             };
 
-            msmtp.enable = true;
+            msmtp = {
+              enable = true;
+            };
 
             notmuch = {
               enable = true;
