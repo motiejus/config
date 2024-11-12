@@ -171,9 +171,11 @@ in
         extraConfig = {
           log.date = "iso-strict-local";
           pull.ff = "only";
+          core.abbrev = 12;
+          pretty.fixes = "Fixes: %h (\"%s\")";
+          rerere.enabled = true;
           init.defaultBranch = "main";
           merge.conflictstyle = "zdiff3";
-          rerere.enabled = true;
           sendemail = {
             sendmailcmd = lib.getExe pkgs.msmtp;
             smtpserveroption = [
