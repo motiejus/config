@@ -174,6 +174,16 @@ in
           init.defaultBranch = "main";
           merge.conflictstyle = "zdiff3";
           rerere.enabled = true;
+          sendemail = {
+            sendmailcmd = lib.getExe pkgs.msmtp;
+            smtpserveroption = [
+              "-a"
+              "mj"
+            ];
+            confirm = "always";
+            suppresscc = "self";
+          };
+
         };
       };
 
