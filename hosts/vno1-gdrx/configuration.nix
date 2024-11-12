@@ -168,6 +168,9 @@ in
     };
   };
 
+  services.guix.enable = true;
+  users.extraGroups.guixbuild.members = [ "motiejus" ];
+
   environment.systemPackages = with pkgs; [ tcpflow ];
 
   networking = {
