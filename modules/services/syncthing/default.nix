@@ -29,6 +29,14 @@ let
       id = "8lk0n-mm63y";
       label = "Books";
     };
+    Maildir = {
+      devices = [
+        "vno1-gdrx"
+        "fwminex"
+      ];
+      id = "9lk1k-za124";
+      label = "Maildir";
+    };
     M-Active = {
       devices = [
         "vno1-gdrx"
@@ -246,6 +254,7 @@ in
             "/var/www/dl/mtworx" = www-mtworx;
             "/var/www/dl/mykolo" = mykolo;
             "${cfg.dataDir}/annex2/Books" = Books;
+            "${cfg.dataDir}/annex2/Maildir" = Maildir;
             "${cfg.dataDir}/annex2/M-Active" = M-Active;
             "${cfg.dataDir}/annex2/M-Camera" = M-Camera;
             "${cfg.dataDir}/annex2/M-Documents" = M-Documents;
@@ -269,6 +278,7 @@ in
           })
           // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
             "${cfg.dataDir}/Books" = Books;
+            "${cfg.dataDir}/Maildir" = Maildir;
             "${cfg.dataDir}/M-Active" = M-Active;
             "${cfg.dataDir}/M-Camera" = M-Camera;
             "${cfg.dataDir}/M-Documents" = M-Documents;
