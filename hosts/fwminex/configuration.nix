@@ -250,7 +250,7 @@ in
         '';
         "irc.jakstys.lt".extraConfig =
           let
-            gamja = pkgs.pkgs-unstable.compressDrvWeb (pkgs.gamja.override {
+            gamja = pkgs.compressDrvWeb (pkgs.gamja.override {
               gamjaConfig = {
                 server = {
                   url = "irc.jakstys.lt:6698";

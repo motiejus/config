@@ -145,6 +145,7 @@ in
           ffmpeg
           tinycc
           scrcpy
+          cheese
           arandr
           pandoc
           evince
@@ -163,6 +164,7 @@ in
           libheif
           mplayer
           tcpflow
+          nautilus
           smplayer
           inkscape
           chromium
@@ -209,10 +211,12 @@ in
           graphicsmagick
           magic-wormhole
           signal-desktop
+          gnome-calendar
           element-desktop
           netsurf-browser
           man-pages-posix
           git-filter-repo
+          gnome-calculator
           age-plugin-yubikey
           hunspellDicts.en_US
           python3Packages.ipython
@@ -224,11 +228,6 @@ in
           clang-manpages
           gcc_latest
           clang-tools
-
-          gnome.cheese
-          gnome.nautilus
-          gnome.gnome-calculator
-          gnome.gnome-calendar
 
           xorg.xev
           xorg.xeyes

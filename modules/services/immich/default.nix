@@ -3,12 +3,10 @@
   lib,
   pkgs,
   myData,
-  nixpkgs-unstable,
   ...
 }:
 let
   cfg = config.mj.services.immich;
-  immich-package = pkgs.pkgs-unstable.immich;
   immich-user = config.services.immich.user;
   immich-group = config.services.immich.group;
   startScript = pkgs.writeShellApplication {
@@ -28,7 +26,7 @@ let
       exec setpriv \
         --ruid ${immich-user} \
         --inh-caps -all \
-        ${lib.getExe immich-package}
+        ${lib.getExe pkgs.immich}
     '';
   };
 in
@@ -38,12 +36,9 @@ in
     bindPaths = lib.mkOption { type = attrsOf str; };
   };
 
-  imports = [ "${nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix" ];
-
   config = lib.mkIf cfg.enable {
 
     services.immich = {
-      package = immich-package;
       enable = true;
       port = myData.ports.immich-server;
 

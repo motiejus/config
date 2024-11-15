@@ -81,7 +81,7 @@
           route /static/assets/* {
             uri strip_prefix /static
             file_server * {
-              root ${pkgs.pkgs-unstable.compressDrvWeb pkgs.gitea.data { }}/public
+              root ${pkgs.compressDrvWeb pkgs.gitea.data { }}/public
               precompressed zstd br gzip
             }
           }

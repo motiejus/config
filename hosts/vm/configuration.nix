@@ -1,6 +1,5 @@
 {
   self,
-  pkgs,
   modulesPath,
   ...
 }:
@@ -24,7 +23,6 @@
 
   boot = {
     loader.systemd-boot.enable = true;
-    kernelPackages = pkgs.zfs.latestCompatibleLinuxPackages;
     supportedFilesystems = [
       "zfs"
       "btrfs"

@@ -31,28 +31,32 @@ in
         '';
       };
 
-      samba = {
-        # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
-        enable = true;
-        securityType = "user";
-        enableNmbd = false;
-        enableWinbindd = false;
-        extraConfig = ''
-          map to guest = Bad User
-          guest account = jakstpub
-          server role = standalone server
-        '';
-        shares =
-          let
-            defaults = {
-              "public" = "yes";
-              "mangled names" = "no";
-              "guest ok" = "yes";
-              "force user" = "jakstpub";
-              "force group" = "jakstpub";
+      samba =
+        let
+          defaults = {
+            "public" = "yes";
+            "mangled names" = "no";
+            "guest ok" = "yes";
+            "force user" = "jakstpub";
+            "force group" = "jakstpub";
+          };
+        in
+        {
+          # https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
+          enable = true;
+
+          nmbd.enable = false;
+          winbindd.enable = false;
+
+          settings = {
+            global = {
+              security = "user";
+
+              "map to guest" = "Bad User";
+              "guest account" = "jakstpub";
+              "server role" = "standalone server";
             };
-          in
-          {
+
             public = defaults // {
               "path" = cfg.dataDir;
               "writeable" = "yes";
@@ -66,7 +70,7 @@ in
               "read only" = "yes";
             };
           };
-      };
+        };
 
       samba-wsdd = {
         enable = true;
