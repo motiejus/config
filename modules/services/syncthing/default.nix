@@ -11,7 +11,6 @@ let
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
     "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
     "mxp1".id = "2HBV27D-PK5DKQG-EQE4AV7-ASADXHJ-ER7GAZK-Z6C2NZP-64DLTKI-5OPUZAT";
-    "mxp10".id = "LO54QZZ-5J3G62P-WUVM3MW-7J3VWHD-BG76TOQ-5S7PZSY-JU45K3I-X3ZL4AN";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
@@ -26,7 +25,6 @@ let
         "vno1-gdrx"
         "fwminex"
         "mxp1"
-        "mxp10"
       ];
       id = "8lk0n-mm63y";
       label = "Books";
@@ -43,7 +41,6 @@ let
       devices = [
         "vno1-gdrx"
         "mxp1"
-        "mxp10"
         "fwminex"
         "mtworx"
       ];
@@ -81,7 +78,6 @@ let
     M-Camera = {
       devices = [
         "mxp1"
-        "mxp10"
         "vno1-gdrx"
         "fwminex"
         "mtworx"
@@ -108,7 +104,6 @@ let
         "fwminex"
         "mtworx"
         "mxp1"
-        "mxp10"
       ];
       id = "tg94v-cqcwr";
       label = "music";
@@ -117,7 +112,6 @@ let
       devices = [
         "vno1-gdrx"
         "mxp1"
-        "mxp10"
         "mtworx"
         "fwminex"
       ];
@@ -170,17 +164,9 @@ let
       label = "www-mtworx";
     };
     www-mxp1 = {
-      devices = [
-        "mxp1"
-        "mxp10"
-      ];
+      devices = [ "mxp1" ];
       id = "gqrtz-prx9h";
       label = "www-mxp1";
-    };
-    mykolo = {
-      devices = [ "mxp10" ];
-      id = "wslmq-fyw4w";
-      label = "mykolo";
     };
   };
 in
@@ -220,7 +206,6 @@ in
               fwminex
               mtworx
               mxp1
-              mxp10
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
@@ -234,7 +219,6 @@ in
               fwminex
               mtworx
               mxp1
-              mxp10
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
@@ -252,7 +236,6 @@ in
               sqq1-desk
               rzj-744P2PE
               mxp1
-              mxp10
               a-kfire
               v-kfire
               ;
@@ -265,7 +248,6 @@ in
             "/var/www/dl/tel" = www-mxp1;
             "/var/www/dl/vno1-gdrx" = www-vno1-gdrx;
             "/var/www/dl/mtworx" = www-mtworx;
-            "/var/www/dl/mykolo" = mykolo;
             "${cfg.dataDir}/annex2/Books" = Books;
             "${cfg.dataDir}/annex2/Maildir" = Maildir;
             "${cfg.dataDir}/annex2/M-Active" = M-Active;

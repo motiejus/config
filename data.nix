@@ -107,9 +107,8 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
       jakstIP = "100.89.176.7";
     };
-    "mxp10.motiejus.jakst" = {
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIy9IR7Jq3hRZ5JgwfmeCgSKFrdgujnZt79uxDPVi3tu";
-      jakstIP = "100.89.176.17";
+    "mxp1.motiejus.jakst" = {
+      jakstIP = "100.89.176.22";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
@@ -134,7 +133,8 @@ rec {
     motiejus.cidrs =
       let
         mHosts = attrVals [
-          "mxp10.motiejus.jakst"
+          "mxp1.motiejus.jakst"
+          "vno1-gdrx.motiejus.jakst"
           "mtworx.motiejus.jakst"
           "fwminex.servers.jakst"
         ] hosts;
