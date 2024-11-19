@@ -68,7 +68,8 @@ in
         pkgs-unstable.delve
         pkgs-unstable.go_1_23
         pkgs-unstable.go-tools
-        pkgs-unstable.zig_0_13
+
+        pkgs.zigpkgs."0.13.0"
       ])
 
       (lib.mkIf hmOnly [

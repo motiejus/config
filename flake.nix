@@ -38,6 +38,15 @@
       };
     };
 
+    zig = {
+      url = "github:mitchellh/zig-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "flake-compat";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -74,6 +83,7 @@
       nix-index-database,
       pre-commit-hooks,
       nur,
+      zig,
       nixgl,
       ...
     }@inputs:
@@ -82,6 +92,7 @@
 
       overlays = [
         nur.overlay
+        zig.overlays.default
         nixgl.overlay
 
         (_self: super: { deploy-rs-pkg = super.deploy-rs; })

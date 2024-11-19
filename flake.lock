@@ -274,7 +274,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nur": "nur",
-        "pre-commit-hooks": "pre-commit-hooks"
+        "pre-commit-hooks": "pre-commit-hooks",
+        "zig": "zig"
       }
     },
     "systems": {
@@ -304,6 +305,32 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "zig": {
+      "inputs": {
+        "flake-compat": [
+          "flake-compat"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1732018331,
+        "narHash": "sha256-K9Ckfj8B/BYseN/FjdP0Q+fpuXEgl8cVov5t6+4D8bU=",
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
+        "rev": "d667054598d541df2266b961b207bb63fe8fe423",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mitchellh",
+        "repo": "zig-overlay",
         "type": "github"
       }
     }
