@@ -23,6 +23,7 @@
 
   boot = {
     loader.systemd-boot.enable = true;
+    kernelPackages = pkgs.linuxPackages_latest;
     supportedFilesystems = [
       "zfs"
       "btrfs"
