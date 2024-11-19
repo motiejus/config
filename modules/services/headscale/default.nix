@@ -34,7 +34,8 @@
               "8.8.4.4"
             ];
             magic_dns = false;
-            base_domain = "jakst";
+            # https://github.com/juanfont/headscale/issues/2210
+            base_domain = "jakst.vpn";
           };
           oidc = {
             issuer = "https://git.jakstys.lt/";
