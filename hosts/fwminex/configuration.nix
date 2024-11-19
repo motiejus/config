@@ -196,9 +196,6 @@ in
       tlsCertificateKey = "/run/soju/key.pem";
       hostName = "irc.jakstys.lt";
       httpOrigins = [ "*" ];
-      extraConfig = ''
-        message-store fs /var/lib/soju
-      '';
     };
 
     caddy = {
