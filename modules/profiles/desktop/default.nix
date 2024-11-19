@@ -186,6 +186,7 @@ in
           distrobox
           miniupnpc
           v4l-utils
+          diffoscope
           alsa-utils
           shellcheck
           borgbackup

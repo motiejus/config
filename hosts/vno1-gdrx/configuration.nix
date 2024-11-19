@@ -171,10 +171,7 @@ in
   services.guix.enable = true;
   users.extraGroups.guixbuild.members = [ "motiejus" ];
 
-  environment.systemPackages = with pkgs; [
-    tcpflow
-    diffoscope
-  ];
+  environment.systemPackages = with pkgs; [ lutris ];
 
   networking = {
     hostName = "vno1-gdrx";
