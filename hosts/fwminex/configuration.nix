@@ -440,7 +440,7 @@ in
       };
 
       immich = {
-        enable = true;
+        enable = false;
         bindPaths = {
           "M-Camera" = "/home/motiejus/annex2/M-Camera";
           "Pictures" = "/home/motiejus/annex2/Pictures";
