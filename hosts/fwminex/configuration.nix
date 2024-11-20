@@ -617,7 +617,7 @@ in
             }
             {
               derivationTarget = ".#vno3-rp3b";
-              pingTarget = myData.hosts."vno3-rp3b.motiejus.jakst".jakstIP;
+              pingTarget = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
             }
           ];
         };
