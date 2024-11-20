@@ -6,10 +6,14 @@ set laststatus=1 diffopt+=algorithm:patience
 nnoremap <Leader>\ gqj
 command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <CR> :e <C-r>=getline('.')<CR><CR>
 
+" nvim 0.10 uses bland colors. Necessary habits don't die.
+colorscheme vim
+
 " https://vi.stackexchange.com/a/39451
 set maxmempattern=5000
 
 call matchadd('ColorColumn', '\%81v', 100)
+
 " thanks to drew de vault's vimrc, except swearing
 set mouse=
 set backupdir=~/.cache directory=~/.cache
