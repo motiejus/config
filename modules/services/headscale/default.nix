@@ -27,6 +27,7 @@
         settings = {
           server_url = "https://vpn.jakstys.lt";
           ip_prefixes = [ config.mj.services.headscale.subnetCIDR ];
+          prefixes.v4 = config.mj.services.headscale.subnetCIDR;
           log.level = "warn";
           dns = {
             nameservers.global = [
