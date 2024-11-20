@@ -605,7 +605,6 @@ in
           deployDerivations = [
             ".#fwminex"
             ".#fra1-b"
-            ".#vno3-rp3b"
           ];
           deployIfPresent = [
             {
@@ -615,6 +614,10 @@ in
             {
               derivationTarget = ".#vno1-gdrx";
               pingTarget = myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP;
+            }
+            {
+              derivationTarget = ".#vno3-rp3b";
+              pingTarget = myData.hosts."vno3-rp3b.motiejus.jakst".jakstIP;
             }
           ];
         };
