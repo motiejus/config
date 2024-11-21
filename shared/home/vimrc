@@ -8,7 +8,7 @@ command OLD :enew | setl buftype=nofile | 0put =v:oldfiles | nnoremap <buffer> <
 
 " nvim 0.10 uses bland colors. Necessary habits don't die.
 " I also liked: industry, koehler, pablo, torte, vim
-colorscheme torte
+colorscheme vim
 
 " https://vi.stackexchange.com/a/39451
 set maxmempattern=5000
