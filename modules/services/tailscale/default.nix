@@ -17,6 +17,10 @@ in
 {
   options.mj.services.tailscale = with types; {
     enable = mkEnableOption "Enable tailscale";
+    acceptDNS = mkOption {
+      type = bool;
+      default = false;
+    };
     # https://github.com/tailscale/tailscale/issues/1548
     verboseLogs = mkOption {
       type = bool;
@@ -28,7 +32,12 @@ in
     {
       services.tailscale = {
         enable = true;
-        extraUpFlags = [ "--operator=${config.mj.username}" ];
+        extraUpFlags = [
+          "--operator=${config.mj.username}"
+        ];
+        extraDaemonFlags = [
+          "--accept-dns=${if cfg.acceptDNS then "true" else "false"}"
+        ];
       };
       networking.firewall.checkReversePath = "loose";
       networking.firewall.allowedUDPPorts = [ myData.ports.tailscale ];
