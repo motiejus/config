@@ -34,7 +34,9 @@ in
         enable = true;
         extraUpFlags = [
           "--operator=${config.mj.username}"
-          #"--accept-dns=${if cfg.acceptDNS then "true" else "false"}"
+        ];
+        extraSetFlags = [
+          "--accept-dns=${if cfg.acceptDNS then "true" else "false"}"
         ];
       };
       networking.firewall.checkReversePath = "loose";
