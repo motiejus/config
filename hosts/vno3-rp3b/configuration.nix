@@ -123,22 +123,28 @@
     };
   };
 
-  # shared printing
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    openFirewall = true;
-    publish = {
-      enable = true;
-      userServices = true;
-    };
-  };
+  services = {
+    chrony.extraConfig = ''
+      makestep 1 -1
+    '';
 
-  services.printing = {
-    openFirewall = true;
-    allowFrom = [ "all" ];
-    browsing = true;
-    defaultShared = true;
+    # shared printing
+    avahi = {
+      enable = true;
+      nssmdns4 = true;
+      openFirewall = true;
+      publish = {
+        enable = true;
+        userServices = true;
+      };
+    };
+
+    printing = {
+      openFirewall = true;
+      allowFrom = [ "all" ];
+      browsing = true;
+      defaultShared = true;
+    };
   };
 
   environment.etc = {
