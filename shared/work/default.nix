@@ -15,6 +15,7 @@
     kubectl
     kubectx
     terraform
+    docker-compose
     google-cloud-sdk
     kubectl-node-shell
   ];
