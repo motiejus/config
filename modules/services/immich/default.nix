@@ -42,8 +42,9 @@ in
       enable = true;
       port = myData.ports.immich-server;
 
-      # TODO: remove the whole block 24.11: redis should listen on the unix socket
-      # if immich can't find/connect to redis, it will fail on boot, so it's
+      # N.B. as of 24.11 default redis socket has permissions incompatible
+      # with how immich is configured.
+      # If immich can't find/connect to redis, it will fail on boot, so it's
       # safe to experiment.
       redis = {
         enable = true;
