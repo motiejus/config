@@ -20,6 +20,8 @@
     kubectl-node-shell
   ];
 
+  programs._1password.enable = true;
+
   services.clamav = {
     updater.enable = true;
     daemon = {
