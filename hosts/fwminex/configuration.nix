@@ -348,7 +348,6 @@ in
               hosts = [
                 "fwminex.servers.jakst"
                 "fra1-b.servers.jakst"
-                "vno3-rp3b.servers.jakst"
                 "vno1-gdrx.motiejus.jakst"
               ];
             in
@@ -402,7 +401,6 @@ in
             "fra1-b.servers.jakst"
             "fwminex.servers.jakst"
             "mtworx.motiejus.jakst"
-            "vno3-rp3b.servers.jakst"
             "vno1-gdrx.motiejus.jakst"
           ];
     };
@@ -498,48 +496,42 @@ in
         enable = true;
         passwordPath = config.age.secrets.borgbackup-password.path;
         sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        dirs =
-          builtins.concatMap
-            (
-              host:
-              let
-                prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
-              in
-              [
-                {
-                  subvolume = "/var/lib";
-                  repo = "${prefix}-var_lib";
-                  paths = [
-                    "hass"
-                    "gitea"
-                    "caddy"
-                    "grafana"
-                    "headscale"
-                    "bitwarden_rs"
-                    "matrix-synapse"
-                    "private/soju"
+        dirs = builtins.concatMap (
+          host:
+          let
+            prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
+          in
+          [
+            {
+              subvolume = "/var/lib";
+              repo = "${prefix}-var_lib";
+              paths = [
+                "hass"
+                "gitea"
+                "caddy"
+                "grafana"
+                "headscale"
+                "bitwarden_rs"
+                "matrix-synapse"
+                "private/soju"
 
-                    # https://immich.app/docs/administration/backup-and-restore/
-                    "immich/library"
-                    "immich/upload"
-                    "immich/profile"
-                    "postgresql"
-                  ];
-                  patterns = [ "- gitea/data/repo-archive/" ];
-                  backup_at = "*-*-* 01:00:01 UTC";
-                }
-                {
-                  subvolume = "/home";
-                  repo = "${prefix}-home-motiejus-annex2";
-                  paths = [ "motiejus/annex2" ];
-                  backup_at = "*-*-* 02:30:01 UTC";
-                }
-              ]
-            )
-            [
-              "zh2769@zh2769.rsync.net"
-              "borgstor@${myData.hosts."vno3-rp3b.servers.jakst".jakstIP}"
-            ];
+                # https://immich.app/docs/administration/backup-and-restore/
+                "immich/library"
+                "immich/upload"
+                "immich/profile"
+                "postgresql"
+              ];
+              patterns = [ "- gitea/data/repo-archive/" ];
+              backup_at = "*-*-* 01:00:01 UTC";
+            }
+            {
+              subvolume = "/home";
+              repo = "${prefix}-home-motiejus-annex2";
+              paths = [ "motiejus/annex2" ];
+              backup_at = "*-*-* 02:30:01 UTC";
+            }
+          ]
+        );
       };
 
       btrfssnapshot = {
@@ -614,10 +606,6 @@ in
             {
               derivationTarget = ".#vno1-gdrx";
               pingTarget = myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP;
-            }
-            {
-              derivationTarget = ".#vno3-rp3b";
-              pingTarget = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
             }
           ];
         };
