@@ -194,21 +194,6 @@
           } // inputs;
         };
 
-        vno3-rp3b = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            { nixpkgs.overlays = overlays; }
-            ./hosts/vno3-rp3b/configuration.nix
-            ./modules
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-          ];
-
-          specialArgs = {
-            inherit myData;
-          } // inputs;
-        };
-
         fra1-b = nixpkgs.lib.nixosSystem {
           system = "aarch64-linux";
           modules = [
@@ -255,17 +240,6 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.vno1-gdrx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-gdrx;
-              user = "root";
-            };
-          };
-        };
-
-        vno3-rp3b = {
-          hostname = myData.hosts."vno3-rp3b.servers.jakst".jakstIP;
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.vno3-rp3b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-rp3b;
               user = "root";
             };
           };

@@ -10,11 +10,9 @@ let
   mtworx = (import ./data.nix).hosts."mtworx.motiejus.jakst".publicKey;
   fra1-b = (import ./data.nix).hosts."fra1-b.servers.jakst".publicKey;
   vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.motiejus.jakst".publicKey;
-  vno3-rp3b = (import ./data.nix).hosts."vno3-rp3b.servers.jakst".publicKey;
   systems = [
     fra1-b
     vno1-gdrx
-    vno3-rp3b
     fwminex
     mtworx
   ];
@@ -31,7 +29,6 @@ let
     );
 in
 { }
-// mk ([ vno3-rp3b ] ++ motiejus) [ "secrets/vno3-rp3b/datapool-passphrase.age" ]
 // mk ([ mtworx ] ++ motiejus) [
   "secrets/motiejus_work_passwd_hash.age"
   "secrets/root_work_passwd_hash.age"
