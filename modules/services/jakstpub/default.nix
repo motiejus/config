@@ -21,7 +21,7 @@ in
     services = {
       caddy = {
         enable = true;
-        virtualHosts.":80".extraConfig = with myData.subnets; ''
+        virtualHosts."hdd.jakstys.lt:80".extraConfig = with myData.subnets; ''
           root * ${cfg.dataDir}
           @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
           file_server browse {
@@ -64,11 +64,11 @@ in
               "create mask" = "0664";
               "directory mask" = "0775";
             };
-            snapshots = defaults // {
-              "path" = cfg.dataDir + "/.zfs/snapshot";
-              "writeable" = "no";
-              "read only" = "yes";
-            };
+            #snapshots = defaults // {
+            #  "path" = cfg.dataDir + "/.zfs/snapshot";
+            #  "writeable" = "no";
+            #  "read only" = "yes";
+            #};
           };
         };
 
@@ -102,7 +102,7 @@ in
           vno3.cidr
         ];
         tcp = [
-          80 # caddy above
+          #80 # caddy above
           139 # smbd
           445 # smbd
           5357 # wsdd

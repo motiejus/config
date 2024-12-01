@@ -242,7 +242,7 @@ rec {
       _acme-endpoint.bitwarden           NS     ns._acme-endpoint.bitwarden
       ns._acme-endpoint.bitwarden         A     ${vno1}
 
-      hdd                                 A     ${hosts."vno3-rp3b.servers.jakst".jakstIP}
+      hdd                        3600     A     ${hosts."fwminex.servers.jakst".jakstIP}
       _acme-challenge.hdd             CNAME     _acme-endpoint.hdd
       _acme-endpoint.hdd                 NS     ns._acme-endpoint.hdd
       ns._acme-endpoint.hdd               A     ${vno1}
