@@ -65,7 +65,7 @@
     username = "motiejus";
 
     base = {
-      zfs.enable = true;
+      #zfs.enable = true;
       users = {
         enable = true;
         root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
