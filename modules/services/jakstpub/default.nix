@@ -61,7 +61,8 @@ in
             };
 
             public = defaults // {
-              "path" = cfg.dataDir;
+              #"path" = cfg.dataDir;
+              "path" = "/var/run/samba/dataDir";
               "writeable" = "yes";
               "read only" = "no";
               "create mask" = "0664";
@@ -95,6 +96,9 @@ in
 
     systemd.services.samba-smbd = {
       unitConfig.Requires = cfg.requires;
+      serviceConfig.BindPaths = [
+        "${cfg.dataDir}:/var/run/samba/dataDir"
+      ];
     };
 
     mj.services.friendlyport.ports = [
