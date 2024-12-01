@@ -14,8 +14,6 @@
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-
-    datapool-passphrase.file = ../../secrets/vno3-rp3b/datapool-passphrase.age;
   };
 
   boot = {
@@ -25,6 +23,16 @@
         "vc4"
         "bcm2835_dma"
       ];
+      luks.devices = {
+        luksdata = {
+          device = "/dev/disk/by-uuid/efa9b396-9ec0-40f7-a0d0-75edc0f6d5ad";
+          allowDiscards = true;
+          keyFileOffset = 9728;
+          keyFileSize = 512;
+          keyFile = "/dev/mmcblk1";
+        };
+      };
+
     };
     loader = {
       grub.enable = false;
@@ -33,8 +41,6 @@
 
     kernelModules = [ ];
     extraModulePackages = [ ];
-    supportedFilesystems = [ "zfs" ];
-    zfs.forceImportRoot = false;
   };
 
   powerManagement.cpuFreqGovernor = "ondemand";
@@ -45,16 +51,9 @@
       fsType = "ext4";
     };
     "/data" = {
-      device = "datapool/root";
-      fsType = "zfs";
-    };
-    "/data/borg" = {
-      device = "datapool/root/borg";
-      fsType = "zfs";
-    };
-    "/data/shared" = {
-      device = "datapool/root/shared";
-      fsType = "zfs";
+      device = "/dev/mapper/luksdata";
+      fsType = "btrfs";
+      options = [ "compress=zstd" ];
     };
   };
 
@@ -77,10 +76,10 @@
         email = "motiejus+alerts@jakstys.lt";
       };
 
-      snapshot = {
-        enable = true;
-        mountpoints = [ "/data/shared" ];
-      };
+      #snapshot = {
+      #  enable = true;
+      #  mountpoints = [ "/data/shared" ];
+      #};
     };
 
     services = {
@@ -89,14 +88,14 @@
       node_exporter.enable = true;
       ping_exporter.enable = true;
 
-      borgstor = {
-        enable = true;
-        dataDir = "/data/borg";
-        sshKeys = with myData; [
-          hosts."fwminex.servers.jakst".publicKey
-          people_pubkeys.motiejus
-        ];
-      };
+      #borgstor = {
+      #  enable = true;
+      #  dataDir = "/data/borg";
+      #  sshKeys = with myData; [
+      #    hosts."fwminex.servers.jakst".publicKey
+      #    people_pubkeys.motiejus
+      #  ];
+      #};
 
       postfix = {
         enable = true;
@@ -113,13 +112,13 @@
         };
       };
 
-      jakstpub = {
-        enable = true;
-        dataDir = "/data/shared";
-        requires = [ "data-shared.mount" ];
-        uidgid = myData.uidgid.jakstpub;
-        hostname = "hdd.jakstys.lt";
-      };
+      #jakstpub = {
+      #  enable = true;
+      #  dataDir = "/data/shared";
+      #  requires = [ "data-shared.mount" ];
+      #  uidgid = myData.uidgid.jakstpub;
+      #  hostname = "hdd.jakstys.lt";
+      #};
     };
   };
 
@@ -145,10 +144,6 @@
       browsing = true;
       defaultShared = true;
     };
-  };
-
-  environment.etc = {
-    "datapool-passphrase.txt".source = config.age.secrets.datapool-passphrase.path;
   };
 
   environment.systemPackages = with pkgs; [
