@@ -12,7 +12,10 @@ in
     enable = lib.mkEnableOption "Enable jakstpub";
     dataDir = lib.mkOption { type = path; };
     # RequiresMountsFor is used by upstream, hacking with the unit
-    requires = lib.mkOption { type = listOf str; };
+    requires = lib.mkOption {
+      type = listOf str;
+      default = [ ];
+    };
     uidgid = lib.mkOption { type = int; };
     hostname = lib.mkOption { type = str; };
   };

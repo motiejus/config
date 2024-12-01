@@ -653,7 +653,7 @@ in
       jakstpub = {
         enable = true;
         dataDir = "/home/motiejus/annex2/vno3-shared";
-        requires = [ "data-shared.mount" ];
+        #requires = [ "data-shared.mount" ];
         uidgid = myData.uidgid.jakstpub;
         hostname = "hdd.jakstys.lt";
       };
