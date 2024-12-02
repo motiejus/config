@@ -80,7 +80,7 @@ in
       };
 
       displayManager = {
-        defaultSession = "none+awesome";
+        defaultSession = lib.mkDefault "none+awesome";
         autoLogin = {
           enable = true;
           user = username;

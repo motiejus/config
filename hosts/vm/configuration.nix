@@ -1,4 +1,5 @@
 {
+  lib,
   self,
   modulesPath,
   pkgs,
@@ -39,8 +40,11 @@
 
   services = {
     getty.autologinUser = "nixos";
-    xserver.autorun = false;
     autorandr.enable = true;
+    xserver = {
+      autorun = false;
+      displayManager.defaultSession = lib.mkForce "xfce";
+    };
   };
 
   security.pam.services.lightdm.text = ''
