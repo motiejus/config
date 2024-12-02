@@ -23,6 +23,7 @@ in
 
     syncthing-key.file = ../../secrets/mtworx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/mtworx/syncthing/cert.pem.age;
+    kolide-launcher.file = ../../secrets/mtworx/kolide-launcher.age;
 
     ssh8022-client = {
       file = ../../secrets/ssh8022.age;
@@ -178,11 +179,18 @@ in
         STOP_CHARGE_THRESH_BAT0 = 87;
       };
     };
+    kolide-launcher.enable = true;
   };
 
   users.extraGroups.vboxusers.members = [ "motiejus" ];
 
-  environment.systemPackages = with pkgs; [ dnsmasq ];
+  environment = {
+    systemPackages = with pkgs; [ dnsmasq ];
+    etc."kolide-k2/secret" = {
+      mode = "600";
+      source = config.age.secrets.kolide-launcher.path;
+    };
+  };
 
   security.tpm2.enable = true;
 

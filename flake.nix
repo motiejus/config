@@ -47,6 +47,11 @@
       };
     };
 
+    kolide-launcher = {
+      url = "github:/kolide/nix-agent/main";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -85,6 +90,7 @@
       nur,
       zig,
       nixgl,
+      kolide-launcher,
       ...
     }@inputs:
     let
@@ -147,6 +153,7 @@
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
             nix-index-database.nixosModules.nix-index
             agenix.nixosModules.default
+            kolide-launcher.nixosModules.kolide-launcher
           ];
 
           specialArgs = {
