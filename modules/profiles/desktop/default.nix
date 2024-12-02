@@ -12,7 +12,14 @@ in
 {
   imports = [ ../dev ];
   config = {
-    boot.supportedFilesystems = [ "ntfs" ];
+    boot = {
+      supportedFilesystems = [
+        "btrfs"
+        "ntfs"
+      ];
+      kernelModules = [ "kvm-intel" ];
+      loader.systemd-boot.enable = true;
+    };
 
     hardware.bluetooth = {
       enable = true;

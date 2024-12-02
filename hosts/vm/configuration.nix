@@ -1,6 +1,7 @@
 {
   self,
   modulesPath,
+  pkgs,
   ...
 }:
 {
@@ -24,12 +25,7 @@
     };
   };
 
-  boot = {
-    loader.systemd-boot.enable = true;
-    supportedFilesystems = [
-      "btrfs"
-    ];
-  };
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   isoImage = {
     isoName = "toolshed-${self.lastModifiedDate}.iso";
