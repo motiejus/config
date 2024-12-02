@@ -34,6 +34,9 @@
     in
     {
       isoName = "toolshed-${vsn}.iso";
+      # as of writing zstd -19 reduces toolshed from 9.1G to 8.6G, but takes
+      # ~30min on fwminex, as opposed to 10m with default settings.
+      #squashfsCompression = "zstd -Xcompression-level 19";
       squashfsCompression = "zstd";
       appendToMenuLabel = " Toolshed ${vsn}";
       makeEfiBootable = true; # EFI booting
