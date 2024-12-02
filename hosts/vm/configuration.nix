@@ -1,8 +1,8 @@
 {
   lib,
-  self,
   modulesPath,
   pkgs,
+  config,
   ...
 }:
 {
@@ -28,13 +28,17 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  isoImage = {
-    isoName = "toolshed-${self.lastModifiedDate}.iso";
-    squashfsCompression = "zstd";
-    appendToMenuLabel = " Toolshed ${self.lastModifiedDate}";
-    makeEfiBootable = true; # EFI booting
-    makeUsbBootable = true; # USB booting
-  };
+  isoImage =
+    let
+      vsn = "${config.system.nixos.release}${lib.trivial.versionSuffix}";
+    in
+    {
+      isoName = "toolshed-${vsn}.iso";
+      squashfsCompression = "zstd";
+      appendToMenuLabel = " Toolshed ${vsn}";
+      makeEfiBootable = true; # EFI booting
+      makeUsbBootable = true; # USB booting
+    };
 
   swapDevices = [ ];
 
