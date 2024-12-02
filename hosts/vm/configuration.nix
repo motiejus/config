@@ -7,10 +7,13 @@
   imports = [
     "${modulesPath}/profiles/all-hardware.nix"
     "${modulesPath}/installer/cd-dvd/iso-image.nix"
+    ../../modules
+    ../../modules/profiles/btrfs
+    ../../modules/profiles/desktop
   ];
 
   mj = {
-    stateVersion = "24.05";
+    stateVersion = "24.11";
     timeZone = "UTC";
     username = "nixos";
 
@@ -24,7 +27,6 @@
   boot = {
     loader.systemd-boot.enable = true;
     supportedFilesystems = [
-      "zfs"
       "btrfs"
     ];
   };

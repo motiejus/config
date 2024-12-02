@@ -123,28 +123,20 @@
         })
       ];
 
-      mkVM =
-        system:
-        nixpkgs.lib.nixosSystem {
-          inherit system;
+    in
+    {
+      nixosConfigurations = {
+        vm = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
           modules = [
             { nixpkgs.overlays = overlays; }
             ./hosts/vm/configuration.nix
-
-            ./modules
-            ./modules/profiles/desktop
-
             home-manager.nixosModules.home-manager
           ];
           specialArgs = {
             inherit myData;
           } // inputs;
         };
-    in
-    {
-      nixosConfigurations = {
-        vm-x86_64 = mkVM "x86_64-linux";
-        vm-aarch64 = mkVM "aarch64-linux";
 
         mtworx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
