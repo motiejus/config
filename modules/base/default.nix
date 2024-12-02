@@ -206,7 +206,7 @@ in
             brotli
 
             config.boot.kernelPackages.cpupower
-            #config.boot.kernelPackages.vm-tools # https://github.com/NixOS/nixpkgs/issues/355369
+            config.boot.kernelPackages.vm-tools # https://github.com/NixOS/nixpkgs/issues/355369
           ]
           (lib.mkIf (!cfg.skipPerf) [ config.boot.kernelPackages.perf ])
         ];
