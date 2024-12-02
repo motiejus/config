@@ -10,11 +10,9 @@ let
 in
 {
   imports = [
-    ./snapshot
     ./sshd
     ./unitstatus
     ./users
-    ./zfs
   ];
 
   options.mj = with lib.types; {
