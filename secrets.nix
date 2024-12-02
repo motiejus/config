@@ -35,6 +35,7 @@ in
 
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
+  "secrets/mtworx/kolide.age"
 ]
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
