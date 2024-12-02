@@ -34,8 +34,10 @@
     in
     {
       isoName = "toolshed-${vsn}.iso";
+
       # as of writing zstd -19 reduces toolshed from 9.1G to 8.6G, but takes
-      # ~30min on fwminex, as opposed to 10m with default settings.
+      # ~30min on fwminex, as opposed to ~10m with default settings. xz also
+      # yields 8.6G.
       #squashfsCompression = "zstd -Xcompression-level 19";
       squashfsCompression = "zstd";
       appendToMenuLabel = " Toolshed ${vsn}";
