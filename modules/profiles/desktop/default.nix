@@ -180,6 +180,7 @@ in
           rtorrent
           bsdgames
           xss-lock
+          valgrind
           musl.dev
           qpwgraph # for pipewire
           audacity
