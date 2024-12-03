@@ -14,7 +14,7 @@ in
   config = {
     boot = {
       loader.systemd-boot.enable = true;
-      systemd.enable = true;
+      initrd.systemd.enable = true;
       supportedFilesystems = [
         "btrfs"
         "ntfs"
