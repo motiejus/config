@@ -36,6 +36,7 @@ in
   };
 
   boot = {
+    loader.systemd-boot.enable = true;
     initrd = {
       systemd.enable = true;
       kernelModules = [ "usb_storage" ];

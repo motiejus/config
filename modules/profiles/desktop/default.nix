@@ -13,12 +13,13 @@ in
   imports = [ ../dev ];
   config = {
     boot = {
+      loader.systemd-boot.enable = true;
+      systemd.enable = true;
       supportedFilesystems = [
         "btrfs"
         "ntfs"
       ];
       kernelModules = [ "kvm-intel" ];
-      loader.systemd-boot.enable = true;
     };
 
     hardware = {
