@@ -21,9 +21,16 @@ in
       loader.systemd-boot.enable = true;
     };
 
-    hardware.bluetooth = {
-      enable = true;
-      powerOnBoot = true;
+    hardware = {
+      pulseaudio = {
+        enable = true;
+        package = pkgs.pulseaudioFull;
+      };
+
+      bluetooth = {
+        enable = true;
+        powerOnBoot = true;
+      };
     };
 
     programs = {
@@ -87,12 +94,7 @@ in
         };
       };
 
-      pipewire = {
-        enable = true;
-        alsa.enable = true;
-        alsa.support32Bit = true;
-        pulse.enable = true;
-      };
+      pipewire.enable = false;
 
       tlp = {
         enable = true;
@@ -182,7 +184,6 @@ in
           xss-lock
           valgrind
           musl.dev
-          qpwgraph # for pipewire
           audacity
           graphviz
           powertop
