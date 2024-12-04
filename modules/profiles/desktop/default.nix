@@ -162,7 +162,7 @@ in
           okular
           motion
           gthumb
-          # calibre # broken in 24.11 2024-11-19
+          calibre
           gparted
           scribus
           gnumake
