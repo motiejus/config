@@ -35,6 +35,10 @@ in
       };
       settings = {
         paths.logs = "/var/log/grafana";
+        smtp = {
+          enabled = true;
+          from_address = "noreply@jakstys.lt";
+        };
         server = {
           domain = "grafana.jakstys.lt";
           root_url = "https://grafana.jakstys.lt";
