@@ -14,15 +14,15 @@ in
   ];
 
   age.secrets = {
-    #motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
-    #root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
-    #sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
+    motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
+    root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
+    sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
 
-    #ssh8022-server = {
-    #  file = ../../secrets/ssh8022.age;
-    #  owner = "spiped";
-    #  path = "/var/lib/spiped/ssh8022.key";
-    #};
+    ssh8022-server = {
+      file = ../../secrets/ssh8022.age;
+      owner = "spiped";
+      path = "/var/lib/spiped/ssh8022.key";
+    };
   };
 
   boot = {
@@ -82,10 +82,8 @@ in
     base = {
       users = {
         enable = true;
-        root.initialPassword = "live";
-        user.initialPassword = "live";
-        #root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
-        #user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
+        root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
+        user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
       };
 
       unitstatus = {
@@ -200,10 +198,10 @@ in
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
         };
 
-      #postfix = {
-      #  enable = true;
-      #  saslPasswdPath = config.age.secrets.sasl-passwd.path;
-      #};
+      postfix = {
+        enable = true;
+        saslPasswdPath = config.age.secrets.sasl-passwd.path;
+      };
 
       #friendlyport.ports = [
       #  {
@@ -212,8 +210,6 @@ in
       #    tcp = with myData.ports; [
       #      80
       #      443
-      #      soju
-      #      soju-ws
       #      prometheus
       #    ];
       #  }
@@ -243,12 +239,10 @@ in
     firewall = {
       rejectPackets = true;
       allowedUDPPorts = [
-        53
         80
         443
       ];
       allowedTCPPorts = [
-        53
         80
         443
       ];

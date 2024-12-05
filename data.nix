@@ -48,6 +48,10 @@ rec {
   };
 
   hosts = {
+    "vno3-nk.servers.jakst" = rec {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBp3QL8p4AbuijEQX/uVHj6nkJ2/8qNSciL+Glydw2yK";
+      system = "x86_64-linux";
+    };
     "fra1-b.servers.jakst" = rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
