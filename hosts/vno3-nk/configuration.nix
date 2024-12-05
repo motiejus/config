@@ -226,7 +226,7 @@ in
 
       jakstpub = {
         enable = true;
-        dataDir = "/home/motiejus/vno3-shared";
+        dataDir = "/data/vno3-shared";
         uidgid = myData.uidgid.jakstpub;
         hostname = "hdd.jakstys.lt";
       };
