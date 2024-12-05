@@ -346,6 +346,7 @@ in
               port = toString config.services.prometheus.exporters.ping.port;
               hosts = [
                 "fwminex.servers.jakst"
+                "vno3-nk.servers.jakst"
                 "fra1-b.servers.jakst"
                 "vno1-gdrx.motiejus.jakst"
               ];
@@ -398,6 +399,7 @@ in
           )
           [
             "fra1-b.servers.jakst"
+            "vno3-nk.servers.jakst"
             "fwminex.servers.jakst"
             "mtworx.motiejus.jakst"
             "vno1-gdrx.motiejus.jakst"
