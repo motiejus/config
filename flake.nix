@@ -177,6 +177,20 @@
           } // inputs;
         };
 
+        vno3-nk = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            { nixpkgs.overlays = overlays; }
+            ./hosts/vno3-nk/configuration.nix
+            home-manager.nixosModules.home-manager
+            agenix.nixosModules.default
+          ];
+
+          specialArgs = {
+            inherit myData;
+          } // inputs;
+        };
+
         vno1-gdrx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
