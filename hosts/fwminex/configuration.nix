@@ -603,6 +603,7 @@ in
           deployDerivations = [
             ".#fwminex"
             ".#fra1-b"
+            ".#vno3-nk"
           ];
           deployIfPresent = [
             {
