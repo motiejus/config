@@ -102,6 +102,7 @@ in
       tailscale = {
         enable = true;
         verboseLogs = true;
+        acceptDNS = true;
       };
 
       syncthing = {
