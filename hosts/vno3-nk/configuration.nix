@@ -100,10 +100,10 @@ in
         extraSubnets = [ myData.subnets.vno3.cidr ];
       };
 
-      #ssh8022.server = {
-      #  enable = true;
-      #  keyfile = config.age.secrets.ssh8022-server.path;
-      #};
+      ssh8022.server = {
+        enable = true;
+        keyfile = config.age.secrets.ssh8022-server.path;
+      };
 
       tailscale = {
         enable = true;
