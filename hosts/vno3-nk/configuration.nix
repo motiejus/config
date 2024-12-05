@@ -215,13 +215,21 @@ in
       #  }
       #];
 
-      #jakstpub = {
-      #  enable = true;
-      #  dataDir = "/home/motiejus/annex2/vno3-shared";
-      #  #requires = [ "data-shared.mount" ];
-      #  uidgid = myData.uidgid.jakstpub;
-      #  hostname = "hdd.jakstys.lt";
-      #};
+      deployerbot = {
+        follower = {
+          enable = true;
+          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
+          sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
+          uidgid = myData.uidgid.updaterbot-deployee;
+        };
+      };
+
+      jakstpub = {
+        enable = true;
+        dataDir = "/data/vno3-shared";
+        uidgid = myData.uidgid.jakstpub;
+        hostname = "hdd.jakstys.lt";
+      };
 
     };
   };
