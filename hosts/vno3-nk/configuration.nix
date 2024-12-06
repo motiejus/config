@@ -104,6 +104,15 @@ in
         keyfile = config.age.secrets.ssh8022-server.path;
       };
 
+      borgstor = {
+        enable = true;
+        dataDir = "/data/borg";
+        sshKeys = with myData; [
+          hosts."fwminex.servers.jakst".publicKey
+          people_pubkeys.motiejus
+        ];
+      };
+
       tailscale = {
         enable = true;
         verboseLogs = false;
