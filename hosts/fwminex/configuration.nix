@@ -615,7 +615,7 @@ in
             }
             {
               derivationTarget = ".#vno3-nk";
-              pingTarget = myData.hosts."vno3-nk.motiejus.jakst".jakstIP;
+              pingTarget = myData.hosts."vno3-nk.servers.jakst".jakstIP;
             }
           ];
         };
