@@ -21,7 +21,7 @@
         shell = "/bin/sh";
         group = "borgstor";
         isSystemUser = true;
-        createHome = false;
+        createHome = true;
         uid = myData.uidgid.borgstor;
         openssh.authorizedKeys.keys = map (
           k: ''command="${pkgs.borgbackup}/bin/borg serve --restrict-to-path ${dataDir}",restrict ${k}''

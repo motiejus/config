@@ -94,6 +94,15 @@ in
         extraSubnets = [ myData.subnets.vno1.cidr ];
       };
 
+      borgstor = {
+        enable = true;
+        dataDir = "/data/borg";
+        sshKeys = with myData; [
+          hosts."fwminex.servers.jakst".publicKey
+          people_pubkeys.motiejus
+        ];
+      };
+
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;
