@@ -50,10 +50,8 @@
   services = {
     getty.autologinUser = "nixos";
     autorandr.enable = true;
-    xserver = {
-      autorun = false;
-      displayManager.defaultSession = lib.mkForce "xfce";
-    };
+    xserver.autorun = false;
+    displayManager.defaultSession = lib.mkForce "xfce";
   };
 
   security.pam.services.lightdm.text = ''
