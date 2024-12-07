@@ -1,5 +1,4 @@
 {
-  pkgs,
   config,
   myData,
   ...
@@ -228,13 +227,6 @@ in
       };
 
     };
-  };
-
-  environment = {
-    systemPackages =
-      with pkgs;
-      [
-      ];
   };
 
   networking = {
