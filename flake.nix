@@ -30,14 +30,6 @@
       };
     };
 
-    nixgl = {
-      url = "github:guibou/nixGL";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
-
     zig = {
       url = "github:mitchellh/zig-overlay";
       inputs = {
@@ -89,7 +81,6 @@
       pre-commit-hooks,
       nur,
       zig,
-      nixgl,
       kolide-launcher,
       ...
     }@inputs:
@@ -97,9 +88,8 @@
       myData = import ./data.nix;
 
       overlays = [
-        nur.overlay
+        nur.overlays.default
         zig.overlays.default
-        nixgl.overlay
 
         (_self: super: { deploy-rs-pkg = super.deploy-rs; })
         deploy-rs.overlay

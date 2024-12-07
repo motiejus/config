@@ -9,43 +9,6 @@
   ...
 }:
 let
-  # from https://github.com/Gerg-L/demoninajar/blob/39964f198dbfa34c21f81c35370fab312b476051/homes/veritas_manjaro/nixGL.nix#L42
-  mkWrapped =
-    wrap: orig-pkg: execName:
-    pkgs.makeOverridable (
-      attrs:
-      let
-        pkg = orig-pkg.override attrs;
-        outs = pkg.meta.outputsToInstall;
-        paths = pkgs.lib.attrsets.attrVals outs pkg;
-        nonTrivialOuts = pkgs.lib.lists.remove "out" outs;
-        metaAttributes = pkgs.lib.attrsets.getAttrs (
-          [
-            "name"
-            "pname"
-            "version"
-            "meta"
-          ]
-          ++ nonTrivialOuts
-        ) pkg;
-      in
-      pkgs.symlinkJoin (
-        {
-          inherit paths;
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          postBuild = ''
-            mv $out/bin/${execName} $out/bin/.${execName}-mkWrapped-original
-            makeWrapper \
-              ${wrap}/bin/${wrap.name} $out/bin/${execName} \
-              --add-flags $out/bin/.${execName}-mkWrapped-original
-          '';
-        }
-        // metaAttributes
-      )
-    ) { };
-  glintel = mkWrapped pkgs.nixgl.nixGLIntel;
-  firefox =
-    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
   homeDirectory = "/home/${username}";
 in
 {
@@ -109,8 +72,7 @@ in
       };
       firefox = lib.mkIf devTools {
         enable = true;
-        # firefox doesn't need the wrapper on the personal laptop
-        package = if hmOnly then (glintel firefox "firefox") else firefox;
+        package = pkgs.firefox-bin;
         policies.DisableAppUpdate = true;
         profiles = {
           xdefault = {
