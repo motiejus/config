@@ -136,10 +136,11 @@ in
           tmuxbash
 
           iw
+          rr
+          gdb
           vlc
           sox
           mpv
-          gdb
           acpi
           gimp
           josm
