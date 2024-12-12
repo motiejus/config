@@ -139,6 +139,7 @@ in
           vlc
           sox
           mpv
+          gdb
           acpi
           gimp
           josm
