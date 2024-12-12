@@ -169,7 +169,10 @@ in
   services.guix.enable = true;
   users.extraGroups.guixbuild.members = [ "motiejus" ];
 
-  environment.systemPackages = with pkgs; [ lutris ];
+  environment.systemPackages = with pkgs; [
+    linuxPackages.rr-zen_workaround
+    lutris
+  ];
 
   networking = {
     hostName = "vno1-gdrx";
