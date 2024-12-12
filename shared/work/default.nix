@@ -10,7 +10,6 @@
     bats
     unzip
     rclone
-    zoom-us
     mysql80
     kubectl
     kubectx
