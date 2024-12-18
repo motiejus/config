@@ -237,6 +237,7 @@ in
           lld
           llvm
           llvm-manpages
+          clang
           clang-manpages
           gcc_latest
           clang-tools
