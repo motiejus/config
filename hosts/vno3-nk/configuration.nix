@@ -16,6 +16,7 @@ in
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
+    borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
       owner = "spiped";
@@ -117,52 +118,30 @@ in
         verboseLogs = false;
       };
 
-      #btrfsborg = {
-      #  enable = true;
-      #  passwordPath = config.age.secrets.borgbackup-password.path;
-      #  sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-      #  dirs =
-      #    builtins.concatMap
-      #      (
-      #        host:
-      #        let
-      #          prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
-      #        in
-      #        [
-      #          {
-      #            subvolume = "/var/lib";
-      #            repo = "${prefix}-var_lib";
-      #            paths = [
-      #              "hass"
-      #              "gitea"
-      #              "caddy"
-      #              "grafana"
-      #              "headscale"
-      #              "bitwarden_rs"
-      #              "matrix-synapse"
-      #              "private/soju"
-
-      #              # https://immich.app/docs/administration/backup-and-restore/
-      #              "immich/library"
-      #              "immich/upload"
-      #              "immich/profile"
-      #              "postgresql"
-      #            ];
-      #            patterns = [ "- gitea/data/repo-archive/" ];
-      #            backup_at = "*-*-* 01:00:01 UTC";
-      #          }
-      #          {
-      #            subvolume = "/home";
-      #            repo = "${prefix}-home-motiejus-annex2";
-      #            paths = [ "motiejus/annex2" ];
-      #            backup_at = "*-*-* 02:30:01 UTC";
-      #          }
-      #        ]
-      #      )
-      #      [
-      #        "zh2769@zh2769.rsync.net"
-      #      ];
-      #};
+      btrfsborg = {
+        enable = true;
+        passwordPath = config.age.secrets.borgbackup-password.path;
+        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+        dirs =
+          builtins.concatMap
+            (
+              host:
+              let
+                prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
+              in
+              [
+                {
+                  subvolume = "/data";
+                  repo = "${prefix}-data";
+                  paths = [ "vno3-shared" ];
+                  backup_at = "*-*-* 01:00:01 UTC";
+                }
+              ]
+            )
+            [
+              "zh2769@zh2769.rsync.net"
+            ];
+      };
 
       btrfssnapshot = {
         enable = true;
@@ -230,6 +209,7 @@ in
   };
 
   networking = {
+    hostId = "ab4af0bb";
     hostName = "vno3-nk";
     domain = "servers.jakst";
     firewall = {
