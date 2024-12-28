@@ -24,6 +24,8 @@
   config =
     with config.mj.services.wifibackup;
     lib.mkIf enable {
+      mj.base.unitstatus.units = [ "wifibackup" ];
+
       systemd.timers.wifibackup = {
         description = "wifibackup to M-Active";
         wantedBy = [ "timers.target" ];
