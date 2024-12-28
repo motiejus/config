@@ -537,6 +537,7 @@ in
             )
             [
               "zh2769@zh2769.rsync.net"
+              "borgstor@${myData.hosts."vno3-nk.servers.jakst".jakstIP}"
             ];
       };
 
