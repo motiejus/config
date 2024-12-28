@@ -140,6 +140,7 @@ in
             )
             [
               "zh2769@zh2769.rsync.net"
+              "borgstor@${myData.hosts."fwminex.servers.jakst".jakstIP}"
             ];
       };
 

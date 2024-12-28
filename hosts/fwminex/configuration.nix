@@ -451,6 +451,15 @@ in
         keyfile = config.age.secrets.ssh8022-server.path;
       };
 
+      borgstor = {
+        enable = true;
+        dataDir = "/var/lib/borgstor";
+        sshKeys = with myData; [
+          hosts."vno3-nk.servers.jakst".publicKey
+          people_pubkeys.motiejus
+        ];
+      };
+
       vaultwarden = {
         enable = true;
         port = myData.ports.vaultwarden;
