@@ -24,10 +24,23 @@
           ] (_: null);
         in
         lib.mapAttrs (_name: builtins.intersectAttrs sshAttrs) filtered;
-      extraConfig = ''
-        Host git.jakstys.lt
-          HostName ${myData.hosts."fwminex.servers.jakst".jakstIP}
-      '';
+      extraConfig =
+        ''
+          Host git.jakstys.lt
+            HostName ${myData.hosts."fwminex.servers.jakst".jakstIP}
+
+        ''
+        + (lib.concatMapStringsSep "\n"
+          (host: ''
+            Host ${builtins.elemAt (lib.splitString "." host) 0}
+              HostName ${myData.hosts.${host}.jakstIP}
+          '')
+          (
+            builtins.attrNames (
+              lib.filterAttrs (name: props: name != "fra1-b.servers.jakst" && props ? jakstIP) myData.hosts
+            )
+          )
+        );
     };
   };
 }
