@@ -496,7 +496,6 @@ in
           enable = true;
           zones = {
             "irc.jakstys.lt".accountKey = accountKey;
-            "hdd.jakstys.lt".accountKey = accountKey;
             "grafana.jakstys.lt".accountKey = accountKey;
             "bitwarden.jakstys.lt".accountKey = accountKey;
           };
@@ -654,14 +653,6 @@ in
           ];
         }
       ];
-
-      jakstpub = {
-        enable = true;
-        dataDir = "/home/motiejus/annex2/vno3-shared";
-        #requires = [ "data-shared.mount" ];
-        uidgid = myData.uidgid.jakstpub;
-        hostname = "hdd.jakstys.lt";
-      };
 
     };
   };
