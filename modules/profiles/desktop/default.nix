@@ -200,7 +200,6 @@ in
           distrobox
           miniupnpc
           v4l-utils
-          nerdfonts
           diffoscope
           alsa-utils
           shellcheck
