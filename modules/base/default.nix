@@ -162,6 +162,7 @@ in
             stress-ng
             dmidecode
             moreutils
+            sloccount
             cryptsetup
             lm_sensors
             inotify-info
