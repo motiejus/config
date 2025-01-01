@@ -135,6 +135,7 @@ in
           nicer
           tmuxbash
 
+          f3 # flight-flash-fraud
           iw
           rr
           gdb
