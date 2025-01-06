@@ -151,6 +151,7 @@ in
           putty
           scrot
           tracy
+          cmake
           kazam # alternative to gtk-recordMyDesktop
           x11vnc
           yt-dlp
