@@ -146,6 +146,8 @@ in
           gimp
           josm
           qemu
+          zlib
+          ninja
           xclip
           pdftk
           putty
@@ -173,6 +175,7 @@ in
           libwebp
           librsvg
           neomutt
+          wasmtime
           picocom
           inferno
           libheif
@@ -237,14 +240,8 @@ in
           python3Packages.ipython
           samsung-unified-linux-driver
 
-          lld
-          llvm
-          llvm-manpages
           cppcheck
-          clang
-          clang-manpages
           gcc_latest
-          clang-tools
 
           xorg.xev
           xorg.xeyes
@@ -277,6 +274,15 @@ in
           wineWowPackages.full
         ])
         [ pkgs.undocker ]
+        (with llvmPackages_19; [
+          lld
+          llvm
+          llvm-manpages
+          clang
+          libclang
+          clang-manpages
+          clang-tools
+        ])
       ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
