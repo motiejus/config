@@ -292,7 +292,14 @@ in
       { pkgs, config, ... }:
       {
         imports = [ ./plasma.nix ];
-        xdg.configFile."awesome/rc.lua".source = ./rc.lua;
+        xdg.configFile = {
+          "awesome/rc.lua".source = ./rc.lua;
+          "gdb/gdbinit".text = ''
+            set style address foreground yellow
+            set style function foreground cyan
+            set style string foreground magenta
+          '';
+        };
 
         programs = {
           msmtp.enable = true;
