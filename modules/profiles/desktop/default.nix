@@ -306,18 +306,18 @@ in
           mbsync.enable = true;
           neomutt.enable = true;
           notmuch.enable = true;
-          #ghostty = {
-          #  enable = true;
-          #  installVimSyntax = true;
-          #  enableBashIntegration = true;
-          #  settings = {
-          #    font-feature = [
-          #      "-calt"
-          #      "-liga"
-          #      "-dlig"
-          #    ];
-          #  };
-          #};
+          ghostty = {
+            enable = true;
+            installVimSyntax = true;
+            enableBashIntegration = true;
+            settings = {
+              font-feature = [
+                "-calt"
+                "-liga"
+                "-dlig"
+              ];
+            };
+          };
 
           tmux.extraConfig =
             let
