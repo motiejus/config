@@ -311,6 +311,8 @@ in
             installVimSyntax = true;
             enableBashIntegration = true;
             settings = {
+              command = lib.getExe pkgs.tmuxbash;
+              window-decoration = false;
               font-feature = [
                 "-calt"
                 "-liga"
