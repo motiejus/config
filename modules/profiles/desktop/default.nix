@@ -311,6 +311,7 @@ in
             installVimSyntax = true;
             enableBashIntegration = true;
             settings = {
+              theme = "iTerm2 Default";
               command = lib.getExe pkgs.tmuxbash;
               window-decoration = false;
               font-feature = [
