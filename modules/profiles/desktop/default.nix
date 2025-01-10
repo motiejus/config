@@ -314,6 +314,7 @@ in
               theme = "iTerm2 Default";
               command = lib.getExe pkgs.tmuxbash;
               window-decoration = false;
+              gtk-single-instance = true;
               font-feature = [
                 "-calt"
                 "-liga"
