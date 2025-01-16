@@ -79,6 +79,7 @@ in
             isDefault = true;
             settings = {
               "app.update.auto" = false;
+              "browser.uidensity" = 1;
               "browser.aboutConfig.showWarning" = false;
               "browser.contentblocking.category" = "strict";
               "browser.urlbar.showSearchSuggestionsFirst" = false;
