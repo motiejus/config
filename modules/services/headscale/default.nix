@@ -34,8 +34,7 @@
               "8.8.4.4"
             ];
             magic_dns = false;
-            # https://github.com/juanfont/headscale/issues/2210
-            base_domain = "jakst.vpn";
+            base_domain = "jakst";
           };
         };
       };
