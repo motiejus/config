@@ -17,7 +17,6 @@ in
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    headscale-client-oidc.file = ../../secrets/headscale/oidc_client_secret2.age;
     borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
     grafana-oidc.file = ../../secrets/grafana.jakstys.lt/oidc.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
@@ -484,7 +483,6 @@ in
 
       headscale = {
         enable = true;
-        clientOidcPath = config.age.secrets.headscale-client-oidc.path;
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
