@@ -18,7 +18,6 @@ in
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
-    grafana-oidc.file = ../../secrets/grafana.jakstys.lt/oidc.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
     vaultwarden-secrets-env.file = ../../secrets/vaultwarden/secrets.env.age;
     synapse-jakstys-signing-key.file = ../../secrets/synapse/jakstys_lt_signing_key.age;
@@ -473,7 +472,6 @@ in
       grafana = {
         enable = true;
         port = myData.ports.grafana;
-        oidcSecretFile = config.age.secrets.grafana-oidc.path;
       };
 
       tailscale = {
