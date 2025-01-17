@@ -11,6 +11,7 @@ let
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
     "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
     "mxp1".id = "2HBV27D-PK5DKQG-EQE4AV7-ASADXHJ-ER7GAZK-Z6C2NZP-64DLTKI-5OPUZAT";
+    "vxp10".id = "CNAGBWH-3EAJ3XR-Z6K2DTW-P42O4SD-7JVCOEL-KIM7BKW-2WA7XS3-733NIQF";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
@@ -71,6 +72,7 @@ let
         "mtworx"
         "v-kfire"
         "a-kfire"
+        "vxp10"
       ];
       id = "xbrfr-mhszm";
       label = "Vaikai";
@@ -141,6 +143,7 @@ let
     Irenos = {
       devices = [
         "fwminex"
+        "vno1-gdrx"
         "sqq1-desk"
         "vno2-irena"
       ];
@@ -206,6 +209,7 @@ in
               fwminex
               mtworx
               mxp1
+              vxp10
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
@@ -219,6 +223,7 @@ in
               fwminex
               mtworx
               mxp1
+              vxp10
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
@@ -236,6 +241,7 @@ in
               sqq1-desk
               rzj-744P2PE
               mxp1
+              vxp10
               a-kfire
               v-kfire
               ;
@@ -274,6 +280,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
             "${cfg.dataDir}/Books" = Books;
             "${cfg.dataDir}/Maildir" = Maildir;
+            "${cfg.dataDir}/irenos" = Irenos;
             "${cfg.dataDir}/M-Active" = M-Active;
             "${cfg.dataDir}/M-Camera" = M-Camera;
             "${cfg.dataDir}/M-Documents" = M-Documents;
