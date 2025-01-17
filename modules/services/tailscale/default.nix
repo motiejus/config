@@ -34,6 +34,7 @@ in
         enable = true;
         extraUpFlags = [
           "--operator=${config.mj.username}"
+          "--accept-routes=true"
         ];
         extraSetFlags = [
           "--accept-dns=${if cfg.acceptDNS then "true" else "false"}"
