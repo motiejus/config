@@ -210,6 +210,7 @@ in
               mtworx
               mxp1
               vxp10
+              vno2-irena
               rzj-744P2PE
               sqq1-desk
               vno1-vinc
