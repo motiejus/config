@@ -48,6 +48,15 @@ rec {
   };
 
   hosts = {
+    "vno4-rutx11.servers.jakst" = rec {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEehmFvEBVngwxk1nuEWMlE4UU69gC4wxytGX5DAFbh";
+      jakstIP = "100.89.176.1";
+      vno4IP = "192.168.188.1";
+      extraHostNames = [
+        jakstIP
+        vno4IP
+      ];
+    };
     "vno3-nk.servers.jakst" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBp3QL8p4AbuijEQX/uVHj6nkJ2/8qNSciL+Glydw2yK";
       system = "x86_64-linux";
