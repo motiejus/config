@@ -132,13 +132,16 @@ in
     hostName = "fra1-b";
     domain = "servers.jakst";
     useDHCP = true;
-    interfaces.enp1s0.addresses = [
+    interfaces.enp1s0.ipv6.addresses = [
       {
         address = "2a01:4f8:c012:1ba::";
         prefixLength = 64;
-        defaultGateway = "fe80::1";
       }
     ];
+    defaultGateway6 = {
+      address = "fe80::1";
+      interface = "enp1s0";
+    };
     firewall = {
       allowedUDPPorts = [ 53 ];
       allowedTCPPorts = [ 53 ];
