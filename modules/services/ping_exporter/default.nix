@@ -35,6 +35,7 @@ in
 
           "jakstys.lt"
           "fra1-b.jakstys.lt"
+          myData.hosts."vno4-rutx11.servers.jakst".jakstIP
         ];
       };
     };
