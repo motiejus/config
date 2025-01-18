@@ -47,7 +47,11 @@ in
 
       kernelPackages = lib.mkDefault pkgs.linuxPackages;
 
-      supportedFilesystems = [ "btrfs" ];
+      supportedFilesystems = [
+        "btrfs"
+        "ext4"
+        "xfs"
+      ];
     };
 
     nixpkgs.config.allowUnfree = true;
