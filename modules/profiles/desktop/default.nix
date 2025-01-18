@@ -16,8 +16,8 @@ in
       loader.systemd-boot.enable = true;
       initrd.systemd.enable = true;
       supportedFilesystems = [
-        "btrfs"
         "ntfs"
+        "xfs"
       ];
       kernelModules = [ "kvm-intel" ];
     };

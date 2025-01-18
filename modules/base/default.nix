@@ -50,7 +50,6 @@ in
       supportedFilesystems = [
         "btrfs"
         "ext4"
-        "xfs"
       ];
     };
 
