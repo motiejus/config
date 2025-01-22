@@ -127,153 +127,155 @@ in
 
     virtualisation.docker.enable = true;
 
-    environment.systemPackages = with pkgs; [
-      # packages defined here
-      nicer
-      tmuxbash
+    environment.systemPackages =
+      with pkgs;
+      [
+        # packages defined here
+        nicer
+        tmuxbash
 
-      f3 # flight-flash-fraud
-      iw
-      rr
-      gdb
-      i7z
-      vlc
-      sox
-      mpv
-      acpi
-      gimp
-      josm
-      qemu
-      zlib
-      ninja
-      xclip
-      pdftk
-      putty
-      scrot
-      tracy
-      cmake
-      kazam # alternative to gtk-recordMyDesktop
-      x11vnc
-      yt-dlp
-      skopeo
-      ffmpeg
-      tinycc
-      scrcpy
-      cheese
-      arandr
-      pandoc
-      evince
-      okular
-      motion
-      gthumb
-      calibre
-      gparted
-      scribus
-      gnumake
-      libwebp
-      librsvg
-      neomutt
-      picocom
-      inferno
-      libheif
-      mplayer
-      tcpflow
-      cppcheck
-      wasmtime
-      undocker
-      nautilus
-      smplayer
-      inkscape
-      chromium
-      hunspell
-      tigervnc
-      rtorrent
-      bsdgames
-      xss-lock
-      valgrind
-      musl.dev
-      audacity
-      graphviz
-      powertop
-      librecad
-      qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
-      tesseract
-      trayscale
-      espeak-ng
-      man-pages
-      rox-filer
-      distrobox
-      miniupnpc
-      v4l-utils
-      nerdfonts
-      winetricks
-      diffoscope
-      alsa-utils
-      gcc_latest
-      shellcheck
-      borgbackup
-      efibootmgr
-      virtualenv
-      imagemagick
-      ventoy-full
-      ghostscript
-      libva-utils # intel video tests
-      pavucontrol
-      wirelesstools
-      poppler_utils
-      rkdeveloptool
-      squashfsTools
-      nixpkgs-review
-      joplin-desktop
-      aspellDicts.en
-      aspellDicts.lt
-      libreoffice-qt
-      graphicsmagick
-      magic-wormhole
-      signal-desktop
-      gnome-calendar
-      intel-gpu-tools
-      element-desktop
-      netsurf-browser
-      man-pages-posix
-      git-filter-repo
-      gnome-calculator
-      nvtopPackages.amd
-      age-plugin-yubikey
-      nvtopPackages.intel
-      hunspellDicts.en_US
-      wineWowPackages.full
-      samsung-unified-linux-driver
+        f3 # flight-flash-fraud
+        iw
+        rr
+        gdb
+        i7z
+        vlc
+        sox
+        mpv
+        acpi
+        gimp
+        josm
+        qemu
+        zlib
+        ninja
+        xclip
+        pdftk
+        putty
+        scrot
+        tracy
+        cmake
+        kazam # alternative to gtk-recordMyDesktop
+        x11vnc
+        yt-dlp
+        skopeo
+        ffmpeg
+        tinycc
+        scrcpy
+        cheese
+        arandr
+        pandoc
+        evince
+        okular
+        motion
+        gthumb
+        calibre
+        gparted
+        scribus
+        gnumake
+        libwebp
+        librsvg
+        neomutt
+        picocom
+        inferno
+        libheif
+        mplayer
+        tcpflow
+        cppcheck
+        wasmtime
+        undocker
+        nautilus
+        smplayer
+        inkscape
+        chromium
+        hunspell
+        tigervnc
+        rtorrent
+        bsdgames
+        xss-lock
+        valgrind
+        musl.dev
+        audacity
+        graphviz
+        powertop
+        librecad
+        qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
+        tesseract
+        trayscale
+        espeak-ng
+        man-pages
+        rox-filer
+        distrobox
+        miniupnpc
+        v4l-utils
+        nerdfonts
+        winetricks
+        diffoscope
+        alsa-utils
+        gcc_latest
+        shellcheck
+        borgbackup
+        efibootmgr
+        virtualenv
+        imagemagick
+        ventoy-full
+        ghostscript
+        libva-utils # intel video tests
+        pavucontrol
+        wirelesstools
+        poppler_utils
+        rkdeveloptool
+        squashfsTools
+        nixpkgs-review
+        joplin-desktop
+        aspellDicts.en
+        aspellDicts.lt
+        libreoffice-qt
+        graphicsmagick
+        magic-wormhole
+        signal-desktop
+        gnome-calendar
+        intel-gpu-tools
+        element-desktop
+        netsurf-browser
+        man-pages-posix
+        git-filter-repo
+        gnome-calculator
+        nvtopPackages.amd
+        age-plugin-yubikey
+        nvtopPackages.intel
+        hunspellDicts.en_US
+        wineWowPackages.full
+        samsung-unified-linux-driver
 
-      xorg.xev
-      xorg.xeyes
-      xorg.lndir
-      xorg.xinit
+        xorg.xev
+        xorg.xeyes
+        xorg.lndir
+        xorg.xinit
 
-      (python3.withPackages (
-        ps: with ps; [
-          numpy
-          ipython
-          matplotlib
-        ]
-      ))
+        (python3.withPackages (
+          ps: with ps; [
+            numpy
+            ipython
+            matplotlib
+          ]
+        ))
 
-      (texlive.combine {
-        inherit (texlive)
-          scheme-medium
-          dvisvgm
-          dvipng
-          wrapfig
-          amsmath
-          ulem
-          hyperref
-          capt-of
-          lithuanian
-          hyphen-lithuanian
-          ;
-      })
-
-      (with llvmPackages_19; [
+        (texlive.combine {
+          inherit (texlive)
+            scheme-medium
+            dvisvgm
+            dvipng
+            wrapfig
+            amsmath
+            ulem
+            hyperref
+            capt-of
+            lithuanian
+            hyphen-lithuanian
+            ;
+        })
+      ]
+      ++ (with llvmPackages_19; [
         lld
         llvm
         llvm-manpages
@@ -281,8 +283,7 @@ in
         libclang
         clang-manpages
         clang-tools
-      ])
-    ];
+      ]);
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
     systemd.services.NetworkManager-wait-online.enable = false;
