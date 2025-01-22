@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   config,
   myData,
@@ -35,6 +36,7 @@ in
 
   boot = {
     kernelModules = [ "kvm-intel" ];
+    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
     initrd = {
       availableKernelModules = [
         "xhci_pci"
