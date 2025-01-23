@@ -154,7 +154,9 @@ in
         scrot
         tracy
         cmake
-        kazam # alternative to gtk-recordMyDesktop
+        (kazam.override {
+          python3Packages = pkgs.python311Packages;
+        }) # alternative to gtk-recordMyDesktop
         x11vnc
         yt-dlp
         skopeo

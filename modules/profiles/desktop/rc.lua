@@ -117,10 +117,10 @@ local timezone_popup = awful.popup {
     widget = {
         {
             -- Timezone widgets
-            wibox.widget.textclock("VNO: %F %T %z", 1, "Europe/Vilnius"),
-            wibox.widget.textclock("UTC: %F %T %z", 1, "UTC"),
-            wibox.widget.textclock("IAD: %F %T %z", 1, "US/Eastern"),
-            wibox.widget.textclock("SEA: %F %T %z", 1, "US/Pacific"),
+            wibox.widget.textclock("VNO: %T %z", 1, "Europe/Vilnius"),
+            wibox.widget.textclock("UTC: %T %z", 1, "UTC"),
+            wibox.widget.textclock("IAD: %T %z", 1, "US/Eastern"),
+            wibox.widget.textclock("SEA: %T %z", 1, "US/Pacific"),
             layout = wibox.layout.fixed.vertical
         },
         margins = 8,
