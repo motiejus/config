@@ -110,17 +110,15 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock("%F %T %a", 1)
 
--- Create the popup
 local timezone_popup = awful.popup {
     widget = {
         {
             -- Timezone widgets
-            wibox.widget.textclock("VNO: %T %z", 1, "Europe/Vilnius"),
-            wibox.widget.textclock("UTC: %T %z", 1, "UTC"),
-            wibox.widget.textclock("IAD: %T %z", 1, "US/Eastern"),
-            wibox.widget.textclock("SEA: %T %z", 1, "US/Pacific"),
+            wibox.widget.textclock("VNO: %F %T%z", 1, "Europe/Vilnius"),
+            wibox.widget.textclock("UTC: %F %T%z", 1, "UTC"),
+            wibox.widget.textclock("IAD: %F %T%z", 1, "US/Eastern"),
+            wibox.widget.textclock("SEA: %F %T%z", 1, "US/Pacific"),
             layout = wibox.layout.fixed.vertical
         },
         margins = 8,
@@ -135,8 +133,15 @@ local timezone_popup = awful.popup {
     visible = false
 }
 
--- Toggle popup on clock click
+mytextclock = wibox.widget.textclock("%T%z", 1)
 mytextclock:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        timezone_popup.visible = not timezone_popup.visible
+    end)
+))
+
+vnoclock = wibox.widget.textclock(" | %F %T%z %a", 1, "Europe/Vilnius")
+vnoclock:buttons(gears.table.join(
     awful.button({}, 1, function()
         timezone_popup.visible = not timezone_popup.visible
     end)
@@ -246,6 +251,7 @@ awful.screen.connect_for_each_screen(function(s)
             mykeyboardlayout,
             wibox.widget.systray(),
             mytextclock,
+            vnoclock,
             s.mylayoutbox,
         },
     }
