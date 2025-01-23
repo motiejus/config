@@ -123,7 +123,6 @@ in
       ];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
-        "11sync.net.".data = myData.e11syncZone;
       };
     };
   };

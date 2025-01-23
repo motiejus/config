@@ -204,8 +204,6 @@ in
         }
       '';
       virtualHosts = {
-        "www.11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
-        "11sync.net".extraConfig = "redir https://jakstys.lt/2024/11sync-shutdown/";
         "vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
         "hass.jakstys.lt:80".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
@@ -323,7 +321,6 @@ in
       ];
       zones = {
         "jakstys.lt.".data = myData.jakstysLTZone;
-        "11sync.net.".data = myData.e11syncZone;
       };
     };
 

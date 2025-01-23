@@ -160,38 +160,6 @@ rec {
     vno3.cidr = "192.168.100.0/24";
   };
 
-  e11syncZone =
-    let
-      fra1b = hosts."fra1-b.servers.jakst".publicIP;
-      vno1 = hosts."fwminex.servers.jakst".publicIP;
-    in
-    ''
-      $ORIGIN 11sync.net.
-      $TTL 3600
-      @                            SOA   ns1.11sync.net. motiejus.11sync.net. (2024011500 86400 86400 86400 86400)
-      @                             NS   ns1.11sync.net.
-      @                             NS   ns2.11sync.net.
-      @                              A   ${vno1}
-      @                            TXT   google-site-verification=nvUYd7_ShhPKvTn_Xbw-vPFONOhPeaYQsGp34DbV-80
-      @                            TXT   "hosted-email-verify=qeuysotu"
-      @                             MX   10 aspmx1.migadu.com.
-      @                             MX   20 aspmx2.migadu.com.
-      @                            TXT   "v=spf1 include:spf.migadu.com -all"
-      ns1                            A   ${vno1}
-      ns2                            A   ${fra1b}
-      www                            A   ${vno1}
-      key1._domainkey            CNAME   key1.11sync.net._domainkey.migadu.com.
-      key2._domainkey            CNAME   key2.11sync.net._domainkey.migadu.com.
-      key3._domainkey            CNAME   key3.11sync.net._domainkey.migadu.com.
-      _dmarc                       TXT   "v=DMARC1; p=quarantine;"
-      autoconfig                 CNAME   autoconfig.migadu.com.
-      _autodiscover._tcp           SRV   0 1 443 autodiscover.migadu.com.
-      _submissions._tcp            SRV   0 1 465 smtp.migadu.com.
-      _imaps._tcp                  SRV   0 1 993 imap.migadu.com.
-      _pop3s._tcp                  SRV   0 1 995 pop.migadu.com.
-      _github-challenge-11sync-org TXT   "ff5e813c58"
-    '';
-
   jakstysLTZone =
     let
       fra1b = hosts."fra1-b.servers.jakst".publicIP;
