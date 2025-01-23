@@ -112,6 +112,35 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock("%F %T %a", 1)
 
+-- Create the popup
+local timezone_popup = awful.popup {
+    widget = {
+        {
+            -- Timezone widgets
+            wibox.widget.textclock("VNO: %F %T", 1, "Europe/Vilnius"),
+            wibox.widget.textclock("IAD: %F %T", 1, "US/Eastern"),
+            wibox.widget.textclock("SEA: %F %T", 1, "US/Pacific"),
+            layout = wibox.layout.fixed.vertical
+        },
+        margins = 8,
+        widget = wibox.container.margin
+    },
+    border_width = 2,
+    border_color = "#ffffff",
+    placement = function(d)
+        awful.placement.top_right(d, { margins = { top = 20, right = 10 } } )
+    end,
+    ontop = true,
+    visible = false
+}
+
+-- Toggle popup on clock click
+mytextclock:buttons(gears.table.join(
+    awful.button({}, 1, function()
+        timezone_popup.visible = not timezone_popup.visible
+    end)
+))
+
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
                     awful.button({ }, 1, function(t) t:view_only() end),
