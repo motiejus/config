@@ -30,10 +30,6 @@ in
 
     username = lib.mkOption { type = str; };
 
-    skipPerf = lib.mkOption {
-      type = bool;
-      default = false;
-    };
   };
 
   config = {
@@ -208,9 +204,9 @@ in
             zopfli
             brotli
 
-            config.boot.kernelPackages.vm-tools # https://github.com/NixOS/nixpkgs/issues/355369
+            config.boot.kernelPackages.vm-tools
+            config.boot.kernelPackages.perf
           ]
-          (lib.mkIf (!cfg.skipPerf) [ config.boot.kernelPackages.perf ])
           (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
         ];
     };
