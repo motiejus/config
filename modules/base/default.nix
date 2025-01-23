@@ -160,6 +160,7 @@ in
             binutils
             dos2unix
             patchelf
+            p7zip-rar
             compsize # compression ratio on btrfs
             hyperfine
             stress-ng
@@ -180,7 +181,6 @@ in
             dig
             nmap
             # broken on aarch64-linux
-            #wrk2
             wget
             btop
             ngrep
@@ -202,17 +202,16 @@ in
 
             # compression/decompression
             xz
-            unrar
             pigz
             zstd
-            p7zip # TODO: p7zip-rar in 24.11+
+            unrar
             zopfli
             brotli
 
-            config.boot.kernelPackages.cpupower
             config.boot.kernelPackages.vm-tools # https://github.com/NixOS/nixpkgs/issues/355369
           ]
           (lib.mkIf (!cfg.skipPerf) [ config.boot.kernelPackages.perf ])
+          (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
         ];
     };
 
