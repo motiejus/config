@@ -60,6 +60,7 @@ in
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/vaultwarden/secrets.env.age"
   "secrets/letsencrypt/account.key.age"
+  "secrets/frigate.age"
 
   "secrets/synapse/jakstys_lt_signing_key.age"
   "secrets/synapse/registration_shared_secret.age"

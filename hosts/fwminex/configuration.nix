@@ -25,6 +25,7 @@ in
     synapse-macaroon-secret-key.file = ../../secrets/synapse/macaroon_secret_key.age;
     syncthing-key.file = ../../secrets/fwminex/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
+    frigate.file = ../../secrets/frigate.age;
 
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
@@ -96,6 +97,16 @@ in
           DynamicUser = true;
         };
       };
+
+      frigate = {
+        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
+        serviceConfig = {
+          EnvironmentFile = [ "-/run/frigate/secrets.env" ];
+          RuntimeDirectory = "frigate";
+          LoadCredential = [ "secrets.env:${config.age.secrets.frigate.path}" ];
+        };
+      };
+
       caddy =
         let
           irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
@@ -310,6 +321,38 @@ in
               reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
             }
         '';
+      };
+    };
+
+    nginx.defaultHTTPListenPort = 8081;
+    frigate = {
+      enable = true;
+      hostname =
+        let
+          fqdn = "${config.networking.hostName}.${config.networking.domain}";
+        in
+        "${myData.hosts.${fqdn}.jakstIP}";
+      settings = {
+        cameras = {
+          vno4-dome-panorama = {
+            enabled = true;
+            ffmpeg.inputs = [
+              {
+                path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
+                roles = [ "record" ];
+              }
+            ];
+          };
+          vno4-dome-ptz = {
+            enabled = true;
+            ffmpeg.inputs = [
+              {
+                path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
+                roles = [ "record" ];
+              }
+            ];
+          };
+        };
       };
     };
 
@@ -640,6 +683,7 @@ in
           tcp = with myData.ports; [
             80
             443
+            5000 # todo move to frigate
             soju
             soju-ws
             prometheus
