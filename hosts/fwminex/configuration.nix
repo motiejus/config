@@ -333,6 +333,13 @@ in
         in
         "${myData.hosts.${fqdn}.jakstIP}";
       settings = {
+        record = {
+          enabled = true;
+          retain = {
+            days = 3;
+            mode = "all";
+          };
+        };
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
