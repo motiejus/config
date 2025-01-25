@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   myData,
   ...
 }:
@@ -37,6 +38,9 @@ in
           "daikin"
           "ipp"
           "prometheus"
+        ];
+        customComponents = [
+          pkgs.home-assistant-custom-components.frigate
         ];
         config = {
           default_config = { };
