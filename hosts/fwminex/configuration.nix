@@ -333,6 +333,17 @@ in
         in
         "${myData.hosts.${fqdn}.jakstIP}";
       settings = {
+        detectors = {
+          #coral = {
+          #  type = "edgetpu";
+          #  device = "usb";
+          #  enabled = false;
+          #};
+          cpu = {
+            type = "cpu";
+            enabled = false;
+          };
+        };
         record = {
           enabled = true;
           retain = {
@@ -343,6 +354,7 @@ in
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
+            detect.enabled = false;
             ffmpeg.inputs = [
               {
                 path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
@@ -352,6 +364,7 @@ in
           };
           vno4-dome-ptz = {
             enabled = true;
+            detect.enabled = false;
             ffmpeg.inputs = [
               {
                 path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
