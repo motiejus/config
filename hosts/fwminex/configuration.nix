@@ -26,6 +26,10 @@ in
     syncthing-key.file = ../../secrets/fwminex/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
     frigate.file = ../../secrets/frigate.age;
+    r1-htpasswd = {
+      file = ../../secrets/r1-htpasswd.age;
+      owner = "nginx";
+    };
 
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
@@ -334,14 +338,13 @@ in
       };
     };
 
-    nginx.defaultHTTPListenPort = 8081;
+    nginx = {
+      defaultHTTPListenPort = 8081;
+      virtualHosts."r1.jakstys.lt".basicAuthFile = config.age.secrets.r1-htpasswd.path;
+    };
     frigate = {
       enable = true;
-      hostname =
-        let
-          fqdn = "${config.networking.hostName}.${config.networking.domain}";
-        in
-        "${myData.hosts.${fqdn}.jakstIP}";
+      hostname = "r1.jakstys.lt";
       settings = {
         detectors = {
           #coral = {
