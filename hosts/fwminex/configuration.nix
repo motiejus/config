@@ -561,6 +561,7 @@ in
         {
           enable = true;
           zones = {
+            "r1.jakstys.lt".accountKey = accountKey;
             "irc.jakstys.lt".accountKey = accountKey;
             "grafana.jakstys.lt".accountKey = accountKey;
             "bitwarden.jakstys.lt".accountKey = accountKey;
