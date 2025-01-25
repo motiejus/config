@@ -223,6 +223,7 @@ in
         ghostscript
         libva-utils # intel video tests
         pavucontrol
+        google-chrome
         wirelesstools
         poppler_utils
         rkdeveloptool
