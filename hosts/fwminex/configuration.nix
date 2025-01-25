@@ -354,6 +354,7 @@ in
     nginx = {
       defaultHTTPListenPort = 8081;
       defaultSSLListenPort = 8443;
+      recommendedTlsSettings = true;
       virtualHosts."r1.jakstys.lt" = {
         basicAuthFile = config.age.secrets.r1-htpasswd.path;
 
