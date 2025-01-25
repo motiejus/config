@@ -111,6 +111,19 @@ in
         };
       };
 
+      nginx =
+        let
+          r1 = config.mj.services.nsd-acme.zones."r1.jakstys.lt";
+        in
+        {
+          serviceConfig.LoadCredential = [
+            "r1.jakstys.lt-cert.pem:${r1.certFile}"
+            "r1.jakstys.lt-key.pem:${r1.keyFile}"
+          ];
+          after = [ "nsd-acme-r1.jakstys.lt.service" ];
+          requires = [ "nsd-acme-r1.jakstys.lt.service" ];
+        };
+
       caddy =
         let
           r1 = config.mj.services.nsd-acme.zones."r1.jakstys.lt";
@@ -340,8 +353,16 @@ in
 
     nginx = {
       defaultHTTPListenPort = 8081;
-      virtualHosts."r1.jakstys.lt".basicAuthFile = config.age.secrets.r1-htpasswd.path;
+      defaultSSLListenPort = 8443;
+      virtualHosts."r1.jakstys.lt" = {
+        basicAuthFile = config.age.secrets.r1-htpasswd.path;
+
+        addSSL = true;
+        sslCertificate = "/run/credentials/nginx.service/r1.jakstys.lt-cert.pem";
+        sslCertificateKey = "/run/credentials/nginx.service/r1.jakstys.lt-key.pem";
+      };
     };
+
     frigate = {
       enable = true;
       hostname = "r1.jakstys.lt";
@@ -758,11 +779,13 @@ in
         53
         80
         443
+        8443
       ];
       allowedTCPPorts = [
         53
         80
         443
+        8443
       ];
     };
   };
