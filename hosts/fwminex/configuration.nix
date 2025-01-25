@@ -109,12 +109,15 @@ in
 
       caddy =
         let
+          r1 = config.mj.services.nsd-acme.zones."r1.jakstys.lt";
           irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
           grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
           bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
         in
         {
           serviceConfig.LoadCredential = [
+            "r1.jakstys.lt-cert.pem:${r1.certFile}"
+            "r1.jakstys.lt-key.pem:${r1.keyFile}"
             "irc.jakstys.lt-cert.pem:${irc.certFile}"
             "irc.jakstys.lt-key.pem:${irc.keyFile}"
             "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
@@ -123,11 +126,13 @@ in
             "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
           ];
           after = [
+            "nsd-acme-r1.jakstys.lt.service"
             "nsd-acme-irc.jakstys.lt.service"
             "nsd-acme-grafana.jakstys.lt.service"
             "nsd-acme-bitwarden.jakstys.lt.service"
           ];
           requires = [
+            "nsd-acme-r1.jakstys.lt.service"
             "nsd-acme-irc.jakstys.lt.service"
             "nsd-acme-grafana.jakstys.lt.service"
             "nsd-acme-bitwarden.jakstys.lt.service"
@@ -174,6 +179,7 @@ in
         wantedBy = [ "multi-user.target" ];
         pathConfig = {
           PathChanged = [
+            config.mj.services.nsd-acme.zones."r1.jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
@@ -250,6 +256,10 @@ in
         '';
         "www.jakstys.lt".extraConfig = ''
           redir https://jakstys.lt
+        '';
+        "r1.jakstys.lt".extraConfig = ''
+          tls {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-key.pem
+          redir https://r1.jakstys.lt:8443
         '';
         "irc.jakstys.lt".extraConfig =
           let
