@@ -355,22 +355,32 @@ in
           vno4-dome-panorama = {
             enabled = true;
             detect.enabled = false;
-            ffmpeg.inputs = [
-              {
-                path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
-                roles = [ "record" ];
-              }
-            ];
+            ffmpeg = {
+              output_args = {
+                record = "preset-record-generic-audio-copy";
+              };
+              inputs = [
+                {
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
+                  roles = [ "record" ];
+                }
+              ];
+            };
           };
           vno4-dome-ptz = {
             enabled = true;
             detect.enabled = false;
-            ffmpeg.inputs = [
-              {
-                path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
-                roles = [ "record" ];
-              }
-            ];
+            ffmpeg = {
+              output_args = {
+                record = "preset-record-generic-audio-copy";
+              };
+              inputs = [
+                {
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
+                  roles = [ "record" ];
+                }
+              ];
+            };
           };
         };
       };
