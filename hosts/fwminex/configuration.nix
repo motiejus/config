@@ -347,7 +347,7 @@ in
         record = {
           enabled = true;
           retain = {
-            days = 3;
+            days = 7;
             mode = "all";
           };
         };
