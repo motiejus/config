@@ -78,7 +78,14 @@ in
     };
   };
 
-  hardware.cpu.intel.updateMicrocode = true;
+  hardware = {
+    cpu.intel.updateMicrocode = true;
+    graphics = {
+      enable = true;
+      extraPackages = [ pkgs.intel-media-driver ];
+    };
+  };
+
   nixpkgs.hostPlatform = "x86_64-linux";
 
   systemd = {
@@ -398,6 +405,7 @@ in
             enabled = true;
             detect.enabled = false;
             ffmpeg = {
+              #hwaccel_args = "preset-vaapi";
               output_args = {
                 record = "preset-record-generic-audio-copy";
               };
