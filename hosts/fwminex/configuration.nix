@@ -397,7 +397,10 @@ in
               inputs = [
                 {
                   path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
-                  roles = [ "record" ];
+                  roles = [
+                    "detect"
+                    "record"
+                  ];
                 }
               ];
             };
@@ -412,7 +415,10 @@ in
               inputs = [
                 {
                   path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
-                  roles = [ "record" ];
+                  roles = [
+                    "detect"
+                    "record"
+                  ];
                 }
               ];
             };
