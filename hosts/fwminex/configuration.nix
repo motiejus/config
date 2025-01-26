@@ -356,7 +356,14 @@ in
       defaultSSLListenPort = 8443;
       recommendedTlsSettings = true;
       virtualHosts."r1.jakstys.lt" = {
-        basicAuthFile = config.age.secrets.r1-htpasswd.path;
+        extraConfig = ''
+          satisfy any;
+          allow 127.0.0.1;
+          allow ::1;
+          deny all;
+          auth_basic secured;
+          auth_basic_user_file ${config.age.secrets.r1-htpasswd.path};
+        '';
 
         addSSL = true;
         sslCertificate = "/run/credentials/nginx.service/r1.jakstys.lt-cert.pem";
