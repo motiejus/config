@@ -133,7 +133,7 @@ local timezone_popup = awful.popup {
     visible = false
 }
 
-mytextclock = wibox.widget.textclock("%T%z", 1)
+mytextclock = wibox.widget.textclock("%T%z", 1, "UTC")
 mytextclock:buttons(gears.table.join(
     awful.button({}, 1, function()
         timezone_popup.visible = not timezone_popup.visible
