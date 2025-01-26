@@ -101,6 +101,7 @@ in
             jc # parse different formats and command outputs to json
             jq # parse, format and query json documents
             yq
+            xz
             pv # pipe viewer for progressbars in pipes
             bat # "bat - cat with wings", cat|less with language highlight
             duf # nice disk usage output
@@ -119,9 +120,12 @@ in
             entr
             cloc
             poop # hopefully poof some day
+            pigz
+            zstd
             flex
             bison
             s-tui # stress and monitor cpu
+            unrar
             iotop
             wdiff
             tokei
@@ -129,6 +133,8 @@ in
             pwgen
             below # tracking cgroups
             mdadm
+            zopfli
+            brotli
             bindfs
             spiped
             parted
@@ -156,8 +162,8 @@ in
             binutils
             dos2unix
             patchelf
+            compsize
             p7zip-rar
-            compsize # compression ratio on btrfs
             hyperfine
             stress-ng
             dmidecode
@@ -170,13 +176,13 @@ in
             smartmontools
             unixtools.xxd
             bcachefs-tools
+            ghostty.terminfo
             sqlite-interactive
 
             # networking
             wol
             dig
             nmap
-            # broken on aarch64-linux
             wget
             btop
             ngrep
@@ -195,14 +201,6 @@ in
             bridge-utils
             speedtest-cli
             nix-output-monitor
-
-            # compression/decompression
-            xz
-            pigz
-            zstd
-            unrar
-            zopfli
-            brotli
 
             config.boot.kernelPackages.vm-tools
             config.boot.kernelPackages.perf
