@@ -81,7 +81,6 @@
               fi
 
               nix flake update --accept-flake-config --commit-lock-file
-              # TODO --all-systems
               nix flake check --all-systems --accept-flake-config
 
               EXITCODE=0
