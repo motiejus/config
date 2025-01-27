@@ -419,7 +419,7 @@ in
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1";
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2";
                   roles = [ "detect" ];
                 }
               ];
@@ -438,13 +438,13 @@ in
                   roles = [
                     "audio"
                     "record"
-                    "detect"
+                    #"detect"
                   ];
                 }
-                #{
-                #  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=2";
-                #  roles = [ "detect" ];
-                #}
+                {
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=2";
+                  roles = [ "detect" ];
+                }
               ];
             };
           };
