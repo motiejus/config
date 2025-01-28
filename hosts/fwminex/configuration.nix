@@ -703,12 +703,6 @@ in
             keep = 24;
             refreshInterval = "*:00:00";
           }
-          {
-            subvolume = "/var/lib";
-            label = "nightly";
-            keep = 7;
-            refreshInterval = "daily UTC";
-          }
         ];
       };
 
