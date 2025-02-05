@@ -202,8 +202,9 @@ in
             speedtest-cli
             nix-output-monitor
 
-            config.boot.kernelPackages.vm-tools
             config.boot.kernelPackages.perf
+            config.boot.kernelPackages.vm-tools
+            config.boot.kernelPackages.cpupower
           ]
           (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
         ];

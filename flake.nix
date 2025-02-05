@@ -100,6 +100,7 @@
           deploy-rs-pkg = null;
         })
         (_: super: {
+          gamja = super.callPackage ./pkgs/gamja.nix { };
           weather = super.callPackage ./pkgs/weather { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
@@ -314,8 +315,9 @@
         };
       in
       {
-        packages.x86_64-linux.vanta-agent = pkgs.vanta-agent;
-        packages.x86_64-linux.weather = pkgs.weather;
+        packages.x86_64-linux = {
+          inherit (pkgs) weather gamja;
+        };
       }
     );
 
