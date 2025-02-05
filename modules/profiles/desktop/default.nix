@@ -279,13 +279,15 @@ in
         })
       ]
       ++ (with llvmPackages_19; [
-        lld
-        llvm
-        llvm-manpages
         clang
-        libclang
-        clang-manpages
+        lld.dev
+        llvm.dev
         clang-tools
+        libllvm.dev
+        libclang.dev
+        llvm-manpages
+        clang-manpages
+        compiler-rt.dev
       ]);
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
