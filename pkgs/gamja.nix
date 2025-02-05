@@ -3,7 +3,7 @@
   fetchFromGitea,
   buildNpmPackage,
   writeText,
-  # https://git.sr.ht/~emersion/gamja/tree/master/doc/config-file.md
+  # https://codeberg.org/emersion/gamja/src/branch/master/doc/config-file.md
   gamjaConfig ? null,
 }:
 buildNpmPackage rec {
