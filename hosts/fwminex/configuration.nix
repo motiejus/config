@@ -384,15 +384,15 @@ in
       hostname = "r1.jakstys.lt";
       settings = {
         detectors = {
-          #coral = {
-          #  type = "edgetpu";
-          #  device = "usb";
-          #  enabled = false;
-          #};
-          cpu = {
-            type = "cpu";
+          coral = {
+            type = "edgetpu";
+            device = "usb";
             enabled = false;
           };
+          #cpu = {
+          #  type = "cpu";
+          #  enabled = false;
+          #};
         };
         record = {
           enabled = true;
