@@ -72,6 +72,8 @@ in
     };
   };
 
+  hardware.coral.usb.enable = true;
+
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 

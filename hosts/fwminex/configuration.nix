@@ -80,6 +80,7 @@ in
 
   hardware = {
     cpu.intel.updateMicrocode = true;
+    coral.usb.enable = true;
     graphics = {
       enable = true;
       extraPackages = [ pkgs.intel-media-driver ];
