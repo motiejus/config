@@ -402,7 +402,7 @@ in
             enabled = true;
             detect.enabled = true;
             ffmpeg = {
-              #hwaccel_args = "preset-vaapi";
+              hwaccel_args = "preset-vaapi";
               output_args = {
                 record = "preset-record-generic-audio-copy";
               };
