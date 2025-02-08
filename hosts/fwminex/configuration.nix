@@ -396,6 +396,10 @@ in
             days = 7;
             mode = "all";
           };
+          detections.retain = {
+            days = 30;
+            mode = "motion";
+          };
         };
         cameras = {
           vno4-dome-panorama = {
