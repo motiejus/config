@@ -389,10 +389,6 @@ in
             device = "usb";
             enabled = false;
           };
-          #cpu = {
-          #  type = "cpu";
-          #  enabled = false;
-          #};
         };
         record = {
           enabled = true;
@@ -404,7 +400,7 @@ in
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
-            detect.enabled = false;
+            detect.enabled = true;
             ffmpeg = {
               #hwaccel_args = "preset-vaapi";
               output_args = {
@@ -428,7 +424,7 @@ in
           };
           vno4-dome-ptz = {
             enabled = true;
-            detect.enabled = false;
+            detect.enabled = true;
             ffmpeg = {
               output_args = {
                 record = "preset-record-generic-audio-copy";
