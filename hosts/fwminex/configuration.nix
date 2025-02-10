@@ -794,6 +794,7 @@ in
       acpi
       yt-dlp
       ffmpeg
+      inferno
       rtorrent
       age-plugin-yubikey
       python3-mine
