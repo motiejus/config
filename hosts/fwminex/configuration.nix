@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   config,
   myData,
@@ -40,6 +41,7 @@ in
 
   boot = {
     loader.systemd-boot.enable = true;
+    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
     initrd = {
       systemd.enable = true;
       kernelModules = [ "usb_storage" ];
