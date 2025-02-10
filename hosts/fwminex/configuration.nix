@@ -400,7 +400,11 @@ in
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
-            detect.enabled = true;
+            detect = {
+              enabled = true;
+              width = 1280;
+              height = 720;
+            };
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
@@ -424,7 +428,11 @@ in
           };
           vno4-dome-ptz = {
             enabled = true;
-            detect.enabled = true;
+            detect = {
+              enabled = true;
+              width = 1280;
+              height = 720;
+            };
             ffmpeg = {
               output_args = {
                 record = "preset-record-generic-audio-copy";
