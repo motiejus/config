@@ -387,7 +387,7 @@ in
           coral = {
             type = "edgetpu";
             device = "usb";
-            enabled = false;
+            enabled = true;
           };
         };
         record = {
