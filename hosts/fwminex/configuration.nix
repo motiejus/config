@@ -390,6 +390,11 @@ in
       enable = true;
       hostname = "r1.jakstys.lt";
       settings = {
+        detect = {
+          enabled = true;
+          width = 1280;
+          height = 720;
+        };
         detectors = {
           coral = {
             type = "edgetpu";
@@ -407,7 +412,6 @@ in
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
-            detect.enabled = true;
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
@@ -431,7 +435,6 @@ in
           };
           vno4-dome-ptz = {
             enabled = true;
-            detect.enabled = true;
             ffmpeg = {
               output_args = {
                 record = "preset-record-generic-audio-copy";
