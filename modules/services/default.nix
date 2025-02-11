@@ -6,6 +6,7 @@
     ./btrfssnapshot
     ./deployerbot
     ./friendlyport
+    ./frigate
     ./gitea
     ./grafana
     ./hass
