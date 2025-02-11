@@ -7,9 +7,6 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NS0TA01331A_1";
-  python3-mine = pkgs.python312.overrideAttrs (_: {
-    EXTRA_CFLAGS = " -fno-omit-frame-pointer";
-  });
 in
 {
   imports = [
@@ -118,7 +115,6 @@ in
       frigate = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
         serviceConfig = {
-          ExecStart = lib.mkForce "${lib.getExe python3-mine} -m frigate";
           EnvironmentFile = [ "-/run/frigate/secrets.env" ];
           Environment = [ "PYTHONPERFSUPPORT=1" ];
           RuntimeDirectory = "frigate";
@@ -798,7 +794,6 @@ in
       inferno
       rtorrent
       age-plugin-yubikey
-      python3-mine
     ];
   };
 
