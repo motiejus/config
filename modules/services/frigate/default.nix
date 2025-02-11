@@ -46,7 +46,7 @@ in
         };
         cameras = {
           vno4-dome-panorama = {
-            enabled = true;
+            enabled = false;
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
@@ -58,7 +58,6 @@ in
                   roles = [
                     "audio"
                     "record"
-                    #"detect"
                   ];
                 }
                 {
@@ -80,7 +79,6 @@ in
                   roles = [
                     "audio"
                     "record"
-                    #"detect"
                   ];
                 }
                 {
