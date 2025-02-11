@@ -392,8 +392,6 @@ in
       settings = {
         detect = {
           enabled = true;
-          width = 1280;
-          height = 720;
         };
         detectors = {
           coral = {
@@ -427,7 +425,7 @@ in
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2";
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1";
                   roles = [ "detect" ];
                 }
               ];
@@ -449,7 +447,7 @@ in
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=2";
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
                   roles = [ "detect" ];
                 }
               ];
