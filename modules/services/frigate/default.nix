@@ -46,7 +46,7 @@ in
         };
         cameras = {
           vno4-dome-panorama = {
-            enabled = false;
+            enabled = true;
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
