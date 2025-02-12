@@ -2,23 +2,34 @@
 {
   mj.base.users.email = null;
 
-  environment.systemPackages = with pkgs; [
-    #swc
-    #nodejs
-    #typescript
-    #concurrently
-    bats
-    unzip
-    rclone
-    mysql80
-    kubectl
-    kubectx
-    terraform
-    docker-compose
-    google-cloud-sdk
-    kubectl-node-shell
-    (dbt.withAdapters (adapters: [ adapters.dbt-bigquery ]))
-  ];
+  environment.systemPackages =
+    with pkgs;
+    [
+      #swc
+      #nodejs
+      #typescript
+      #concurrently
+      bats
+      unzip
+      rclone
+      mysql80
+      kubectl
+      kubectx
+      terraform
+      docker-compose
+      google-cloud-sdk
+      kubectl-node-shell
+    ]
+    ++ [
+      (pkgs.pkgs-unstable.python3.withPackages (
+        ps: with ps; [
+          ipython # works
+          minimal-snowplow-tracker
+          dbt.withAdapters # doesn't
+          (adapters: [ adapters.dbt-bigquery ])
+        ]
+      ))
+    ];
 
   programs._1password.enable = true;
 

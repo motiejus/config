@@ -255,13 +255,13 @@ in
         xorg.lndir
         xorg.xinit
 
-        (python3.withPackages (
-          ps: with ps; [
-            numpy
-            ipython
-            matplotlib
-          ]
-        ))
+        #(python3.withPackages (
+        #  ps: with ps; [
+        #    numpy
+        #    ipython
+        #    matplotlib
+        #  ]
+        #))
 
         (texlive.combine {
           inherit (texlive)
