@@ -17,7 +17,6 @@
     docker-compose
     google-cloud-sdk
     kubectl-node-shell
-    (dbt.withAdapters (adapters: [ adapters.dbt-bigquery ]))
   ];
 
   programs._1password.enable = true;
