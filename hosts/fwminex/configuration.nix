@@ -711,6 +711,7 @@ in
   };
 
   environment = {
+    enableDebugInfo = true;
     systemPackages = with pkgs; [
       acpi
       yt-dlp
@@ -718,6 +719,11 @@ in
       inferno
       rtorrent
       age-plugin-yubikey
+      (python3.withPackages (
+        ps: with ps; [
+          ipython
+        ]
+      ))
     ];
   };
 

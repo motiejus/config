@@ -1,15 +1,15 @@
 {
   lib,
-  pkgs,
+  #pkgs,
   config,
   ...
 }:
 let
   cfg = config.mj.services.frigate;
-  python3-fp = pkgs.python312.overrideAttrs (_: {
-    EXTRA_CFLAGS = " -fno-omit-frame-pointer";
-  });
 in
+#python3-fp = pkgs.python312.overrideAttrs (_: {
+#  EXTRA_CFLAGS = " -fno-omit-frame-pointer";
+#});
 {
   options.mj.services.frigate = with lib.types; {
     enable = lib.mkEnableOption "enable frigate";
@@ -20,7 +20,7 @@ in
     systemd.services.frigate = {
       preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
       serviceConfig = {
-        ExecStart = lib.mkForce "${lib.getExe python3-fp} -m frigate";
+        #ExecStart = lib.mkForce "${lib.getExe python3-fp} -m frigate";
         EnvironmentFile = [ "-/run/frigate/secrets.env" ];
         Environment = [ "PYTHONPERFSUPPORT=1" ];
         RuntimeDirectory = "frigate";
