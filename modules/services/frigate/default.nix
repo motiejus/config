@@ -14,13 +14,43 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.frigate = {
-      preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
-      serviceConfig = {
-        EnvironmentFile = [ "-/run/frigate/secrets.env" ];
-        Environment = [ "PYTHONPERFSUPPORT=1" ];
-        RuntimeDirectory = "frigate";
-        LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+    systemd.services = {
+      frigate = {
+        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
+        serviceConfig = {
+          EnvironmentFile = [ "-/run/frigate/secrets.env" ];
+          RuntimeDirectory = "frigate";
+          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+        };
+      };
+
+      go2rtc = {
+        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/go2rtc/secrets.env";
+        serviceConfig = {
+          EnvironmentFile = [ "-/run/go2rtc/secrets.env" ];
+          RuntimeDirectory = "go2rtc";
+          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+        };
+      };
+    };
+
+    services.go2rtc = {
+      enable = true;
+      settings = {
+        streams = {
+          "vno4-dome-panorama-high" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0"
+          ];
+          "vno4-dome-panorama-low" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1"
+          ];
+          "vno4-dome-ptz-high" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
+          ];
+          "vno4-dome-ptz-low" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1"
+          ];
+        };
       };
     };
 
@@ -32,16 +62,6 @@ in
           enabled = true;
         };
 
-        go2rtc = {
-          streams = {
-            #vno4-dome-panorama = {
-            #  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
-            #};
-            #vno4-dome-ptz = {
-            #  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
-            #};
-          };
-        };
         detectors = {
           coral = {
             type = "edgetpu";
@@ -62,19 +82,18 @@ in
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
-                #record = "preset-record-generic-audio-copy";
-                record = "preset-record-generic";
+                record = "preset-record-generic-audio-copy";
               };
               inputs = [
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
+                  path = "rtsp://localhost:8554/vno4-dome-panorama-high";
                   roles = [
-                    #"audio"
+                    "audio"
                     "record"
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1";
+                  path = "rtsp://localhost:8554/vno4-dome-panorama-low";
                   roles = [ "detect" ];
                 }
               ];
@@ -84,19 +103,18 @@ in
             enabled = true;
             ffmpeg = {
               output_args = {
-                #record = "preset-record-generic-audio-copy";
-                record = "preset-record-generic";
+                record = "preset-record-generic-audio-copy";
               };
               inputs = [
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
+                  path = "rtsp://localhost:8554/vno4-dome-ptz-high";
                   roles = [
-                    #"audio"
+                    "audio"
                     "record"
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
+                  path = "rtsp://localhost:8554/vno4-dome-ptz-low";
                   roles = [ "detect" ];
                 }
               ];
