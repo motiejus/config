@@ -38,15 +38,15 @@ in
       enable = true;
       settings = {
         streams = {
-          #"vno4-dome-panorama-high" = [
-          #  "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0"
-          #];
-          #"vno4-dome-panorama-low" = [
-          #  "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1"
-          #];
-          #"vno4-dome-ptz-high" = [
-          #  "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
-          #];
+          "vno4-dome-panorama-high" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0"
+          ];
+          "vno4-dome-panorama-low" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1"
+          ];
+          "vno4-dome-ptz-high" = [
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
+          ];
           "vno4-dome-ptz-low" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1"
           ];
