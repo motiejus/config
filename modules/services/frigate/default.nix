@@ -51,7 +51,8 @@ in
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
-                record = "preset-record-generic-audio-copy";
+                #record = "preset-record-generic-audio-copy";
+                record = "preset-record-generic";
               };
               inputs = [
                 {
@@ -72,7 +73,8 @@ in
             enabled = true;
             ffmpeg = {
               output_args = {
-                record = "preset-record-generic-audio-copy";
+                #record = "preset-record-generic-audio-copy";
+                record = "preset-record-generic";
               };
               inputs = [
                 {
