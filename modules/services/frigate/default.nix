@@ -86,8 +86,7 @@ in
               };
               inputs = [
                 {
-                  #path = "rtsp://localhost:8554/vno4-dome-panorama-high";
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0";
+                  path = "rtsp://localhost:8554/vno4-dome-panorama-high";
                   roles = [
                     "audio"
                     "record"
@@ -110,7 +109,6 @@ in
               inputs = [
                 {
                   path = "rtsp://localhost:8554/vno4-dome-ptz-high";
-                  #path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
                   roles = [
                     "audio"
                     "record"
