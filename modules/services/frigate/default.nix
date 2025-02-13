@@ -47,6 +47,15 @@ in
           "vno4-dome-ptz-high" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
           ];
+          "vno4-dome-ptz-med" = [
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-high"
+            "hwaccel=vaapi"
+            "hwaccel_device=/dev/dri/renderD128"
+            "decoder=h264_vaapi"
+            "encoder=h264_vaapi"
+            "resolution=1280x720"
+            "preset=fast"
+          ];
           "vno4-dome-ptz-low" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1"
           ];
@@ -93,7 +102,7 @@ in
                   ];
                 }
                 {
-                  #path = "rtsp://localhost:8554/vno4-dome-panorama-low";
+                  #path = "rtsp://localhost:8554/vno4-dome-panorama-med";
                   path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1";
                   roles = [ "detect" ];
                 }
