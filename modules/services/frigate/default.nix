@@ -109,16 +109,16 @@ in
               };
               inputs = [
                 {
-                  #path = "rtsp://localhost:8554/vno4-dome-ptz-high";
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
+                  path = "rtsp://localhost:8554/vno4-dome-ptz-high";
+                  #path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0";
                   roles = [
                     "audio"
                     "record"
                   ];
                 }
                 {
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
                   #path = "rtsp://localhost:8554/vno4-dome-ptz-low";
+                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
                   roles = [ "detect" ];
                 }
               ];
