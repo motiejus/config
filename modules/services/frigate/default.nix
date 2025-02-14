@@ -133,7 +133,8 @@ in
                   ];
                 }
                 {
-                  path = "rtsp://localhost:8554/vno4-dome-ptz-med";
+                  #path = "rtsp://localhost:8554/vno4-dome-ptz-med";
+                  path = "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
                   roles = [ "detect" ];
                 }
               ];
