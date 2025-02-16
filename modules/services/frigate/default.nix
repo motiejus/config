@@ -43,17 +43,23 @@ in
         #  level = "trace";
         #};
         streams = {
-          "vno4-dome-panorama-high" = [
+          "vno4-dome-panorama-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
           ];
-          "vno4-dome-panorama-low" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-high#video=h264#width=1280#hardware=vaapi#framerate=5"
+          "vno4-dome-panorama-high" = [
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264"
           ];
-          "vno4-dome-ptz-high" = [
+          "vno4-dome-panorama-low" = [
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264#width=1280#framerate=5"
+          ];
+          "vno4-dome-ptz-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
           ];
+          "vno4-dome-ptz-high" = [
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264"
+          ];
           "vno4-dome-ptz-low" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-high#video=h264#width=1280#hardware=vaapi#framerate=5"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#width=1280#framerate=5"
           ];
         };
       };
