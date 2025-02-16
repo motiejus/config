@@ -39,7 +39,7 @@ in
       settings = {
         streams = {
           "vno4-dome-panorama-high" = [
-            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0"
+            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
           ];
           "vno4-dome-panorama-med" = [
             "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-high"
