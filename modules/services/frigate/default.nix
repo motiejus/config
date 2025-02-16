@@ -61,7 +61,10 @@ in
       hostname = "r1.jakstys.lt";
       settings = {
         ffmpeg.hwaccel_args = "preset-vaapi";
-        detect.enabled = true;
+        detect = {
+          enabled = true;
+          fps = 5;
+        };
 
         detectors = {
           coral = {
