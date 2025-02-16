@@ -15,15 +15,6 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.services = {
-      frigate = {
-        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/frigate/secrets.env";
-        serviceConfig = {
-          EnvironmentFile = [ "-/run/frigate/secrets.env" ];
-          RuntimeDirectory = "frigate";
-          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
-        };
-      };
-
       go2rtc = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/go2rtc/secrets.env";
         serviceConfig = {
@@ -50,7 +41,7 @@ in
             "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264"
           ];
           "vno4-dome-panorama-low" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264#width=1280#framerate=5"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264#width=1280"
           ];
           "vno4-dome-ptz-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
@@ -59,7 +50,7 @@ in
             "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264"
           ];
           "vno4-dome-ptz-low" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#width=1280#framerate=5"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#width=1280"
           ];
         };
       };
@@ -69,9 +60,8 @@ in
       enable = true;
       hostname = "r1.jakstys.lt";
       settings = {
-        detect = {
-          enabled = true;
-        };
+        ffmpeg.hwaccel_args = "preset-vaapi";
+        detect.enabled = true;
 
         detectors = {
           coral = {
@@ -80,6 +70,7 @@ in
             enabled = true;
           };
         };
+
         record = {
           enabled = true;
           retain = {
@@ -87,11 +78,11 @@ in
             mode = "all";
           };
         };
+
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
             ffmpeg = {
-              hwaccel_args = "preset-vaapi";
               output_args = {
                 record = "preset-record-generic";
               };
@@ -107,6 +98,7 @@ in
               ];
             };
           };
+
           vno4-dome-ptz = {
             enabled = true;
             ffmpeg = {
@@ -129,6 +121,7 @@ in
             };
           };
         };
+
       };
     };
 
