@@ -51,9 +51,12 @@ rec {
   hosts = {
     "vno4-rutx11.servers.jakst" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEehmFvEBVngwxk1nuEWMlE4UU69gC4wxytGX5DAFbh";
+      publicIP = "188.69.241.222";
       jakstIP = "100.89.176.10";
       vno4IP = "192.168.188.1";
       extraHostNames = [
+        "vno4.jakstys.lt"
+        publicIP
         jakstIP
         vno4IP
       ];
@@ -165,6 +168,7 @@ rec {
     let
       fra1b = hosts."fra1-b.servers.jakst".publicIP;
       vno1 = hosts."fwminex.servers.jakst".publicIP;
+      vno4 = hosts."vno4-rutx11.servers.jakst".publicIP;
     in
     ''
       $ORIGIN jakstys.lt.
@@ -184,6 +188,7 @@ rec {
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       fra1-b                           A     ${fra1b}
+      vno4                             A     ${vno4}
       r1                               A     ${vno1}
 
       @                       86400   TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
