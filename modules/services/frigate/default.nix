@@ -37,6 +37,7 @@ in
     services.go2rtc = {
       enable = true;
       settings = {
+        # https://github.com/AlexxIT/go2rtc/issues/831
         #log = {
         #  format = "text";
         #  level = "trace";
@@ -45,26 +46,14 @@ in
           "vno4-dome-panorama-high" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
           ];
-          "vno4-dome-panorama-med" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-high#video=h264#width=1280#hardware=vaapi"
-          ];
           "vno4-dome-panorama-low" = [
-            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-high#video=h264#width=1280#hardware=vaapi"
           ];
           "vno4-dome-ptz-high" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0"
           ];
-          "vno4-dome-ptz-med" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-high"
-            "hwaccel=vaapi"
-            "hwaccel_device=/dev/dri/renderD128"
-            "decoder=h264_vaapi"
-            "encoder=h264_vaapi"
-            "resolution=1280x720"
-            "preset=fast"
-          ];
           "vno4-dome-ptz-low" = [
-            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-high#video=h264#width=1280#hardware=vaapi"
           ];
         };
       };
@@ -98,15 +87,12 @@ in
             ffmpeg = {
               hwaccel_args = "preset-vaapi";
               output_args = {
-                record = "preset-record-generic-audio-copy";
+                record = "preset-record-generic";
               };
               inputs = [
                 {
                   path = "rtsp://localhost:8554/vno4-dome-panorama-high";
-                  roles = [
-                    "audio"
-                    "record"
-                  ];
+                  roles = [ "record" ];
                 }
                 {
                   #path = "rtsp://localhost:8554/vno4-dome-panorama-med";
@@ -126,8 +112,8 @@ in
                 {
                   path = "rtsp://localhost:8554/vno4-dome-ptz-high";
                   roles = [
-                    "audio"
                     "record"
+                    "audio"
                   ];
                 }
                 {
