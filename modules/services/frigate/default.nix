@@ -95,8 +95,7 @@ in
                   roles = [ "record" ];
                 }
                 {
-                  #path = "rtsp://localhost:8554/vno4-dome-panorama-med";
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1";
+                  path = "rtsp://localhost:8554/vno4-dome-panorama-low";
                   roles = [ "detect" ];
                 }
               ];
@@ -117,8 +116,7 @@ in
                   ];
                 }
                 {
-                  #path = "rtsp://localhost:8554/vno4-dome-ptz-med";
-                  path = "rtsp://frigate:{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=1";
+                  path = "rtsp://localhost:8554/vno4-dome-ptz-low";
                   roles = [ "detect" ];
                 }
               ];
