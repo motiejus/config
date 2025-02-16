@@ -41,15 +41,16 @@ in
           "vno4-dome-panorama-high" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
           ];
-          "vno4-dome-panorama-med" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-high"
-            "hwaccel=vaapi"
-            "hwaccel_device=/dev/dri/renderD128"
-            "decoder=h264_vaapi"
-            "encoder=h264_vaapi"
-            "resolution=1280x720"
-            "preset=fast"
-          ];
+          "vno4-dome-panorama-med" =
+            ""
+            + "exec:ffmpeg -re"
+            + " -hwaccel vaapi"
+            + " -hwaccel_device /dev/dri/renderD128"
+            + " -hwaccel_output_format vaapi"
+            + " -rtsp_transport tcp"
+            + " -c:v h264_vaapi"
+            + " -vf scale_vaapi=1344:376"
+            + " -i rtsp://localhost:8554/vno4-dome-panorama-high";
           "vno4-dome-panorama-low" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=1"
           ];
