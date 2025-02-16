@@ -144,6 +144,7 @@ in
             sdparm
             procps
             unison
+            usbtop
             vmtouch
             vimv-rs
             sysstat
