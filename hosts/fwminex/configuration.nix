@@ -358,6 +358,7 @@ in
       recommendedTlsSettings = true;
       virtualHosts."r1.jakstys.lt" = {
         extraConfig = ''
+          error_page 497 301 =307 https://$host:$server_port$request_uri;
           satisfy any;
           allow 127.0.0.1;
           allow ::1;
