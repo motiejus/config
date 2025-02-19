@@ -250,6 +250,7 @@ in
         wineWowPackages.full
         samsung-unified-linux-driver
 
+        xdotool
         xorg.xev
         xorg.xeyes
         xorg.lndir

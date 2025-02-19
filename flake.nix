@@ -110,7 +110,7 @@
             inherit (super) system;
             overlays = [
               (_self: super: {
-                go = super.go_1_23;
+                go = super.go_1_24;
                 buildGoModule = super.buildGo123Module;
                 buildGoPackage = super.buildGo123Package;
               })
