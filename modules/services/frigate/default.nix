@@ -1,26 +1,25 @@
 {
   lib,
-  #pkgs,
+  pkgs,
   config,
   ...
 }:
 let
   cfg = config.mj.services.frigate;
   timelapseScript = pkgs.writeShellApplication {
-    name = "timelapse-r11-ptz";
+    name = "timelapse-r11";
     runtimeInputs = with pkgs; [ ffmpeg ];
     text = ''
       set -x
       NOW=$(date +%F_%T)
-      DATE=$\{NOW%_*}
-      TIME=$\{NOW#*_}
-      mkdir -p /var/lib/timelapse/$\{DATE}
+      DATE=''${NOW%_*}
+      TIME=''${NOW#*_}
+      mkdir -p /var/lib/timelapse-r11/"''${DATE}"
       exec ffmpeg -y \
-        -loglevel fatal \
         -rtsp_transport tcp \
-        -i "rtsp://frigate:$\{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
+        -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse/$DATE/$TIME.jpg
+        /var/lib/timelapse-r11/"''${DATE}"/"''${TIME}.jpg"
     '';
   };
 in
@@ -32,24 +31,25 @@ in
 
   config = lib.mkIf cfg.enable {
     mj.base.unitstatus.units = [
-      "timelapse"
+      "timelapse-r11"
       "go2rtc"
       "frigate"
     ];
 
-    systemd.timers.timelapse = {
+    systemd.timers.timelapse-r11 = {
       timerConfig.OnCalendar = "*-*-* 7..19:00,30:00 Europe/Vilnius";
       wantedBy = [ "timers.target" ];
     };
 
     systemd.services = {
-      timelapse = {
+      timelapse-r11 = {
         serviceConfig = {
           ExecStart = lib.getExe timelapseScript;
-          EnvironmentFile = [ "-/run/timelapse/secrets.env" ];
+          EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
           LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
-          RuntimeDirectory = "timelapse";
-          StateDirectory = "timelapse";
+          RuntimeDirectory = "timelapse-r11";
+          StateDirectory = "timelapse-r11";
+          DynamicUser = true;
         };
       };
       go2rtc = {
