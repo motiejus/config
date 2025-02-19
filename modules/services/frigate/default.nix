@@ -6,6 +6,23 @@
 }:
 let
   cfg = config.mj.services.frigate;
+  timelapseScript = pkgs.writeShellApplication {
+    name = "timelapse-r11-ptz";
+    runtimeInputs = with pkgs; [ ffmpeg ];
+    text = ''
+      set -x
+      NOW=$(date +%F_%T)
+      DATE=$\{NOW%_*}
+      TIME=$\{NOW#*_}
+      mkdir -p /var/lib/timelapse/$\{DATE}
+      exec ffmpeg -y \
+        -loglevel fatal \
+        -rtsp_transport tcp \
+        -i "rtsp://frigate:$\{FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
+        -vframes 1 \
+        /var/lib/timelapse/$DATE/$TIME.jpg
+    '';
+  };
 in
 {
   options.mj.services.frigate = with lib.types; {
@@ -14,7 +31,27 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    mj.base.unitstatus.units = [
+      "timelapse"
+      "go2rtc"
+      "frigate"
+    ];
+
+    systemd.timers.timelapse = {
+      timerConfig.OnCalendar = "*-*-* 7..19:00,30:00 Europe/Vilnius";
+      wantedBy = [ "timers.target" ];
+    };
+
     systemd.services = {
+      timelapse = {
+        serviceConfig = {
+          ExecStart = lib.getExe timelapseScript;
+          EnvironmentFile = [ "-/run/timelapse/secrets.env" ];
+          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+          RuntimeDirectory = "timelapse";
+          StateDirectory = "timelapse";
+        };
+      };
       go2rtc = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/go2rtc/secrets.env";
         serviceConfig = {
