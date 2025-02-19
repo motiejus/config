@@ -172,9 +172,12 @@ in
   users.extraGroups.guixbuild.members = [ "motiejus" ];
 
   environment.systemPackages = with pkgs; [
+    (python3.withPackages (ps: [ ps.onvif-zeep ]))
     linuxPackages.rr-zen_workaround
     lutris
   ];
+
+  powerManagement.cpuFreqGovernor = "performance";
 
   networking = {
     hostName = "vno1-gdrx";

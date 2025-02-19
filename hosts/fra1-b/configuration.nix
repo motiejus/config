@@ -127,6 +127,8 @@ in
     };
   };
 
+  powerManagement.cpuFreqGovernor = "performance";
+
   networking = {
     hostName = "fra1-b";
     domain = "servers.jakst";
