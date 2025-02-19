@@ -43,6 +43,7 @@ in
 
     systemd.services = {
       timelapse-r11 = {
+        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
         serviceConfig = {
           ExecStart = lib.getExe timelapseScript;
           EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];

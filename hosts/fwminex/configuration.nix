@@ -584,6 +584,7 @@ in
                     "bitwarden_rs"
                     "matrix-synapse"
                     "private/soju"
+                    "private/timelapse-r11"
 
                     # https://immich.app/docs/administration/backup-and-restore/
                     "immich/library"
