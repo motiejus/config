@@ -205,6 +205,9 @@ in
 
             config.boot.kernelPackages.perf
             config.boot.kernelPackages.vm-tools
+
+            # non-virtual
+            powerstat
             config.boot.kernelPackages.cpupower
           ]
           (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
