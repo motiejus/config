@@ -25,7 +25,7 @@ let
             vno4-dome-ptz-high \
             vno4-dome-ptz-low; do
           timeout 30s \
-            ffprobe -hide_banner "rtsp://localhost:8854/''${input}" || \
+            ffprobe -hide_banner "rtsp://localhost:8554/''${input}" || \
               FAILED=1
         done
         if [[ "$FAILED" == 1 ]]; then
