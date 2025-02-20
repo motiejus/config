@@ -17,20 +17,14 @@ let
       set -x
       while true; do
         FAILED=0
-        for input in \
-            vno4-dome-panorama-orig \
-            vno4-dome-panorama-high \
-            vno4-dome-panorama-low \
-            vno4-dome-ptz-orig \
-            vno4-dome-ptz-high \
-            vno4-dome-ptz-low; do
+
+        for input in vno4-dome-{panorama,ptz}-{orig,high,low}; do
           timeout 30s \
-            ffprobe -hide_banner "rtsp://localhost:8554/''${input}" || \
-              FAILED=1
+            ffprobe -hide_banner "rtsp://localhost:8554/''${input}" || FAILED=1
         done
-        if [[ "$FAILED" == 1 ]]; then
-          systemctl restart --no-block go2rtc.service
-        fi
+
+        [[ "$FAILED" == 1 ]] && systemctl restart --no-block go2rtc.service
+
         sleep 5m
       done
     '';
