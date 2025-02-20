@@ -88,7 +88,7 @@ in
             "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#audio=copy"
           ];
           "vno4-dome-ptz-low" = [
-            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#width=1280#audio=copy"
+            "ffmpeg:rtsp://localhost:8554/vno4-dome-ptz-orig#hardware=vaapi#video=h264#audio=copy#width=1280"
           ];
         };
       };
