@@ -234,7 +234,10 @@ in
 
     networking.firewall.logRefusedConnections = false;
 
-    systemd.services.dbus.restartIfChanged = false;
+    systemd.services.dbus = {
+      restartIfChanged = false;
+      reloadIfChanged = lib.mkForce false;
+    };
 
     services = {
       iperf3.enable = true;
