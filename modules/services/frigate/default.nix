@@ -6,6 +6,35 @@
 }:
 let
   cfg = config.mj.services.frigate;
+
+  proberScript = pkgs.writeShellApplication {
+    name = "go2rtc-prober";
+    runtimeInputs = with pkgs; [
+      systemd
+      ffmpeg
+    ];
+    text = ''
+      set -x
+      while true; do
+        FAILED=0
+        for input in \
+            vno4-dome-panorama-orig \
+            vno4-dome-panorama-high \
+            vno4-dome-panorama-low \
+            vno4-dome-ptz-orig \
+            vno4-dome-ptz-high \
+            vno4-dome-ptz-low; do
+          timeout 30s \
+            ffprobe -hide_banner "rtsp://localhost:8854/''${input}" || \
+              FAILED=1
+        done
+        if [[ "$FAILED" == 1 ]]; then
+          systemctl restart --no-block go2rtc.service
+        fi
+        sleep 5m
+      done
+    '';
+  };
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
     runtimeInputs = with pkgs; [ ffmpeg ];
@@ -15,13 +44,13 @@ let
       DATE=''${NOW%_*}
       TIME=''${NOW#*_}
       mkdir -p /var/lib/timelapse-r11/"''${DATE}"
-      ffmpeg -y \
+      ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
         /var/lib/timelapse-r11/"''${DATE}"/"ptz-''${TIME}.jpg" || :
 
-      exec ffmpeg -y \
+      exec -hide_banner ffmpeg -y \
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0" \
         -vframes 1 \
@@ -48,6 +77,14 @@ in
     };
 
     systemd.services = {
+      go2rtc-prober = {
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = lib.getExe proberScript;
+          RestartSec = 300;
+          Restart = "always";
+        };
+      };
       timelapse-r11 = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
         serviceConfig = {
