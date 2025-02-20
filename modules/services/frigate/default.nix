@@ -155,6 +155,18 @@ in
             days = 7;
             mode = "all";
           };
+          alerts = {
+            retain = {
+              days = 60;
+              mode = "motion";
+            };
+          };
+          detections = {
+            retain = {
+              days = 60;
+              mode = "motion";
+            };
+          };
         };
 
         cameras = {
