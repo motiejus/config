@@ -234,6 +234,8 @@ in
 
     networking.firewall.logRefusedConnections = false;
 
+    systemd.services.dbus.restartIfChanged = false;
+
     services = {
       iperf3.enable = true;
       atd.enable = true;
