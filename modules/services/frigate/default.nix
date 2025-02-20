@@ -19,13 +19,13 @@ let
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/ptz-"''${TIME}.jpg" || :
+        /var/lib/timelapse-r11/"''${DATE}"/"ptz-''${TIME}.jpg" || :
 
       exec ffmpeg -y \
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/panorama-"''${TIME}.jpg"
+        /var/lib/timelapse-r11/"''${DATE}"/"panorama-''${TIME}.jpg"
     '';
   };
 in
