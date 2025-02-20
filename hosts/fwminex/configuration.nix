@@ -133,16 +133,22 @@ in
           bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
         in
         {
-          serviceConfig.LoadCredential = [
-            "r1.jakstys.lt-cert.pem:${r1.certFile}"
-            "r1.jakstys.lt-key.pem:${r1.keyFile}"
-            "irc.jakstys.lt-cert.pem:${irc.certFile}"
-            "irc.jakstys.lt-key.pem:${irc.keyFile}"
-            "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
-            "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
-            "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
-            "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
-          ];
+          serviceConfig = {
+
+            # 2025-02-11 blocks system from upgrading during reload
+            ExecReload = lib.mkForce "";
+
+            LoadCredential = [
+              "r1.jakstys.lt-cert.pem:${r1.certFile}"
+              "r1.jakstys.lt-key.pem:${r1.keyFile}"
+              "irc.jakstys.lt-cert.pem:${irc.certFile}"
+              "irc.jakstys.lt-key.pem:${irc.keyFile}"
+              "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
+              "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
+              "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
+              "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
+            ];
+          };
           after = [
             "nsd-acme-r1.jakstys.lt.service"
             "nsd-acme-irc.jakstys.lt.service"
