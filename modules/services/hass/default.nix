@@ -24,6 +24,11 @@ in
     environment.systemPackages = [ ];
 
     services = {
+      mosquitto = {
+        enable = true;
+        listeners = [ { address = "::"; } ];
+      };
+
       home-assistant = {
         enable = true;
         extraComponents = [
@@ -38,6 +43,7 @@ in
           "daikin"
           "ipp"
           "prometheus"
+          "mqtt"
         ];
         customComponents = [
           pkgs.home-assistant-custom-components.frigate
