@@ -38,17 +38,20 @@ let
       DATE=''${NOW%_*}
       TIME=''${NOW#*_}
       mkdir -p /var/lib/timelapse-r11/"''${DATE}"
+      EXITCODE=0
       ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/"ptz-''${TIME}.jpg" || :
+        /var/lib/timelapse-r11/"''${DATE}"/"ptz-''${TIME}.jpg" || EXITCODE=$?
 
-      exec ffmpeg -hide_banner -y \
+      ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://frigate:''${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/"panorama-''${TIME}.jpg"
+        /var/lib/timelapse-r11/"''${DATE}"/"panorama-''${TIME}.jpg" || EXITCODE=$?
+
+      exit "$EXITCODE"
     '';
   };
 in
