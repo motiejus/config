@@ -139,6 +139,12 @@ in
       hostname = "r1.jakstys.lt";
       settings = {
         ffmpeg.hwaccel_args = "preset-vaapi";
+
+        mqtt = {
+          enabled = true;
+          host = "::";
+        };
+
         detect = {
           enabled = true;
           fps = 5;

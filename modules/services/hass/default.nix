@@ -26,7 +26,14 @@ in
     services = {
       mosquitto = {
         enable = true;
-        listeners = [ { address = "::"; } ];
+        listeners = [
+          {
+            address = "::";
+            acl = [ "pattern readwrite #" ];
+            omitPasswordAuth = true;
+            settings.allow_anonymous = true;
+          }
+        ];
       };
 
       home-assistant = {
