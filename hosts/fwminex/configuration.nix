@@ -496,7 +496,7 @@ in
       };
 
       frigate = {
-        enable = true;
+        enable = false;
         secretsEnv = config.age.secrets.frigate.path;
       };
 
