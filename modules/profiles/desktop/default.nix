@@ -209,7 +209,7 @@ in
         distrobox
         miniupnpc
         v4l-utils
-        nerdfonts
+        #nerdfonts
         winetricks
         diffoscope
         alsa-utils
