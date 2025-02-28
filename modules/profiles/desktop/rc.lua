@@ -140,7 +140,7 @@ mytextclock:buttons(gears.table.join(
     end)
 ))
 
-vnoclock = wibox.widget.textclock(" | %F %T%z %a", 1, "Europe/Vilnius")
+vnoclock = wibox.widget.textclock(" | %F %T%z %a", 1, "Europe/Rome")
 vnoclock:buttons(gears.table.join(
     awful.button({}, 1, function()
         timezone_popup.visible = not timezone_popup.visible
