@@ -312,7 +312,7 @@ in
           msmtp.enable = true;
           mbsync.enable = true;
           neomutt.enable = true;
-          notmuch.enable = true;
+          #notmuch.enable = true;
           ghostty = {
             enable = true;
             installVimSyntax = true;
@@ -368,10 +368,10 @@ in
               enable = true;
             };
 
-            notmuch = {
-              enable = true;
-              neomutt.enable = true;
-            };
+            #notmuch = {
+            #  enable = true;
+            #  neomutt.enable = true;
+            #};
 
             neomutt = {
               enable = true;
