@@ -16,6 +16,7 @@ in
       loader.systemd-boot.enable = true;
       initrd.systemd.enable = true;
       supportedFilesystems = [
+        "exfat"
         "ntfs"
         "xfs"
       ];
