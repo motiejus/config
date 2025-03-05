@@ -722,6 +722,7 @@ in
       ffmpeg
       inferno
       rtorrent
+      tpm2-tools
       age-plugin-yubikey
       (python3.withPackages (
         ps: with ps; [
