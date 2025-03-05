@@ -50,7 +50,7 @@ in
         "thunderbolt"
         "nvme"
         "usbhid"
-        "tpm_tis"
+        "tpm_crb"
       ];
       luks.devices = {
         luksroot = {
