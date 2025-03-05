@@ -56,6 +56,9 @@ in
         luksroot = {
           device = "${nvme}-part3";
           allowDiscards = true;
+          keyFileOffset = 9728;
+          keyFileSize = 512;
+          keyFile = "/dev/sda";
         };
       };
     };
