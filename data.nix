@@ -115,7 +115,7 @@ rec {
     };
     "mtworx.motiejus.jakst" = rec {
       extraHostNames = [ jakstIP ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRrsOkKkpJ9ZJYhEdxjwrmdVYoPcGDGtcGfBkkpVF6l";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
       jakstIP = "100.89.176.20";
     };
     "vno1-vinc.vincentas.jakst" = rec {
