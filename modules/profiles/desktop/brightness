@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# This is a shell "application", but doesn't have to be one, so
+# leaving the shebang in place.
+set -euo pipefail
+
+dir=$(find /sys/devices/ -name intel_backlight | head -1)
+if [[ -z "$dir" ]]; then
+    echo "intel_backlight not found"
+    exit 1
+fi
+
+max=$(cat "$dir/max_brightness")
+now=$(cat "$dir/brightness")
+step=$((max * 3 / 100))
+min=100
+
+clamp() {
+    if [[ $1 -gt $max ]]; then
+        echo "$max"
+    elif [[ $1 -lt $min ]]; then
+        echo "$min"
+    else
+        echo "$1"
+    fi
+}
+
+info() {
+    perc="$(echo "$1*100/$max" | bc -l)"
+    printf "%s of %s (%.2f%%)\n" "$1" "$max" "$perc"
+}
+
+new=
+case "${1:-}" in
+up)
+    new=$(clamp $((now + step)) ) ;;
+down)
+    new=$(clamp $((now - step)) ) ;;
+esac
+
+if [[ -n "$new" ]]; then
+    echo "$new" | sudo tee "$dir/brightness" > /dev/null
+    info "$new"
+else
+    info "$now"
+fi

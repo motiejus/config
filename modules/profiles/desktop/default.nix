@@ -8,6 +8,10 @@ let
   inherit (config.mj) username;
   firefox =
     if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
+  brightness = pkgs.writeShellApplication {
+    name = "brightness";
+    text = builtins.readFile ./brightness;
+  };
 in
 {
   imports = [ ../dev ];
@@ -134,6 +138,7 @@ in
         # packages defined here
         nicer
         tmuxbash
+        brightness
 
         f3 # flight-flash-fraud
         iw

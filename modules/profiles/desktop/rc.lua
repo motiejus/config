@@ -278,6 +278,16 @@ globalkeys = gears.table.join(
                     xclip -selection clipboard -target image/png -i $f'
         ]])
     end),
+    awful.key({}, "XF86MonBrightnessDown", function()
+        awful.spawn.easy_async_with_shell("brightness down", function(stdout)
+            naughty.notify({text = stdout, timeout = 1})
+        end)
+    end),
+    awful.key({}, "XF86MonBrightnessUp", function()
+        awful.spawn.easy_async_with_shell("brightness up", function(stdout)
+            naughty.notify({text = stdout, timeout = 1})
+        end)
+    end),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
               {description = "view previous", group = "tag"}),
     awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
