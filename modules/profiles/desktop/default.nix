@@ -416,6 +416,7 @@ in
                 set sidebar_delim_chars = '/'
                 set sidebar_format = '%B%* %?N?%N?'
                 set mail_check_stats
+                mailboxes =btrfs
                 mailboxes =Debian
                 mailboxes =alerts
                 mailboxes =Sent
