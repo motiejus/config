@@ -36,6 +36,7 @@ in
           "jakstys.lt"
           "fra1-b.jakstys.lt"
 
+          "vno3-nk.jakst.vpn"
           "vno1-gdrx.jakst.vpn"
           "vno4-rutx11.jakst.vpn"
         ];
