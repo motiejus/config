@@ -193,8 +193,8 @@ in
             enabled = true;
             ffmpeg = {
               output_args = {
-                #record = "preset-record-generic-audio-copy";
-                record = "preset-record-generic";
+                record = "preset-record-generic-audio-copy";
+                #record = "preset-record-generic";
               };
               inputs = [
                 {
