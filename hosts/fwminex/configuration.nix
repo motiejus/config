@@ -544,6 +544,7 @@ in
       tailscale = {
         enable = true;
         verboseLogs = false;
+        acceptDNS = true;
       };
 
       headscale = {
