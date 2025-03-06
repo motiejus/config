@@ -144,6 +144,7 @@ in
         iw
         rr
         gdb
+        ntp
         i7z
         vlc
         sox
