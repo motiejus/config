@@ -422,10 +422,12 @@ in
                 set sidebar_delim_chars = '/'
                 set sidebar_format = '%B%* %?N?%N?'
                 set mail_check_stats
+                set postponed="+[Gmail]/Drafts"
                 mailboxes =btrfs
                 mailboxes =Debian
                 mailboxes =alerts
-                mailboxes =Sent
+                mailboxes ="[Gmail]/Sent Mail"
+                mailboxes ="[Gmail]/Drafts"
 
                 source ${./notmuch-colors.muttrc}
               '';
