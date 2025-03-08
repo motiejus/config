@@ -49,7 +49,7 @@ rec {
   };
 
   hosts = {
-    "vno4-rutx11.servers.jakst" = rec {
+    "vno4-rutx11.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEehmFvEBVngwxk1nuEWMlE4UU69gC4wxytGX5DAFbh";
       publicIP = "188.69.241.222";
       jakstIP = "100.89.176.1";
@@ -61,7 +61,7 @@ rec {
         vno4IP
       ];
     };
-    "vno3-nk.servers.jakst" = rec {
+    "vno3-nk.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBp3QL8p4AbuijEQX/uVHj6nkJ2/8qNSciL+Glydw2yK";
       system = "x86_64-linux";
       jakstIP = "100.89.176.5";
@@ -69,7 +69,7 @@ rec {
         jakstIP
       ];
     };
-    "fra1-b.servers.jakst" = rec {
+    "fra1-b.jakst.vpn" = rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
         publicIP
@@ -87,7 +87,7 @@ rec {
         "gccarch-armv8-a"
       ];
     };
-    "vno1-gdrx.motiejus.jakst" = rec {
+    "vno1-gdrx.jakst.vpn" = rec {
       extraHostNames = [
         vno1IP
         jakstIP
@@ -96,7 +96,7 @@ rec {
       vno1IP = "192.168.189.12";
       jakstIP = "100.89.176.21";
     };
-    "fwminex.servers.jakst" = rec {
+    "fwminex.jakst.vpn" = rec {
       extraHostNames = [
         "jakstys.lt"
         "git.jakstys.lt"
@@ -113,17 +113,17 @@ rec {
       jakstIP = "100.89.176.6";
       vno1IP = "192.168.189.10";
     };
-    "mtworx.motiejus.jakst" = rec {
+    "mtworx.jakst.vpn" = rec {
       extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
       jakstIP = "100.89.176.3";
     };
-    "vno1-vinc.vincentas.jakst" = rec {
+    "vno1-vinc.jakst.vpn" = rec {
       extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
       jakstIP = "100.89.176.7";
     };
-    "mxp1.motiejus.jakst" = {
+    "mxp1.jakst.vpn" = {
       jakstIP = "100.89.176.22";
     };
     "zh2769.rsync.net" = {
@@ -149,10 +149,10 @@ rec {
     motiejus.cidrs =
       let
         mHosts = attrVals [
-          "mxp1.motiejus.jakst"
-          "vno1-gdrx.motiejus.jakst"
-          "mtworx.motiejus.jakst"
-          "fwminex.servers.jakst"
+          "mxp1.jakst.vpn"
+          "vno1-gdrx.jakst.vpn"
+          "mtworx.jakst.vpn"
+          "fwminex.jakst.vpn"
         ] hosts;
       in
       builtins.catAttrs "jakstIP" mHosts;
@@ -166,9 +166,9 @@ rec {
 
   jakstysLTZone =
     let
-      fra1b = hosts."fra1-b.servers.jakst".publicIP;
-      vno1 = hosts."fwminex.servers.jakst".publicIP;
-      vno4 = hosts."vno4-rutx11.servers.jakst".publicIP;
+      fra1b = hosts."fra1-b.jakst.vpn".publicIP;
+      vno1 = hosts."fwminex.jakst.vpn".publicIP;
+      vno4 = hosts."vno4-rutx11.jakst.vpn".publicIP;
     in
     ''
       $ORIGIN jakstys.lt.
@@ -179,7 +179,7 @@ rec {
       @                             HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       @                                A     ${vno1}
       www                              A     ${vno1}
-      photos                           A     ${hosts."fwminex.servers.jakst".jakstIP}
+      photos                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
       ns1                     86400    A     ${vno1}
       ns2                     86400    A     ${fra1b}
       vpn                              A     ${vno1}
@@ -201,35 +201,35 @@ rec {
       _dmarc                          TXT    "v=DMARC1; p=none;"
       google._domainkey               TXT    "v=DKIM1; k=rsa;" "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuqOyONnWKk7lgAVB1UcVu/I02gTDjROpQGDNUJHS34faQ9DnM/8uSOaIwCe4oV1GrI8N2ET+f96WPCCs1LzlEA0QwuUoXRLGojjQoXxCntLfMCnRWtehzmZq6Yv8nVva7N0gz/n/LThpPvGfEoKzYjmhjzM5d8y60DGsKxS8r4Lc9TzwtzuYkxKDhcSzVBQQiMvKMi6m6mUsxFya7" "ZTurd5i7iiZXpA3SFBYLAsjhQd6vS7K13vwAZTKjGNijfM40i7KXC5XA5WtojiSY0lZzAMqaHGLDaMUFkWRJJntRheQ+AU9RvOGAufphRAjdQTCMy0BLzC0rilT2JaTGe4MdQIDAQAB"
 
-      grafana                             A     ${hosts."fwminex.servers.jakst".jakstIP}
+      grafana                             A     ${hosts."fwminex.jakst.vpn".jakstIP}
       _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
       _acme-endpoint.grafana             NS     ns._acme-endpoint.grafana
       ns._acme-endpoint.grafana           A     ${vno1}
 
-      hass                                A     ${hosts."fwminex.servers.jakst".jakstIP}
+      hass                                A     ${hosts."fwminex.jakst.vpn".jakstIP}
       _acme-challenge.hass            CNAME     _acme-endpoint.hass
       _acme-endpoint.hass                NS     ns._acme-endpoint.hass
       ns._acme-endpoint.hass              A     ${vno1}
 
-      irc                                 A     ${hosts."fwminex.servers.jakst".jakstIP}
+      irc                                 A     ${hosts."fwminex.jakst.vpn".jakstIP}
       _acme-challenge.irc             CNAME     _acme-endpoint.irc
       _acme-endpoint.irc                 NS     ns._acme-endpoint.irc
       ns._acme-endpoint.irc               A     ${vno1}
 
-      hass                                A     ${hosts."fwminex.servers.jakst".jakstIP}
+      hass                                A     ${hosts."fwminex.jakst.vpn".jakstIP}
       _acme-challenge.hass            CNAME     _acme-endpoint.hass
       _acme-endpoint.hass                NS     ns._acme-endpoint.hass
       ns._acme-endpoint.hass              A     ${vno1}
 
       bitwarden                       HTTPS     1 . alpn="h3,h2" ipv4hint="${
-        hosts."fwminex.servers.jakst".jakstIP
+        hosts."fwminex.jakst.vpn".jakstIP
       }"
-      bitwarden                           A     ${hosts."fwminex.servers.jakst".jakstIP}
+      bitwarden                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
       _acme-challenge.bitwarden       CNAME     _acme-endpoint.bitwarden
       _acme-endpoint.bitwarden           NS     ns._acme-endpoint.bitwarden
       ns._acme-endpoint.bitwarden         A     ${vno1}
 
-      hdd                                 A     ${hosts."vno3-nk.servers.jakst".jakstIP}
+      hdd                                 A     ${hosts."vno3-nk.jakst.vpn".jakstIP}
       _acme-challenge.hdd             CNAME     _acme-endpoint.hdd
       _acme-endpoint.hdd                 NS     ns._acme-endpoint.hdd
       ns._acme-endpoint.hdd               A     ${vno1}

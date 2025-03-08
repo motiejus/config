@@ -6,11 +6,11 @@ let
     bk2 = "age14f39j0wx84n93lgqn6d9gcd3yhuwak6qwrxy8v83ydn7266uafts09ecva";
   };
 
-  fwminex = (import ./data.nix).hosts."fwminex.servers.jakst".publicKey;
-  vno3-nk = (import ./data.nix).hosts."vno3-nk.servers.jakst".publicKey;
-  fra1-b = (import ./data.nix).hosts."fra1-b.servers.jakst".publicKey;
-  mtworx = (import ./data.nix).hosts."mtworx.motiejus.jakst".publicKey;
-  vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.motiejus.jakst".publicKey;
+  fwminex = (import ./data.nix).hosts."fwminex.jakst.vpn".publicKey;
+  vno3-nk = (import ./data.nix).hosts."vno3-nk.jakst.vpn".publicKey;
+  fra1-b = (import ./data.nix).hosts."fra1-b.jakst.vpn".publicKey;
+  mtworx = (import ./data.nix).hosts."mtworx.jakst.vpn".publicKey;
+  vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.jakst.vpn".publicKey;
 
   systems = [
     fwminex

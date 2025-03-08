@@ -140,7 +140,7 @@ in
 
       remote-builder.client =
         let
-          host = myData.hosts."fra1-b.servers.jakst";
+          host = myData.hosts."fra1-b.jakst.vpn";
         in
         {
           enable = true;
@@ -152,7 +152,7 @@ in
 
       deployerbot = {
         follower = {
-          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;
@@ -181,7 +181,7 @@ in
 
   networking = {
     hostName = "vno1-gdrx";
-    domain = "motiejus.jakst";
+    domain = "jakst.vpn";
     firewall.rejectPackets = true;
   };
 }

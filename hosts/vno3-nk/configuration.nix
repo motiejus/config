@@ -108,7 +108,7 @@ in
         enable = true;
         dataDir = "/data/borg";
         sshKeys = with myData; [
-          hosts."fwminex.servers.jakst".publicKey
+          hosts."fwminex.jakst.vpn".publicKey
           people_pubkeys.motiejus
         ];
       };
@@ -140,7 +140,7 @@ in
             )
             [
               "zh2769@zh2769.rsync.net"
-              "borgstor@${myData.hosts."fwminex.servers.jakst".jakstIP}"
+              "borgstor@${myData.hosts."fwminex.jakst.vpn".jakstIP}"
             ];
       };
 
@@ -164,7 +164,7 @@ in
 
       remote-builder.client =
         let
-          host = myData.hosts."fra1-b.servers.jakst";
+          host = myData.hosts."fra1-b.jakst.vpn";
         in
         {
           enable = true;
@@ -193,7 +193,7 @@ in
       deployerbot = {
         follower = {
           enable = true;
-          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
           sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
           uidgid = myData.uidgid.updaterbot-deployee;
         };
@@ -212,7 +212,7 @@ in
   networking = {
     hostId = "ab4af0bb";
     hostName = "vno3-nk";
-    domain = "servers.jakst";
+    domain = "jakst.vpn";
     firewall = {
       rejectPackets = true;
       allowedUDPPorts = [

@@ -90,9 +90,9 @@ in
         uidgid = myData.uidgid.remote-builder;
         sshAllowSubnet = myData.subnets.tailscale.sshPattern;
         publicKeys = map (h: myData.hosts.${h}.publicKey) [
-          "vno1-gdrx.motiejus.jakst"
-          "fwminex.servers.jakst"
-          "mtworx.motiejus.jakst"
+          "vno1-gdrx.jakst.vpn"
+          "fwminex.jakst.vpn"
+          "mtworx.jakst.vpn"
         ];
       };
 
@@ -103,7 +103,7 @@ in
 
       deployerbot = {
         follower = {
-          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
 
           enable = true;
           sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
@@ -131,7 +131,7 @@ in
 
   networking = {
     hostName = "fra1-b";
-    domain = "servers.jakst";
+    domain = "jakst.vpn";
     useDHCP = true;
     interfaces.enp1s0.ipv6.addresses = [
       {

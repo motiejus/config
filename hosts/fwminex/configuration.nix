@@ -405,10 +405,10 @@ in
             let
               port = toString config.services.prometheus.exporters.ping.port;
               hosts = [
-                "fwminex.servers.jakst"
-                "vno3-nk.servers.jakst"
-                "fra1-b.servers.jakst"
-                "vno1-gdrx.motiejus.jakst"
+                "fwminex.jakst.vpn"
+                "vno3-nk.jakst.vpn"
+                "fra1-b.jakst.vpn"
+                "vno1-gdrx.jakst.vpn"
               ];
             in
 
@@ -443,8 +443,8 @@ in
             static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
           }
           {
-            job_name = "vno1-vinc.vincentas.jakst";
-            static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.vincentas.jakst".jakstIP}:9100" ]; } ];
+            job_name = "vno1-vinc.jakst.vpn";
+            static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.jakst.vpn".jakstIP}:9100" ]; } ];
           }
         ]
         ++ map
@@ -458,11 +458,11 @@ in
             }
           )
           [
-            "fra1-b.servers.jakst"
-            "vno3-nk.servers.jakst"
-            "fwminex.servers.jakst"
-            "mtworx.motiejus.jakst"
-            "vno1-gdrx.motiejus.jakst"
+            "fra1-b.jakst.vpn"
+            "vno3-nk.jakst.vpn"
+            "fwminex.jakst.vpn"
+            "mtworx.jakst.vpn"
+            "vno1-gdrx.jakst.vpn"
           ];
     };
 
@@ -520,7 +520,7 @@ in
         enable = true;
         dataDir = "/var/lib/borgstor";
         sshKeys = with myData; [
-          hosts."vno3-nk.servers.jakst".publicKey
+          hosts."vno3-nk.jakst.vpn".publicKey
           people_pubkeys.motiejus
         ];
       };
@@ -611,7 +611,7 @@ in
             )
             [
               "zh2769@zh2769.rsync.net"
-              "borgstor@${myData.hosts."vno3-nk.servers.jakst".jakstIP}"
+              "borgstor@${myData.hosts."vno3-nk.jakst.vpn".jakstIP}"
             ];
       };
 
@@ -655,7 +655,7 @@ in
 
       remote-builder.client =
         let
-          host = myData.hosts."fra1-b.servers.jakst";
+          host = myData.hosts."fra1-b.jakst.vpn";
         in
         {
           enable = true;
@@ -677,17 +677,17 @@ in
           deployIfPresent = [
             {
               derivationTarget = ".#mtworx";
-              pingTarget = myData.hosts."mtworx.motiejus.jakst".jakstIP;
+              pingTarget = myData.hosts."mtworx.jakst.vpn".jakstIP;
             }
             {
               derivationTarget = ".#vno1-gdrx";
-              pingTarget = myData.hosts."vno1-gdrx.motiejus.jakst".jakstIP;
+              pingTarget = myData.hosts."vno1-gdrx.jakst.vpn".jakstIP;
             }
           ];
         };
 
         follower = {
-          publicKeys = [ myData.hosts."fwminex.servers.jakst".publicKey ];
+          publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
 
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployee;
@@ -739,7 +739,7 @@ in
   networking = {
     hostId = "a6b19da0";
     hostName = "fwminex";
-    domain = "servers.jakst";
+    domain = "jakst.vpn";
     firewall = {
       rejectPackets = true;
       allowedUDPPorts = [

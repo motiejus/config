@@ -27,7 +27,7 @@
       extraConfig =
         ''
           Host git.jakstys.lt
-            HostName ${myData.hosts."fwminex.servers.jakst".jakstIP}
+            HostName ${myData.hosts."fwminex.jakst.vpn".jakstIP}
 
         ''
         + (lib.concatMapStringsSep "\n"
@@ -37,7 +37,7 @@
           '')
           (
             builtins.attrNames (
-              lib.filterAttrs (name: props: name != "fra1-b.servers.jakst" && props ? jakstIP) myData.hosts
+              lib.filterAttrs (name: props: name != "fra1-b.jakst.vpn" && props ? jakstIP) myData.hosts
             )
           )
         );
