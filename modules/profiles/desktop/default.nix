@@ -426,8 +426,9 @@ in
                 mailboxes =btrfs
                 mailboxes =Debian
                 mailboxes =alerts
-                mailboxes ="[Gmail]/Sent Mail"
                 mailboxes ="[Gmail]/Drafts"
+                mailboxes ="[Gmail]/Starred"
+                mailboxes ="[Gmail]/Sent Mail"
 
                 source ${./notmuch-colors.muttrc}
               '';
