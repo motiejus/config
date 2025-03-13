@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.mj.services.frigate;
+  sklypas = "0.312,1,0.311,0.269,0.354,0.172,0.396,0.154,0.431,0.102,0.495,0.044,0.61,0.039,0.774,0.097,0.837,0.219,0.758,0.995";
 
   proberScript = pkgs.writeShellApplication {
     name = "go2rtc-prober";
@@ -170,14 +171,20 @@ in
           vno4-dome-panorama =
             let
               masks = [
-                "0.308,0.235,0.305,1,0,1,0,0,0.587,0.005"
-                "0.766,1,0.867,0,1,0,1,1"
+                "0.269,0.285,0.235,0.567,0.194,0.634,0.095,1,0,1,0,0,0.321,0,0.323,0.222"
+                "0.766,1,0.855,0.123,0.818,0.104,0.818,0,1,0,1,1"
               ];
             in
             {
               enabled = true;
               motion.mask = masks;
               objects.mask = masks;
+
+              review.detections.required_zones = [ "sklypas" ];
+              zones = {
+                sklypas.coordinates = sklypas;
+              };
+
               ffmpeg = {
                 output_args = {
                   record = "preset-record-generic";
@@ -197,7 +204,7 @@ in
 
           vno4-dome-ptz =
             let
-              masks = [ "0,0.115,1,0.115,1,0,0,0" ];
+              masks = [ "0.666,0.095,1,0.095,1,0,0.666,0" ];
             in
             {
               enabled = true;
