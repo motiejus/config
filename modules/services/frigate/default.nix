@@ -167,53 +167,61 @@ in
         };
 
         cameras = {
-          vno4-dome-panorama = {
-            enabled = true;
-            motion.mask = [
-              "0.308,0.235,0.305,1,0,1,0,0,0.587,0.005"
-              "0.766,1,0.867,0,1,0,1,1"
-            ];
-            ffmpeg = {
-              output_args = {
-                record = "preset-record-generic";
-              };
-              inputs = [
-                {
-                  path = "rtsp://localhost:8554/vno4-dome-panorama-high";
-                  roles = [ "record" ];
-                }
-                {
-                  path = "rtsp://localhost:8554/vno4-dome-panorama-low";
-                  roles = [ "detect" ];
-                }
+          vno4-dome-panorama =
+            let
+              masks = [
+                "0.308,0.235,0.305,1,0,1,0,0,0.587,0.005"
+                "0.766,1,0.867,0,1,0,1,1"
               ];
+            in
+            {
+              enabled = true;
+              motion.mask = masks;
+              objects.mask = masks;
+              ffmpeg = {
+                output_args = {
+                  record = "preset-record-generic";
+                };
+                inputs = [
+                  {
+                    path = "rtsp://localhost:8554/vno4-dome-panorama-high";
+                    roles = [ "record" ];
+                  }
+                  {
+                    path = "rtsp://localhost:8554/vno4-dome-panorama-low";
+                    roles = [ "detect" ];
+                  }
+                ];
+              };
             };
-          };
 
-          vno4-dome-ptz = {
-            enabled = true;
-            motion.mask = [
-              "0,0.115,1,0.115,1,0,0,0"
-            ];
-            ffmpeg = {
-              output_args = {
-                record = "preset-record-generic-audio-copy";
+          vno4-dome-ptz =
+            let
+              masks = [ "0,0.115,1,0.115,1,0,0,0" ];
+            in
+            {
+              enabled = true;
+              motion.mask = masks;
+              objects.mask = masks;
+              ffmpeg = {
+                output_args = {
+                  record = "preset-record-generic-audio-copy";
+                };
+                inputs = [
+                  {
+                    path = "rtsp://localhost:8554/vno4-dome-ptz-high";
+                    roles = [
+                      "record"
+                      "audio"
+                    ];
+                  }
+                  {
+                    path = "rtsp://localhost:8554/vno4-dome-ptz-low";
+                    roles = [ "detect" ];
+                  }
+                ];
               };
-              inputs = [
-                {
-                  path = "rtsp://localhost:8554/vno4-dome-ptz-high";
-                  roles = [
-                    "record"
-                    "audio"
-                  ];
-                }
-                {
-                  path = "rtsp://localhost:8554/vno4-dome-ptz-low";
-                  roles = [ "detect" ];
-                }
-              ];
             };
-          };
         };
 
       };
