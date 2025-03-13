@@ -27,10 +27,10 @@ in
     syncthing-key.file = ../../secrets/fwminex/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
     frigate.file = ../../secrets/frigate.age;
-    #r1-htpasswd = {
-    #  file = ../../secrets/r1-htpasswd.age;
-    #  owner = "nginx";
-    #};
+    r1-htpasswd = {
+      file = ../../secrets/r1-htpasswd.age;
+      owner = "nginx";
+    };
 
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
@@ -361,22 +361,22 @@ in
       };
     };
 
-    #nginx = {
-    #  defaultHTTPListenPort = 8081;
-    #  defaultSSLListenPort = 8443;
-    #  recommendedTlsSettings = true;
-    #  virtualHosts."r1.jakstys.lt" = {
-    #    extraConfig = ''
-    #      error_page 497 301 =307 https://$host:$server_port$request_uri;
-    #      auth_basic secured;
-    #      auth_basic_user_file ${config.age.secrets.r1-htpasswd.path};
-    #    '';
+    nginx = {
+      defaultHTTPListenPort = 8081;
+      defaultSSLListenPort = 8443;
+      recommendedTlsSettings = true;
+      virtualHosts."r1.jakstys.lt" = {
+        extraConfig = ''
+          error_page 497 301 =307 https://$host:$server_port$request_uri;
+          auth_basic secured;
+          auth_basic_user_file ${config.age.secrets.r1-htpasswd.path};
+        '';
 
-    #    addSSL = true;
-    #    sslCertificate = "/run/credentials/nginx.service/r1.jakstys.lt-cert.pem";
-    #    sslCertificateKey = "/run/credentials/nginx.service/r1.jakstys.lt-key.pem";
-    #  };
-    #};
+        addSSL = true;
+        sslCertificate = "/run/credentials/nginx.service/r1.jakstys.lt-cert.pem";
+        sslCertificateKey = "/run/credentials/nginx.service/r1.jakstys.lt-key.pem";
+      };
+    };
 
     nsd = {
       enable = true;
@@ -499,7 +499,7 @@ in
       };
 
       frigate = {
-        enable = false;
+        enable = true;
         secretsEnv = config.age.secrets.frigate.path;
       };
 
