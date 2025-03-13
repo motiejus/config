@@ -140,6 +140,7 @@ in
           rerere.enabled = true;
           init.defaultBranch = "main";
           merge.conflictstyle = "zdiff3";
+          push.autoSetupRemote = true;
           sendemail = {
             sendmailcmd = lib.getExe pkgs.msmtp;
             smtpserveroption = [
