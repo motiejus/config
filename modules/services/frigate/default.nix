@@ -165,6 +165,14 @@ in
             days = 7;
             mode = "all";
           };
+          events = {
+            pre_capture = 5;
+            post_capture = 5;
+            retain = {
+              default = 30;
+              mode = "motion";
+            };
+          };
         };
 
         cameras = {
@@ -179,11 +187,8 @@ in
               enabled = true;
               motion.mask = masks;
               objects.mask = masks;
-
               review.detections.required_zones = [ "sklypas" ];
-              zones = {
-                sklypas.coordinates = sklypas;
-              };
+              zones.sklypas.coordinates = sklypas;
 
               ffmpeg = {
                 output_args = {
