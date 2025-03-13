@@ -172,6 +172,10 @@ in
         cameras = {
           vno4-dome-panorama = {
             enabled = true;
+            motion.mask = [
+              "0.308,0.235,0.305,1,0,1,0,0,0.587,0.005"
+              "0.748,1,0.867,0,0.996,0.005,1,1"
+            ];
             ffmpeg = {
               output_args = {
                 record = "preset-record-generic";
