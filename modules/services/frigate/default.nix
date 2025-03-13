@@ -189,8 +189,12 @@ in
               enabled = true;
               motion.mask = masks;
               objects.mask = masks;
-              review.detections.required_zones = [ "sklypas" ];
               zones.sklypas.coordinates = sklypas;
+
+              review = {
+                alerts.required_zones = [ "sklypas" ];
+                detections.required_zones = [ "sklypas" ];
+              };
 
               ffmpeg = {
                 output_args = {
