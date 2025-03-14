@@ -102,11 +102,6 @@ in
           LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
         };
       };
-      frigate.serviceConfig = {
-        PrivateTmp = true;
-        ExecStartPre = [ "${pkgs.coreutils}/bin/install -m 0777 -d /tmp/cache" ];
-        TemporaryFileSystem = "/tmp/cache:size=1G,mode=0777";
-      };
     };
 
     services.go2rtc = {
