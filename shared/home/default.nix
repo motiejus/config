@@ -32,7 +32,7 @@ in
         pkgs-unstable.go_1_24
         pkgs-unstable.go-tools
 
-        pkgs.zigpkgs."0.13.0"
+        pkgs.zigpkgs."0.14.0"
       ])
 
       (lib.mkIf hmOnly [
