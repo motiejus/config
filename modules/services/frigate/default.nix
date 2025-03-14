@@ -104,8 +104,8 @@ in
       };
       frigate.serviceConfig = {
         PrivateTmp = true;
-        ExecStartPre = [ "${pkgs.coreutils}/bin/install --owner=frigate --group=frigate -d /tmp/cache" ];
-        TemporaryFileSystem = "/tmp/cache:size=1G";
+        ExecStartPre = [ "${pkgs.coreutils}/bin/install -m 0777 -d /tmp/cache" ];
+        TemporaryFileSystem = "/tmp/cache:size=1G,mode=0777";
       };
     };
 
