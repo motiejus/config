@@ -139,7 +139,7 @@ in
       enable = true;
       hostname = "r1.jakstys.lt";
       settings = {
-        ui.strftime_fmt = "%F %T";
+        #ui.strftime_fmt = "%F %T";
         ffmpeg.hwaccel_args = "preset-vaapi";
         telemetry.version_check = false;
 
