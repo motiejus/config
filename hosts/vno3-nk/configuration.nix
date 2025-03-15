@@ -74,13 +74,6 @@ in
     fwupd.enable = true;
   };
 
-  systemd = {
-    tmpfiles.rules = [ "d /data/timelapse-r11 0755 root root -" ];
-    services.timelapse-r11.serviceConfig = {
-      BindPaths = "/var/lib/private/timelapse-r11:/data/timelapse-r11";
-    };
-  };
-
   mj = {
     stateVersion = "24.11";
     timeZone = "Europe/Vilnius";
