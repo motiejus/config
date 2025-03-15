@@ -125,31 +125,47 @@ in
         verboseLogs = false;
       };
 
-      btrfsborg = {
-        enable = true;
-        passwordPath = config.age.secrets.borgbackup-password.path;
-        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        dirs =
-          builtins.concatMap
-            (
-              host:
-              let
-                prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
-              in
+      btrfsborg =
+        let
+          this = "${config.networking.hostName}.${config.networking.domain}";
+          rsync-net = "zh2769@zh2769.rsync.net";
+          fwminex = "borgstor@${myData.hosts."fwminex.jakst.vpn".jakstIP}";
+        in
+        {
+          enable = true;
+          passwordPath = config.age.secrets.borgbackup-password.path;
+          sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          dirs =
+            #[
+            #{
+            #  subvolume = "/data";
+            #  repo = "${fwminex}:${this}-timelapse-r11";
+            #  paths = [ "timelapse-r11" ];
+            #  backup_at = "*-*-* 02:01:00 UTC";
+            #  compression = "none";
+            #}
+            #] ++ (
+            builtins.concatMap
+              (
+                host:
+                let
+                  prefix = "${host}:${this}";
+                in
+                [
+                  {
+                    subvolume = "/data";
+                    repo = "${prefix}-data";
+                    paths = [ "vno3-shared" ];
+                    backup_at = "*-*-* 01:00:01 UTC";
+                  }
+                ]
+              )
               [
-                {
-                  subvolume = "/data";
-                  repo = "${prefix}-data";
-                  paths = [ "vno3-shared" ];
-                  backup_at = "*-*-* 01:00:01 UTC";
-                }
-              ]
-            )
-            [
-              "zh2769@zh2769.rsync.net"
-              "borgstor@${myData.hosts."fwminex.jakst.vpn".jakstIP}"
-            ];
-      };
+                rsync-net
+                fwminex
+              ];
+          #);
+        };
 
       btrfssnapshot = {
         enable = true;

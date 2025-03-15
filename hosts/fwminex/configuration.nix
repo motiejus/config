@@ -573,21 +573,31 @@ in
           };
         };
 
-      btrfsborg = {
-        enable = true;
-        passwordPath = config.age.secrets.borgbackup-password.path;
-        sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-        dirs =
-          builtins.concatMap
-            (
-              host:
-              let
-                prefix = "${host}:${config.networking.hostName}.${config.networking.domain}";
-              in
-              [
+      btrfsborg =
+        let
+          this = "${config.networking.hostName}.${config.networking.domain}";
+          vno3-nk = "borgstor@${myData.hosts."vno3-nk.jakst.vpn".jakstIP}";
+          rsync-net = "zh2769@zh2769.rsync.net";
+        in
+        {
+          enable = true;
+          passwordPath = config.age.secrets.borgbackup-password.path;
+          sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          dirs =
+            [
+              {
+                subvolume = "/var/lib";
+                repo = "${vno3-nk}:${this}-timelapse-r11";
+                paths = [ "private/timelapse-r11" ];
+                backup_at = "*-*-* 02:01:00 UTC";
+                compression = "none";
+              }
+            ]
+            ++ (builtins.concatMap
+              (host: [
                 {
                   subvolume = "/var/lib";
-                  repo = "${prefix}-var_lib";
+                  repo = "${host}:${this}-var_lib";
                   paths = [
                     "hass"
                     "gitea"
@@ -597,7 +607,6 @@ in
                     "bitwarden_rs"
                     "matrix-synapse"
                     "private/soju"
-                    "private/timelapse-r11"
 
                     # https://immich.app/docs/administration/backup-and-restore/
                     "immich/library"
@@ -610,17 +619,17 @@ in
                 }
                 {
                   subvolume = "/home";
-                  repo = "${prefix}-home-motiejus-annex2";
+                  repo = "${host}:${this}-home-motiejus-annex2";
                   paths = [ "motiejus/annex2" ];
                   backup_at = "*-*-* 02:30:01 UTC";
                 }
+              ])
+              [
+                rsync-net
+                vno3-nk
               ]
-            )
-            [
-              "zh2769@zh2769.rsync.net"
-              "borgstor@${myData.hosts."vno3-nk.jakst.vpn".jakstIP}"
-            ];
-      };
+            );
+        };
 
       btrfssnapshot = {
         enable = true;

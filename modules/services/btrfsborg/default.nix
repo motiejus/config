@@ -33,6 +33,10 @@ in
             default = { };
           };
           backup_at = lib.mkOption { type = str; };
+          compression = lib.mkOption {
+            type = str;
+            default = "auto,zstd,10";
+          };
         };
       });
     };
@@ -59,7 +63,7 @@ in
           "config.mj.base.unitstatus.enable must be true";
         lib.nameValuePair "${lib.strings.sanitizeDerivationName subvolume}-${toString i}" (
           {
-            inherit (attrs) repo paths;
+            inherit (attrs) repo paths compression;
 
             doInit = true;
             encryption = {
@@ -67,7 +71,6 @@ in
               passCommand = "cat ${cfg.passwordPath}";
             };
             extraArgs = "--remote-path=borg1";
-            compression = "auto,zstd,10";
             extraCreateArgs = "--chunker-params buzhash,10,23,16,4095";
             startAt = attrs.backup_at;
             preHook = ''
