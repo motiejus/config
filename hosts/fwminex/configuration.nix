@@ -27,6 +27,7 @@ in
     syncthing-key.file = ../../secrets/fwminex/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
     frigate.file = ../../secrets/frigate.age;
+    timelapse.file = ../../secrets/timelapse.age;
     r1-htpasswd = {
       file = ../../secrets/r1-htpasswd.age;
       owner = "nginx";
@@ -501,6 +502,12 @@ in
       frigate = {
         enable = true;
         secretsEnv = config.age.secrets.frigate.path;
+      };
+
+      timelapse-r11 = {
+        enable = true;
+        onCalendar = "*:0/5";
+        secretsEnv = config.age.secrets.timelapse.path;
       };
 
       immich = {

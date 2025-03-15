@@ -57,6 +57,18 @@ in
       "secrets/motiejus_server_passwd_hash.age"
       "secrets/root_server_passwd_hash.age"
     ]
+//
+  mk
+    (
+      [
+        fwminex
+        vno3-nk
+      ]
+      ++ motiejus
+    )
+    [
+      "secrets/timelapse.age"
+    ]
 // mk ([ fwminex ] ++ motiejus) [
   "secrets/vaultwarden/secrets.env.age"
   "secrets/letsencrypt/account.key.age"
