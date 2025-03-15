@@ -39,7 +39,7 @@ in
   options.mj.services.timelapse-r11 = with lib.types; {
     enable = lib.mkEnableOption "enable timelapse-r11";
     secretsEnv = lib.mkOption { type = path; };
-    onCalendar = lib.mkOption { type = string; };
+    onCalendar = lib.mkOption { type = str; };
   };
 
   config = lib.mkIf cfg.enable {
