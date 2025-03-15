@@ -17,6 +17,7 @@ in
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
+    timelapse.file = ../../secrets/timelapse.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
       owner = "spiped";
@@ -97,6 +98,12 @@ in
       node_exporter = {
         enable = true;
         extraSubnets = [ myData.subnets.vno3.cidr ];
+      };
+
+      timelapse-r11 = {
+        enable = true;
+        onCalendar = "*:0/5:30"; # 30'th second every 5 mins
+        secretsEnv = config.age.secrets.timelapse.path;
       };
 
       ssh8022.server = {
