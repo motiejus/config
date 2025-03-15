@@ -70,7 +70,8 @@ in
     ];
 
     systemd.timers.timelapse-r11 = {
-      timerConfig.OnCalendar = "*-*-* 7..19:00/5 Europe/Vilnius";
+      #timerConfig.OnCalendar = "*-*-* 7..19:00/5 Europe/Vilnius";
+      timerConfig.OnCalendar = "*:0/5";
       wantedBy = [ "timers.target" ];
     };
 
