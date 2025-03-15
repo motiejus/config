@@ -171,6 +171,13 @@ in
         enable = true;
         subvolumes = [
           {
+            # next time: don't forget a subvolume /var/lib
+            subvolume = "/";
+            label = "hourly";
+            keep = 6;
+            refreshInterval = "*:00:00";
+          }
+          {
             subvolume = "/data";
             label = "hourly";
             keep = 24;
