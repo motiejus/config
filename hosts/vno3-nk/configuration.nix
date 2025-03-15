@@ -136,16 +136,16 @@ in
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
           dirs =
-            #[
-            #{
-            #  subvolume = "/data";
-            #  repo = "${fwminex}:${this}-timelapse-r11";
-            #  paths = [ "timelapse-r11" ];
-            #  backup_at = "*-*-* 02:01:00 UTC";
-            #  compression = "none";
-            #}
-            #] ++ (
-            builtins.concatMap
+            [
+              {
+                subvolume = "/";
+                repo = "${fwminex}:${this}-timelapse-r11";
+                paths = [ "var/lib/private/timelapse-r11" ];
+                backup_at = "*-*-* 02:01:00 UTC";
+                compression = "none";
+              }
+            ]
+            ++ (builtins.concatMap
               (
                 host:
                 let
@@ -163,8 +163,8 @@ in
               [
                 rsync-net
                 fwminex
-              ];
-          #);
+              ]
+            );
         };
 
       btrfssnapshot = {
