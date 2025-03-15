@@ -84,7 +84,6 @@ in
               within = "1d";
               daily = 7;
               weekly = 4;
-              monthly = 3;
             };
             environment = {
               BORG_RELOCATED_REPO_ACCESS_IS_OK = "yes";
