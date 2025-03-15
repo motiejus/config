@@ -10,7 +10,7 @@ let
 
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
-    runtimeInputs = with pkgs; [ ffmpeg ];
+    runtimeInputs = with pkgs; [ ffmpeg-headless ];
     text = ''
       set -x
       NOW=$(date +%F_%T)
