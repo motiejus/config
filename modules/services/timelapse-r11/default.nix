@@ -16,19 +16,20 @@ let
       NOW=$(date +%F_%T)
       DATE=''${NOW%_*}
       TIME=''${NOW#*_}
-      mkdir -p /var/lib/timelapse-r11/"''${DATE}"
+      HOUR=''${TIME%%:*}
+      mkdir -p /var/lib/timelapse-r11/"''${DATE}"/"''${HOUR}"/{ptz,panorama}
       EXITCODE=0
       ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://timelapse:''${TIMELAPSE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/"ptz-''${DATE}_''${TIME}.jpg" || EXITCODE=$?
+        "/var/lib/timelapse-r11/''${DATE}/''${HOUR}/ptz/''${NOW}.jpg" || EXITCODE=$?
 
       ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://timelapse:''${TIMELAPSE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0" \
         -vframes 1 \
-        /var/lib/timelapse-r11/"''${DATE}"/"panorama-''${DATE}_''${TIME}.jpg" || EXITCODE=$?
+        "/var/lib/timelapse-r11/''${DATE}/''${HOUR}/panorama/''${NOW}.jpg" || EXITCODE=$?
 
       exit "$EXITCODE"
     '';
