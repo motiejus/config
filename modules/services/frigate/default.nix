@@ -121,6 +121,7 @@ in
 
         record = {
           enabled = true;
+          sync_recordings = true;
           retain = {
             days = 7;
             mode = "all";
