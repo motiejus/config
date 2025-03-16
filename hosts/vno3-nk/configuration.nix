@@ -102,7 +102,7 @@ in
 
       timelapse-r11 = {
         enable = true;
-        onCalendar = "*:0/5:30"; # 30'th second every 5 mins
+        onCalendar = "*:*:30"; # 30'th second every minute
         secretsEnv = config.age.secrets.timelapse.path;
       };
 

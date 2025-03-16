@@ -506,7 +506,7 @@ in
 
       timelapse-r11 = {
         enable = true;
-        onCalendar = "*:0/5";
+        onCalendar = "*:*:0";
         secretsEnv = config.age.secrets.timelapse.path;
       };
 
