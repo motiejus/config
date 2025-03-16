@@ -19,7 +19,7 @@ in
     enable = mkEnableOption "Enable tailscale";
     acceptDNS = mkOption {
       type = bool;
-      default = false;
+      default = true;
     };
     # https://github.com/tailscale/tailscale/issues/1548
     verboseLogs = mkOption {
