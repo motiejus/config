@@ -152,6 +152,7 @@ in
                 track = [
                   "bicycle"
                   "car"
+                  "dog"
                   "motorcycle"
                   "person"
                 ];
