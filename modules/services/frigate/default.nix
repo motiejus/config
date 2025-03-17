@@ -147,7 +147,15 @@ in
             {
               enabled = true;
               motion.mask = masks;
-              objects.mask = masks;
+              objects = {
+                mask = masks;
+                track = [
+                  "bicycle"
+                  "car"
+                  "motorcycle"
+                  "person"
+                ];
+              };
               zones.sklypas.coordinates = sklypas;
 
               review = {
