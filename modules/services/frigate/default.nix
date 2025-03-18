@@ -153,7 +153,6 @@ in
                   "bicycle"
                   "car"
                   "dog"
-                  "motorcycle"
                   "person"
                 ];
               };
