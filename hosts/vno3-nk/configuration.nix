@@ -102,7 +102,7 @@ in
 
       timelapse-r11 = {
         enable = true;
-        onCalendar = "*:*:30"; # 30'th second every minute
+        onCalendar = "*-*-* *:*:30"; # 30'th second every minute
         secretsEnv = config.age.secrets.timelapse.path;
       };
 
@@ -136,16 +136,7 @@ in
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
           dirs =
-            [
-              {
-                subvolume = "/";
-                repo = "${fwminex}:${this}-timelapse-r11";
-                paths = [ "var/lib/private/timelapse-r11" ];
-                backup_at = "*-*-* 02:01:00 UTC";
-                compression = "none";
-              }
-            ]
-            ++ (builtins.concatMap
+            builtins.concatMap
               (
                 host:
                 let
@@ -163,8 +154,7 @@ in
               [
                 rsync-net
                 fwminex
-              ]
-            );
+              ];
         };
 
       btrfssnapshot = {
