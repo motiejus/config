@@ -743,7 +743,7 @@ in
       inferno
       rtorrent
       tpm2-tools
-      intel-gpu-tools
+      amdgpu_top
       age-plugin-yubikey
       (python3.withPackages (
         ps: with ps; [
