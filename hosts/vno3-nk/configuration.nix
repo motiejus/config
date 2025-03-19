@@ -232,7 +232,7 @@ in
   environment = {
     enableDebugInfo = true;
     systemPackages = with pkgs; [
-      intel_gpu_tools
+      intel-gpu-tools
     ];
   };
 
