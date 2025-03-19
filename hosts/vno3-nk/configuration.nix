@@ -229,6 +229,13 @@ in
     };
   };
 
+  environment = {
+    enableDebugInfo = true;
+    systemPackages = with pkgs; [
+      intel_gpu_tools
+    ];
+  };
+
   networking = {
     hostId = "ab4af0bb";
     hostName = "vno3-nk";
