@@ -1,6 +1,7 @@
 {
   config,
   myData,
+  pkgs,
   ...
 }:
 let
