@@ -123,7 +123,7 @@ in
 
       tailscale = {
         enable = true;
-        verboseLogs = false;
+        verboseLogs = true;
       };
 
       btrfsborg =
