@@ -64,6 +64,7 @@ in
           };
           homeassistant = {
             auth_providers = [
+              { type = "homeassistant"; }
               {
                 type = "trusted_networks";
                 trusted_networks = myData.subnets.motiejus.cidrs;
