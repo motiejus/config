@@ -267,6 +267,7 @@ in
           ps: with ps; [
             numpy
             ipython
+            requests
             matplotlib
           ]
         ))
