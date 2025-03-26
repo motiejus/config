@@ -160,6 +160,7 @@ in
         putty
         scrot
         tracy
+        mb2md # mailbox2maildir
         cmake
         (kazam.override {
           python3Packages = pkgs.python311Packages;
