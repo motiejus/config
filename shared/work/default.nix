@@ -13,22 +13,11 @@
     mysql80
     kubectl
     kubectx
+    terraform
+    github-cli
     docker-compose
     google-cloud-sdk
     kubectl-node-shell
-
-    terraform
-    #(pkgs.terraform.withPlugins (_: [
-    #  (pkgs.terraform-providers.mkProvider {
-    #    owner = "chronosphereio";
-    #    repo = "terraform-provider-chronosphere";
-    #    spdx = "Apache-2.0";
-    #    rev = "v1.7.0";
-    #    hash = "sha256-BfVR/1wf6YH7mc7kXPjk2cI8u3/k0Zi8+Xu7Kg6AN80=";
-    #    vendorHash = "sha256-UxoFbiQa5RgNI90oUy4twembgA8jseeu6Hc/9KTwJKA=";
-    #    homepage = "https://registry.terraform.io/providers/chronosphereio/chronosphere";
-    #  })
-    #]))
   ];
 
   programs._1password.enable = true;
