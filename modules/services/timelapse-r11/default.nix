@@ -61,7 +61,7 @@ in
         StateDirectory = "timelapse-r11";
         DynamicUser = true;
         Type = "simple";
-        RuntimeMaxSecs = "45s";
+        RuntimeMaxSec = "45s";
       };
     };
 
