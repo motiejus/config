@@ -1,5 +1,4 @@
 {
-  lib,
   config,
   pkgs,
   myData,
@@ -7,13 +6,6 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
-  timelapseScript = pkgs.writeShellApplication {
-    name = "timelapse-test";
-    text = ''
-      date >> /tmp/timelapse-test
-      sleep 5m
-    '';
-  };
 in
 {
   imports = [
@@ -58,18 +50,6 @@ in
           crypttabExtraOpts = [ "tpm2-device=auto" ];
         };
       };
-    };
-  };
-
-  systemd = {
-    timers.timelapse-test = {
-      timerConfig.onCalendar = "*-*-* *:*:30";
-    };
-    services.timelapse-test.serviceConfig = {
-      ExecStart = lib.getExe timelapseScript;
-      StateDirectory = "timelapse-test";
-      Type = "simple";
-      RuntimeMaxSec = "30s";
     };
   };
 
