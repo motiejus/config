@@ -107,6 +107,7 @@ in
             duf # nice disk usage output
             git
             lz4
+            mmv
             fio
             htop
             file # file duh
