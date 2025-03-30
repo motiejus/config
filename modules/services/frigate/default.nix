@@ -126,7 +126,7 @@ in
           enabled = true;
           sync_recordings = true;
           retain = {
-            days = 7;
+            days = 14;
             mode = "all";
           };
           events = {
