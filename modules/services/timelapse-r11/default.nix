@@ -15,21 +15,19 @@ let
       set -x
       NOW=$(date +%F_%T)
       DATE=''${NOW%_*}
-      TIME=''${NOW#*_}
-      HOUR=''${TIME%%:*}
-      mkdir -p /var/lib/timelapse-r11/"''${DATE}"/"''${HOUR}"/{ptz,panorama}
+      mkdir -p /var/lib/timelapse-r11/{ptz,panorama}/"''${DATE}"
       EXITCODE=0
-      timeout 15s ffmpeg -hide_banner -y \
+      ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://timelapse:''${TIMELAPSE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0" \
         -vframes 1 \
-        "/var/lib/timelapse-r11/''${DATE}/''${HOUR}/ptz/''${NOW}.jpg" || EXITCODE=$?
+        "/var/lib/timelapse-r11/ptz/''${DATE}/''${NOW}.jpg" || EXITCODE=$?
 
-      timeout 15s ffmpeg -hide_banner -y \
+      ffmpeg -hide_banner -y \
         -rtsp_transport tcp \
         -i "rtsp://timelapse:''${TIMELAPSE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0" \
         -vframes 1 \
-        "/var/lib/timelapse-r11/''${DATE}/''${HOUR}/panorama/''${NOW}.jpg" || EXITCODE=$?
+        "/var/lib/timelapse-r11/panorama/''${DATE}/''${NOW}.jpg" || EXITCODE=$?
 
       exit "$EXITCODE"
     '';
