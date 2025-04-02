@@ -739,11 +739,12 @@ in
     systemPackages = with pkgs; [
       acpi
       yt-dlp
-      ffmpeg
       inferno
       rtorrent
       tpm2-tools
       amdgpu_top
+      graphicsmagick
+      ffmpeg-headless
       age-plugin-yubikey
       (python3.withPackages (
         ps: with ps; [
