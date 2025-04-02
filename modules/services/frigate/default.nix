@@ -12,7 +12,7 @@ let
     name = "go2rtc-prober";
     runtimeInputs = with pkgs; [
       systemd
-      ffmpeg
+      ffmpeg-headless
     ];
     text = ''
       set -x
