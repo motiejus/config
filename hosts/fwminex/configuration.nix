@@ -310,6 +310,12 @@ in
                 precompressed zstd br gzip
             }
           '';
+        "rita.jakstys.lt".extraConfig = ''
+          root * /var/www/rita.jakstys.lt
+          file_server {
+            precompressed zstd br gzip
+          }
+        '';
         "dl.jakstys.lt".extraConfig = ''
           root * /var/www/dl
           file_server browse {
