@@ -326,7 +326,7 @@ in
         "jakstys.lt".extraConfig = ''
           header {
             Strict-Transport-Security "max-age=15768000"
-            Content-Security-Policy "default-src 'self'"
+            Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'"
             X-Content-Type-Options "nosniff"
             X-Frame-Options "DENY"
             Alt-Svc "h3=\":443\"; ma=86400"
