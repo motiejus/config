@@ -256,6 +256,7 @@ in
         nvtopPackages.intel
         hunspellDicts.en_US
         wineWowPackages.full
+        openorienteering-mapper
         samsung-unified-linux-driver
 
         xdotool
