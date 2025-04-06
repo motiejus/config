@@ -71,9 +71,6 @@ in
         #  level = "trace";
         #};
         streams = {
-          "vno4-dome-panorama-4096" = [
-            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=0#width=4096#video=h264"
-          ];
           "vno4-dome-panorama-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
           ];
