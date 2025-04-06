@@ -152,6 +152,7 @@ in
         acpi
         gimp
         josm
+        gdal
         qemu
         zlib
         ninja
