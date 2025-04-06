@@ -53,6 +53,7 @@ in
       preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
       serviceConfig = {
         ExecStart = lib.getExe timelapseScript;
+        Environment = [ "TZ=Europe/Vilnius" ];
         EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
         LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
         RuntimeDirectory = "timelapse-r11";
