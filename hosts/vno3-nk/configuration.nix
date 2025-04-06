@@ -165,8 +165,14 @@ in
             # next time: don't forget a subvolume /var/lib
             subvolume = "/";
             label = "hourly";
-            keep = 6;
+            keep = 24;
             refreshInterval = "*:00:00";
+          }
+          {
+            subvolume = "/";
+            label = "5minutely";
+            keep = 12;
+            refreshInterval = "*:0/5";
           }
           {
             subvolume = "/data";
