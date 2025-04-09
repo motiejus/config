@@ -243,6 +243,7 @@ in
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
+      package = pkgs.pkgs-unstable.caddy; # TODO remove on 24.05
       globalConfig = ''
         servers {
           metrics
