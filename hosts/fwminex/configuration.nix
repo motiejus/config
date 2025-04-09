@@ -246,7 +246,9 @@ in
       package = pkgs.pkgs-unstable.caddy; # TODO remove on 24.05
       globalConfig = ''
         servers {
-          metrics
+          metrics {
+            per_host
+          }
         }
       '';
       virtualHosts = {
