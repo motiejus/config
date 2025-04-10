@@ -74,6 +74,9 @@
         { id = "kgjfgplpablkjnlkjmjdecgdpfankdle"; } # Zoom
       ];
       bash.initExtra = ''
+        droidcli() {
+          (cd $HOME/dev/monorepo; bin/droidcli "$@")
+        }
         mj_ps1_extra() {
             if [[ $PWD =~ $HOME/dev ]]; then
                 kubectl config view --minify -o jsonpath={.current-context}:{..namespace}
