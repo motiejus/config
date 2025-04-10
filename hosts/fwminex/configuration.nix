@@ -596,8 +596,11 @@ in
             [
               {
                 subvolume = "/var/lib";
-                repo = "${vno3-nk}:${this}-timelapse-r11";
-                paths = [ "private/timelapse-r11" ];
+                repo = "${vno3-nk}:${this}-var_lib_lesser";
+                paths = [
+                  "prometheus2"
+                  "private/timelapse-r11"
+                ];
                 backup_at = "*-*-* 02:01:00 UTC";
                 compression = "none";
               }
