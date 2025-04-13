@@ -7,6 +7,7 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_2TB_S6P1NX0TA00913P";
+  linuxPackage = pkgs.linuxPackages_latest;
 in
 {
   imports = [
@@ -36,7 +37,7 @@ in
 
   boot = {
     kernelModules = [ "kvm-intel" ];
-    kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
+    kernelPackages = lib.mkForce linuxPackage;
     initrd = {
       availableKernelModules = [
         "xhci_pci"
@@ -173,7 +174,7 @@ in
 
   environment.systemPackages = with pkgs; [
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
-    linuxPackages.rr-zen_workaround
+    linuxPackage.rr-zen_workaround
     lutris
   ];
 
