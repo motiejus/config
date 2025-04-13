@@ -81,6 +81,7 @@ in
 
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
+  "secrets/fwminex/up.jakstys.lt.env.age"
 ]
 // mk (
   [

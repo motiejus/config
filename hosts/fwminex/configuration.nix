@@ -28,6 +28,7 @@ in
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
     frigate.file = ../../secrets/frigate.age;
     timelapse.file = ../../secrets/timelapse.age;
+    plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
     r1-htpasswd = {
       file = ../../secrets/r1-htpasswd.age;
       owner = "nginx";
@@ -137,8 +138,8 @@ in
           bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
         in
         {
+          preStart = "ln -sf $CREDENTIALS_DIRECTORY/up.jakstys.lt.env /run/caddy/up.jakstys.lt.env";
           serviceConfig = {
-
             # 2025-02-11 blocks system from upgrading during reload
             ExecReload = lib.mkForce "";
 
@@ -151,7 +152,10 @@ in
               "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
               "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
               "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
+              "up.jakstys.lt.env:${config.age.secrets.plik.path}"
             ];
+            RuntimeDirectory = "caddy";
+            EnvironmentFile = [ "-/run/caddy/up.jakstys.lt.env" ];
           };
           after = [
             "nsd-acme-r1.jakstys.lt.service"
@@ -228,6 +232,11 @@ in
       powerKeyLongPress = "poweroff";
     };
 
+    plikd = {
+      enable = true;
+      settings.ListenPort = myData.ports.plik;
+    };
+
     soju = {
       enable = true;
       listen = [
@@ -291,6 +300,12 @@ in
         "r1.jakstys.lt".extraConfig = ''
           tls {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-key.pem
           redir https://r1.jakstys.lt:8443
+        '';
+        "up.jakstys.lt".extraConfig = ''
+          basic_auth {
+            {$PLIK_USER} {$PLIK_PASSWORD}
+          }
+          reverse_proxy 127.0.0.1:${toString myData.ports.plik}
         '';
         "irc.jakstys.lt".extraConfig =
           let

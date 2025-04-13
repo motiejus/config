@@ -31,6 +31,7 @@ rec {
     ssh8022 = 8022;
     vaultwarden = 8222;
     headscale = 8080;
+    plik = 8099;
     hass = 8123;
     prometheus = 9001;
     tailscale = 41641;
