@@ -101,6 +101,7 @@ rec {
         "jakstys.lt"
         "git.jakstys.lt"
         "dl.jakstys.lt"
+        "up.jakstys.lt"
         "irc.jakstys.lt"
         "www.jakstys.lt"
         "vpn.jakstys.lt"
@@ -188,6 +189,7 @@ rec {
       git                          HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       auth                             A     ${vno1}
       dl                               A     ${vno1}
+      up                               A     ${vno1}
       fra1-b                           A     ${fra1b}
       vno4                             A     ${vno4}
       r1                               A     ${vno1}
