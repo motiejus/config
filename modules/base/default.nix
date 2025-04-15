@@ -165,6 +165,7 @@ in
             dos2unix
             patchelf
             compsize
+            rtorrent
             p7zip-rar
             hyperfine
             stress-ng
