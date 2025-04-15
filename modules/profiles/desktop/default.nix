@@ -200,7 +200,6 @@ in
         chromium
         hunspell
         tigervnc
-        rtorrent
         bsdgames
         xss-lock
         valgrind

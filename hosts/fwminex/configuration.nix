@@ -767,7 +767,6 @@ in
       acpi
       yt-dlp
       inferno
-      rtorrent
       tpm2-tools
       amdgpu_top
       graphicsmagick
