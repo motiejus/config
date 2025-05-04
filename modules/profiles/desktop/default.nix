@@ -159,7 +159,6 @@ in
         xclip
         pdftk
         putty
-        pinta
         scrot
         tracy
         mb2md # mailbox2maildir
