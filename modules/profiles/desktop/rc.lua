@@ -387,6 +387,9 @@ globalkeys = gears.table.join(
     -- My customizations
     awful.key({ modkey }, "x", function()
         awful.spawn.with_shell("loginctl lock-session")
+    end),
+    awful.key({ modkey }, "q", function()
+        awful.spawn.with_shell("qalculate-qt")
     end)
 )
 

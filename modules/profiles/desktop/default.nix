@@ -232,7 +232,8 @@ in
         ghostscript
         libva-utils # intel video tests
         pavucontrol
-        qalculate-qt
+        libqalculate # qalc
+        qalculate-qt # qalculate
         google-chrome
         wirelesstools
         poppler_utils
