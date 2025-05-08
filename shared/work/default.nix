@@ -59,7 +59,7 @@
 
   home-manager.users.${config.mj.username} = {
     home.sessionVariables = {
-      GOFLAGS = "-tags=integration,cluster_integration";
+      GOFLAGS = "-tags=big,integration,cluster_integration";
       GOPRIVATE = "github.com/chronosphereio";
       BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
     };
