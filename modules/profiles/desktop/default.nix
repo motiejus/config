@@ -149,6 +149,7 @@ in
         vlc
         sox
         mpv
+        imv # image viewer
         acpi
         gimp
         josm
@@ -231,6 +232,7 @@ in
         ghostscript
         libva-utils # intel video tests
         pavucontrol
+        qalculate-qt
         google-chrome
         wirelesstools
         poppler_utils
