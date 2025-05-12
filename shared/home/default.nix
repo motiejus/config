@@ -131,7 +131,10 @@ in
         enable = true;
         userEmail = email;
         userName = "Motiejus Jakštys";
-        aliases.yolo = "commit --amend --no-edit -a";
+        aliases = {
+          yolo = "commit --amend --no-edit -a";
+          pushf = "push --force-with-lease";
+        };
         extraConfig = {
           log.date = "iso-strict-local";
           pull.ff = "only";
