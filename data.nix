@@ -117,6 +117,7 @@ rec {
       vno1IP = "192.168.189.10";
     };
     "mtworx.jakst.vpn" = rec {
+      syncthingID = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
       extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
       jakstIP = "100.89.176.3";

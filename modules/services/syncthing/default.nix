@@ -9,7 +9,7 @@ let
 
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
-    "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
+    "mtworx".id = myData.hosts."mtworx.jakst.vpn".syncthingID;
     "mxp1".id = "2HBV27D-PK5DKQG-EQE4AV7-ASADXHJ-ER7GAZK-Z6C2NZP-64DLTKI-5OPUZAT";
     "vxp10".id = "CNAGBWH-3EAJ3XR-Z6K2DTW-P42O4SD-7JVCOEL-KIM7BKW-2WA7XS3-733NIQF";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
@@ -17,10 +17,19 @@ let
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno1-gdrx".id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
+    "vno3-nk".id = "HDESTGW-C3PGZLU-7V7KLWP-SIJVM3V-JEG6OMT-CGOLOQW-DZMIPS7-G7SVSQB";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
     "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
   };
   folders = {
+    Zemelapiai = {
+      devices = [
+        "vno1-gdrx"
+        "vno3-nk"
+      ];
+      id = "ahz8ohSh";
+      label = "Zemelapiai";
+    };
     Books = {
       devices = [
         "vno1-gdrx"
@@ -206,6 +215,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
             inherit (devices)
               vno1-gdrx
+              vno3-nk
               fwminex
               mtworx
               mxp1
@@ -236,6 +246,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
               vno1-gdrx
+              vno3-nk
               mtworx
               fwminex
               vno1-vinc
@@ -273,6 +284,7 @@ in
             "${cfg.dataDir}/M-Active" = M-Active;
             "${cfg.dataDir}/M-Camera" = M-Camera;
             "${cfg.dataDir}/M-R" = M-R;
+            "${cfg.dataDir}/Zemelapiai" = Zemelapiai;
             "${cfg.dataDir}/Vaikai" = Vaikai;
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/music" = Music;
@@ -286,6 +298,7 @@ in
             "${cfg.dataDir}/M-Camera" = M-Camera;
             "${cfg.dataDir}/M-Documents" = M-Documents;
             "${cfg.dataDir}/Pictures" = Pictures;
+            "${cfg.dataDir}/Zemelapiai" = Zemelapiai;
             "${cfg.dataDir}/M-R" = M-R;
             "${cfg.dataDir}/stud-cache" = stud-cache;
             "${cfg.dataDir}/video/shared" = video-shared;
