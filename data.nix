@@ -89,6 +89,7 @@ rec {
       ];
     };
     "vno1-gdrx.jakst.vpn" = rec {
+      syncthingID = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
       extraHostNames = [
         vno1IP
         jakstIP

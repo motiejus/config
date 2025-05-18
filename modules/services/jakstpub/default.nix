@@ -74,6 +74,22 @@ in
         enable = true;
         inherit (cfg) hostname;
       };
+
+      syncthing = {
+        enable = true;
+        user = "jakstpub";
+        group = "jakstpub";
+        dataDir = "/data/vno3-shared";
+        devices = {
+          vno1-gdrx.id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
+        };
+        folders = {
+          "/data/vno3-shared/Zemelapiai" = {
+            id = "ahz8ohSh";
+            devices = [ "vno1-gdrx" ];
+          };
+        };
+      };
     };
 
     users.users.jakstpub = {
