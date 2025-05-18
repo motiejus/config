@@ -82,7 +82,7 @@ in
         dataDir = "/data/vno3-shared";
         devices = {
           vno1-gdrx.id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
-          mtworx.id = myData.hosts."mtsorx.jakst.vpn".syncthingID;
+          mtworx.id = myData.hosts."mtworx.jakst.vpn".syncthingID;
         };
         folders = {
           "/data/vno3-shared/Zemelapiai" = {
