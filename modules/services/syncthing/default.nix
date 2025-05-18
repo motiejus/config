@@ -26,6 +26,7 @@ let
       devices = [
         "vno1-gdrx"
         "vno3-nk"
+        "mtworx"
       ];
       id = "ahz8ohSh";
       label = "Zemelapiai";
