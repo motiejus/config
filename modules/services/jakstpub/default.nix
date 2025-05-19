@@ -83,6 +83,7 @@ in
         devices = {
           vno1-gdrx.id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
           mtworx.id = myData.hosts."mtworx.jakst.vpn".syncthingID;
+          jonas-laptop.id = "6VP6TYU-SEQFCSO-ODDY7P7-72MNW3W-YXFNWJQ-JXNLVZQ-HRGCOJX-WZZZVQI";
         };
         folders = {
           "/data/vno3-shared/Zemelapiai" = {
@@ -90,6 +91,7 @@ in
             devices = [
               "vno1-gdrx"
               "mtworx"
+              "jonas-laptop"
             ];
           };
         };
