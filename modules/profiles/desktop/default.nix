@@ -177,7 +177,7 @@ in
         arandr
         pandoc
         evince
-        okular
+        libsForQt5.okular
         motion
         gthumb
         calibre
@@ -228,7 +228,7 @@ in
         efibootmgr
         virtualenv
         imagemagick
-        ventoy-full
+        #ventoy-full
         ghostscript
         libva-utils # intel video tests
         pavucontrol

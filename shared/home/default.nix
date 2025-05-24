@@ -120,8 +120,7 @@ in
         (lib.mkIf devTools {
           extraLuaConfig =
             builtins.readFile
-              (pkgs.substituteAll {
-                src = ./dev.lua;
+              (pkgs.replaceVars ./dev.lua {
                 inherit (pkgs) ripgrep;
               }).outPath;
         })

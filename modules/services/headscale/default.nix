@@ -49,7 +49,6 @@
       # itself may take a while, thus the window of restart
       # is higher.
       unitConfig.StartLimitBurst = 50;
-      serviceConfig.RestartSec = 1;
     };
   };
 }
