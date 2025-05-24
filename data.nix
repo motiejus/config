@@ -87,7 +87,6 @@ rec {
       ];
     };
     "vno1-gdrx.jakst.vpn" = rec {
-      syncthingID = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
       extraHostNames = [
         "vno1-gdrx"
         vno1IP
@@ -116,7 +115,6 @@ rec {
     };
     "mtworx.jakst.vpn" = rec {
       extraHostNames = [ "mtworx" ];
-      syncthingID = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
     };
     "vno1-vinc.jakst.vpn" = rec {

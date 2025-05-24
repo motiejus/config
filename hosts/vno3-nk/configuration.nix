@@ -19,6 +19,8 @@ in
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
     timelapse.file = ../../secrets/timelapse.age;
+    syncthing-key.file = ../../secrets/vno3-nk/syncthing/key.pem.age;
+    syncthing-cert.file = ../../secrets/vno3-nk/syncthing/cert.pem.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
       owner = "spiped";
@@ -219,6 +221,13 @@ in
         dataDir = "/data/vno3-shared";
         uidgid = myData.uidgid.jakstpub;
         hostname = "hdd.jakstys.lt";
+      };
+
+      syncthing = {
+        enable = true;
+        dataDir = "/var/lib/jakstpub/";
+        user = "jakstpub";
+        group = "jakstpub";
       };
 
     };

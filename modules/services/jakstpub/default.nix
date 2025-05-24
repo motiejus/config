@@ -75,36 +75,15 @@ in
         inherit (cfg) hostname;
       };
 
-      syncthing = {
-        enable = false;
-        user = "jakstpub";
-        group = "jakstpub";
-        dataDir = "/data/vno3-shared";
-        devices = {
-          vno1-gdrx.id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
-          mtworx.id = myData.hosts."mtworx.jakst.vpn".syncthingID;
-          jonas-laptop.id = "6VP6TYU-SEQFCSO-ODDY7P7-72MNW3W-YXFNWJQ-JXNLVZQ-HRGCOJX-WZZZVQI";
-        };
-        folders = {
-          "/data/vno3-shared/Zemelapiai" = {
-            id = "ahz8ohSh";
-            devices = [
-              "vno1-gdrx"
-              "mtworx"
-              "jonas-laptop"
-            ];
-          };
-        };
-      };
     };
 
     users.users.jakstpub = {
       description = "Jakstys Public";
-      home = "/var/empty";
+      home = "/var/lib/jakstpub";
       shell = "/bin/sh";
       group = "jakstpub";
       isSystemUser = true;
-      createHome = false;
+      createHome = true;
       uid = cfg.uidgid;
     };
 

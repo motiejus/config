@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myData,
   ...
 }:
 let
@@ -9,13 +8,13 @@ let
 
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
-    "mtworx".id = myData.hosts."mtworx.jakst.vpn".syncthingID;
+    "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
     "mxp1".id = "2HBV27D-PK5DKQG-EQE4AV7-ASADXHJ-ER7GAZK-Z6C2NZP-64DLTKI-5OPUZAT";
     "vxp10".id = "CNAGBWH-3EAJ3XR-Z6K2DTW-P42O4SD-7JVCOEL-KIM7BKW-2WA7XS3-733NIQF";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
     "sqq1-desk".id = "WJ5KGRS-AGDZ7SW-INIVWHR-Q4E5QX4-Y4TT2AK-QRJTOTL-2UHXX6O-5MUPGA2";
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
-    "vno1-gdrx".id = myData.hosts."vno1-gdrx.jakst.vpn".syncthingID;
+    "vno1-gdrx".id = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
     "vno3-nk".id = "HDESTGW-C3PGZLU-7V7KLWP-SIJVM3V-JEG6OMT-CGOLOQW-DZMIPS7-G7SVSQB";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
@@ -225,6 +224,15 @@ in
               jonas-laptop
               ;
           })
+          // (lib.optionalAttrs (config.networking.hostName == "vno3-nk") {
+            inherit (devices)
+              vno3-nk
+              vno1-gdrx
+              fwminex
+              mtworx
+              jonas-laptop
+              ;
+          })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             inherit (devices)
               vno1-gdrx
@@ -278,6 +286,9 @@ in
             "${cfg.dataDir}/video/Vaikai" = Vaikai;
             "${cfg.dataDir}/music" = Music;
             "${cfg.dataDir}/irenos" = Irenos;
+          })
+          // (lib.optionalAttrs (config.networking.hostName == "vno3-nk") {
+            "/data/vno3-shared/Zemelapiai" = Zemelapiai;
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             "${cfg.dataDir}/M-Active" = M-Active;
