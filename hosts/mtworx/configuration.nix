@@ -138,7 +138,7 @@ in
         {
           enable = true;
           inherit (host) system supportedFeatures;
-          hostName = host.jakstIP;
+          hostName = "fra1-b.jakst.vpn";
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
           maxJobs = 2;
         };

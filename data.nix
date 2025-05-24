@@ -53,12 +53,10 @@ rec {
     "vno4-rutx11.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMEehmFvEBVngwxk1nuEWMlE4UU69gC4wxytGX5DAFbh";
       publicIP = "188.69.241.222";
-      jakstIP = "100.89.176.1";
       vno4IP = "192.168.188.1";
       extraHostNames = [
         "vno4.jakstys.lt"
         publicIP
-        jakstIP
         vno4IP
       ];
     };
@@ -74,11 +72,9 @@ rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
         publicIP
-        jakstIP
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1tL1FQeKE+28ATuD4USa4oAdPkONfk4uF/McMm+2sy";
       publicIP = "188.245.84.21";
-      jakstIP = "100.89.176.18";
       system = "aarch64-linux";
       supportedFeatures = [
         "nixos-test"
@@ -92,11 +88,9 @@ rec {
       syncthingID = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
       extraHostNames = [
         vno1IP
-        jakstIP
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPW7k8wMOIWKERGiMlz5kX/PXJ/EbzUnJK6jVgPtAbNF";
       vno1IP = "192.168.189.12";
-      jakstIP = "100.89.176.21";
     };
     "fwminex.jakst.vpn" = rec {
       extraHostNames = [
@@ -118,17 +112,12 @@ rec {
     };
     "mtworx.jakst.vpn" = rec {
       syncthingID = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
-      extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
-      jakstIP = "100.89.176.3";
     };
     "vno1-vinc.jakst.vpn" = rec {
-      extraHostNames = [ jakstIP ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
-      jakstIP = "100.89.176.7";
     };
     "mxp1.jakst.vpn" = {
-      jakstIP = "100.89.176.22";
     };
     "zh2769.rsync.net" = {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtclizeBy1Uo3D86HpgD3LONGVH0CJ0NT+YfZlldAJd";
@@ -150,17 +139,6 @@ rec {
       range = "100.89.176.0-100.89.191.255";
       sshPattern = "100.89.176.*"; # until we have more hosts
     };
-    motiejus.cidrs =
-      let
-        mHosts = attrVals [
-          "mxp1.jakst.vpn"
-          "vno1-gdrx.jakst.vpn"
-          "mtworx.jakst.vpn"
-          "fwminex.jakst.vpn"
-        ] hosts;
-      in
-      builtins.catAttrs "jakstIP" mHosts;
-
     vno1 = {
       cidr = "192.168.189.0/24";
       sshPattern = "192.168.189.*";

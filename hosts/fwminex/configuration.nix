@@ -442,13 +442,7 @@ in
 
             {
               job_name = "ping";
-              relabel_configs = map (hostname: {
-                source_labels = [ "__address__" ];
-                regex = "${myData.hosts.${hostname}.jakstIP}:${port}";
-                replacement = "${hostname}:${port}";
-                target_label = "instance";
-              }) hosts;
-              static_configs = [ { targets = map (host: "${myData.hosts.${host}.jakstIP}:${port}") hosts; } ];
+              static_configs = [ { targets = map (host: "${host}:${port}") hosts; } ];
             }
           )
           {
@@ -472,7 +466,7 @@ in
           }
           {
             job_name = "vno1-vinc.jakst.vpn";
-            static_configs = [ { targets = [ "${myData.hosts."vno1-vinc.jakst.vpn".jakstIP}:9100" ]; } ];
+            static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
           }
         ]
         ++ map
@@ -480,9 +474,9 @@ in
             let
               port = builtins.toString myData.ports.exporters.node;
             in
-            s: {
-              job_name = s;
-              static_configs = [ { targets = [ "${myData.hosts.${s}.jakstIP}:${port}" ]; } ];
+            host: {
+              job_name = host;
+              static_configs = [ { targets = [ "${host}:${port}" ]; } ];
             }
           )
           [
@@ -603,7 +597,7 @@ in
       btrfsborg =
         let
           this = "${config.networking.hostName}.${config.networking.domain}";
-          vno3-nk = "borgstor@${myData.hosts."vno3-nk.jakst.vpn".jakstIP}";
+          vno3-nk = "borgstor@$vno3-nk.jakst.vpn";
           rsync-net = "zh2769@zh2769.rsync.net";
         in
         {
@@ -706,7 +700,7 @@ in
         {
           enable = true;
           inherit (host) system supportedFeatures;
-          hostName = host.jakstIP;
+          hostName = "fra1-b.jakst.vpn";
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
         };
 
@@ -723,11 +717,11 @@ in
           deployIfPresent = [
             {
               derivationTarget = ".#mtworx";
-              pingTarget = myData.hosts."mtworx.jakst.vpn".jakstIP;
+              pingTarget = "mtworx.jakst.vpn";
             }
             {
               derivationTarget = ".#vno1-gdrx";
-              pingTarget = myData.hosts."vno1-gdrx.jakst.vpn".jakstIP;
+              pingTarget = "vno1-gdrx.jakst.vpn";
             }
           ];
         };

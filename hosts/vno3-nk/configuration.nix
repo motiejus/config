@@ -130,7 +130,7 @@ in
         let
           this = "${config.networking.hostName}.${config.networking.domain}";
           rsync-net = "zh2769@zh2769.rsync.net";
-          fwminex = "borgstor@${myData.hosts."fwminex.jakst.vpn".jakstIP}";
+          fwminex = "borgstor@$fwminex.jakst.vpn";
         in
         {
           enable = true;
@@ -196,7 +196,7 @@ in
         {
           enable = true;
           inherit (host) system supportedFeatures;
-          hostName = host.jakstIP;
+          hostName = "fra1-b.jakst.vpn";
           sshKey = "/etc/ssh/ssh_host_ed25519_key";
         };
 

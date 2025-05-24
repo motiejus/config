@@ -216,7 +216,7 @@
 
       deploy.nodes = {
         fwminex = {
-          hostname = myData.hosts."fwminex.jakst.vpn".jakstIP;
+          hostname = "fwminex.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";
@@ -227,7 +227,7 @@
         };
 
         mtworx = {
-          hostname = myData.hosts."mtworx.jakst.vpn".jakstIP;
+          hostname = "mtworx.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";
@@ -238,7 +238,7 @@
         };
 
         vno1-gdrx = {
-          hostname = myData.hosts."vno1-gdrx.jakst.vpn".jakstIP;
+          hostname = "vno1-gdrx.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";
@@ -249,7 +249,7 @@
         };
 
         vno3-nk = {
-          hostname = myData.hosts."vno3-nk.jakst.vpn".jakstIP;
+          hostname = "vno3-nk.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";
@@ -260,7 +260,7 @@
         };
 
         fra1-b = {
-          hostname = myData.hosts."fra1-b.jakst.vpn".jakstIP;
+          hostname = "fra1-b.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";

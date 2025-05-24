@@ -59,8 +59,9 @@ in
             auth_providers = [
               { type = "homeassistant"; }
               {
+                # TODO trust a subset
                 type = "trusted_networks";
-                trusted_networks = myData.subnets.motiejus.cidrs;
+                trusted_networks = myData.subnets.tailscale.cidr;
               }
             ];
           };
