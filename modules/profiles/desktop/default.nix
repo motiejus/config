@@ -28,11 +28,6 @@ in
     };
 
     hardware = {
-      pulseaudio = {
-        enable = true;
-        package = pkgs.pulseaudioFull;
-      };
-
       bluetooth = {
         enable = true;
         powerOnBoot = true;
@@ -67,6 +62,11 @@ in
       pcscd.enable = true;
       gnome.gnome-keyring.enable = true;
       openssh.settings.X11Forwarding = true;
+
+      pulseaudio = {
+        enable = true;
+        package = pkgs.pulseaudioFull;
+      };
 
       logind = {
         powerKey = "suspend";
@@ -461,7 +461,7 @@ in
           gpg-agent = {
             enable = true;
             enableSshSupport = true;
-            pinentryPackage = pkgs.pinentry-gtk2;
+            pinentry.package = pkgs.pinentry-gtk2;
           };
 
           screen-locker = {
