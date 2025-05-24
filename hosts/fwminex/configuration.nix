@@ -746,21 +746,6 @@ in
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
-      friendlyport.ports = [
-        {
-          subnets = [ myData.subnets.tailscale.cidr ];
-          udp = [ 443 ];
-          tcp = with myData.ports; [
-            80
-            443
-            soju
-            frigate
-            soju-ws
-            prometheus
-          ];
-        }
-      ];
-
     };
   };
 

@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myData,
   ...
 }:
 let
@@ -49,13 +48,6 @@ in
         feature_toggles.accessTokenExpirationCheck = true;
       };
     };
-
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ cfg.port ];
-      }
-    ];
 
   };
 

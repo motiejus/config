@@ -43,13 +43,6 @@
       in
       lib.mkIf cfg.enable {
 
-        mj.services.friendlyport.ports = lib.mkIf (!cfg.openGlobalFirewall) [
-          {
-            subnets = [ myData.subnets.tailscale.cidr ];
-            tcp = [ 22 ];
-          }
-        ];
-
         services = {
           openssh.openFirewall = cfg.openGlobalFirewall;
 

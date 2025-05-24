@@ -14,13 +14,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ myData.ports.hass ];
-      }
-    ];
-
     environment.systemPackages = [ ];
 
     services = {

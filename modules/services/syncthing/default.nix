@@ -194,13 +194,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    mj.services.friendlyport.ports = [
-      {
-        subnets = myData.subnets.motiejus.cidrs;
-        tcp = [ 8384 ];
-      }
-    ];
-
     services.syncthing = {
       inherit (cfg)
         enable

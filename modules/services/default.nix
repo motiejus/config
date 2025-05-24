@@ -5,7 +5,6 @@
     ./btrfsborg
     ./btrfssnapshot
     ./deployerbot
-    ./friendlyport
     ./frigate
     ./gitea
     ./grafana

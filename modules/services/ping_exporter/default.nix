@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myData,
   ...
 }:
 let
@@ -43,11 +42,5 @@ in
       };
     };
 
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ config.services.prometheus.exporters.ping.port ];
-      }
-    ];
   };
 }

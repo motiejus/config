@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  myData,
   ...
 }:
 let
@@ -44,13 +43,6 @@ in
         LoadCredential = [ "secrets.env:${cfg.secretsEnvFile}" ];
       };
     };
-
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ cfg.port ];
-      }
-    ];
 
   };
 

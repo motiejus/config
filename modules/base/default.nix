@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  myData,
   ...
 }:
 let
@@ -54,14 +53,6 @@ in
     hardware.enableRedistributableFirmware = true;
 
     time.timeZone = cfg.timeZone;
-
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ];
-        tcp = [ config.services.iperf3.port ];
-        udp = [ config.services.iperf3.port ];
-      }
-    ];
 
     i18n = {
       defaultLocale = "en_US.UTF-8";

@@ -38,11 +38,5 @@ in
       gid = myData.uidgid.node_exporter;
     };
 
-    mj.services.friendlyport.ports = [
-      {
-        subnets = [ myData.subnets.tailscale.cidr ] ++ cfg.extraSubnets;
-        tcp = [ myData.ports.exporters.node ];
-      }
-    ];
   };
 }
