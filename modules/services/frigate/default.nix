@@ -123,7 +123,7 @@ in
           enabled = true;
           sync_recordings = true;
           retain = {
-            days = 14;
+            days = 7;
             mode = "all";
           };
           events = {
@@ -152,7 +152,6 @@ in
                 track = [
                   "bicycle"
                   "car"
-                  "dog"
                   "person"
                 ];
               };
@@ -191,7 +190,7 @@ in
 
               audio = {
                 enabled = true;
-                listen = [ "speech" ];
+                #listen = [ "speech" ];
               };
 
               ffmpeg = {
