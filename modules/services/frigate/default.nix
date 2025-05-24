@@ -169,11 +169,11 @@ in
                 };
                 inputs = [
                   {
-                    path = "rtsp://localhost:8554/vno4-dome-panorama-high";
+                    path = "rtsp://localhost:8554/vno4-dome-panorama-low";
                     roles = [ "record" ];
                   }
                   {
-                    path = "rtsp://localhost:8554/vno4-dome-panorama-high";
+                    path = "rtsp://localhost:8554/vno4-dome-panorama-low";
                     roles = [ "detect" ];
                   }
                 ];
