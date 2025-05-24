@@ -173,7 +173,7 @@ in
                     roles = [ "record" ];
                   }
                   {
-                    path = "rtsp://localhost:8554/vno4-dome-panorama-low";
+                    path = "rtsp://localhost:8554/vno4-dome-panorama-high";
                     roles = [ "detect" ];
                   }
                 ];
