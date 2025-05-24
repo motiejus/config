@@ -80,9 +80,6 @@ in
           "vno4-dome-panorama-low" = [
             "ffmpeg:rtsp://localhost:8554/vno4-dome-panorama-orig#hardware=vaapi#video=h264#width=1280"
           ];
-          "vno4-dome-ptz-av1" = [
-            "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=0#video=av1"
-          ];
           "vno4-dome-ptz-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=2&subtype=2#video=copy#audio=copy"
           ];
