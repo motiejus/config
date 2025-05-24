@@ -76,7 +76,7 @@ in
       };
 
       syncthing = {
-        enable = true;
+        enable = false;
         user = "jakstpub";
         group = "jakstpub";
         dataDir = "/data/vno3-shared";
