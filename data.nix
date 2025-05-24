@@ -65,12 +65,14 @@ rec {
       system = "x86_64-linux";
       jakstIP = "100.89.176.5";
       extraHostNames = [
+        "vno3-nk"
         jakstIP
       ];
     };
     "fra1-b.jakst.vpn" = rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
+        "fra1-b"
         publicIP
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1tL1FQeKE+28ATuD4USa4oAdPkONfk4uF/McMm+2sy";
@@ -87,6 +89,7 @@ rec {
     "vno1-gdrx.jakst.vpn" = rec {
       syncthingID = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
       extraHostNames = [
+        "vno1-gdrx"
         vno1IP
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPW7k8wMOIWKERGiMlz5kX/PXJ/EbzUnJK6jVgPtAbNF";
@@ -94,6 +97,7 @@ rec {
     };
     "fwminex.jakst.vpn" = rec {
       extraHostNames = [
+        "fwminex"
         "jakstys.lt"
         "git.jakstys.lt"
         "dl.jakstys.lt"
@@ -111,6 +115,7 @@ rec {
       vno1IP = "192.168.189.10";
     };
     "mtworx.jakst.vpn" = rec {
+      extraHostNames = [ "mtworx" ];
       syncthingID = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
     };
