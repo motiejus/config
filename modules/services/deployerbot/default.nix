@@ -142,7 +142,17 @@
           createHome = true;
           uid = cfg.uidgid;
           openssh.authorizedKeys.keys = map (
-            k: ''from="${builtins.concatStringsSep "," cfg.sshAllowSubnets}" '' + k
+            k:
+            ''from="${
+              builtins.concatStringsSep "," (
+                cfg.sshAllowSubnets
+                ++ [
+                  "::1"
+                  "127.0.0.1"
+                ]
+              )
+            }" ''
+            + k
           ) cfg.publicKeys;
         };
         users.groups.deployerbot-follower.gid = cfg.uidgid;
