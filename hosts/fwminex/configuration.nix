@@ -252,10 +252,6 @@ in
     caddy = {
       enable = true;
       email = "motiejus+acme@jakstys.lt";
-      package = pkgs.pkgs-unstable.caddy.override {
-        # TODO remove on 25.05
-        buildGoModule = pkgs.buildGo124Module;
-      };
       globalConfig = ''
         servers {
           metrics {
