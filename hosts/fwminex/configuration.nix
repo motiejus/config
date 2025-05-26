@@ -593,7 +593,7 @@ in
       btrfsborg =
         let
           this = "${config.networking.hostName}.${config.networking.domain}";
-          vno3-nk = "borgstor@$vno3-nk.jakst.vpn";
+          vno3-nk = "borgstor@vno3-nk.jakst.vpn";
           rsync-net = "zh2769@zh2769.rsync.net";
         in
         {
