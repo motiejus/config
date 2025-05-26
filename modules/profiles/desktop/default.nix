@@ -177,7 +177,6 @@ in
         arandr
         pandoc
         evince
-        libsForQt5.okular
         motion
         gthumb
         calibre
@@ -232,6 +231,7 @@ in
         ghostscript
         libva-utils # intel video tests
         pavucontrol
+        photocollage
         libqalculate # qalc
         qalculate-qt # qalculate
         google-chrome
@@ -254,6 +254,7 @@ in
         man-pages-posix
         git-filter-repo
         gnome-calculator
+        libsForQt5.okular
         nvtopPackages.amd
         age-plugin-yubikey
         nvtopPackages.intel
