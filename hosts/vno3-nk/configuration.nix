@@ -132,7 +132,7 @@ in
         let
           this = "${config.networking.hostName}.${config.networking.domain}";
           rsync-net = "zh2769@zh2769.rsync.net";
-          fwminex = "borgstor@$fwminex.jakst.vpn";
+          fwminex = "borgstor@fwminex.jakst.vpn";
         in
         {
           enable = true;
