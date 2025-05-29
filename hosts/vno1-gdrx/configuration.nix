@@ -169,9 +169,6 @@ in
     };
   };
 
-  services.guix.enable = true;
-  users.extraGroups.guixbuild.members = [ "motiejus" ];
-
   environment.systemPackages = with pkgs; [
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     linuxPackage.rr-zen_workaround
