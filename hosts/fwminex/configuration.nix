@@ -141,7 +141,8 @@ in
           preStart = "ln -sf $CREDENTIALS_DIRECTORY/up.jakstys.lt.env /run/caddy/up.jakstys.lt.env";
           serviceConfig = {
             # 2025-02-11 blocks system from upgrading during reload
-            ExecReload = lib.mkForce "";
+            #ExecReload = lib.mkForce "";
+            # 2025-06-02 removed the ExecReload override.
 
             LoadCredential = [
               "r1.jakstys.lt-cert.pem:${r1.certFile}"
