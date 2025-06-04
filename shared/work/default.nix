@@ -15,6 +15,7 @@
     kubectx
     terraform
     github-cli
+    claude-code
     docker-compose
     google-cloud-sdk
     kubectl-node-shell
