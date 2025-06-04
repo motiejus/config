@@ -63,6 +63,9 @@
       GOFLAGS = "-tags=big,integration,cluster_integration";
       GOPRIVATE = "github.com/chronosphereio";
       BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
+      CLAUDE_CODE_USE_VERTEX = "1";
+      CLOUD_ML_REGION = "us-east5";
+      ANTHROPIC_VERTEX_PROJECT_ID = "chronosphere-rc-b";
     };
     programs = {
       git.extraConfig = {
