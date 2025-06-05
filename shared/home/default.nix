@@ -28,11 +28,12 @@ in
       [ extract_url ]
 
       (lib.mkIf devTools [
+        universal-ctags
+
         pkgs-unstable.delve
         pkgs-unstable.go_1_24
         pkgs-unstable.go-tools
-
-        pkgs.zigpkgs."0.14.0"
+        pkgs.zigpkgs."0.14.1"
       ])
 
       (lib.mkIf hmOnly [
@@ -109,6 +110,7 @@ in
             (lib.mkIf devTools [
               pkgs.vimPlugins.fzf-vim
               pkgs.vimPlugins.vim-gh-line
+              pkgs.vimPlugins.vim-gutentags
               pkgs.vimPlugins.nvim-lspconfig
 
               pkgs.pkgs-unstable.vimPlugins.vim-go
