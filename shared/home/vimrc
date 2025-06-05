@@ -78,6 +78,7 @@ au FileType tex setlocal spell spelllang=en_us ts=2 sw=2 sts=2
 " ctags
 let g:gutentags_enabled = 1
 let g:gutentags_generate_on_new = 0
+let g:gutentags_generate_on_missing = 0
 let g:gutentags_cache_dir = '~/.vim/ctags'
 let b:gutentags_file_list_command = 'git ls-files "*.star"'
 let g:gutentags_project_root = ['~/dev/monorepo', '~/dev/envconfig']
