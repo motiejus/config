@@ -271,6 +271,7 @@ in
 
         (python3.withPackages (
           ps: with ps; [
+            pyyaml
             numpy
             ipython
             matplotlib
