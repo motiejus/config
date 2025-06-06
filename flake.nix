@@ -91,7 +91,7 @@
         zig.overlays.default
 
         (_self: super: { deploy-rs-pkg = super.deploy-rs; })
-        deploy-rs.overlay
+        deploy-rs.overlays.default
         (_self: super: {
           deploy-rs = {
             deploy-rs = super.deploy-rs-pkg;
