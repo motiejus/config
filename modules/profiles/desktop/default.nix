@@ -271,8 +271,8 @@ in
 
         (python3.withPackages (
           ps: with ps; [
-            pyyaml
             numpy
+            pyyaml
             ipython
             matplotlib
           ]
