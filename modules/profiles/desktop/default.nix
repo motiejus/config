@@ -218,6 +218,7 @@ in
         miniupnpc
         v4l-utils
         #nerdfonts
+        postgresql
         winetricks
         diffoscope
         alsa-utils
