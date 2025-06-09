@@ -135,6 +135,7 @@ let
       devices = [
         "vno1-gdrx"
         "fwminex"
+        "mtworx"
       ];
       id = "2kq7n-jqzxj";
       label = "stud-cache";
@@ -299,6 +300,7 @@ in
             "${cfg.dataDir}/Video" = video-shared;
             "${cfg.dataDir}/music" = Music;
             "${cfg.dataDir}/www" = www-mtworx;
+            "${cfg.dataDir}/stud-cache" = stud-cache;
           })
           // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
             "${cfg.dataDir}/Books" = Books;
