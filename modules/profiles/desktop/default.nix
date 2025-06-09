@@ -153,6 +153,7 @@ in
         acpi
         gimp
         josm
+        pdal
         gdal
         qemu
         zlib
