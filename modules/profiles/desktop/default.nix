@@ -215,6 +215,7 @@ in
         powertop
         librecad
         qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
+        colordiff
         tesseract
         trayscale
         espeak-ng
