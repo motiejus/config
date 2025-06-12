@@ -12,6 +12,10 @@ let
     name = "brightness";
     text = builtins.readFile ./brightness;
   };
+  open = pkgs.writeShellApplication {
+    name = "open";
+    text = ''exec ${pkgs.xdg-utils}/bin/xdg-open "$@"'';
+  };
 in
 {
   imports = [ ../dev ];
@@ -136,6 +140,7 @@ in
       with pkgs;
       [
         # packages defined here
+        open
         nicer
         tmuxbash
         brightness
