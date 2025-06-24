@@ -195,6 +195,7 @@ in
         picocom
         inferno
         libheif
+        csvkit
         mplayer
         tcpflow
         cppcheck
