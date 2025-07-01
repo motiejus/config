@@ -131,18 +131,6 @@ in
         toUser = config.mj.username;
       };
 
-      remote-builder.client =
-        let
-          host = myData.hosts."fra1-b.jakst.vpn";
-        in
-        {
-          enable = true;
-          inherit (host) system supportedFeatures;
-          hostName = "fra1-b.jakst.vpn";
-          sshKey = "/etc/ssh/ssh_host_ed25519_key";
-          maxJobs = 2;
-        };
-
       node_exporter = {
         enable = true;
         extraSubnets = [ myData.subnets.vno1.cidr ];

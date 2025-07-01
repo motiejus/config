@@ -5,7 +5,7 @@ Flakes:
 
     $ deploy --interactive '#fwminex'
 
-    $ nix build .#deploy.nodes.fra1-b.profiles.system.path
+    $ nix build .#deploy.nodes.fra1-c.profiles.system.path
 
 Other:
 

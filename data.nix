@@ -14,8 +14,6 @@ rec {
     borgstor = 504;
 
     jakstpub = 505;
-
-    remote-builder = 508;
   };
 
   ports = {
@@ -78,23 +76,6 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA3m71ZgEFZVqpYZPwf7N7IS9Jxa181dHDY9r6+INt9t";
       publicIP = "128.140.60.129";
       system = "x86_64-linux";
-    };
-    "fra1-b.jakst.vpn" = rec {
-      extraHostNames = [
-        "fra1-b.jakstys.lt"
-        "fra1-b"
-        publicIP
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1tL1FQeKE+28ATuD4USa4oAdPkONfk4uF/McMm+2sy";
-      publicIP = "188.245.84.21";
-      system = "aarch64-linux";
-      supportedFeatures = [
-        "nixos-test"
-        "benchmark"
-        "big-parallel"
-        "kvm"
-        "gccarch-armv8-a"
-      ];
     };
     "vno1-gdrx.jakst.vpn" = rec {
       extraHostNames = [
@@ -161,7 +142,6 @@ rec {
 
   jakstysLTZone =
     let
-      fra1b = hosts."fra1-b.jakst.vpn".publicIP;
       fra1c = hosts."fra1-c.jakst.vpn".publicIP;
       vno1 = hosts."fwminex.jakst.vpn".publicIP;
       vno4 = hosts."vno4-rutx11.jakst.vpn".publicIP;
@@ -185,7 +165,6 @@ rec {
       auth                             A     ${vno1}
       dl                               A     ${vno1}
       up                               A     ${vno1}
-      fra1-b                           A     ${fra1b}
       fra1-c                           A     ${fra1c}
       vno4                             A     ${vno4}
       r1                               A     ${vno1}

@@ -197,21 +197,6 @@
           } // inputs;
         };
 
-        fra1-b = nixpkgs.lib.nixosSystem {
-          system = "aarch64-linux";
-          modules = [
-            { nixpkgs.overlays = overlays; }
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-            ./hosts/fra1-b/configuration.nix
-            ./modules
-          ];
-
-          specialArgs = {
-            inherit myData;
-          } // inputs;
-        };
-
         fra1-c = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
@@ -269,17 +254,6 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.vno3-nk.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-nk;
-              user = "root";
-            };
-          };
-        };
-
-        fra1-b = {
-          hostname = "fra1-b.jakst.vpn";
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.fra1-b.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-b;
               user = "root";
             };
           };

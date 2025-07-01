@@ -19,7 +19,6 @@
     ./ping_exporter
     ./postfix
     ./printing
-    ./remote-builder
     ./ssh8022
     ./syncthing
     ./syncthing-relay

@@ -432,7 +432,6 @@ in
               hosts = [
                 "fwminex.jakst.vpn"
                 "vno3-nk.jakst.vpn"
-                "fra1-b.jakst.vpn"
                 "fra1-c.jakst.vpn"
                 "vno1-gdrx.jakst.vpn"
               ];
@@ -478,7 +477,6 @@ in
             }
           )
           [
-            "fra1-b.jakst.vpn"
             "fra1-c.jakst.vpn"
             "vno3-nk.jakst.vpn"
             "fwminex.jakst.vpn"
@@ -692,17 +690,6 @@ in
         macaroonSecretKeyPath = config.age.secrets.synapse-macaroon-secret-key.path;
       };
 
-      remote-builder.client =
-        let
-          host = myData.hosts."fra1-b.jakst.vpn";
-        in
-        {
-          enable = true;
-          inherit (host) system supportedFeatures;
-          hostName = "fra1-b.jakst.vpn";
-          sshKey = "/etc/ssh/ssh_host_ed25519_key";
-        };
-
       deployerbot = {
         main = {
           enable = true;
@@ -710,7 +697,6 @@ in
           repo = "git@git.jakstys.lt:motiejus/config";
           deployDerivations = [
             ".#fwminex"
-            ".#fra1-b"
             ".#fra1-c"
             ".#vno3-nk"
           ];

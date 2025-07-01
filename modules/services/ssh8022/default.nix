@@ -33,12 +33,6 @@
           Host fra1-c
             HostName fra1-c.jakstys.lt
             ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${cfg.keyfile}
-
-          Host fra1-b.jakstys.lt jakstys.lt
-            ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${cfg.keyfile}
-          Host fra1-b
-            HostName fra1-b.jakstys.lt
-            ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${cfg.keyfile}
         '';
       }
     )

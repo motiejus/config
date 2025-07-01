@@ -191,17 +191,6 @@ in
         ];
       };
 
-      remote-builder.client =
-        let
-          host = myData.hosts."fra1-b.jakst.vpn";
-        in
-        {
-          enable = true;
-          inherit (host) system supportedFeatures;
-          hostName = "fra1-b.jakst.vpn";
-          sshKey = "/etc/ssh/ssh_host_ed25519_key";
-        };
-
       postfix = {
         enable = true;
         saslPasswdPath = config.age.secrets.sasl-passwd.path;

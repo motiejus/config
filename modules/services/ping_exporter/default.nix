@@ -33,7 +33,6 @@ in
           "github.com"
 
           "jakstys.lt"
-          "fra1-b.jakstys.lt"
           "fra1-c.jakstys.lt"
 
           "vno3-nk.jakst.vpn"
