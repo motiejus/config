@@ -5,7 +5,7 @@
   ...
 }:
 let
-  disk = "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_50294864";
+  disk = "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_64370894";
 in
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
@@ -35,7 +35,7 @@ in
 
   fileSystems = {
     "/boot" = {
-      device = "${disk}-part1";
+      device = "${disk}-part3";
       fsType = "vfat";
       options = [
         "fmask=0022"
@@ -43,7 +43,7 @@ in
       ];
     };
     "/" = {
-      device = "${disk}-part3";
+      device = "${disk}-part1";
       fsType = "btrfs";
       options = [
         "compress=zstd"
@@ -55,7 +55,7 @@ in
   swapDevices = [ { device = "${disk}-part2"; } ];
 
   mj = {
-    stateVersion = "24.05";
+    stateVersion = "25.05";
     timeZone = "UTC";
     username = "motiejus";
 
