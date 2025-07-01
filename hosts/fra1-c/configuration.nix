@@ -22,7 +22,10 @@ in
   };
 
   boot = {
-    loader.systemd-boot.enable = true;
+    loader.grub = {
+      enable = true;
+      device = [ disk ];
+    };
     initrd = {
       kernelModules = [ "usb_storage" ];
       availableKernelModules = [
@@ -34,14 +37,6 @@ in
   };
 
   fileSystems = {
-    "/boot" = {
-      device = "${disk}-part3";
-      fsType = "vfat";
-      options = [
-        "fmask=0022"
-        "dmask=0022"
-      ];
-    };
     "/" = {
       device = "${disk}-part1";
       fsType = "btrfs";
