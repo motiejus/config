@@ -433,6 +433,7 @@ in
                 "fwminex.jakst.vpn"
                 "vno3-nk.jakst.vpn"
                 "fra1-b.jakst.vpn"
+                "fra1-c.jakst.vpn"
                 "vno1-gdrx.jakst.vpn"
               ];
             in
@@ -478,6 +479,7 @@ in
           )
           [
             "fra1-b.jakst.vpn"
+            "fra1-c.jakst.vpn"
             "vno3-nk.jakst.vpn"
             "fwminex.jakst.vpn"
             "mtworx.jakst.vpn"
@@ -709,6 +711,7 @@ in
           deployDerivations = [
             ".#fwminex"
             ".#fra1-b"
+            ".#fra1-c"
             ".#vno3-nk"
           ];
           deployIfPresent = [
