@@ -9,6 +9,7 @@ let
   fwminex = (import ./data.nix).hosts."fwminex.jakst.vpn".publicKey;
   vno3-nk = (import ./data.nix).hosts."vno3-nk.jakst.vpn".publicKey;
   fra1-b = (import ./data.nix).hosts."fra1-b.jakst.vpn".publicKey;
+  fra1-c = (import ./data.nix).hosts."fra1-c.jakst.vpn".publicKey;
   mtworx = (import ./data.nix).hosts."mtworx.jakst.vpn".publicKey;
   vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.jakst.vpn".publicKey;
 
@@ -16,6 +17,7 @@ let
     fwminex
     vno3-nk
     fra1-b
+    fra1-c
     vno1-gdrx
     mtworx
   ];

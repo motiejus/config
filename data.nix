@@ -69,6 +69,16 @@ rec {
         jakstIP
       ];
     };
+    "fra1-c.jakst.vpn" = rec {
+      extraHostNames = [
+        "fra1-c.jakstys.lt"
+        "fra1-c"
+        publicIP
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA3m71ZgEFZVqpYZPwf7N7IS9Jxa181dHDY9r6+INt9t";
+      publicIP = "128.140.60.129";
+      system = "x86_64-linux";
+    };
     "fra1-b.jakst.vpn" = rec {
       extraHostNames = [
         "fra1-b.jakstys.lt"
