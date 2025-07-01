@@ -285,16 +285,16 @@
           };
         };
 
-        #fra1-c = {
-        #  hostname = "fra1-c.jakst.vpn";
-        #  profiles = {
-        #    system = {
-        #      sshUser = "motiejus";
-        #      path = self.nixosConfigurations.fra1-c.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-c;
-        #      user = "root";
-        #    };
-        #  };
-        #};
+        fra1-c = {
+          hostname = "fra1-c.jakst.vpn";
+          profiles = {
+            system = {
+              sshUser = "motiejus";
+              path = self.nixosConfigurations.fra1-c.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-c;
+              user = "root";
+            };
+          };
+        };
 
       };
       checks = builtins.mapAttrs (
