@@ -24,7 +24,7 @@ in
   boot = {
     loader.grub = {
       enable = true;
-      device = [ disk ];
+      device = disk;
     };
     initrd = {
       kernelModules = [ "usb_storage" ];
