@@ -212,6 +212,21 @@
           } // inputs;
         };
 
+        fra1-c = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            { nixpkgs.overlays = overlays; }
+            agenix.nixosModules.default
+            home-manager.nixosModules.home-manager
+            ./hosts/fra1-c/configuration.nix
+            ./modules
+          ];
+
+          specialArgs = {
+            inherit myData;
+          } // inputs;
+        };
+
       };
 
       deploy.nodes = {
@@ -269,6 +284,18 @@
             };
           };
         };
+
+        #fra1-c = {
+        #  hostname = "fra1-c.jakst.vpn";
+        #  profiles = {
+        #    system = {
+        #      sshUser = "motiejus";
+        #      path = self.nixosConfigurations.fra1-c.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-c;
+        #      user = "root";
+        #    };
+        #  };
+        #};
+
       };
       checks = builtins.mapAttrs (
         system: deployLib:
