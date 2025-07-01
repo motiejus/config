@@ -116,12 +116,12 @@ in
     hostName = "fra1-c";
     domain = "jakst.vpn";
     useDHCP = true;
-    #interfaces.enp1s0.ipv6.addresses = [
-    #  {
-    #    address = "2a01:4f8:c012:1ba::";
-    #    prefixLength = 64;
-    #  }
-    #];
+    interfaces.enp1s0.ipv6.addresses = [
+      {
+        address = myData.hosts."fra1-c.jakst.vpn".publicIP6;
+        prefixLength = 64;
+      }
+    ];
     defaultGateway6 = {
       address = "fe80::1";
       interface = "enp1s0";

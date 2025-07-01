@@ -75,6 +75,7 @@ rec {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA3m71ZgEFZVqpYZPwf7N7IS9Jxa181dHDY9r6+INt9t";
       publicIP = "128.140.60.129";
+      publicIP6 = "2a01:4f8:c17:804b::";
       system = "x86_64-linux";
     };
     "vno1-gdrx.jakst.vpn" = rec {
@@ -143,6 +144,7 @@ rec {
   jakstysLTZone =
     let
       fra1c = hosts."fra1-c.jakst.vpn".publicIP;
+      fra1cv6 = hosts."fra1-c.jakst.vpn".publicIP6;
       vno1 = hosts."fwminex.jakst.vpn".publicIP;
       vno4 = hosts."vno4-rutx11.jakst.vpn".publicIP;
     in
@@ -166,6 +168,7 @@ rec {
       dl                               A     ${vno1}
       up                               A     ${vno1}
       fra1-c                           A     ${fra1c}
+      fra1-c                        AAAA     ${fra1cv6}
       vno4                             A     ${vno4}
       r1                               A     ${vno1}
 
