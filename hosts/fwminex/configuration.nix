@@ -201,7 +201,7 @@ in
         };
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${pkgs.systemd}/bin/systemctl restart caddy.service";
+          ExecStart = "${pkgs.systemd}/bin/systemctl restart nginx.service caddy.service";
         };
       };
 
