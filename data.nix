@@ -177,7 +177,7 @@ rec {
       www                              A     ${vno1}
       photos                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
       ns1                     86400    A     ${vno1}
-      ns2                     86400    A     ${fra1b}
+      ns2                     86400    A     ${fra1c}
       vpn                              A     ${vno1}
       rita                             A     ${vno1}
       git                              A     ${vno1}
