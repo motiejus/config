@@ -22,7 +22,7 @@
     };
 
     deploy-rs = {
-      url = "github:serokell/deploy-rs";
+      url = "github:serokell/deploy-rs/5829cec63845eb50984dc8787b0edfe81bf5b980"; # https://github.com/serokell/deploy-rs/issues/325
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-compat.follows = "flake-compat";
