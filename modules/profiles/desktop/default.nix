@@ -134,7 +134,10 @@ in
     #};
     #location.provider = "geoclue2";
 
-    virtualisation.docker.enable = true;
+    virtualisation.docker = {
+      enable = true;
+      #daemon.settings.dns = [ "100.100.100.100" ];
+    };
 
     environment.systemPackages =
       with pkgs;
