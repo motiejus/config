@@ -11,8 +11,8 @@ in
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
   age.secrets = {
-    motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
-    root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
+    motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
+    root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
@@ -57,8 +57,8 @@ in
     base = {
       users = {
         enable = true;
-        root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-        user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+        root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
+        user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
       };
 
       unitstatus = {

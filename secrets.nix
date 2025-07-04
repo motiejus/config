@@ -52,6 +52,7 @@ in
   mk
     (
       [
+        fra1-c
         vno3-nk
         fwminex
       ]
