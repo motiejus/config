@@ -430,7 +430,6 @@ in
             let
               port = toString config.services.prometheus.exporters.ping.port;
               hosts = [
-                "sqq1-desk.jakst.vpn"
                 "fwminex.jakst.vpn"
                 "vno3-nk.jakst.vpn"
                 "fra1-c.jakst.vpn"
