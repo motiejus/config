@@ -293,6 +293,7 @@ in
 
         (texlive.combine {
           inherit (texlive)
+            enumitem
             scheme-medium
             dvisvgm
             dvipng
