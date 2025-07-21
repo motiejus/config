@@ -465,10 +465,6 @@ in
             job_name = "vno1-vinc.jakst.vpn";
             static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
           }
-          {
-            job_name = "bcache-test-6.jakst.vpn";
-            static_configs = [ { targets = [ "bcache-test-6.jakst.vpn:9100" ]; } ];
-          }
         ]
         ++ map
           (
