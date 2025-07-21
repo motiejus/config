@@ -66,10 +66,10 @@ in
       enable = true;
       settings = {
         # https://github.com/AlexxIT/go2rtc/issues/831
-        #log = {
-        #  format = "text";
-        #  level = "trace";
-        #};
+        log = {
+          format = "text";
+          level = "trace";
+        };
         streams = {
           "vno4-dome-panorama-orig" = [
             "ffmpeg:rtsp://frigate:\${FRIGATE_RTSP_PASSWORD}@192.168.188.10/cam/realmonitor?channel=1&subtype=2"
