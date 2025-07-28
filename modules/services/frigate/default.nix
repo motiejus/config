@@ -123,14 +123,14 @@ in
           enabled = true;
           sync_recordings = true;
           retain = {
-            days = 7;
+            days = 2;
             mode = "all";
           };
           events = {
             pre_capture = 5;
             post_capture = 5;
             retain = {
-              default = 30;
+              default = 5;
               mode = "motion";
             };
           };
