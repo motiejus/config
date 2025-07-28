@@ -131,7 +131,8 @@
           ];
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
         mtworx = nixpkgs.lib.nixosSystem {
@@ -148,7 +149,8 @@
 
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
         fwminex = nixpkgs.lib.nixosSystem {
@@ -164,7 +166,8 @@
 
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
         vno3-nk = nixpkgs.lib.nixosSystem {
@@ -178,7 +181,8 @@
 
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
         vno1-gdrx = nixpkgs.lib.nixosSystem {
@@ -194,7 +198,8 @@
 
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
         fra1-c = nixpkgs.lib.nixosSystem {
@@ -209,7 +214,8 @@
 
           specialArgs = {
             inherit myData;
-          } // inputs;
+          }
+          // inputs;
         };
 
       };
