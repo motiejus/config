@@ -92,7 +92,8 @@ in
                   h = config.networking;
                 in
                 "${h.hostName}.${h.domain}@${h.hostId}";
-            } // lib.optionalAttrs (cfg.sshKeyPath != null) { BORG_RSH = ''ssh -i "${cfg.sshKeyPath}"''; };
+            }
+            // lib.optionalAttrs (cfg.sshKeyPath != null) { BORG_RSH = ''ssh -i "${cfg.sshKeyPath}"''; };
           }
           // lib.optionalAttrs (attrs ? patterns) { inherit (attrs) patterns; }
           // lib.optionalAttrs (attrs ? prune) { inherit (attrs) prune; }

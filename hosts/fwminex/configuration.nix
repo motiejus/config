@@ -424,49 +424,49 @@ in
         evaluation_interval = "1m";
       };
 
-      scrapeConfigs =
-        [
-          (
-            let
-              port = toString config.services.prometheus.exporters.ping.port;
-              hosts = [
-                "fwminex.jakst.vpn"
-                "vno3-nk.jakst.vpn"
-                "fra1-c.jakst.vpn"
-                "vno1-gdrx.jakst.vpn"
-              ];
-            in
+      scrapeConfigs = [
+        (
+          let
+            port = toString config.services.prometheus.exporters.ping.port;
+            hosts = [
+              "fwminex.jakst.vpn"
+              "vno3-nk.jakst.vpn"
+              "fra1-c.jakst.vpn"
+              "vno1-gdrx.jakst.vpn"
+            ];
+          in
 
-            {
-              job_name = "ping";
-              static_configs = [ { targets = map (host: "${host}:${port}") hosts; } ];
-            }
-          )
           {
-            job_name = "prometheus";
-            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
+            job_name = "ping";
+            static_configs = [ { targets = map (host: "${host}:${port}") hosts; } ];
           }
-          {
-            job_name = "caddy";
-            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
-          }
-          {
-            job_name = "hass_p7_50";
-            scrape_interval = "1m";
-            metrics_path = "/api/prometheus";
-            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.hass}" ]; } ];
-          }
-          {
-            job_name = "weather";
-            scrape_interval = "10m";
-            static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
-          }
-          {
-            job_name = "vno1-vinc.jakst.vpn";
-            static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
-          }
-        ]
-        ++ map
+        )
+        {
+          job_name = "prometheus";
+          static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.prometheus}" ]; } ];
+        }
+        {
+          job_name = "caddy";
+          static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.caddy}" ]; } ];
+        }
+        {
+          job_name = "hass_p7_50";
+          scrape_interval = "1m";
+          metrics_path = "/api/prometheus";
+          static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.hass}" ]; } ];
+        }
+        {
+          job_name = "weather";
+          scrape_interval = "10m";
+          static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
+        }
+        {
+          job_name = "vno1-vinc.jakst.vpn";
+          static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
+        }
+      ]
+      ++
+        map
           (
             let
               port = builtins.toString myData.ports.exporters.node;
@@ -601,55 +601,54 @@ in
           enable = true;
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-          dirs =
-            [
+          dirs = [
+            {
+              subvolume = "/var/lib";
+              repo = "${vno3-nk}:${this}-var_lib_lesser";
+              paths = [
+                "prometheus2"
+                "private/timelapse-r11"
+              ];
+              backup_at = "*-*-* 02:01:00 UTC";
+              compression = "none";
+            }
+          ]
+          ++ (builtins.concatMap
+            (host: [
               {
                 subvolume = "/var/lib";
-                repo = "${vno3-nk}:${this}-var_lib_lesser";
+                repo = "${host}:${this}-var_lib";
                 paths = [
-                  "prometheus2"
-                  "private/timelapse-r11"
-                ];
-                backup_at = "*-*-* 02:01:00 UTC";
-                compression = "none";
-              }
-            ]
-            ++ (builtins.concatMap
-              (host: [
-                {
-                  subvolume = "/var/lib";
-                  repo = "${host}:${this}-var_lib";
-                  paths = [
-                    "hass"
-                    "gitea"
-                    "caddy"
-                    "grafana"
-                    "headscale"
-                    "bitwarden_rs"
-                    "matrix-synapse"
-                    "private/soju"
+                  "hass"
+                  "gitea"
+                  "caddy"
+                  "grafana"
+                  "headscale"
+                  "bitwarden_rs"
+                  "matrix-synapse"
+                  "private/soju"
 
-                    # https://immich.app/docs/administration/backup-and-restore/
-                    "immich/library"
-                    "immich/upload"
-                    "immich/profile"
-                    "postgresql"
-                  ];
-                  patterns = [ "- gitea/data/repo-archive/" ];
-                  backup_at = "*-*-* 01:00:01 UTC";
-                }
-                {
-                  subvolume = "/home";
-                  repo = "${host}:${this}-home-motiejus-annex2";
-                  paths = [ "motiejus/annex2" ];
-                  backup_at = "*-*-* 02:30:01 UTC";
-                }
-              ])
-              [
-                rsync-net
-                vno3-nk
-              ]
-            );
+                  # https://immich.app/docs/administration/backup-and-restore/
+                  "immich/library"
+                  "immich/upload"
+                  "immich/profile"
+                  "postgresql"
+                ];
+                patterns = [ "- gitea/data/repo-archive/" ];
+                backup_at = "*-*-* 01:00:01 UTC";
+              }
+              {
+                subvolume = "/home";
+                repo = "${host}:${this}-home-motiejus-annex2";
+                paths = [ "motiejus/annex2" ];
+                backup_at = "*-*-* 02:30:01 UTC";
+              }
+            ])
+            [
+              rsync-net
+              vno3-nk
+            ]
+          );
         };
 
       btrfssnapshot = {

@@ -53,7 +53,8 @@ in
             "dialout"
             "video"
             "audio"
-          ] ++ cfg.user.extraGroups;
+          ]
+          ++ cfg.user.extraGroups;
           uid = myData.uidgid.motiejus;
           openssh.authorizedKeys.keys =
             let
@@ -69,7 +70,8 @@ in
                 (''from="127.0.0.1,::1" '' + myData.hosts.${fqdn}.publicKey)
               ])
             ];
-        } // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or { };
+        }
+        // lib.filterAttrs (n: v: n != "extraGroups" && v != null) cfg.user or { };
 
         root = lib.filterAttrs (_: v: v != null) cfg.root;
       };
