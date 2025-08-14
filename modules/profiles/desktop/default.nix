@@ -191,7 +191,7 @@ in
         gthumb
         calibre
         gparted
-        glabels
+        glabels-qt
         scribus
         gnumake
         libwebp
