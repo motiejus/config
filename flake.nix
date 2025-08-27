@@ -105,6 +105,7 @@
           nicer = super.callPackage ./pkgs/nicer.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
+          chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
@@ -323,7 +324,7 @@
       in
       {
         packages.x86_64-linux = {
-          inherit (pkgs) weather gamja;
+          inherit (pkgs) weather gamja chronoctl;
         };
       }
     );

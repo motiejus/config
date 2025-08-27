@@ -13,6 +13,7 @@
     mysql80
     kubectl
     kubectx
+    chronoctl
     terraform
     github-cli
     claude-code
