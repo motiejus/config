@@ -464,10 +464,6 @@ in
           job_name = "vno1-vinc.jakst.vpn";
           static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
         }
-        {
-          job_name = "motiejus-fsperf-test-1.jakst.vpn";
-          static_configs = [ { targets = [ "motiejus-fsperf-test-1.jakst.vpn:9100" ]; } ];
-        }
       ]
       ++
         map
