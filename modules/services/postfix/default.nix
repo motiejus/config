@@ -23,18 +23,14 @@
         "[::1]/128"
         myData.subnets.tailscale.cidr
       ];
-      hostname = "${config.networking.hostName}.${config.networking.domain}";
-      relayHost = "smtp.sendgrid.net";
-      relayPort = 587;
-      mapFiles = {
-        sasl_passwd = config.mj.services.postfix.saslPasswdPath;
-      };
+      hostname = "relay.jakstys.lt";
       extraConfig = ''
-        smtp_sasl_auth_enable = yes
-        smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
-        smtp_sasl_security_options = noanonymous
-        smtp_sasl_tls_security_options = noanonymous
-        smtp_tls_security_level = encrypt
+        mydestination =
+        smtpd_relay_restrictions = permit_mynetworks, reject
+        smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
+        smtp_tls_security_level = may
+        smtpd_helo_required = yes
+        disable_vrfy_command = yes
         header_size_limit = 4096000
       '';
     };
