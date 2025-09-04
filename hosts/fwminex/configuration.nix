@@ -357,31 +357,24 @@ in
             precompressed zstd br gzip
           }
 
-          handle /.well-known/carddav {
-            redir https://cdav.migadu.com/
+          @matrixMatch {
+            path /.well-known/matrix/client
+            path /.well-known/matrix/server
           }
-          handle /.well-known/caldav {
-            redir https://cdav.migadu.com/
+          header @matrixMatch Content-Type application/json
+          header @matrixMatch Access-Control-Allow-Origin *
+          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+
+          handle /.well-known/matrix/client {
+            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+          }
+          handle /.well-known/matrix/server {
+            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
           }
 
-            @matrixMatch {
-              path /.well-known/matrix/client
-              path /.well-known/matrix/server
-            }
-            header @matrixMatch Content-Type application/json
-            header @matrixMatch Access-Control-Allow-Origin *
-            header @matrixMatch Cache-Control "public, max-age=3600, immutable"
-
-            handle /.well-known/matrix/client {
-              respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-            }
-            handle /.well-known/matrix/server {
-              respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-            }
-
-            handle /_matrix/* {
-              reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
-            }
+          handle /_matrix/* {
+            reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+          }
         '';
       };
     };
