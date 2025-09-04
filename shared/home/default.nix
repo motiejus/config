@@ -173,13 +173,11 @@ in
       htop = {
         enable = true;
         settings = {
-          header_layout = "three_25_50_25";
-          column_meters_0 = "MemorySwap LoadAverage NetworkIO DiskIO";
-          column_meter_modes_0 = "1 2 2 2";
-          column_meters_1 = "AllCPUs4";
+          header_layout = "two_33_67";
+          column_meters_0 = "Memory Swap NetworkIO DiskIO LoadAverage Uptime";
+          column_meter_modes_0 = "1 1 2 2 2 2";
+          column_meters_1 = "AllCPUs2";
           column_meter_modes_1 = "1";
-          column_meters_2 = "PressureStallIOSome PressureStallCPUSome PressureStallMemorySome Uptime";
-          column_meter_modes_2 = "2 2 2 2";
           hide_kernel_threads = "1";
           hide_userland_threads = "1";
           show_cpu_frequency = "1";
