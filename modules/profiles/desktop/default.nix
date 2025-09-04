@@ -294,6 +294,7 @@ in
 
         (texlive.combine {
           inherit (texlive)
+            biblatex
             enumitem
             scheme-medium
             dvisvgm
