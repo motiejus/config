@@ -294,17 +294,21 @@ in
 
         (texlive.combine {
           inherit (texlive)
+            ulem
+            zref
+            dvipng
+            amsmath
+            capt-of
+            dvisvgm
+            wrapfig
             biblatex
             enumitem
-            scheme-medium
-            dvisvgm
-            dvipng
-            wrapfig
-            amsmath
-            ulem
             hyperref
-            capt-of
+            mdframed
+            adjustbox
+            needspace
             lithuanian
+            scheme-medium
             hyphen-lithuanian
             ;
         })
