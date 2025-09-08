@@ -193,7 +193,7 @@ in
         };
 
       cert-watcher = {
-        description = "Restart caddy when tls keys/certs change";
+        description = "Restart nginx+caddy when tls keys/certs change";
         wantedBy = [ "multi-user.target" ];
         unitConfig = {
           StartLimitIntervalSec = 10;
