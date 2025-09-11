@@ -4,8 +4,9 @@
 
   environment.systemPackages = with pkgs; [
     #swc
-    #nodejs
-    #typescript
+    turbo
+    nodejs
+    typescript
     #concurrently
     bats
     unzip

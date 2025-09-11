@@ -31,9 +31,9 @@ in
         universal-ctags
 
         pkgs-unstable.delve
-        pkgs-unstable.go_1_24
+        pkgs-unstable.go_1_25
         pkgs-unstable.go-tools
-        pkgs.zigpkgs."0.14.1"
+        pkgs.zigpkgs."0.15.1"
       ])
 
       (lib.mkIf hmOnly [
