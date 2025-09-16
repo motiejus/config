@@ -295,22 +295,13 @@ in
 
         (texlive.combine {
           inherit (texlive)
-            ulem
-            zref
-            dvipng
-            amsmath
-            capt-of
-            dvisvgm
-            wrapfig
-            biblatex
-            enumitem
-            hyperref
-            mdframed
-            adjustbox
-            needspace
             lithuanian
             scheme-medium
             hyphen-lithuanian
+            collection-binextra
+            collection-bibtexextra
+            collection-latexextra
+            collection-publishers
             ;
         })
       ]
