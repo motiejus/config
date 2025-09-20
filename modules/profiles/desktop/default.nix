@@ -214,6 +214,7 @@ in
         hunspell
         tigervnc
         bsdgames
+        pstoedit
         xss-lock
         valgrind
         musl.dev
