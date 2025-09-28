@@ -15,7 +15,7 @@
   ];
 
   mj = {
-    stateVersion = "24.11";
+    stateVersion = "25.05";
     timeZone = "UTC";
     username = "nixos";
 
