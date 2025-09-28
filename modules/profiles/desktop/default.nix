@@ -235,7 +235,7 @@ in
         #nerdfonts
         postgresql
         winetricks
-        diffoscope
+        #diffoscope # broken on 2025-09-28, not used much
         alsa-utils
         gcc_latest
         shellcheck
