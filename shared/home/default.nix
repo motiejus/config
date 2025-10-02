@@ -109,6 +109,7 @@ in
             [ pkgs.vimPlugins.fugitive ]
             (lib.mkIf devTools [
               pkgs.vimPlugins.fzf-vim
+              pkgs.vimPlugins.typst-vim
               pkgs.vimPlugins.vim-gh-line
               pkgs.vimPlugins.vim-gutentags
               pkgs.vimPlugins.nvim-lspconfig

@@ -175,6 +175,8 @@ in
         tracy
         mb2md # mailbox2maildir
         cmake
+        typst
+        sioyek
         (kazam.override {
           python3Packages = pkgs.python311Packages;
         }) # alternative to gtk-recordMyDesktop
