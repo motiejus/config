@@ -5,7 +5,7 @@
   ...
 }:
 let
-  nvme = "/dev/disk/by-id/nvme-WD_PC_SN810_SDCQNRY-1T00-1201_23234W800017";
+  nvme = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNU0Y624491Y";
 in
 {
   imports = [
