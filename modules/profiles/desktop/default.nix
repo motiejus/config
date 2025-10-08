@@ -223,6 +223,7 @@ in
         audacity
         graphviz
         powertop
+        nvme-cli
         librecad
         qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
         colordiff
