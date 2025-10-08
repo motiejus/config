@@ -190,6 +190,7 @@ in
         arandr
         pandoc
         evince
+        ioping
         motion
         gthumb
         calibre
