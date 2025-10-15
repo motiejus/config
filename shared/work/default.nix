@@ -21,6 +21,8 @@
     docker-compose
     google-cloud-sdk
     kubectl-node-shell
+
+    liburing.dev
   ];
 
   programs._1password.enable = true;
