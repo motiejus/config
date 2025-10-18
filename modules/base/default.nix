@@ -239,6 +239,10 @@ in
       chrony = {
         enable = true;
         servers = [ "time.cloudflare.com" ];
+        initstepslew.threshold = 1;
+        extraConfig = ''
+          makestep 1 -1
+        '';
       };
 
       locate = {
