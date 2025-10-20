@@ -227,6 +227,7 @@ in
         nvme-cli
         librecad
         qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
+        xkcd-font
         colordiff
         tesseract
         trayscale
