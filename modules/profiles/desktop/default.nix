@@ -141,6 +141,10 @@ in
       daemon.settings.storage-driver = "btrfs";
     };
 
+    fonts.packages = with pkgs; [
+      xkcd-font
+    ];
+
     environment.systemPackages =
       with pkgs;
       [
@@ -227,7 +231,6 @@ in
         nvme-cli
         librecad
         qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
-        xkcd-font
         colordiff
         tesseract
         trayscale
