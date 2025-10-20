@@ -138,7 +138,10 @@ in
       enable = true;
       # https://github.com/docker/buildx/issues/1459
       #daemon.settings.dns = [ "100.100.100.100" ];
-      daemon.settings.storage-driver = "btrfs";
+      daemon.settings = {
+        storage-driver = "btrfs";
+        registry-mirrors = [ "https://mirror.gcr.io" ];
+      };
     };
 
     fonts.packages = with pkgs; [
