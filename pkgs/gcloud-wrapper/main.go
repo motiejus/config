@@ -11,7 +11,7 @@ import (
 
 const (
 	cachePath      = ".config/gcloud/config-helper-cache.json"
-	cacheThreshold = 10 * time.Minute
+	cacheThreshold = 1 * time.Second
 )
 
 type credentialCache struct {
