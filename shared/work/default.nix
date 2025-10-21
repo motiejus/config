@@ -1,4 +1,21 @@
 { config, pkgs, ... }:
+let
+  gcloud-wrapped = pkgs.symlinkJoin {
+    name = "google-cloud-sdk-wrapped";
+    paths = [ pkgs.google-cloud-sdk ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      # Remove the original gcloud symlink
+      rm $out/bin/gcloud
+
+      # Create a shell wrapper called gcloud-wrapped that executes the real gcloud
+      makeWrapper ${pkgs.google-cloud-sdk}/bin/gcloud $out/bin/gcloud-wrapped
+
+      # Replace gcloud with our caching wrapper
+      ln -s ${pkgs.gcloud-wrapper}/bin/gcloud-wrapper $out/bin/gcloud
+    '';
+  };
+in
 {
   mj.base.users.email = null;
 
@@ -19,7 +36,7 @@
     github-cli
     claude-code
     docker-compose
-    google-cloud-sdk
+    gcloud-wrapped
     kubectl-node-shell
 
     liburing.dev

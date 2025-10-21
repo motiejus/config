@@ -106,6 +106,7 @@
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
+          gcloud-wrapper = super.callPackage ./pkgs/gcloud-wrapper { };
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
