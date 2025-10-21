@@ -15,15 +15,35 @@ import (
 const (
 	_urlTemplate  = "https://api.meteo.lt/v1/stations/%s/observations/%s"
 	_station      = "vilniaus-ams"
-	_promTemplate = `weather_station_air_temperature_celsius{station="{{ .Station }}"} {{ .AirTemperature }} {{ .TS }}
+	_promTemplate = `# HELP weather_station_air_temperature_celsius Air temperature in degrees Celsius
+# TYPE weather_station_air_temperature_celsius gauge
+weather_station_air_temperature_celsius{station="{{ .Station }}"} {{ .AirTemperature }} {{ .TS }}
+# HELP weather_station_air_feels_like_celsius Apparent temperature in degrees Celsius
+# TYPE weather_station_air_feels_like_celsius gauge
 weather_station_air_feels_like_celsius{station="{{ .Station }}"} {{ .FeelsLikeTemperature }} {{ .TS }}
+# HELP weather_station_wind_speed_ms Wind speed in meters per second
+# TYPE weather_station_wind_speed_ms gauge
 weather_station_wind_speed_ms{station="{{ .Station }}"} {{ .WindSpeed }} {{ .TS }}
+# HELP weather_station_wind_gust_ms Wind gust speed in meters per second
+# TYPE weather_station_wind_gust_ms gauge
 weather_station_wind_gust_ms{station="{{ .Station }}"} {{ .WindGust }} {{ .TS }}
+# HELP weather_station_wind_direction_degrees Wind direction in degrees
+# TYPE weather_station_wind_direction_degrees gauge
 weather_station_wind_direction_degrees{station="{{ .Station }}"} {{ .WindDirection }} {{ .TS }}{{ if .CloudCover }}
+# HELP weather_station_cloud_cover_percent Cloud cover percentage
+# TYPE weather_station_cloud_cover_percent gauge
 weather_station_cloud_cover_percent{station="{{ .Station }}"} {{ .CloudCover }} {{ .TS }}{{ end }}
+# HELP weather_station_sea_level_pressure_hpa Sea level pressure in hectopascals
+# TYPE weather_station_sea_level_pressure_hpa gauge
 weather_station_sea_level_pressure_hpa{station="{{ .Station }}"} {{ .SeaLevelPressure }} {{ .TS }}
+# HELP weather_station_relative_humidity_percent Relative humidity percentage
+# TYPE weather_station_relative_humidity_percent gauge
 weather_station_relative_humidity_percent{station="{{ .Station }}"} {{ .RelativeHumidity }} {{ .TS }}
+# HELP weather_station_precipitation_mm Precipitation in millimeters
+# TYPE weather_station_precipitation_mm gauge
 weather_station_precipitation_mm{station="{{ .Station }}"} {{ .Precipitation }} {{ .TS }}{{ if .ConditionCode }}
+# HELP weather_station_condition Weather condition indicator
+# TYPE weather_station_condition gauge
 weather_station_condition{station="{{ .Station }}",code="{{ .ConditionCode }}"} 1 {{ .TS }}{{ end }}
 `
 )
