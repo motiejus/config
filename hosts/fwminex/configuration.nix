@@ -727,6 +727,7 @@ in
       acpi
       yt-dlp
       inferno
+      nvme-cli
       tpm2-tools
       amdgpu_top
       graphicsmagick
