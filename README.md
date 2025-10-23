@@ -11,6 +11,7 @@ Other:
 
     $ nix build .#nixosConfigurations.vno3-rp3b.config.system.build.toplevel
     $ nix eval .#nixosConfigurations.fwminex.config.services.nsd
+    $ nix why-depends .#nixosConfigurations.vno1-gdrx.config.system.build.toplevel .#legacyPackages.x86_64-linux.mbedtls_2
 
 Encoding host-only secrets
 --------------------------
