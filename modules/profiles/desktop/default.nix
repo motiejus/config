@@ -38,7 +38,7 @@ in
       };
     };
 
-    systemd.slices."docker-low.slice" = {
+    systemd.slices."docker-low" = {
       sliceConfig = {
         CPUWeight = 1;
         IOWeight = 1;
