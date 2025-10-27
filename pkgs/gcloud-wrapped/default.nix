@@ -1,9 +1,9 @@
-{ buildGoModule, pkgs }:
+{ pkgs }:
 let
-  gcloud-wrapper = buildGoModule {
+  gcloud-wrapper = pkgs.stdenv.mkDerivation {
     name = "gcloud-wrapper";
     src = ./.;
-    vendorHash = null;
+    nativeBuildInputs = [ pkgs.pkgs-unstable.zig_0_15.hook ];
   };
 in
 pkgs.symlinkJoin {
