@@ -38,6 +38,13 @@ in
       };
     };
 
+    systemd.slices."docker-low.slice" = {
+      sliceConfig = {
+        CPUWeight = 1;
+        IOWeight = 1;
+      };
+    };
+
     programs = {
       firefox = {
         enable = true;
@@ -141,6 +148,9 @@ in
       daemon.settings = {
         storage-driver = "btrfs";
         registry-mirrors = [ "https://mirror.gcr.io" ];
+
+        exec-opts = [ "native.cgroupdriver=systemd" ];
+        cgroup-parent = "docker-low.slice";
       };
     };
 
