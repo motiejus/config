@@ -86,7 +86,7 @@
     let
       myData = import ./data.nix;
 
-      overlays = [
+      baseOverlays = [
         nur.overlays.default
         zig.overlays.default
 
@@ -107,6 +107,7 @@
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
+          go-raceless = super.callPackage ./pkgs/go-raceless { };
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
@@ -129,7 +130,7 @@
         vm = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             ./hosts/vm/configuration.nix
             home-manager.nixosModules.home-manager
           ];
@@ -142,7 +143,7 @@
         mtworx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             ./hosts/mtworx/configuration.nix
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
@@ -160,7 +161,7 @@
         fwminex = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             ./hosts/fwminex/configuration.nix
             home-manager.nixosModules.home-manager
             nixos-hardware.nixosModules.framework-12th-gen-intel
@@ -177,7 +178,7 @@
         vno3-nk = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             ./hosts/vno3-nk/configuration.nix
             home-manager.nixosModules.home-manager
             agenix.nixosModules.default
@@ -192,7 +193,7 @@
         vno1-gdrx = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             ./hosts/vno1-gdrx/configuration.nix
             home-manager.nixosModules.home-manager
             nix-index-database.nixosModules.nix-index
@@ -209,7 +210,7 @@
         fra1-c = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            { nixpkgs.overlays = overlays; }
+            { nixpkgs.overlays = baseOverlays; }
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
             ./hosts/fra1-c/configuration.nix
@@ -299,7 +300,10 @@
     // flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = baseOverlays;
+        };
       in
       {
         devShells.default = pkgs.mkShellNoCC {
@@ -321,7 +325,7 @@
     // (
       let
         pkgs = import nixpkgs {
-          inherit overlays;
+          overlays = baseOverlays;
           system = "x86_64-linux";
         };
       in

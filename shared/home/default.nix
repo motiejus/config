@@ -6,6 +6,7 @@
   devTools,
   hmOnly,
   username,
+  wrapGo ? false,
   ...
 }:
 let
@@ -30,8 +31,13 @@ in
       (lib.mkIf devTools [
         universal-ctags
 
+        (
+          if wrapGo then
+            pkgs.go-raceless.override { inherit (pkgs.pkgs-unstable) go; }
+          else
+            pkgs.pkgs-unstable.go
+        )
         pkgs-unstable.delve
-        pkgs-unstable.go_1_25
         pkgs-unstable.go-tools
         pkgs.zigpkgs."0.15.1"
       ])

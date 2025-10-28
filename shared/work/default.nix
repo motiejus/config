@@ -1,6 +1,9 @@
 { config, pkgs, ... }:
 {
-  mj.base.users.email = null;
+  mj.base.users = {
+    email = null;
+    wrapGo = true;
+  };
 
   environment.systemPackages = with pkgs; [
     #swc
