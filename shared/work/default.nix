@@ -12,14 +12,23 @@
 
   services.nginx = {
     enable = true;
-    virtualHosts."go." = {
-      listenAddresses = [ "127.0.0.1" ];
-      addSSL = true;
-      sslCertificate = "${../../shared/certs/go.pem}";
-      sslCertificateKey = "${../../shared/certs/go.key}";
-      locations."/".extraConfig = ''
-        return 301 https://golinks.io$request_uri;
-      '';
+    defaultListenAddresses = [ "0.0.0.0" ];
+    virtualHosts = {
+      "_" = {
+        default = true;
+        root = "/var/run/nginx/motiejus";
+        locations."/".extraConfig = ''
+          autoindex on;
+        '';
+      };
+      "go" = {
+        addSSL = true;
+        sslCertificate = "${../../shared/certs/go.pem}";
+        sslCertificateKey = "${../../shared/certs/go.key}";
+        locations."/".extraConfig = ''
+          return 301 https://golinks.io$request_uri;
+        '';
+      };
     };
   };
 
@@ -69,18 +78,23 @@
       };
     };
   };
-  # TODO remove once 24.05 is out
-  systemd.services.clamav-daemon.serviceConfig = {
-    StateDirectory = "clamav";
-    RuntimeDirectory = "clamav";
-    User = "clamav";
-    Group = "clamav";
-  };
 
-  systemd.services.clamav-freshclam.serviceConfig = {
-    StateDirectory = "clamav";
-    User = "clamav";
-    Group = "clamav";
+  systemd.services = {
+    # TODO remove once 24.05 is out
+    clamav-daemon.serviceConfig = {
+      StateDirectory = "clamav";
+      RuntimeDirectory = "clamav";
+      User = "clamav";
+      Group = "clamav";
+    };
+
+    clamav-freshclam.serviceConfig = {
+      StateDirectory = "clamav";
+      User = "clamav";
+      Group = "clamav";
+    };
+
+    nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
   };
 
   home-manager.users.${config.mj.username} = {
