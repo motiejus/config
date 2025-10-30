@@ -5,6 +5,26 @@
     wrapGo = true;
   };
 
+  security.pki.certificateFiles = [ ../../shared/certs/motiejus-golinks-ca.pem ];
+
+  networking.hosts."127.0.0.1" = [
+    "go"
+    "go."
+  ];
+
+  services.nginx = {
+    enable = true;
+    virtualHosts."go." = {
+      listenAddresses = [ "127.0.0.1" ];
+      addSSL = true;
+      sslCertificate = "${../../shared/certs/go.pem}";
+      sslCertificateKey = "${../../shared/certs/go.key}";
+      locations."/".extraConfig = ''
+        return 301 https://golinks.io$request_uri;
+      '';
+    };
+  };
+
   environment.systemPackages = with pkgs; [
     #swc
     turbo

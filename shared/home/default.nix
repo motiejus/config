@@ -93,6 +93,10 @@ in
               "layout.css.prefers-color-scheme.content-override" = 0;
               "signon.management.page.breach-alerts.enabled" = false;
               "signon.rememberSignons" = false;
+
+              # go/
+              "security.enterprise_roots.enabled" = true;
+              "browser.fixup.domainwhitelist.go" = true;
             };
             extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
               bitwarden
