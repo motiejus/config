@@ -95,7 +95,6 @@ in
               "signon.rememberSignons" = false;
 
               # go/
-              "security.enterprise_roots.enabled" = true;
               "browser.fixup.domainwhitelist.go" = true;
             };
             extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
