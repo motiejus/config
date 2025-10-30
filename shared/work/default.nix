@@ -5,8 +5,6 @@
     wrapGo = true;
   };
 
-  security.pki.certificateFiles = [ ../../shared/certs/motiejus-golinks-ca.pem ];
-
   networking.hosts."127.0.0.1" = [
     "go"
     "go."
