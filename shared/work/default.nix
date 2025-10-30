@@ -5,10 +5,13 @@
     wrapGo = true;
   };
 
-  networking.hosts."127.0.0.1" = [
-    "go"
-    "go."
-  ];
+  networking = {
+    hosts."127.0.0.1" = [
+      "go"
+      "go."
+    ];
+    firewall.allowedTCPPorts = [ 80 ];
+  };
 
   services.nginx = {
     enable = true;
