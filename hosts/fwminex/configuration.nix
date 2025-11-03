@@ -473,6 +473,7 @@ in
             "fwminex.jakst.vpn"
             "mtworx.jakst.vpn"
             "vno1-gdrx.jakst.vpn"
+            "sqq1-desk2.jakst.vpn"
           ];
     };
 
@@ -698,6 +699,10 @@ in
             {
               derivationTarget = ".#vno1-gdrx";
               pingTarget = "vno1-gdrx.jakst.vpn";
+            }
+            {
+              derivationTarget = ".#sqq1-desk2";
+              pingTarget = "sqq1-desk2.jakst.vpn";
             }
           ];
         };

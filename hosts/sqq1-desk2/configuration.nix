@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }:
 let
@@ -75,10 +76,19 @@ in
     };
 
     services = {
+      node_exporter.enable = true;
+
       tailscale = {
         enable = true;
         verboseLogs = true;
         acceptDNS = true;
+      };
+
+      deployerbot.follower = {
+        enable = true;
+        uidgid = myData.uidgid.updaterbot-deployee;
+        publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
+        sshAllowSubnets = [ myData.subnets.tailscale.sshPattern ];
       };
     };
   };
