@@ -31,20 +31,23 @@
     };
 
     environment.systemPackages = with pkgs; [
-      acpi
+      iw
       i7z
+      acpi
+      s-tui
+      hdparm
+      sdparm
       nvme-cli
       powertop
       efibootmgr
-      smartmontools
-      intel-gpu-tools
+      alsa-utils
       tpm2-tools
-      hdparm
-      sdparm
-      s-tui
       dmidecode
       stress-ng
       powerstat
+      libva-utils # intel video tests
+      smartmontools
+      intel-gpu-tools
       config.boot.kernelPackages.cpupower
     ];
   };

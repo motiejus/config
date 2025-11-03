@@ -151,7 +151,6 @@ in
       brightness
 
       f3 # flight-flash-fraud
-      iw
       gdb
       ntp
       vlc
@@ -161,10 +160,8 @@ in
       gimp
       qemu
       zlib
-      ninja
       xclip
       pdftk
-      putty
       scrot
       tracy
       mb2md # mailbox2maildir
@@ -176,7 +173,6 @@ in
       }) # alternative to gtk-recordMyDesktop
       x11vnc
       yt-dlp
-      skopeo
       ffmpeg
       tinycc
       scrcpy
@@ -195,42 +191,33 @@ in
       libwebp
       librsvg
       picocom
-      inferno
       libheif
       csvkit
       mplayer
       tcpflow
-      undocker
       nautilus
       smplayer
       inkscape
-      chromium
       hunspell
       tigervnc
       bsdgames
       pstoedit
       xss-lock
       audacity
-      librecad
       colordiff
-      tesseract
       trayscale
       espeak-ng
       man-pages
       rox-filer
-      distrobox
       miniupnpc
       v4l-utils
       #nerdfonts
       winetricks
-      #diffoscope # broken on 2025-09-28, not used much
-      alsa-utils
       shellcheck
       virtualenv
       imagemagick
       #ventoy-full
       ghostscript
-      libva-utils # intel video tests
       pavucontrol
       photocollage
       libqalculate # qalc
@@ -238,7 +225,6 @@ in
       google-chrome
       wirelesstools
       poppler_utils
-      rkdeveloptool
       squashfsTools
       joplin-desktop
       aspellDicts.en
@@ -251,15 +237,12 @@ in
       element-desktop
       netsurf-browser
       man-pages-posix
-      git-filter-repo
       gnome-calculator
       libsForQt5.okular
       nvtopPackages.amd
       age-plugin-yubikey
       nvtopPackages.intel
       hunspellDicts.en_US
-      wineWowPackages.full
-      openorienteering-mapper
       samsung-unified-linux-driver
 
       xdotool

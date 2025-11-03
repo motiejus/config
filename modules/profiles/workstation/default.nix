@@ -29,16 +29,20 @@ in
         pdal
         gdal
         flex
+        ninja
+        putty
         bison
         shfmt
         tokei
         shfmt
         bloaty
+        skopeo
+        inferno
         neomutt
+        undocker
+        chromium
         binutils
         patchelf
-        hyperfine
-        sloccount
         valgrind
         musl.dev
         graphviz
@@ -46,10 +50,17 @@ in
         cppcheck
         wasmtime
         bpftrace
+        hyperfine
+        sloccount
+        tesseract
         postgresql
         gcc_latest
         borgbackup
+        #diffoscope # broken on 2025-09-28, not used much
+        git-filter-repo
         nixpkgs-review
+        wineWowPackages.full
+        openorienteering-mapper
 
         (texlive.combine {
           inherit (texlive)
