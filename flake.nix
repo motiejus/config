@@ -90,15 +90,15 @@
         nur.overlays.default
         zig.overlays.default
 
-        #(_self: super: { deploy-rs-pkg = super.deploy-rs; })
-        deploy-rs.overlays.default
-        #(_self: super: {
-        #  deploy-rs = {
-        #    deploy-rs = super.deploy-rs-pkg;
-        #    inherit (super.deploy-rs) lib;
-        #  };
-        #  deploy-rs-pkg = null;
-        #})
+        (_self: super: { deploy-rs-pkg = super.deploy-rs; })
+        #deploy-rs.overlays.default
+        (_self: super: {
+          deploy-rs = {
+            deploy-rs = super.deploy-rs-pkg;
+            inherit (super.deploy-rs) lib;
+          };
+          deploy-rs-pkg = null;
+        })
         (_: super: {
           gamja = super.callPackage ./pkgs/gamja.nix { };
           weather = super.callPackage ./pkgs/weather { };
