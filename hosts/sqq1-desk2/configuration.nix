@@ -17,11 +17,6 @@ in
 
   services.xserver.desktopManager.xfce.enableScreensaver = false;
 
-  i18n.defaultLocale = lib.mkForce "lt_LT.UTF-8";
-  i18n.extraLocaleSettings = {
-    LANGUAGE = "lt:ru:en";
-  };
-
   age.secrets = {
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
@@ -66,6 +61,30 @@ in
   };
 
   services.displayManager.autoLogin.user = lib.mkForce "irena";
+
+  home-manager.users.irena = {
+    home = {
+      stateVersion = "25.05";
+      language = {
+        base = "lt_LT.UTF-8";
+      };
+      sessionVariables = {
+        LANGUAGE = "lt:ru:en";
+      };
+    };
+
+    programs.firefox = {
+      enable = true;
+      profiles.default = {
+        isDefault = true;
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          ublock-origin
+          consent-o-matic
+          multi-account-containers
+        ];
+      };
+    };
+  };
 
   mj = {
     stateVersion = "25.05";
