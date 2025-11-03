@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }:
@@ -12,6 +13,8 @@ in
     ../../modules/profiles/xfce4
     ../../modules/profiles/btrfs
   ];
+
+  services.xserver.desktopManager.xfce.enableScreensaver = false;
 
   age.secrets = {
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
@@ -46,6 +49,17 @@ in
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
+
+  users.users.irena = {
+    isNormalUser = true;
+    extraGroups = [
+      "networkmanager"
+      "users"
+    ];
+    password = "";
+  };
+
+  services.displayManager.autoLogin.user = lib.mkForce "irena";
 
   mj = {
     stateVersion = "25.05";
