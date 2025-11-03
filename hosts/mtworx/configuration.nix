@@ -11,7 +11,7 @@ in
   imports = [
     ../../shared/work
     ../../modules
-    ../../modules/profiles/desktop
+    ../../modules/profiles/workstation
     ../../modules/profiles/autorandr
     ../../modules/profiles/btrfs
   ];

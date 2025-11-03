@@ -18,16 +18,12 @@ let
   };
 in
 {
-  imports = [ ../dev ];
+  imports = [
+    ../dev
+    ../physical
+  ];
   config = {
     boot = {
-      loader.systemd-boot.enable = true;
-      initrd.systemd.enable = true;
-      supportedFilesystems = [
-        "exfat"
-        "ntfs"
-        "xfs"
-      ];
       kernelModules = [ "kvm-intel" ];
     };
 
@@ -66,11 +62,8 @@ in
     ];
 
     services = {
-      fwupd.enable = true;
       blueman.enable = true;
       udev.packages = [ pkgs.yubikey-personalization ];
-      acpid.enable = true;
-      pcscd.enable = true;
       gnome.gnome-keyring.enable = true;
       openssh.settings.X11Forwarding = true;
 
@@ -113,14 +106,6 @@ in
 
       pipewire.enable = false;
 
-      tlp = {
-        enable = true;
-        settings = {
-          START_CHARGE_THRESH_BAT0 = lib.mkDefault 80;
-          STOP_CHARGE_THRESH_BAT0 = lib.mkDefault 87;
-        };
-      };
-
     };
 
     programs = {
@@ -158,186 +143,141 @@ in
       xkcd-font
     ];
 
-    environment.systemPackages =
-      with pkgs;
-      [
-        # packages defined here
-        open
-        nicer
-        tmuxbash
-        brightness
+    environment.systemPackages = with pkgs; [
+      # packages defined here
+      open
+      nicer
+      tmuxbash
+      brightness
 
-        f3 # flight-flash-fraud
-        iw
-        rr
-        gdb
-        ntp
-        i7z
-        vlc
-        sox
-        mpv
-        imv # image viewer
-        acpi
-        gimp
-        josm
-        pdal
-        gdal
-        qemu
-        zlib
-        ninja
-        xclip
-        pdftk
-        putty
-        scrot
-        tracy
-        mb2md # mailbox2maildir
-        cmake
-        typst
-        sioyek
-        (kazam.override {
-          python3Packages = pkgs.python311Packages;
-        }) # alternative to gtk-recordMyDesktop
-        x11vnc
-        yt-dlp
-        skopeo
-        ffmpeg
-        tinycc
-        scrcpy
-        cheese
-        arandr
-        pandoc
-        evince
-        ioping
-        motion
-        gthumb
-        calibre
-        gparted
-        glabels-qt
-        scribus
-        gnumake
-        libwebp
-        librsvg
-        neomutt
-        picocom
-        inferno
-        libheif
-        csvkit
-        mplayer
-        tcpflow
-        cppcheck
-        wasmtime
-        undocker
-        nautilus
-        smplayer
-        inkscape
-        chromium
-        hunspell
-        tigervnc
-        bsdgames
-        pstoedit
-        xss-lock
-        valgrind
-        musl.dev
-        audacity
-        graphviz
-        powertop
-        nvme-cli
-        librecad
-        qgis-ltr # qgis gets recompiled, qgis-ltr is cached by hydra
-        colordiff
-        tesseract
-        trayscale
-        espeak-ng
-        man-pages
-        rox-filer
-        distrobox
-        miniupnpc
-        v4l-utils
-        #nerdfonts
-        postgresql
-        winetricks
-        #diffoscope # broken on 2025-09-28, not used much
-        alsa-utils
-        gcc_latest
-        shellcheck
-        borgbackup
-        efibootmgr
-        virtualenv
-        imagemagick
-        #ventoy-full
-        ghostscript
-        libva-utils # intel video tests
-        pavucontrol
-        photocollage
-        libqalculate # qalc
-        qalculate-qt # qalculate
-        google-chrome
-        wirelesstools
-        poppler_utils
-        rkdeveloptool
-        squashfsTools
-        nixpkgs-review
-        joplin-desktop
-        aspellDicts.en
-        aspellDicts.lt
-        libreoffice-qt
-        graphicsmagick
-        magic-wormhole
-        signal-desktop
-        gnome-calendar
-        intel-gpu-tools
-        element-desktop
-        netsurf-browser
-        man-pages-posix
-        git-filter-repo
-        gnome-calculator
-        libsForQt5.okular
-        nvtopPackages.amd
-        age-plugin-yubikey
-        nvtopPackages.intel
-        hunspellDicts.en_US
-        wineWowPackages.full
-        openorienteering-mapper
-        samsung-unified-linux-driver
+      f3 # flight-flash-fraud
+      iw
+      gdb
+      ntp
+      vlc
+      sox
+      mpv
+      imv # image viewer
+      gimp
+      qemu
+      zlib
+      ninja
+      xclip
+      pdftk
+      putty
+      scrot
+      tracy
+      mb2md # mailbox2maildir
+      cmake
+      typst
+      sioyek
+      (kazam.override {
+        python3Packages = pkgs.python311Packages;
+      }) # alternative to gtk-recordMyDesktop
+      x11vnc
+      yt-dlp
+      skopeo
+      ffmpeg
+      tinycc
+      scrcpy
+      cheese
+      arandr
+      pandoc
+      evince
+      ioping
+      motion
+      gthumb
+      calibre
+      gparted
+      glabels-qt
+      scribus
+      gnumake
+      libwebp
+      librsvg
+      picocom
+      inferno
+      libheif
+      csvkit
+      mplayer
+      tcpflow
+      undocker
+      nautilus
+      smplayer
+      inkscape
+      chromium
+      hunspell
+      tigervnc
+      bsdgames
+      pstoedit
+      xss-lock
+      audacity
+      librecad
+      colordiff
+      tesseract
+      trayscale
+      espeak-ng
+      man-pages
+      rox-filer
+      distrobox
+      miniupnpc
+      v4l-utils
+      #nerdfonts
+      winetricks
+      #diffoscope # broken on 2025-09-28, not used much
+      alsa-utils
+      shellcheck
+      virtualenv
+      imagemagick
+      #ventoy-full
+      ghostscript
+      libva-utils # intel video tests
+      pavucontrol
+      photocollage
+      libqalculate # qalc
+      qalculate-qt # qalculate
+      google-chrome
+      wirelesstools
+      poppler_utils
+      rkdeveloptool
+      squashfsTools
+      joplin-desktop
+      aspellDicts.en
+      aspellDicts.lt
+      libreoffice-qt
+      graphicsmagick
+      magic-wormhole
+      signal-desktop
+      gnome-calendar
+      element-desktop
+      netsurf-browser
+      man-pages-posix
+      git-filter-repo
+      gnome-calculator
+      libsForQt5.okular
+      nvtopPackages.amd
+      age-plugin-yubikey
+      nvtopPackages.intel
+      hunspellDicts.en_US
+      wineWowPackages.full
+      openorienteering-mapper
+      samsung-unified-linux-driver
 
-        xdotool
-        xorg.xev
-        xorg.xeyes
-        xorg.lndir
-        xorg.xinit
+      xdotool
+      xorg.xev
+      xorg.xeyes
+      xorg.lndir
+      xorg.xinit
 
-        (python3.withPackages (
-          ps: with ps; [
-            numpy
-            pyyaml
-            ipython
-            matplotlib
-          ]
-        ))
+      (python3.withPackages (
+        ps: with ps; [
+          numpy
+          pyyaml
+          ipython
+          matplotlib
+        ]
+      ))
 
-        (texlive.combine {
-          inherit (texlive)
-            lithuanian
-            scheme-medium
-            hyphen-lithuanian
-            collection-binextra
-            collection-bibtexextra
-            collection-latexextra
-            collection-publishers
-            ;
-        })
-      ]
-      ++ (with llvmPackages_19; [
-        clang
-        lld.dev
-        llvm.dev
-        clang-tools
-        libllvm.dev
-        libclang.dev
-        llvm-manpages
-        clang-manpages
-        compiler-rt.dev
-      ]);
+    ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746
     systemd.services.NetworkManager-wait-online.enable = false;
@@ -347,7 +287,6 @@ in
       {
         imports = [ ./plasma.nix ];
         xdg.configFile = {
-          "awesome/rc.lua".source = ./rc.lua;
           "gdb/gdbinit".text = ''
             set style address foreground yellow
             set style function foreground cyan
@@ -356,10 +295,6 @@ in
         };
 
         programs = {
-          msmtp.enable = true;
-          mbsync.enable = true;
-          neomutt.enable = true;
-          notmuch.enable = true;
           ghostty = {
             enable = true;
             installVimSyntax = true;
@@ -377,104 +312,6 @@ in
             };
           };
 
-          tmux.extraConfig =
-            let
-              cmd = "${pkgs.extract_url}/bin/extract_url";
-              cfg = pkgs.writeText "urlviewrc" "COMMAND systemd-run --user --collect xdg-open %s";
-            in
-            ''
-              bind-key u capture-pane -J \; \
-                save-buffer /tmp/tmux-buffer \; \
-                delete-buffer \; \
-                split-window -l 10 "${cmd} -c ${cfg} /tmp/tmux-buffer"
-            '';
-        };
-
-        accounts.email = {
-          maildirBasePath = "Maildir";
-
-          accounts.mj = {
-            primary = true;
-            userName = "motiejus@jakstys.lt";
-            address = "motiejus@jakstys.lt";
-            realName = "Motiejus Jakštys";
-            passwordCommand = "cat /home/${username}/.mail-appcode";
-            imap.host = "imap.gmail.com";
-            smtp.host = "smtp.gmail.com";
-
-            mbsync = {
-              enable = true;
-              create = "maildir";
-              patterns = [
-                "*"
-                "![Gmail]/All Mail"
-              ];
-            };
-
-            msmtp = {
-              enable = true;
-            };
-
-            notmuch = {
-              enable = true;
-              neomutt.enable = true;
-            };
-
-            neomutt = {
-              enable = true;
-              extraConfig = ''
-                set index_format="%4C %Z %{%F %H:%M} %-15.15L (%?l?%4l&%4c?) %s"
-
-                set mailcap_path = ${pkgs.writeText "mailcaprc" ''
-                  text/html; ${pkgs.elinks}/bin/elinks -dump ; copiousoutput;
-                  application/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
-                  image/*; ${pkgs.xdg-utils}/bin/xdg-open %s &> /dev/null &;
-                ''}
-                auto_view text/html
-                unset record
-                set send_charset="utf-8"
-
-                macro attach 'V' "<pipe-entry>iconv -c --to-code=UTF8 > ~/.cache/mutt/mail.html<enter><shell-escape>firefox ~/.cache/mutt/mail.html<enter>"
-                macro index,pager \cb "<pipe-message> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
-                macro attach,compose \cb "<pipe-entry> env BROWSER=firefox urlscan<Enter>" "call urlscan to extract URLs out of a message"
-
-                set sort_browser=date
-                set sort=reverse-threads
-                set sort_aux=last-date-received
-
-                bind pager g top
-                bind pager G bottom
-                bind attach,index g first-entry
-                bind attach,index G last-entry
-                bind attach,index,pager \CD half-down
-                bind attach,index,pager \CU half-up
-                bind attach,index,pager \Ce next-line
-                bind attach,index,pager \Cy previous-line
-                bind index,pager B sidebar-toggle-visible
-                bind index,pager R group-reply
-
-                set sidebar_visible = yes
-                set sidebar_width = 15
-                bind index,pager \Cp sidebar-prev
-                bind index,pager \Cn sidebar-next
-                bind index,pager \Co sidebar-open
-                bind index,pager B sidebar-toggle-visible
-                set sidebar_short_path = yes
-                set sidebar_delim_chars = '/'
-                set sidebar_format = '%B%* %?N?%N?'
-                set mail_check_stats
-                set postponed="+[Gmail]/Drafts"
-                mailboxes =btrfs
-                mailboxes =Debian
-                mailboxes =alerts
-                mailboxes ="[Gmail]/Drafts"
-                mailboxes ="[Gmail]/Starred"
-                mailboxes ="[Gmail]/Sent Mail"
-
-                source ${./notmuch-colors.muttrc}
-              '';
-            };
-          };
         };
 
         services = {

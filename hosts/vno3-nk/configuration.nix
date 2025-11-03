@@ -10,6 +10,7 @@ in
 {
   imports = [
     ../../modules
+    ../../modules/profiles/physical
     ../../modules/profiles/btrfs
   ];
 
@@ -70,12 +71,6 @@ in
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
-
-  services = {
-    pcscd.enable = true;
-    acpid.enable = true;
-    fwupd.enable = true;
-  };
 
   mj = {
     stateVersion = "24.11";

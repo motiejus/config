@@ -110,17 +110,12 @@ in
             btdu
             lshw
             entr
-            cloc
             poop # hopefully poof some day
             pigz
             zstd
-            flex
-            bison
-            s-tui # stress and monitor cpu
             unrar
             iotop
             wdiff
-            tokei
             sshfs
             pwgen
             below # tracking cgroups
@@ -130,10 +125,7 @@ in
             bindfs
             spiped
             parted
-            bloaty
             dhcpcd
-            hdparm
-            sdparm
             procps
             unison
             usbtop
@@ -144,7 +136,6 @@ in
             ethtool
             gettext
             exiftool
-            bpftrace
             keyutils
             libkcapi
             usbutils
@@ -152,17 +143,11 @@ in
             bsdgames
             parallel
             yamllint
-            binutils
             dos2unix
-            patchelf
             compsize
             rtorrent
             p7zip-rar
-            hyperfine
-            stress-ng
-            dmidecode
             moreutils
-            sloccount
             cryptsetup
             lm_sensors
             inotify-info
@@ -199,9 +184,6 @@ in
             config.boot.kernelPackages.perf
             config.boot.kernelPackages.vm-tools
 
-            # non-virtual
-            powerstat
-            config.boot.kernelPackages.cpupower
           ]
           (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
         ];

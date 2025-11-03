@@ -11,6 +11,7 @@ in
 {
   imports = [
     ../../modules
+    ../../modules/profiles/physical
     ../../modules/profiles/btrfs
   ];
 
@@ -224,9 +225,6 @@ in
   };
 
   services = {
-    pcscd.enable = true;
-    acpid.enable = true;
-    fwupd.enable = true;
     logind = {
       lidSwitch = "ignore";
       powerKey = "suspend";
@@ -724,10 +722,8 @@ in
   environment = {
     enableDebugInfo = true;
     systemPackages = with pkgs; [
-      acpi
       yt-dlp
       inferno
-      nvme-cli
       tpm2-tools
       amdgpu_top
       graphicsmagick
