@@ -91,17 +91,6 @@ in
         };
       };
     };
-
-    xdg.configFile."autostart/variety.desktop".text = ''
-      [Desktop Entry]
-      Type=Application
-      Name=Variety
-      Comment=Wallpaper Changer
-      Exec=${pkgs.variety}/bin/variety
-      Icon=variety
-      Terminal=false
-      Categories=Utility;
-    '';
   };
 
   mj = {
@@ -137,8 +126,6 @@ in
 
   environment = {
     systemPackages = with pkgs; [
-      variety
-
       kdePackages.kpat
       kdePackages.kmahjongg
       kdePackages.kmines
