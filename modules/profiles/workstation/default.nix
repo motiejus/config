@@ -23,30 +23,33 @@ in
       with pkgs;
       [
         rr
+        wrk2
+        cloc
         josm
         pdal
         gdal
-        qgis-ltr
-        neomutt
-        valgrind
-        musl.dev
-        graphviz
-        postgresql
-        cppcheck
-        wasmtime
-        gcc_latest
-        borgbackup
-        nixpkgs-review
-        cloc
+        flex
+        bison
+        shfmt
         tokei
+        shfmt
         bloaty
+        neomutt
         binutils
         patchelf
         hyperfine
         sloccount
+        valgrind
+        musl.dev
+        graphviz
+        qgis-ltr
+        cppcheck
+        wasmtime
         bpftrace
-        flex
-        bison
+        postgresql
+        gcc_latest
+        borgbackup
+        nixpkgs-review
 
         (texlive.combine {
           inherit (texlive)

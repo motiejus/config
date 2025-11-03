@@ -154,7 +154,6 @@ in
             inotify-tools
             smartmontools
             unixtools.xxd
-            bcachefs-tools
             ghostty.terminfo
             sqlite-interactive
 
@@ -168,7 +167,6 @@ in
             iftop
             whois
             ipset
-            shfmt
             iperf3
             jnettop
             openssl
@@ -183,9 +181,7 @@ in
 
             config.boot.kernelPackages.perf
             config.boot.kernelPackages.vm-tools
-
           ]
-          (lib.mkIf (pkgs.stdenv.hostPlatform.system == "x86_64-linux") [ wrk2 ])
         ];
     };
 
