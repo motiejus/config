@@ -74,7 +74,7 @@ in
   };
 
   networking = {
-    hostId = "ef04ee1";
+    hostId = "c14cbb01";
     hostName = "sqq-desk2";
     domain = "jakst.vpn";
     firewall.rejectPackets = true;
