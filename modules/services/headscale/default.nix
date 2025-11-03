@@ -27,7 +27,7 @@
           server_url = "https://vpn.jakstys.lt";
           ip_prefixes = [ config.mj.services.headscale.subnetCIDR ];
           prefixes.v4 = config.mj.services.headscale.subnetCIDR;
-          log.level = "warn";
+          #log.level = "warn";
           policy.path = ./acl-policy.json;
           dns = {
             nameservers.global = [
