@@ -1,0 +1,37 @@
+{
+  "groups": {
+    "group:admin": ["motiejus@", "servers@"]
+  },
+  
+  "tagOwners": {
+    "tag:public-server": ["group:admin"]
+  },
+  
+  "acls": [
+    {
+      "action": "accept",
+      "src": ["group:admin"],
+      "dst": ["*:*"]
+    },
+    
+    {
+      "action": "accept",
+      "src": ["*"],
+      "dst": ["tag:public-server:*"]
+    },
+    
+    {
+      "action": "accept",
+      "src": ["*"],
+      "proto": "tcp",
+      "dst": ["*:22"]
+    },
+    
+    {
+      "action": "accept",
+      "src": ["*"],
+      "proto": "icmp",
+      "dst": ["*:*"]
+    }
+  ]
+}

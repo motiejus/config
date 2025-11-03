@@ -28,6 +28,7 @@
           ip_prefixes = [ config.mj.services.headscale.subnetCIDR ];
           prefixes.v4 = config.mj.services.headscale.subnetCIDR;
           log.level = "warn";
+          policy.path = ./acl-policy.json;
           dns = {
             nameservers.global = [
               "1.1.1.1"
