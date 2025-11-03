@@ -58,6 +58,10 @@ rec {
         vno4IP
       ];
     };
+    "sqq1-desk2.jakst.vpn" = rec {
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBKJjc2V5meA4+4O3GXX+Pwh6Lwwu4cvBGIZ52tufB4X";
+      system = "x86_64-linux";
+    };
     "vno3-nk.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBp3QL8p4AbuijEQX/uVHj6nkJ2/8qNSciL+Glydw2yK";
       system = "x86_64-linux";
