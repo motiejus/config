@@ -109,6 +109,13 @@ in
     services = {
       node_exporter.enable = true;
 
+      syncthing = {
+        enable = true;
+        user = "irena";
+        group = "users";
+        dataDir = "/home/irena";
+      };
+
       tailscale = {
         enable = true;
         verboseLogs = true;
