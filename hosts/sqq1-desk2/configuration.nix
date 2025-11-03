@@ -77,7 +77,7 @@ in
       enable = true;
       profiles.default = {
         isDefault = true;
-        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+        extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
           ublock-origin
           consent-o-matic
           multi-account-containers
