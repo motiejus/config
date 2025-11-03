@@ -267,9 +267,10 @@ in
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
+              mtworx
+              sqq1-desk2
               vno1-gdrx
               vno3-nk
-              mtworx
               fwminex
               vno1-vinc
               rzj-744P2PE
