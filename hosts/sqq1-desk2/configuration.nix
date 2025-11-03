@@ -75,6 +75,10 @@ in
 
     programs.firefox = {
       enable = true;
+      languagePacks = [
+        "lt"
+        "ru"
+      ];
       profiles.default = {
         isDefault = true;
         extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
@@ -82,6 +86,9 @@ in
           consent-o-matic
           multi-account-containers
         ];
+        settings = {
+          "intl.locale.requested" = "lt,ru,en-US";
+        };
       };
     };
   };
