@@ -30,12 +30,7 @@ in
     };
   };
 
-  swapDevices = [
-    {
-      device = "${nvme}-part2";
-      randomEncryption.enable = true;
-    }
-  ];
+  swapDevices = [ { device = "${nvme}-part2"; } ];
 
   fileSystems = {
     "/" = {
