@@ -20,6 +20,8 @@ in
   age.secrets = {
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
+    syncthing-key.file = ../../secrets/sqq1-desk2/syncthing/key.pem.age;
+    syncthing-cert.file = ../../secrets/sqq1-desk2/syncthing/cert.pem.age;
   };
 
   boot = {

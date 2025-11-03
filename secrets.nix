@@ -46,6 +46,10 @@ in
   "secrets/vno3-nk/syncthing/key.pem.age"
   "secrets/vno3-nk/syncthing/cert.pem.age"
 ]
+// mk ([ sqq1-desk2 ] ++ motiejus) [
+  "secrets/sqq1-desk2/syncthing/key.pem.age"
+  "secrets/sqq1-desk2/syncthing/cert.pem.age"
+]
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
   "secrets/vno1-gdrx/syncthing/cert.pem.age"
