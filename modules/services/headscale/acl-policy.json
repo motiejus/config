@@ -1,10 +1,10 @@
 {
   "groups": {
-    "group:admin": ["motiejus@", "servers@"]
+    "group:admin": ["motiejus", "servers"]
   },
   
   "tagOwners": {
-    "tag:public-server": ["group:admin"]
+    "tag:public-server": ["servers"]
   },
   
   "acls": [
