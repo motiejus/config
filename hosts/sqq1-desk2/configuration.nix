@@ -123,7 +123,6 @@ in
       frozen-bubble
       neverball
       pingus
-      pacman-game
       supermariowar
     ];
   };
