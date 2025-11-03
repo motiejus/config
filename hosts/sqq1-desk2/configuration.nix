@@ -17,6 +17,11 @@ in
 
   services.xserver.desktopManager.xfce.enableScreensaver = false;
 
+  i18n.defaultLocale = lib.mkForce "lt_LT.UTF-8";
+  i18n.extraLocaleSettings = {
+    LANGUAGE = "lt:ru:en";
+  };
+
   age.secrets = {
     motiejus-passwd-hash.file = ../../secrets/motiejus_passwd_hash.age;
     root-passwd-hash.file = ../../secrets/root_passwd_hash.age;
@@ -94,7 +99,33 @@ in
   };
 
   environment = {
-    systemPackages = with pkgs; [ ];
+    systemPackages = with pkgs; [
+      kdePackages.kpat
+      kdePackages.kmahjongg
+      kdePackages.kmines
+      kdePackages.ksudoku
+      kdePackages.kblocks
+      kdePackages.kbounce
+      kdePackages.kbreakout
+      kdePackages.kgoldrunner
+      kdePackages.klickety
+      kdePackages.klines
+      kdePackages.kollision
+      kdePackages.kreversi
+      kdePackages.kshisen
+      kdePackages.ksquares
+      kdePackages.kfourinline
+      kdePackages.kiriki
+
+      extremetuxracer
+      superTux
+      superTuxKart
+      frozen-bubble
+      neverball
+      pingus
+      pacman-game
+      supermariowar
+    ];
   };
 
   networking = {
