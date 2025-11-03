@@ -89,7 +89,7 @@ in
 
   networking = {
     hostId = "c14cbb01";
-    hostName = "sqq-desk2";
+    hostName = "sqq1-desk2";
     domain = "jakst.vpn";
     firewall.rejectPackets = true;
   };
