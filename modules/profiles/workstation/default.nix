@@ -68,7 +68,7 @@ in
         postgresql
         gcc_latest
         borgbackup
-        sweethome3d
+        sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
         git-filter-repo
         nixpkgs-review
