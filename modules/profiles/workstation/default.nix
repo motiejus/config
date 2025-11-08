@@ -11,6 +11,18 @@ in
   imports = [ ../desktop ];
 
   config = {
+
+    documentation = {
+      dev.enable = true;
+      doc.enable = true;
+      info.enable = true;
+      man = {
+        enable = true;
+        man-db.enable = false;
+        mandoc.enable = true;
+      };
+    };
+
     services.xserver = {
       windowManager.awesome.enable = true;
     };
@@ -56,6 +68,7 @@ in
         postgresql
         gcc_latest
         borgbackup
+        sweethome3d
         #diffoscope # broken on 2025-09-28, not used much
         git-filter-repo
         nixpkgs-review

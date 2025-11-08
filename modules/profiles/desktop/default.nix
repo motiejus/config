@@ -19,7 +19,6 @@ let
 in
 {
   imports = [
-    ../dev
     ../physical
   ];
   config = {
