@@ -44,7 +44,6 @@ in
           http_addr = "0.0.0.0";
           http_port = cfg.port;
         };
-        dashboards.min_refresh_interval = "15s";
         users.auto_assign_org = true;
         feature_toggles.accessTokenExpirationCheck = true;
       };

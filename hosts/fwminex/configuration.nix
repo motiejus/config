@@ -411,7 +411,9 @@ in
       retentionTime = "2y";
 
       globalConfig = {
-        scrape_interval = "15s";
+        # 15s would be preferable, but grafana does not allow
+        # setting a refresh_interval of 15s.
+        scrape_interval = "10s";
         evaluation_interval = "1m";
       };
 
