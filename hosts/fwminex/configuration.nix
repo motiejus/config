@@ -411,7 +411,7 @@ in
       retentionTime = "2y";
 
       globalConfig = {
-        scrape_interval = "10s";
+        scrape_interval = "15s";
         evaluation_interval = "1m";
       };
 
