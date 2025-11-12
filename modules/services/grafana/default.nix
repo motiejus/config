@@ -44,20 +44,7 @@ in
           http_addr = "0.0.0.0";
           http_port = cfg.port;
         };
-        dashboards = {
-          min_refresh_interval = "15s";
-          default_refresh_interval_options = [
-            "15s"
-            "30s"
-            "1m"
-            "5m"
-            "15m"
-            "30m"
-            "1h"
-            "2h"
-            "1d"
-          ];
-        };
+        dashboards.min_refresh_interval = "15s";
         users.auto_assign_org = true;
         feature_toggles.accessTokenExpirationCheck = true;
       };
