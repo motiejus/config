@@ -45,7 +45,7 @@ in
           http_port = cfg.port;
         };
         dashboards = {
-          min_refresh_interval = "5s";
+          min_refresh_interval = "15s";
           default_refresh_interval_options = [
             "15s"
             "30s"
