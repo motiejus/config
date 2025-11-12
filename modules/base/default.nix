@@ -48,8 +48,6 @@ in
       ];
     };
 
-    nixpkgs.config.allowUnfree = true;
-
     hardware.enableRedistributableFirmware = true;
 
     time.timeZone = cfg.timeZone;

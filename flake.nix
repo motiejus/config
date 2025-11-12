@@ -111,6 +111,7 @@
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;
+            config.allowUnfree = true;
             overlays = [
               (_self: super: {
                 go = super.go_1_25;
@@ -328,6 +329,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
+          config.allowUnfree = true;
           overlays = baseOverlays;
         };
       in
