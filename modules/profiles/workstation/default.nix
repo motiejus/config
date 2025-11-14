@@ -54,6 +54,7 @@ in
         undocker
         chromium
         binutils
+        openscad
         patchelf
         valgrind
         musl.dev
