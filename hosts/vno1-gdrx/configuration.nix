@@ -178,6 +178,11 @@ in
   networking = {
     hostName = "vno1-gdrx";
     domain = "jakst.vpn";
-    firewall.rejectPackets = true;
+    firewall = {
+      rejectPackets = true;
+      allowedUDPPorts = [
+        53
+      ];
+    };
   };
 }
