@@ -77,6 +77,17 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  services.nsd = {
+    enable = true;
+    interfaces = [
+      "0.0.0.0"
+      "::"
+    ];
+    zones = {
+      "jakstys.lt.".data = myData.jakstysLTZone;
+    };
+  };
+
   mj = {
     stateVersion = "24.05";
     timeZone = "Europe/Vilnius";
