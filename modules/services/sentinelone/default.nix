@@ -128,6 +128,12 @@ in
         BindPaths = [
           "${cfg.dataDir}:/opt/sentinelone"
         ];
+
+        # mj: resource constraints
+        CPUSchedulingPolicy = "idle";
+        IOSchedulingClass = "idle";
+        IOSchedulingPriority = 7;
+
         BindReadOnlyPaths = [
           "${cfg.package}/opt/sentinelone/bin:/opt/sentinelone/bin"
           "${cfg.package}/opt/sentinelone/ebpfs:/opt/sentinelone/ebpfs"
