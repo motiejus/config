@@ -24,6 +24,7 @@ in
     syncthing-key.file = ../../secrets/mtworx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/mtworx/syncthing/cert.pem.age;
     kolide-launcher.file = ../../secrets/mtworx/kolide-launcher.age;
+    s1-site-token.file = ../../secrets/mtworx/s1-site-token.age;
 
     ssh8022-client = {
       file = ../../secrets/ssh8022.age;
@@ -90,6 +91,12 @@ in
     };
 
     services = {
+      sentinelone = {
+        enable = true;
+        customerId = "motiejus.jakstys@chronosphere.io-mtworx";
+        sentinelOneManagementTokenPath = config.age.secrets.s1-site-token.path;
+      };
+
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;

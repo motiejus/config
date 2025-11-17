@@ -41,6 +41,7 @@ in
   "secrets/mtworx/syncthing/key.pem.age"
   "secrets/mtworx/syncthing/cert.pem.age"
   "secrets/mtworx/kolide-launcher.age"
+  "secrets/mtworx/s1-site-token.age"
 ]
 // mk ([ vno3-nk ] ++ motiejus) [
   "secrets/vno3-nk/syncthing/key.pem.age"

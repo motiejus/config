@@ -6,7 +6,7 @@
 }:
 with lib;
 let
-  cfg = config.services.sentinelone;
+  cfg = config.mj.services.sentinelone;
   initScript = pkgs.writeShellScriptBin "sentinelone-init.sh" ''
     #!/bin/bash
 
@@ -45,28 +45,24 @@ let
   '';
 in
 {
-  options = {
-    services = {
-      sentinelone = {
-        enable = mkEnableOption "SentinelOne Service";
-        package = mkPackageOption pkgs "sentinelone" { };
+  options.mj.services.sentinelone = {
+    enable = mkEnableOption "SentinelOne Service";
+    package = mkPackageOption pkgs "sentinelone" { };
 
-        customerId = mkOption {
-          type = types.nullOr types.str;
-          description = ''
-            Set a customer specific identifier for the host.
-          '';
-          example = "me@gmail.com-FTXYZWW";
-        };
-        sentinelOneManagementTokenPath = mkOption {
-          type = types.path;
-          example = "/run/secrets/s1_mgmt_token";
-        };
-        dataDir = mkOption {
-          type = types.path;
-          default = "/var/lib/sentinelone";
-        };
-      };
+    customerId = mkOption {
+      type = types.nullOr types.str;
+      description = ''
+        Set a customer specific identifier for the host.
+      '';
+      example = "me@gmail.com-FTXYZWW";
+    };
+    sentinelOneManagementTokenPath = mkOption {
+      type = types.path;
+      example = "/run/secrets/s1_mgmt_token";
+    };
+    dataDir = mkOption {
+      type = types.path;
+      default = "/var/lib/sentinelone";
     };
   };
 
