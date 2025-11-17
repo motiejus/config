@@ -104,8 +104,9 @@
           weather = super.callPackage ./pkgs/weather { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
-          vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
+          sentinelone = super.callPackage ./pkgs/sentinelone { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
+          vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           go-raceless = super.callPackage ./pkgs/go-raceless { };
 
@@ -359,7 +360,12 @@
       in
       {
         packages.x86_64-linux = {
-          inherit (pkgs) weather gamja chronoctl;
+          inherit (pkgs)
+            weather
+            gamja
+            chronoctl
+            sentinelone
+            ;
         };
       }
     );
