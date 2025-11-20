@@ -60,43 +60,7 @@
 
   programs._1password.enable = true;
 
-  services.clamav = {
-    updater.enable = true;
-    daemon = {
-      enable = true;
-      settings = {
-        ScanMail = false;
-        ScanArchive = false;
-        ExcludePath = [
-          "^/proc"
-          "^/sys"
-          "^/dev"
-          "^/nix"
-          "^/var"
-          "^/home/.cache"
-          "^/home/.go"
-          "^/home/dev"
-          "^/home/code"
-        ];
-      };
-    };
-  };
-
   systemd.services = {
-    # TODO remove once 24.05 is out
-    clamav-daemon.serviceConfig = {
-      StateDirectory = "clamav";
-      RuntimeDirectory = "clamav";
-      User = "clamav";
-      Group = "clamav";
-    };
-
-    clamav-freshclam.serviceConfig = {
-      StateDirectory = "clamav";
-      User = "clamav";
-      Group = "clamav";
-    };
-
     nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
   };
 
