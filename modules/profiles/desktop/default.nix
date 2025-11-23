@@ -250,15 +250,6 @@ in
       xorg.lndir
       xorg.xinit
 
-      (python3.withPackages (
-        ps: with ps; [
-          numpy
-          pyyaml
-          ipython
-          matplotlib
-        ]
-      ))
-
     ];
 
     # https://discourse.nixos.org/t/nixos-rebuild-switch-upgrade-networkmanager-wait-online-service-failure/30746

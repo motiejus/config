@@ -76,6 +76,16 @@ in
         wineWowPackages.full
         openorienteering-mapper
 
+        (python3.withPackages (
+          ps: with ps; [
+            numpy
+            pyyaml
+            ipython
+            pymodbus
+            matplotlib
+          ]
+        ))
+
         (texlive.combine {
           inherit (texlive)
             lithuanian
