@@ -114,6 +114,7 @@ in
         dataDir = "/data/borg";
         sshKeys = with myData; [
           hosts."fwminex.jakst.vpn".publicKey
+          hosts."fra1-c.jakst.vpn".publicKey
           people_pubkeys.motiejus
         ];
       };
