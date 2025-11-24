@@ -29,10 +29,10 @@ in
       mode = "444";
     };
 
-    borgbackup-fwminex = {
-      file = ../../secrets/fwminex/borgbackup-password.age;
-      owner = "motiejus";
-    };
+    #borgbackup-fwminex = {
+    #  file = ../../secrets/fwminex/borgbackup-password.age;
+    #  owner = "motiejus";
+    #};
   };
 
   boot = {
