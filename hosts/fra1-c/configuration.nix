@@ -13,6 +13,7 @@ in
   age.secrets = {
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
+    borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
@@ -111,6 +112,39 @@ in
           }
         ];
       };
+
+      btrfsborg =
+        let
+          this = "${config.networking.hostName}.${config.networking.domain}";
+          rsync-net = "zh2769@zh2769.rsync.net";
+          vno3-nk = "borgstor@vno3-nk.jakst.vpn";
+        in
+        {
+          enable = true;
+          passwordPath = config.age.secrets.borgbackup-password.path;
+          sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          dirs =
+            builtins.concatMap
+              (
+                host:
+                let
+                  prefix = "${host}:${this}";
+                in
+                [
+                  {
+                    subvolume = "/var/lib";
+                    repo = "${prefix}-var_lib";
+                    paths = [ "headscale" ];
+                    backup_at = "*-*-* 01:00:01 UTC";
+                  }
+                ]
+              )
+              [
+                rsync-net
+                vno3-nk
+              ];
+        };
+
     };
   };
 
