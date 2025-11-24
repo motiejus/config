@@ -186,6 +186,7 @@ in
   networking = {
     hostName = "fra1-c";
     domain = "jakst.vpn";
+    hostId = "98256a58";
     useDHCP = true;
     interfaces.enp1s0.ipv6.addresses = [
       {
