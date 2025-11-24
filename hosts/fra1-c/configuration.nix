@@ -13,7 +13,7 @@ in
   age.secrets = {
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
-    borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
+    borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;

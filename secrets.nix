@@ -46,6 +46,7 @@ in
 // mk ([ vno3-nk ] ++ motiejus) [
   "secrets/vno3-nk/syncthing/key.pem.age"
   "secrets/vno3-nk/syncthing/cert.pem.age"
+  "secrets/vno3-nk/borgbackup-password.age"
 ]
 // mk ([ sqq1-desk2 ] ++ motiejus) [
   "secrets/sqq1-desk2/syncthing/key.pem.age"
@@ -54,6 +55,10 @@ in
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
   "secrets/vno1-gdrx/syncthing/cert.pem.age"
+
+  "secrets/vno3-nk/borgbackup-password.age"
+  "secrets/fwminex/borgbackup-password.age"
+  "secrets/fra1-c/borgbackup-password.age"
 ]
 //
   mk
@@ -94,16 +99,14 @@ in
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
   "secrets/fwminex/up.jakstys.lt.env.age"
+  "secrets/fwminex/borgbackup-password.age"
 ]
 // mk (
   [
-    fwminex
-    vno1-gdrx
-    vno3-nk
     fra1-c
   ]
   ++ motiejus
-) [ "secrets/fwminex/borgbackup-password.age" ]
+) [ "secrets/fra1-c/borgbackup-password.age" ]
 // mk (systems ++ motiejus) [
   "secrets/motiejus_passwd_hash.age"
   "secrets/root_passwd_hash.age"

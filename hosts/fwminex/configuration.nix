@@ -19,7 +19,7 @@ in
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
+    borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
     vaultwarden-secrets-env.file = ../../secrets/vaultwarden/secrets.env.age;
     synapse-jakstys-signing-key.file = ../../secrets/synapse/jakstys_lt_signing_key.age;

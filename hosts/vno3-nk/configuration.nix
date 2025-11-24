@@ -18,7 +18,7 @@ in
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    borgbackup-password.file = ../../secrets/fwminex/borgbackup-password.age;
+    borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     timelapse.file = ../../secrets/timelapse.age;
     syncthing-key.file = ../../secrets/vno3-nk/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/vno3-nk/syncthing/cert.pem.age;
