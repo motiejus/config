@@ -264,7 +264,7 @@ in
         }
       '';
       virtualHosts = {
-        "vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
+        #"vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
         "hass.jakstys.lt:80".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
@@ -579,7 +579,7 @@ in
       };
 
       headscale = {
-        enable = true;
+        enable = false;
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
