@@ -35,6 +35,11 @@ in
       owner = "nginx";
     };
 
+    ssh8022-client = {
+      file = ../../secrets/ssh8022.age;
+      mode = "444";
+    };
+
     ssh8022-server = {
       file = ../../secrets/ssh8022.age;
       owner = "spiped";
@@ -530,9 +535,16 @@ in
         };
       };
 
-      ssh8022.server = {
-        enable = true;
-        keyfile = config.age.secrets.ssh8022-server.path;
+      ssh8022 = {
+        client = {
+          enable = true;
+          keyfile = config.age.secrets.ssh8022-client.path;
+        };
+
+        server = {
+          enable = true;
+          keyfile = config.age.secrets.ssh8022-server.path;
+        };
       };
 
       borgstor = {
