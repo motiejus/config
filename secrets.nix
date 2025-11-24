@@ -100,6 +100,7 @@ in
     fwminex
     vno1-gdrx
     vno3-nk
+    fra1-c
   ]
   ++ motiejus
 ) [ "secrets/fwminex/borgbackup-password.age" ]
