@@ -199,8 +199,15 @@ in
       interface = "enp1s0";
     };
     firewall = {
-      allowedUDPPorts = [ 53 ];
-      allowedTCPPorts = [ 53 ];
+      allowedUDPPorts = [
+        53
+        443
+      ];
+      allowedTCPPorts = [
+        53
+        80
+        443
+      ];
     };
   };
 
