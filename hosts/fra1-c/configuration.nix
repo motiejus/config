@@ -85,6 +85,11 @@ in
         saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
+      headscale = {
+        enable = true;
+        subnetCIDR = myData.subnets.tailscale.cidr;
+      };
+
       deployerbot = {
         follower = {
           publicKeys = [ myData.hosts."fwminex.jakst.vpn".publicKey ];
@@ -149,6 +154,21 @@ in
   };
 
   services = {
+    caddy = {
+      enable = true;
+      email = "motiejus+acme@jakstys.lt";
+      globalConfig = ''
+        servers {
+          metrics {
+            per_host
+          }
+        }
+      '';
+      virtualHosts = {
+        "vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
+      };
+    };
+
     nsd = {
       enable = true;
       interfaces = [
