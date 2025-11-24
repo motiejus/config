@@ -264,7 +264,6 @@ in
         }
       '';
       virtualHosts = {
-        #"vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
         "hass.jakstys.lt:80".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
@@ -578,11 +577,6 @@ in
         acceptDNS = true;
       };
 
-      headscale = {
-        enable = false;
-        subnetCIDR = myData.subnets.tailscale.cidr;
-      };
-
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
@@ -629,7 +623,6 @@ in
                   "gitea"
                   "caddy"
                   "grafana"
-                  "headscale"
                   "bitwarden_rs"
                   "matrix-synapse"
                   "private/soju"
