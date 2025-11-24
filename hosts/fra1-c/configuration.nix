@@ -94,6 +94,23 @@ in
         };
       };
 
+      btrfssnapshot = {
+        enable = true;
+        subvolumes = [
+          {
+            subvolume = "/var/lib";
+            label = "hourly";
+            keep = 24;
+            refreshInterval = "*:00:00";
+          }
+          {
+            subvolume = "/var/lib";
+            label = "5minutely";
+            keep = 12;
+            refreshInterval = "*:0/5";
+          }
+        ];
+      };
     };
   };
 

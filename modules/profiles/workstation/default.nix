@@ -47,6 +47,7 @@ in
         shfmt
         tokei
         shfmt
+        mbpoll # modbus poll
         bloaty
         skopeo
         inferno
