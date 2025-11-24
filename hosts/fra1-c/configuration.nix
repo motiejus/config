@@ -86,7 +86,7 @@ in
       };
 
       headscale = {
-        #enable = true;
+        enable = true;
         subnetCIDR = myData.subnets.tailscale.cidr;
       };
 
@@ -155,7 +155,7 @@ in
 
   services = {
     caddy = {
-      #enable = true;
+      enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
         servers {
