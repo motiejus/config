@@ -1,4 +1,8 @@
-{ pkgs, go }:
+{
+  pkgs,
+  go,
+  nicer,
+}:
 let
   go-script = pkgs.writeShellScript "go-raceless" ''
     args=("$@")
@@ -22,11 +26,11 @@ let
         done
 
         if [[ "$found_race" == "true" ]]; then
-            exec ${go}/bin/go "''${new_args[@]}"
+            exec ${nicer}/bin/nicer ${go}/bin/go "''${new_args[@]}"
         fi
     fi
 
-    exec ${go}/bin/go "$@"
+    exec ${nicer}/bin/nicer ${go}/bin/go "$@"
   '';
 
   preservedAttrs = pkgs.lib.attrsets.getAttrs [

@@ -3,7 +3,7 @@ require'lspconfig'.clangd.setup{
 }
 
 require'lspconfig'.gopls.setup{
-    cmd = { "nicer", "gopls" }
+    cmd = { "nicer", "@gopls@/bin/gopls" }
 }
 
 vim.api.nvim_exec([[

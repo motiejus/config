@@ -99,7 +99,7 @@
         #  };
         #  deploy-rs-pkg = null;
         #})
-        (_: super: {
+        (_: super: rec {
           gamja = super.callPackage ./pkgs/gamja.nix { };
           weather = super.callPackage ./pkgs/weather { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
@@ -108,7 +108,7 @@
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
-          go-raceless = super.callPackage ./pkgs/go-raceless { };
+          go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
 
           pkgs-unstable = import nixpkgs-unstable {
             inherit (super) system;

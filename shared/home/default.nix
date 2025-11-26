@@ -134,6 +134,7 @@ in
             builtins.readFile
               (pkgs.replaceVars ./dev.lua {
                 inherit (pkgs) ripgrep;
+                inherit (pkgs.pkgs-unstable) gopls;
               }).outPath;
         })
       ];
