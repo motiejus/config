@@ -163,6 +163,7 @@ in
       pdftk
       scrot
       tracy
+      dillo
       mb2md # mailbox2maildir
       cmake
       typst
