@@ -50,6 +50,7 @@ in
         mbpoll # modbus poll
         bloaty
         skopeo
+        remake
         inferno
         neomutt
         undocker
@@ -70,6 +71,7 @@ in
         postgresql
         gcc_latest
         borgbackup
+        redo-apenwarr
         sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
         git-filter-repo
