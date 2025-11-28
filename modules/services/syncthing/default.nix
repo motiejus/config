@@ -20,7 +20,6 @@ let
     "vno3-nk".id = "HDESTGW-C3PGZLU-7V7KLWP-SIJVM3V-JEG6OMT-CGOLOQW-DZMIPS7-G7SVSQB";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
     "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
-    "jonas-laptop".id = "6VP6TYU-SEQFCSO-ODDY7P7-72MNW3W-YXFNWJQ-JXNLVZQ-HRGCOJX-WZZZVQI";
   };
   folders = {
     Zemelapiai = {
@@ -28,7 +27,6 @@ let
         "vno1-gdrx"
         "vno3-nk"
         "mtworx"
-        "jonas-laptop"
       ];
       id = "ahz8ohSh";
       label = "Zemelapiai";
@@ -223,7 +221,6 @@ in
               vno1-vinc
               v-kfire
               a-kfire
-              jonas-laptop
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "sqq1-desk2") {
@@ -246,7 +243,6 @@ in
               vno1-gdrx
               fwminex
               mtworx
-              jonas-laptop
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
@@ -262,7 +258,6 @@ in
               sqq1-desk2
               v-kfire
               a-kfire
-              jonas-laptop
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
@@ -278,7 +273,6 @@ in
               vxp10
               a-kfire
               v-kfire
-              jonas-laptop
               ;
           })
           // { };
