@@ -1,8 +1,9 @@
-require'lspconfig'.clangd.setup{
+-- Updated to use vim.lsp.config (nvim 0.11+) instead of deprecated lspconfig
+vim.lsp.config.clangd = {
     cmd = { "nicer", "clangd" }
 }
 
-require'lspconfig'.gopls.setup{
+vim.lsp.config.gopls = {
     cmd = { "nicer", "@gopls@/bin/gopls" }
 }
 
