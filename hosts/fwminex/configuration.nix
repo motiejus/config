@@ -739,7 +739,7 @@ in
       tpm2-tools
       amdgpu_top
       graphicsmagick
-      ffmpeg-headless
+      ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
       age-plugin-yubikey
       (python3.withPackages (
         ps: with ps; [

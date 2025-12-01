@@ -12,7 +12,7 @@ let
     name = "go2rtc-prober";
     runtimeInputs = with pkgs; [
       systemd
-      ffmpeg-headless
+      ffmpeg_7-headless
     ];
     text = ''
       set -x
@@ -65,6 +65,10 @@ in
     services.go2rtc = {
       enable = true;
       settings = {
+        # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues in NixOS 25.11
+        # https://github.com/NixOS/nixpkgs/blob/master/doc/release-notes/rl-2511.section.md#L351
+        ffmpeg.bin = lib.getExe pkgs.ffmpeg_7-headless;
+
         # https://github.com/AlexxIT/go2rtc/issues/831
         #log = {
         #  format = "text";
@@ -98,6 +102,8 @@ in
       hostname = "r1.jakstys.lt";
       settings = {
         #ui.strftime_fmt = "%F %T";
+        # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues in NixOS 25.11
+        ffmpeg.path = pkgs.ffmpeg_7-headless;
         ffmpeg.hwaccel_args = "preset-vaapi";
         telemetry.version_check = false;
 
