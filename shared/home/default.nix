@@ -141,13 +141,15 @@ in
 
       git = {
         enable = true;
-        userEmail = email;
-        userName = "Motiejus Jakštys";
-        aliases = {
-          yolo = "commit --amend --no-edit -a";
-          pushf = "push --force-with-lease";
-        };
-        extraConfig = {
+        settings = {
+          user = lib.mkMerge [
+            { name = "Motiejus Jakštys"; }
+            (lib.mkIf (email != null) { inherit email; })
+          ];
+          alias = {
+            yolo = "commit --amend --no-edit -a";
+            pushf = "push --force-with-lease";
+          };
           log.date = "iso-strict-local";
           pull.ff = "only";
           core.abbrev = 12;
@@ -165,7 +167,6 @@ in
             confirm = "always";
             suppresscc = "self";
           };
-
         };
       };
 

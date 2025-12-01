@@ -155,7 +155,7 @@ in
       extremetuxracer
       superTux
       superTuxKart
-      frozen-bubble
+      # frozen-bubble # broken in 25.11 (perl SDL tests segfault)
       neverball
       pingus
       supermariowar

@@ -230,10 +230,10 @@ in
   };
 
   services = {
-    logind = {
-      lidSwitch = "ignore";
-      powerKey = "suspend";
-      powerKeyLongPress = "poweroff";
+    logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandlePowerKey = "suspend";
+      HandlePowerKeyLongPress = "poweroff";
     };
 
     plikd = {

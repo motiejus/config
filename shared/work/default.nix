@@ -74,7 +74,7 @@
       ANTHROPIC_VERTEX_PROJECT_ID = "chronosphere-rc-b";
     };
     programs = {
-      git.extraConfig = {
+      git.settings = {
         url."git@github.com:".insteadOf = "https://github.com";
         user.useConfigOnly = true;
       };

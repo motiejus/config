@@ -173,13 +173,13 @@ in
             tcpdump
             testssl
             dnsutils
-            curlHTTP3
+            curl
             bandwhich
             bridge-utils
             speedtest-cli
             nix-output-monitor
 
-            config.boot.kernelPackages.perf
+            perf
             config.boot.kernelPackages.vm-tools
           ]
         ];
