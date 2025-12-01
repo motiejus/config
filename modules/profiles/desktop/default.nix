@@ -71,10 +71,10 @@ in
         package = pkgs.pulseaudioFull;
       };
 
-      logind = {
-        powerKey = "suspend";
-        powerKeyLongPress = "poweroff";
-        lidSwitchExternalPower = "ignore";
+      logind.settings.Login = {
+        HandlePowerKey = "suspend";
+        HandlePowerKeyLongPress = "poweroff";
+        HandleLidSwitchExternalPower = "ignore";
       };
 
       avahi = {
@@ -224,7 +224,7 @@ in
       qalculate-qt # qalculate
       google-chrome
       wirelesstools
-      poppler_utils
+      poppler-utils
       squashfsTools
       joplin-desktop
       aspellDicts.en
@@ -238,7 +238,7 @@ in
       netsurf-browser
       man-pages-posix
       gnome-calculator
-      libsForQt5.okular
+      kdePackages.okular
       nvtopPackages.amd
       age-plugin-yubikey
       nvtopPackages.intel
@@ -330,11 +330,11 @@ in
         gtk = {
           enable = true;
           theme = {
-            package = pkgs.plasma5Packages.breeze-gtk;
+            package = pkgs.kdePackages.breeze-gtk;
             name = "Breeze";
           };
           cursorTheme = {
-            package = pkgs.plasma5Packages.breeze-icons;
+            package = pkgs.kdePackages.breeze-icons;
             name = "Breeze_Snow";
           };
           iconTheme = {

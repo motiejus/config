@@ -66,7 +66,7 @@ in
         wasmtime
         bpftrace
         hyperfine
-        sloccount
+        loccount
         tesseract
         postgresql
         gcc_latest

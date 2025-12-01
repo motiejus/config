@@ -67,7 +67,7 @@ let
     attrs:
     let
       args = configToArgs attrs;
-      argToCommand = arg: "${pkgs.plasma5Packages.kconfig}/bin/kwriteconfig5 ${arg}";
+      argToCommand = arg: "${pkgs.kdePackages.kconfig}/bin/kwriteconfig6 ${arg}";
       commands = builtins.map argToCommand args;
     in
     lib.strings.concatStringsSep "\n" commands;

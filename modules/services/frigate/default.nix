@@ -126,11 +126,15 @@ in
             days = 2;
             mode = "all";
           };
-          events = {
-            pre_capture = 5;
-            post_capture = 5;
+          alerts = {
             retain = {
-              default = 5;
+              days = 5;
+              mode = "motion";
+            };
+          };
+          detections = {
+            retain = {
+              days = 5;
               mode = "motion";
             };
           };

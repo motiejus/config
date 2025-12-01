@@ -2,14 +2,14 @@
   description = "motiejus/config";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nur.url = "github:nix-community/NUR";
 
-    home-manager.url = "github:nix-community/home-manager/release-25.05";
+    home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix = {
@@ -77,7 +77,6 @@
       home-manager,
       nixos-hardware,
       nix-index-database,
-      pre-commit-hooks,
       nur,
       zig,
       kolide-launcher,
@@ -111,7 +110,7 @@
           go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
 
           pkgs-unstable = import nixpkgs-unstable {
-            inherit (super) system;
+            inherit (super.stdenv.hostPlatform) system;
             config.allowUnfree = true;
             overlays = [
               (_self: super: {
