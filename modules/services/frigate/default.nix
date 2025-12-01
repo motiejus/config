@@ -54,10 +54,22 @@ in
       };
       go2rtc = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/go2rtc/secrets.env";
+        environment = {
+          # Set HOME so Mesa can find cache directory
+          HOME = "/var/cache/go2rtc";
+          # Force AMD VAAPI driver
+          LIBVA_DRIVER_NAME = "radeonsi";
+        };
         serviceConfig = {
           EnvironmentFile = [ "-/run/go2rtc/secrets.env" ];
           RuntimeDirectory = "go2rtc";
+          CacheDirectory = "go2rtc"; # Mesa shader cache at /var/cache/go2rtc
           LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+          # Ensure access to GPU devices
+          SupplementaryGroups = [
+            "render"
+            "video"
+          ];
         };
       };
     };
@@ -100,6 +112,7 @@ in
     services.frigate = {
       enable = true;
       hostname = "r1.jakstys.lt";
+      vaapiDriver = "radeonsi"; # AMD GPU VAAPI driver
       settings = {
         #ui.strftime_fmt = "%F %T";
         # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues in NixOS 25.11

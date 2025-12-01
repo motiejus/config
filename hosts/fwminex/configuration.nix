@@ -96,7 +96,12 @@ in
     coral.usb.enable = true;
     graphics = {
       enable = true;
-      extraPackages = [ pkgs.intel-media-driver ];
+      # AMD GPU VAAPI support
+      extraPackages = with pkgs; [
+        mesa # AMD GPU drivers (includes RADV)
+        libva-vdpau-driver # VAAPI for AMD (formerly vaapiVdpau)
+        libvdpau-va-gl # VDPAU to VA-GL bridge
+      ];
     };
   };
 
