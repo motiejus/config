@@ -125,7 +125,7 @@
 
     in
     {
-      inherit (nixpkgs) legacyPackages;
+      #inherit (nixpkgs) legacyPackages;
 
       nixosConfigurations = {
         vm = nixpkgs.lib.nixosSystem {
@@ -324,7 +324,7 @@
         }
       ) deploy-rs.lib;
     }
-    // flake-utils.lib.eachDefaultSystem (
+    // flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
       let
         pkgs = import nixpkgs {
