@@ -701,9 +701,12 @@ in
           deployDerivations = [
             ".#fwminex"
             ".#fra1-c"
-            ".#vno3-nk"
           ];
           deployIfPresent = [
+            {
+              derivationTarget = ".#vno3-nk";
+              pingTarget = "vno3-nk.jakst.vpn";
+            }
             {
               derivationTarget = ".#mtworx";
               pingTarget = "mtworx.jakst.vpn";
