@@ -248,6 +248,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             inherit (devices)
               vno1-gdrx
+              vno3-nk
               fwminex
               mtworx
               mxp1

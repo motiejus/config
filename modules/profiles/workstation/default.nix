@@ -38,6 +38,7 @@ in
         wrk2
         cloc
         josm
+        zbar
         pdal
         gdal
         flex
