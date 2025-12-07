@@ -16,7 +16,7 @@ let
     "vno1-vinc".id = "4W3S7R2-OWI6XO6-V4NMDNB-NTIETYP-QJSBQGA-WEIXPHR-WNZZ7R4-VT4COAR";
     "vno1-gdrx".id = "XOZO6GL-MEH55QR-PTNRVHE-45PD3L2-SHP7XW6-VXKROQ5-F47U3AX-QQACLQP";
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
-    "sqq1-desk2".id = "HUM7DHH-54XEV44-UVIK3TJ-DDMUFKR-S6IHDMB-6XXOSP2-3RKL4TB-M5VCGAQ";
+    "vno2-desk2".id = "HUM7DHH-54XEV44-UVIK3TJ-DDMUFKR-S6IHDMB-6XXOSP2-3RKL4TB-M5VCGAQ";
     "vno3-nk".id = "HDESTGW-C3PGZLU-7V7KLWP-SIJVM3V-JEG6OMT-CGOLOQW-DZMIPS7-G7SVSQB";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
     "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
@@ -76,7 +76,7 @@ let
     Vaikai = {
       devices = [
         "vno1-vinc"
-        "sqq1-desk2"
+        "vno2-desk2"
         "vno1-gdrx"
         "fwminex"
         "mtworx"
@@ -156,7 +156,7 @@ let
         "fwminex"
         "vno1-gdrx"
         "vno2-irena"
-        "sqq1-desk2"
+        "vno2-desk2"
       ];
       id = "wuwai-qkcqj";
       label = "Irenos";
@@ -216,16 +216,16 @@ in
               mxp1
               vxp10
               vno2-irena
-              sqq1-desk2
+              vno2-desk2
               rzj-744P2PE
               vno1-vinc
               v-kfire
               a-kfire
               ;
           })
-          // (lib.optionalAttrs (config.networking.hostName == "sqq1-desk2") {
+          // (lib.optionalAttrs (config.networking.hostName == "vno2-desk2") {
             inherit (devices)
-              sqq1-desk2
+              vno2-desk2
               vxp10
               mtworx
               fwminex
@@ -256,7 +256,7 @@ in
               rzj-744P2PE
               vno1-vinc
               vno2-irena
-              sqq1-desk2
+              vno2-desk2
               v-kfire
               a-kfire
               ;
@@ -264,7 +264,7 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
             inherit (devices)
               mtworx
-              sqq1-desk2
+              vno2-desk2
               vno1-gdrx
               vno3-nk
               fwminex
@@ -328,7 +328,7 @@ in
             "${cfg.dataDir}/music" = Music;
             "${cfg.dataDir}/www" = www-vno1-gdrx;
           })
-          // (lib.optionalAttrs (config.networking.hostName == "sqq1-desk2") {
+          // (lib.optionalAttrs (config.networking.hostName == "vno2-desk2") {
             "${cfg.dataDir}/Sync" = Irenos;
             "${cfg.dataDir}/Vaikai" = Vaikai;
           });

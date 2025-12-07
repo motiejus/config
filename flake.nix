@@ -224,11 +224,11 @@
           // inputs;
         };
 
-        sqq1-desk2 = nixpkgs.lib.nixosSystem {
+        vno2-desk2 = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
             { nixpkgs.overlays = baseOverlays; }
-            ./hosts/sqq1-desk2/configuration.nix
+            ./hosts/vno2-desk2/configuration.nix
             home-manager.nixosModules.home-manager
             agenix.nixosModules.default
           ];
@@ -297,12 +297,12 @@
           };
         };
 
-        sqq1-desk2 = {
-          hostname = "sqq1-desk2.jakst.vpn";
+        vno2-desk2 = {
+          hostname = "vno2-desk2.jakst.vpn";
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.sqq1-desk2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.sqq1-desk2;
+              path = self.nixosConfigurations.vno2-desk2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno2-desk2;
               user = "root";
             };
           };

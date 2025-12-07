@@ -58,12 +58,12 @@ rec {
         vno4IP
       ];
     };
-    "sqq1-desk2.jakst.vpn" = rec {
+    "vno2-desk2.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBKJjc2V5meA4+4O3GXX+Pwh6Lwwu4cvBGIZ52tufB4X";
       system = "x86_64-linux";
       jakstIP = "100.89.176.8";
       extraHostNames = [
-        "sqq1-desk2"
+        "vno2-desk2"
         jakstIP
       ];
     };

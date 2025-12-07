@@ -11,7 +11,7 @@ let
   fra1-c = (import ./data.nix).hosts."fra1-c.jakst.vpn".publicKey;
   mtworx = (import ./data.nix).hosts."mtworx.jakst.vpn".publicKey;
   vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.jakst.vpn".publicKey;
-  sqq1-desk2 = (import ./data.nix).hosts."sqq1-desk2.jakst.vpn".publicKey;
+  vno2-desk2 = (import ./data.nix).hosts."vno2-desk2.jakst.vpn".publicKey;
 
   systems = [
     fra1-c
@@ -19,7 +19,7 @@ let
     fwminex
     vno3-nk
     vno1-gdrx
-    sqq1-desk2
+    vno2-desk2
   ];
 
   mk =
@@ -48,9 +48,9 @@ in
   "secrets/vno3-nk/syncthing/cert.pem.age"
   "secrets/vno3-nk/borgbackup-password.age"
 ]
-// mk ([ sqq1-desk2 ] ++ motiejus) [
-  "secrets/sqq1-desk2/syncthing/key.pem.age"
-  "secrets/sqq1-desk2/syncthing/cert.pem.age"
+// mk ([ vno2-desk2 ] ++ motiejus) [
+  "secrets/vno2-desk2/syncthing/key.pem.age"
+  "secrets/vno2-desk2/syncthing/cert.pem.age"
 ]
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
