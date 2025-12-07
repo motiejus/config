@@ -435,6 +435,7 @@ in
               "vno3-nk.jakst.vpn"
               "fra1-c.jakst.vpn"
               "vno1-gdrx.jakst.vpn"
+              "vno2-desk2.jakst.vpn"
             ];
           in
 
