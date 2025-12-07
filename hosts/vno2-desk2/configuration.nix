@@ -130,6 +130,7 @@ in
 
     services = {
       node_exporter.enable = true;
+      ping_exporter.enable = true;
 
       syncthing = {
         enable = true;
