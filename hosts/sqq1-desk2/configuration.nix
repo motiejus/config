@@ -67,29 +67,31 @@ in
   home-manager.users.irena = {
     home = {
       stateVersion = "25.05";
-      language = {
-        base = "lt_LT.UTF-8";
-      };
+      language.base = "lt_LT.UTF-8";
       sessionVariables = {
         LANGUAGE = "lt:ru:en";
       };
     };
 
-    programs.firefox = {
-      enable = true;
-      languagePacks = [
-        "lt"
-        "ru"
-      ];
-      profiles.default = {
-        isDefault = true;
-        extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
-          ublock-origin
-          consent-o-matic
-          multi-account-containers
+    programs = {
+      bash.enable = true;
+
+      firefox = {
+        enable = true;
+        languagePacks = [
+          "lt"
+          "ru"
         ];
-        settings = {
-          "intl.locale.requested" = "lt,ru,en-US";
+        profiles.default = {
+          isDefault = true;
+          extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
+            ublock-origin
+            consent-o-matic
+            multi-account-containers
+          ];
+          settings = {
+            "intl.locale.requested" = "lt,ru,en-US";
+          };
         };
       };
     };
