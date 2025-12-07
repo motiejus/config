@@ -97,6 +97,24 @@ in
     };
   };
 
+  security.polkit.enable = true;
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id == "org.freedesktop.login1.power-off" ||
+          action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+          action.id == "org.freedesktop.login1.reboot" ||
+          action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
+
+        if (subject.isInGroup("root") || subject.user == "motiejus") {
+          return polkit.Result.YES;
+        }
+
+        // Deny for everyone else
+        return polkit.Result.NO;
+      }
+    });
+  '';
+
   mj = {
     stateVersion = "25.05";
     timeZone = "Europe/Vilnius";
