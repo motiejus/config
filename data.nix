@@ -62,6 +62,7 @@ rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBKJjc2V5meA4+4O3GXX+Pwh6Lwwu4cvBGIZ52tufB4X";
       system = "x86_64-linux";
       jakstIP = "100.89.176.8";
+      publicIP = "193.216.240.146";
       extraHostNames = [
         "vno2-desk2"
         jakstIP
@@ -155,6 +156,7 @@ rec {
       fra1c = hosts."fra1-c.jakst.vpn".publicIP;
       fra1cv6 = hosts."fra1-c.jakst.vpn".publicIP6;
       vno1 = hosts."fwminex.jakst.vpn".publicIP;
+      vno2 = hosts."vno2-desk2.jakst.vpn".publicIP;
       vno4 = hosts."vno4-rutx11.jakst.vpn".publicIP;
     in
     ''
@@ -179,6 +181,7 @@ rec {
       fra1-c                           A     ${fra1c}
       fra1-c                        AAAA     ${fra1cv6}
       vno4                             A     ${vno4}
+      vno2                             A     ${vno2}
       r1                               A     ${vno1}
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
