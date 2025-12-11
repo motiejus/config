@@ -216,6 +216,7 @@ in
       shellcheck
       virtualenv
       imagemagick
+      get_iplayer
       #ventoy-full
       ghostscript
       pavucontrol
