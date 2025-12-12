@@ -153,7 +153,8 @@ in
           serviceConfig = {
             # 2025-02-11 blocks system from upgrading during reload
             # 2025-06-02 still necessary
-            ExecReload = lib.mkForce "";
+            # 2025-12-12 Failed to reload caddy.service: Job type reload is not applicable for unit caddy.service.
+            #ExecReload = lib.mkForce "";
 
             LoadCredential = [
               "r1.jakstys.lt-cert.pem:${r1.certFile}"
