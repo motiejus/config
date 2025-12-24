@@ -162,9 +162,7 @@ in
       xclip
       pdftk
       scrot
-      tracy
       dillo
-      mb2md # mailbox2maildir
       cmake
       typst
       sioyek
@@ -183,18 +181,18 @@ in
       ioping
       motion
       gthumb
+      csvkit
       calibre
       gparted
-      glabels-qt
       scribus
       gnumake
       libwebp
       librsvg
       picocom
       libheif
-      csvkit
       mplayer
       tcpflow
+      gcompris
       nautilus
       smplayer
       inkscape
@@ -227,7 +225,6 @@ in
       wirelesstools
       poppler-utils
       squashfsTools
-      joplin-desktop
       aspellDicts.en
       aspellDicts.lt
       libreoffice-qt

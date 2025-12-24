@@ -47,6 +47,7 @@ in
         bison
         shfmt
         tokei
+        tracy
         shfmt
         mbpoll # modbus poll
         bloaty
@@ -69,10 +70,12 @@ in
         hyperfine
         loccount
         tesseract
+        glabels-qt
         postgresql
         gcc_latest
         borgbackup
         redo-apenwarr
+        joplin-desktop
         sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
         git-filter-repo
