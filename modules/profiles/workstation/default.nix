@@ -86,6 +86,7 @@ in
         (python3.withPackages (
           ps: with ps; [
             numpy
+            ymodem
             pyyaml
             ipython
             pymodbus
