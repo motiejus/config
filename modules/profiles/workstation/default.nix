@@ -35,6 +35,7 @@ in
       with pkgs;
       [
         rr
+        uv
         wrk2
         cloc
         josm
