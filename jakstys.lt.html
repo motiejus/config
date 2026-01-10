@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jakštys</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.5;
+            color: #333;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        a {
+            display: block;
+            font-size: 3rem;
+            font-weight: 500;
+            color: #0071eb;
+            text-decoration: none;
+            padding: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: #f80;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            a {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            a {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-height: 500px) {
+            .links {
+                flex-direction: row;
+                gap: 1.5rem;
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                color: #ccc;
+                background-color: #222;
+            }
+
+            a {
+                color: #007bff;
+            }
+
+            a:hover {
+                color: #f80;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="links">
+            <a href="https://m.jakstys.lt">Motiejus</a>
+            <a href="https://rita.jakstys.lt">Rita</a>
+        </div>
+    </div>
+</body>
+</html>
