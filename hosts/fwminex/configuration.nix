@@ -373,7 +373,45 @@ in
           in
           ''
             @redirects {
+              path /2022/big-tech-hiring/
+              path /2022/first-post-here/
+              path /2022/how-uber-uses-zig/
+              path /2022/my-favorite-podcast/
+              path /2022/side-project-retrospective/
+              path /2022/smart-bundling/
+              path /2022/synctech.html
+              path /2022/startup/
+              path /2022/uber-mock-interview-retrospective/
+              path /2023/7-years-at-uber/
+              path /2023/end-of-summer-2023/
+              path /2023/microsoft-git/
+              path /2023/my-declining-matrix-usage/
+              path /2023/my-zig-and-go-work-for-the-next-3-months/
+              path /2023/nixos-subjectively/
+              path /2023/summer-roadmap-2023/
+              path /2024/11sync-shutdown/
+              path /2024/11sync-signup/
+              path /2024/bcachefs/
+              path /2024/family-single-sign-on-was-a-bad-idea/
+              path /2024/i-have-successfully-re-googled-myself/
+              path /2024/new-job/
+              path /2024/thank-you-drew-devault/
+              path /2024/web-compression/
+              path /2024/zig-reproduced-without-binaries/
+              path /2025/construction-site-surveillance/
+              path /2026/testing-lifepo4-15ah-with-gyrfalcon-s8000/
               path /contact/
+              path /gpg.txt
+              path /log/rss.xml
+              path /resume/
+              path /resume.pdf
+              path /talks/
+              path /talks/2016-buildstuff-understanding-building-your-own-docker.mkv
+              path /talks/2016-buildstuff-understanding-building-your-own-docker.pdf
+              path /talks/2022-zig-milan-party_How-zig-is-used-at-Uber.pdf
+              path /talks/2022-zig-milan-party_How-zig-is-used-at-Uber.webm
+              path /talks/2024-sycl-maps-and-yellow-pages.mkv
+              path /talks/2024-sycl-maps-and-yellow-pages.pdf
             }
 
             header {
