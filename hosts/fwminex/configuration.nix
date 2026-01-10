@@ -364,41 +364,54 @@ in
             precompressed zstd br gzip
           }
         '';
-        "jakstys.lt".extraConfig = ''
-          header {
-            Strict-Transport-Security "max-age=15768000"
-            Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'"
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "DENY"
-            Alt-Svc "h3=\":443\"; ma=86400"
+        "jakstys.lt".extraConfig =
+          let
+            jakstysLandingPage = pkgs.runCommand "jakstys-landing-page" { } ''
+              mkdir -p $out
+              cp ${../../jakstys.lt.html} $out/index.html
+            '';
+          in
+          ''
+            @redirects {
+              path /contact/
+            }
 
-            /_/* Cache-Control "public, max-age=31536000, immutable"
-          }
+            header {
+              Strict-Transport-Security "max-age=15768000"
+              Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "DENY"
+              Alt-Svc "h3=\":443\"; ma=86400"
 
-          root * /var/www/jakstys.lt
-          file_server {
-            precompressed zstd br gzip
-          }
+              /_/* Cache-Control "public, max-age=31536000, immutable"
+            }
 
-          @matrixMatch {
-            path /.well-known/matrix/client
-            path /.well-known/matrix/server
-          }
-          header @matrixMatch Content-Type application/json
-          header @matrixMatch Access-Control-Allow-Origin *
-          header @matrixMatch Cache-Control "public, max-age=3600, immutable"
+            root * ${jakstysLandingPage}
+            file_server {
+              precompressed zstd br gzip
+            }
 
-          handle /.well-known/matrix/client {
-            respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
-          }
-          handle /.well-known/matrix/server {
-            respond "{\"m.server\": \"jakstys.lt:443\"}" 200
-          }
+            @matrixMatch {
+              path /.well-known/matrix/client
+              path /.well-known/matrix/server
+            }
+            header @matrixMatch Content-Type application/json
+            header @matrixMatch Access-Control-Allow-Origin *
+            header @matrixMatch Cache-Control "public, max-age=3600, immutable"
 
-          handle /_matrix/* {
-            reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
-          }
-        '';
+            handle /.well-known/matrix/client {
+              respond "{\"m.homeserver\": {\"base_url\": \"https://jakstys.lt\"}}" 200
+            }
+            handle /.well-known/matrix/server {
+              respond "{\"m.server\": \"jakstys.lt:443\"}" 200
+            }
+
+            handle /_matrix/* {
+              reverse_proxy http://127.0.0.1:${toString myData.ports.matrix-synapse}
+            }
+
+            redir @redirects https://m.jakstys.lt{uri} 302
+          '';
       };
     };
 
