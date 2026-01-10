@@ -366,10 +366,22 @@ in
         '';
         "jakstys.lt".extraConfig =
           let
-            jakstysLandingPage = pkgs.runCommand "jakstys-landing-page" { } ''
-              mkdir -p $out
-              cp ${../../jakstys.lt.html} $out/index.html
-            '';
+            jakstysLandingPage =
+              pkgs.runCommand "jakstys-landing-page"
+                {
+                  nativeBuildInputs = with pkgs; [
+                    zstd
+                    brotli
+                    zopfli
+                  ];
+                }
+                ''
+                  mkdir -p $out
+                  cp ${../../jakstys.lt.html} $out/index.html
+                  zstd -k -19 $out/index.html
+                  brotli -k $out/index.html
+                  zopfli -k $out/index.html
+                '';
           in
           ''
             @redirects {
