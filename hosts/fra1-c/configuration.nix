@@ -165,7 +165,7 @@ in
         }
       '';
       virtualHosts = {
-        "vpn.jakstys.lt".extraConfig = ''reverse_proxy 127.0.0.1:${toString myData.ports.headscale}'';
+        "vpn.jakstys.lt".extraConfig = "reverse_proxy 127.0.0.1:${toString myData.ports.headscale}";
       };
     };
 
