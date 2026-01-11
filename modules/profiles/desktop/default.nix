@@ -192,6 +192,7 @@ in
       libheif
       mplayer
       tcpflow
+      ddrescue
       gcompris
       nautilus
       smplayer
