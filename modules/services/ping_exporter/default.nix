@@ -38,6 +38,7 @@ in
 
           "sqq1-desk.jakst.vpn"
           "vno3-nk.jakst.vpn"
+          "jetkvm.jakst.vpn"
           "vno1-gdrx.jakst.vpn"
           "vno4-rutx11.jakst.vpn"
         ];
