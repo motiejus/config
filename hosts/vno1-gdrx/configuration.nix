@@ -171,6 +171,7 @@ in
   environment.systemPackages = with pkgs; [
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     #linuxPackage.rr-zen_workaround # TODO(motiejus) broken on/since 2025-08
+    prismlauncher
   ];
 
   powerManagement.cpuFreqGovernor = "performance";
