@@ -36,10 +36,11 @@ in
           "vno2.jakstys.lt"
           "fra1-c.jakstys.lt"
 
-          "sqq1-desk.jakst.vpn"
-          "vno3-nk.jakst.vpn"
           "jetkvm.jakst.vpn"
+          "vno3-nk.jakst.vpn"
+          "sqq1-desk.jakst.vpn"
           "vno1-gdrx.jakst.vpn"
+          "vno1-vj-win.jakst.vpn"
           "vno4-rutx11.jakst.vpn"
         ];
       };
