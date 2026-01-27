@@ -32,9 +32,12 @@ let
     bash
     less
     kmod
+    tmux
+    dhcpcd
     parted
     procps
     gnugrep
+    iproute2
     findutils
     e2fsprogs
     dosfstools
