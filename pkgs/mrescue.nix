@@ -1,166 +1,64 @@
 {
-  lib,
   pkgs,
+  stdenv,
+  fetchurl,
 }:
 
-let
-  # Minimal locale package with only en_US.UTF-8
-  minimalLocales = pkgs.glibcLocales.override {
-    allLocales = false;
-    locales = [ "en_US.UTF-8/UTF-8" ];
+stdenv.mkDerivation rec {
+  pname = "mrescue";
+  version = "3.23.2";
+
+  src = fetchurl {
+    url = "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/x86_64/alpine-netboot-${version}-x86_64.tar.gz";
+    hash = "sha256-nFfzrPH1KI2R3OXBOluV7wB/hY63ImxWp/tyzBahpK0=";
   };
 
-  # Simple halt script
-  haltScript = pkgs.writeScriptBin "halt" ''
-    #!${pkgs.bash}/bin/bash
-    sync
-    echo o > /proc/sysrq-trigger
-  '';
-
-  # Simple reboot script
-  rebootScript = pkgs.writeScriptBin "reboot" ''
-    #!${pkgs.bash}/bin/bash
-    sync
-    echo b > /proc/sysrq-trigger
-  '';
-
-  # Simple init script
-  init = pkgs.writeScript "init" ''
-    #!${pkgs.bash}/bin/bash
-    set -e
-
-    # Set up PATH first
-    export PATH=/bin
-    export HOME=/root
-    export TERM=linux
-
-    # Set up UTF-8 locale
-    export LOCALE_ARCHIVE=/lib/locale/locale-archive
-    export LC_ALL=en_US.utf8
-    export LANG=en_US.utf8
-    export LC_CTYPE=en_US.utf8
-
-    # Create mount points
-    mkdir -p /proc /sys /dev /run /tmp
-
-    # Mount essential filesystems
-    mount -t proc proc /proc
-    mount -t sysfs sys /sys
-    mount -t devtmpfs dev /dev
-
-    # Drop to rescue shell
-    exec /bin/bash
-  '';
-
-  # Packages to include (all binaries from each package will be included)
-  packages = with pkgs; [
-    vim
-    bash
-    less
-    kmod
-    tmux
-    dhcpcd
-    parted
-    procps
-    gnugrep
-    iproute2
+  nativeBuildInputs = with pkgs; [
+    gzip
+    cpio
+    squashfsTools
     findutils
-    e2fsprogs
-    dosfstools
-    btrfs-progs
-    util-linux
-    uutils-coreutils-noprefix
+    zstd
   ];
 
-  # Generate binary entries for makeInitrdNG by auto-discovering all binaries
-  binaryEntries =
-    let
-      # Collect all entries with package info
-      allEntriesWithPkg = lib.flatten (
-        map (
-          pkg:
-          let
-            binDir = "${pkg}/bin";
-            # Get all files in the bin directory
-            binFiles = if builtins.pathExists binDir then builtins.attrNames (builtins.readDir binDir) else [ ];
-            pkgName = pkg.name or (builtins.baseNameOf (builtins.toString pkg));
-          in
-          map (bin: {
-            source = "${binDir}/${bin}";
-            target = "/bin/${bin}";
-            package = pkgName;
-            binary = bin;
-          }) binFiles
-        ) packages
-      );
+  sourceRoot = ".";
 
-      # Build map of binary -> list of packages providing it
-      binaryMap = lib.foldl' (
-        acc: entry:
-        let
-          existing = acc.${entry.binary} or [ ];
-        in
-        acc // { ${entry.binary} = existing ++ [ entry.package ]; }
-      ) { } allEntriesWithPkg;
+  unpackPhase = ''
+    runHook preUnpack
+    mkdir alpine-boot
+    tar -xzf $src -C alpine-boot --strip-components=1
+    runHook postUnpack
+  '';
 
-      # Deduplicate by target path, keeping first occurrence and warning about duplicates
-      deduped = lib.foldl' (
-        acc: entry:
-        let
-          alreadyExists = builtins.any (e: e.target == entry.target) acc;
-          providers = binaryMap.${entry.binary};
-          hasDuplicates = builtins.length providers > 1;
-        in
-        if alreadyExists then
-          acc
-        else if hasDuplicates then
-          builtins.trace
-            "Warning: binary '${entry.binary}' provided by multiple packages: ${builtins.concatStringsSep ", " providers}. Chose: ${entry.package}"
-            (acc ++ [ entry ])
-        else
-          acc ++ [ entry ]
-      ) [ ] allEntriesWithPkg;
-    in
-    deduped;
+  buildPhase = ''
+    runHook preBuild
 
-  initrd = pkgs.makeInitrdNG {
-    name = "mrescue-initrd";
-    compressor = "zstd";
-    compressorArgs = [
-      #"-19"
-      "-12"
-      "-T0"
-    ];
+    mkdir -p work/initramfs-extracted
+    cd work
 
-    contents = [
-      {
-        source = init;
-        target = "/init";
-      }
-      {
-        source = "${pkgs.linuxPackages_latest.kernel.modules}/lib/modules";
-        target = "/lib/modules";
-      }
-      {
-        source = "${minimalLocales}/lib/locale/locale-archive";
-        target = "/lib/locale/locale-archive";
-      }
-      {
-        source = "${haltScript}/bin/halt";
-        target = "/bin/halt";
-      }
-      {
-        source = "${rebootScript}/bin/reboot";
-        target = "/bin/reboot";
-      }
-    ]
-    ++ binaryEntries; # makeInitrdNG will auto-resolve dependencies for these
-  };
+    gzip -dc < ../alpine-boot/initramfs-virt | \
+      cpio -idm --quiet -D initramfs-extracted
 
-in
-# Package both kernel and initrd together
-pkgs.runCommand "mrescue" { } ''
-  mkdir -p $out
-  ln -s ${pkgs.linuxPackages_latest.kernel}/bzImage $out/bzImage
-  ln -s ${initrd}/initrd $out/initrd
-''
+    unsquashfs -f -d modloop-extracted ../alpine-boot/modloop-virt >/dev/null
+
+    mkdir -p initramfs-extracted/lib/modules
+    cp -r modloop-extracted/modules/* initramfs-extracted/lib/modules/
+
+    cd initramfs-extracted
+    find * .[^.*] -print0 | sort -z | \
+      cpio --quiet -o -H newc -R +0:+0 --reproducible --null | \
+      zstd -15 -T0 > ../initramfs-combined.zst
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out
+    install -Dm644 ../../alpine-boot/vmlinuz-virt $out/kernel
+    install -Dm644 ../initramfs-combined.zst $out/initramfs
+
+    runHook postInstall
+  '';
+}
