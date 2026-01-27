@@ -44,6 +44,12 @@ stdenv.mkDerivation rec {
     mkdir -p initramfs-extracted/lib/modules
     cp -r modloop-extracted/modules/* initramfs-extracted/lib/modules/
 
+    # Initialize apk database
+    mkdir -p initramfs-extracted/lib/apk/db
+    mkdir -p initramfs-extracted/etc/apk
+    touch initramfs-extracted/lib/apk/db/installed
+    touch initramfs-extracted/etc/apk/world
+
     cd initramfs-extracted
     find * .[^.*] -print0 | sort -z | \
       cpio --quiet -o -H newc -R +0:+0 --reproducible --null | \
