@@ -32,8 +32,9 @@ Borg
 netboot
 -------
 
+efi:
+
 qemu-system-x86_64 \
-    -nographic \
     -enable-kvm \
     -cpu host \
     -m 1024 \
@@ -41,3 +42,13 @@ qemu-system-x86_64 \
     -device e1000,netdev=net0 \
     -boot order=n \
     -bios $(nix build .#nixosConfigurations.mtworx.pkgs.OVMF.fd --no-link --print-out-paths)/FV/OVMF.fd
+
+bios:
+
+qemu-system-x86_64 \
+    -enable-kvm \
+    -cpu host \
+    -m 8192 \
+    -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
+    -device e1000,netdev=net0 \
+    -boot order=n
