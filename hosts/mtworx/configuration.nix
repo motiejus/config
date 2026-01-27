@@ -31,15 +31,21 @@ let
     shell
   '';
 
-  # Custom iPXE with embedded menu
-  customIpxe = pkgs.ipxe.override {
+  # Custom iPXE with embedded menu (UEFI)
+  customIpxeEfi = pkgs.ipxe.override {
+    embedScript = ipxeMenu;
+  };
+
+  # Custom iPXE with embedded menu (BIOS)
+  customIpxeBios = pkgs.ipxe.override {
     embedScript = ipxeMenu;
   };
 
   # TFTP root directory with all boot files
   tftp-root = pkgs.runCommand "tftp-root" { } ''
     mkdir -p $out/mrescue
-    cp ${customIpxe}/ipxe.efi $out/boot.efi
+    cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
+    cp ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
     cp ${pkgs.mrescue}/kernel $out/mrescue/kernel
     cp ${pkgs.mrescue}/initrd $out/mrescue/initrd
     cp ${pkgs.netbootxyz-efi} $out/netboot.xyz.efi
@@ -226,7 +232,23 @@ in
         dhcp-option = "66,\"0.0.0.0\"";
         enable-tftp = true;
         tftp-root = "${tftp-root}";
-        dhcp-boot = "boot.efi";
+
+        # Detect client architecture and serve appropriate bootloader
+        # DHCP option 93 = Client System Architecture Type
+        dhcp-match = [
+          "set:efi-x86_64,option:client-arch,7" # EFI BC (x86-64)
+          "set:efi-x86_64,option:client-arch,9" # EFI x86-64
+          "set:efi-x86,option:client-arch,6" # EFI IA32
+          "set:bios,option:client-arch,0" # BIOS x86
+        ];
+
+        # Serve appropriate boot file based on architecture
+        dhcp-boot = [
+          "tag:efi-x86_64,boot.efi" # UEFI x86-64 clients
+          "tag:efi-x86,boot.efi" # UEFI IA32 clients
+          "tag:bios,boot.kpxe" # BIOS clients
+          "boot.efi" # Default to UEFI if undetected
+        ];
       };
     };
   };
