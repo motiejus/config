@@ -28,3 +28,16 @@ Borg
 ----
 
     BORG_PASSCOMMAND="cat /run/agenix/borgbackup-fwminex" borg --remote-path=borg1 list zh2769@zh2769.rsync.net:fwminex.jakst.vpn-home-motiejus-annex2
+
+netboot
+-------
+
+qemu-system-x86_64 \
+    -nographic \
+    -enable-kvm \
+    -cpu host \
+    -m 1024 \
+    -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
+    -device e1000,netdev=net0 \
+    -boot order=n \
+    -bios $(nix build .#nixosConfigurations.mtworx.pkgs.OVMF.fd --no-link --print-out-paths)/FV/OVMF.fd

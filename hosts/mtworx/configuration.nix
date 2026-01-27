@@ -11,6 +11,9 @@ let
   ipxeMenu = pkgs.writeText "boot.ipxe" ''
     #!ipxe
 
+    # Ensure network is configured
+    dhcp || echo DHCP failed, trying to continue anyway
+
     :menu
     menu PXE Boot Menu
     item mrescue Boot mrescue (Rescue System)
