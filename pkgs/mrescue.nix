@@ -15,7 +15,8 @@
   less,
   writeScript,
   kmod,
-  linuxPackages_6_18,
+  linuxPackages_latest,
+  linux-firmware,
 }:
 
 let
@@ -201,12 +202,12 @@ let
       }
       # Kernel modules
       {
-        source = "${linuxPackages_6_18.kernel.dev}/lib/modules";
+        source = "${linuxPackages_latest.kernel.dev}/lib/modules";
         target = "/lib/modules";
       }
-      # Kernel firmware
+      # Linux firmware
       {
-        source = "${linuxPackages_6_18.kernel.dev}/lib/firmware";
+        source = "${linux-firmware}/lib/firmware";
         target = "/lib/firmware";
       }
     ]
@@ -217,7 +218,7 @@ in
 # Package both kernel and initrd together
 runCommand "mrescue" { } ''
   mkdir -p $out
-  ln -s ${linuxPackages_6_18.kernel}/bzImage $out/bzImage
+  ln -s ${linuxPackages_latest.kernel}/bzImage $out/bzImage
   ln -s ${initrd}/initrd $out/initrd
   ln -s ${initrd}/initrd $out/initrd.zst
 ''
