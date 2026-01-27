@@ -20,7 +20,7 @@ let
     goto ''${selected}
 
     :mrescue
-    kernel tftp://10.14.143.1/mrescue/bzImage
+    kernel tftp://10.14.143.1/mrescue/kernel
     initrd tftp://10.14.143.1/mrescue/initrd
     boot
 
@@ -40,7 +40,7 @@ let
   tftp-root = pkgs.runCommand "tftp-root" { } ''
     mkdir -p $out/mrescue
     cp ${customIpxe}/ipxe.efi $out/boot.efi
-    cp ${pkgs.mrescue}/bzImage $out/mrescue/bzImage
+    cp ${pkgs.mrescue}/kernel $out/mrescue/kernel
     cp ${pkgs.mrescue}/initrd $out/mrescue/initrd
     cp ${pkgs.netbootxyz-efi} $out/netboot.xyz.efi
   '';

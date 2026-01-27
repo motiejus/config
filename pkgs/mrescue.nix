@@ -55,7 +55,7 @@ stdenv.mkDerivation rec {
     cd initramfs-extracted
     find * .[^.*] -print0 | sort -z | \
       cpio --quiet -o -H newc -R +0:+0 --reproducible --null | \
-      zstd -15 -T0 > ../initramfs-combined.zst
+      zstd -19 -T8 > ../initramfs-combined.zst
 
     runHook postBuild
   '';
@@ -65,7 +65,7 @@ stdenv.mkDerivation rec {
 
     mkdir -p $out
     install -Dm644 ../../alpine-boot/vmlinuz-virt $out/kernel
-    install -Dm644 ../initramfs-combined.zst $out/initramfs
+    install -Dm644 ../initramfs-combined.zst $out/initrd
 
     runHook postInstall
   '';
