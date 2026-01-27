@@ -4,6 +4,26 @@
 }:
 
 let
+  # Minimal locale package with only en_US.UTF-8
+  minimalLocales = pkgs.glibcLocales.override {
+    allLocales = false;
+    locales = [ "en_US.UTF-8/UTF-8" ];
+  };
+
+  # Simple halt script
+  haltScript = pkgs.writeScriptBin "halt" ''
+    #!${pkgs.bash}/bin/bash
+    sync
+    echo o > /proc/sysrq-trigger
+  '';
+
+  # Simple reboot script
+  rebootScript = pkgs.writeScriptBin "reboot" ''
+    #!${pkgs.bash}/bin/bash
+    sync
+    echo b > /proc/sysrq-trigger
+  '';
+
   # Simple init script
   init = pkgs.writeScript "init" ''
     #!${pkgs.bash}/bin/bash
@@ -13,6 +33,12 @@ let
     export PATH=/bin
     export HOME=/root
     export TERM=linux
+
+    # Set up UTF-8 locale
+    export LOCALE_ARCHIVE=/lib/locale/locale-archive
+    export LC_ALL=en_US.utf8
+    export LANG=en_US.utf8
+    export LC_CTYPE=en_US.utf8
 
     # Create mount points
     mkdir -p /proc /sys /dev /run /tmp
@@ -114,6 +140,18 @@ let
       {
         source = "${pkgs.linuxPackages_latest.kernel.modules}/lib/modules";
         target = "/lib/modules";
+      }
+      {
+        source = "${minimalLocales}/lib/locale/locale-archive";
+        target = "/lib/locale/locale-archive";
+      }
+      {
+        source = "${haltScript}/bin/halt";
+        target = "/bin/halt";
+      }
+      {
+        source = "${rebootScript}/bin/reboot";
+        target = "/bin/reboot";
       }
     ]
     ++ binaryEntries; # makeInitrdNG will auto-resolve dependencies for these
