@@ -49,6 +49,8 @@ stdenv.mkDerivation rec {
     mkdir -p initramfs-extracted/etc/apk
     touch initramfs-extracted/lib/apk/db/installed
     touch initramfs-extracted/etc/apk/world
+    echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/main" > initramfs-extracted/etc/apk/repositories
+    echo "https://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> initramfs-extracted/etc/apk/repositories
 
     cd initramfs-extracted
     find * .[^.*] -print0 | sort -z | \
