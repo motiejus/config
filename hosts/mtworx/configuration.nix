@@ -34,6 +34,7 @@ in
 
   boot = {
     kernelPackages = pkgs.linuxPackages_6_18;
+    loader.systemd-boot.netbootxyz.enable = true;
 
     initrd = {
       availableKernelModules = [
@@ -43,6 +44,7 @@ in
         "usbhid"
         "tpm_tis"
       ];
+
       systemd.emergencyAccess = true;
       luks.devices = {
         luksroot = {
