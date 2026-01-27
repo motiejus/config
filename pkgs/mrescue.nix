@@ -190,7 +190,8 @@ let
     name = "mrescue-initrd";
     compressor = "zstd";
     compressorArgs = [
-      "-19"
+      #"-19"
+      "-9"
       "-T0"
     ]; # Maximum compression, all threads
 
