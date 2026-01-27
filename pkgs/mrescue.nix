@@ -125,5 +125,4 @@ pkgs.runCommand "mrescue" { } ''
   mkdir -p $out
   ln -s ${pkgs.linuxPackages_latest.kernel}/bzImage $out/bzImage
   ln -s ${initrd}/initrd $out/initrd
-  ln -s ${initrd}/initrd $out/initrd.zst
 ''
