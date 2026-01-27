@@ -213,6 +213,44 @@ in
     hostId = "b14a02aa";
     hostName = "mtworx";
     domain = "jakst.vpn";
-    firewall.rejectPackets = true;
+
+    # Configure USB Ethernet interface with internal IP
+    interfaces.enp0s20f0u2 = {
+      ipv4.addresses = [
+        {
+          address = "10.14.143.1";
+          prefixLength = 24;
+        }
+      ];
+    };
+
+    nat = {
+      enable = true;
+      externalInterface = "wlp0s20f3";
+      internalInterfaces = [ "enp0s20f0u2" ];
+      internalIPs = [ "10.14.143.0/24" ];
+    };
+
+    firewall = {
+      rejectPackets = true;
+      interfaces.enp0s20f0u2 = {
+        allowedUDPPorts = [
+          53
+          67
+          69
+        ];
+        allowedTCPPorts = [ 53 ];
+      };
+      extraCommands = ''
+        # Allow only through WiFi interface (to gateway and internet)
+        iptables -A FORWARD -s 10.14.143.0/24 -o wlp0s20f3 -j ACCEPT
+
+        # Allow established connections back
+        iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+        # Block everything else from 10.14.143.0/24
+        iptables -A FORWARD -s 10.14.143.0/24 -j DROP
+      '';
+    };
   };
 }

@@ -105,6 +105,7 @@
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           sentinelone = super.callPackage ./pkgs/sentinelone { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
+          mrescue = super.callPackage ./pkgs/mrescue.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
@@ -363,6 +364,7 @@
             weather
             gamja
             chronoctl
+            mrescue
             sentinelone
             ;
         };
