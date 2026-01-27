@@ -6,8 +6,42 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNU0Y624491Y";
+
+  # iPXE boot menu script
+  ipxeMenu = pkgs.writeText "boot.ipxe" ''
+    #!ipxe
+
+    :menu
+    menu PXE Boot Menu
+    item mrescue Boot mrescue (Rescue System)
+    item netbootxyz Boot netboot.xyz
+    item shell iPXE Shell
+    choose --default mrescue --timeout 10000 selected || goto menu
+    goto ''${selected}
+
+    :mrescue
+    kernel tftp://10.14.143.1/mrescue/bzImage
+    initrd tftp://10.14.143.1/mrescue/initrd
+    boot
+
+    :netbootxyz
+    chain tftp://10.14.143.1/netboot.xyz.efi
+
+    :shell
+    shell
+  '';
+
+  # Custom iPXE with embedded menu
+  customIpxe = pkgs.ipxe.override {
+    embedScript = ipxeMenu;
+  };
+
+  # TFTP root directory with all boot files
   tftp-root = pkgs.runCommand "tftp-root" { } ''
-    mkdir -p $out
+    mkdir -p $out/mrescue
+    cp ${customIpxe}/ipxe.efi $out/boot.efi
+    cp ${pkgs.mrescue}/bzImage $out/mrescue/bzImage
+    cp ${pkgs.mrescue}/initrd $out/mrescue/initrd
     cp ${pkgs.netbootxyz-efi} $out/netboot.xyz.efi
   '';
 in
@@ -192,7 +226,7 @@ in
         dhcp-option = "66,\"0.0.0.0\"";
         enable-tftp = true;
         tftp-root = "${tftp-root}";
-        dhcp-boot = "netboot.xyz.efi";
+        dhcp-boot = "boot.efi";
       };
     };
   };
