@@ -248,8 +248,12 @@ in
     hostName = "mtworx";
     domain = "jakst.vpn";
 
-    # Configure USB Ethernet interface with internal IP
-    interfaces.enp0s20f0u2 = {
+    bridges.br0 = {
+      interfaces = [ ];
+    };
+
+    # Configure bridge with internal IP
+    interfaces.br0 = {
       ipv4.addresses = [
         {
           address = "10.14.143.1";
@@ -261,19 +265,19 @@ in
     nat = {
       enable = true;
       externalInterface = "wlp0s20f3";
-      internalInterfaces = [ "enp0s20f0u2" ];
+      internalInterfaces = [ "br0" ];
       internalIPs = [ "10.14.143.0/24" ];
     };
 
     firewall = {
       rejectPackets = true;
-      interfaces.enp0s20f0u2 = {
+      interfaces.br0 = {
         allowedUDPPorts = [
-          53
-          67
-          69
+          53 # DNS
+          67 # DHCP
+          69 # TFTP
         ];
-        allowedTCPPorts = [ 53 ];
+        allowedTCPPorts = [ 53 ]; # DNS
       };
       extraCommands = ''
         # Allow only through WiFi interface (to gateway and internet)
