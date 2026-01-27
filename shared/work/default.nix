@@ -13,28 +13,6 @@
     firewall.allowedTCPPorts = [ 80 ];
   };
 
-  services.nginx = {
-    enable = true;
-    defaultListenAddresses = [ "0.0.0.0" ];
-    virtualHosts = {
-      "_" = {
-        default = true;
-        root = "/var/run/nginx/motiejus";
-        locations."/".extraConfig = ''
-          autoindex on;
-        '';
-      };
-      "go" = {
-        addSSL = true;
-        sslCertificate = "${../../shared/certs/go.pem}";
-        sslCertificateKey = "${../../shared/certs/go.key}";
-        locations."/".extraConfig = ''
-          return 301 https://golinks.io$request_uri;
-        '';
-      };
-    };
-  };
-
   environment.systemPackages = with pkgs; [
     #swc
     turbo
@@ -59,10 +37,6 @@
   ];
 
   programs._1password.enable = true;
-
-  systemd.services = {
-    nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
-  };
 
   home-manager.users.${config.mj.username} = {
     home.sessionVariables = {

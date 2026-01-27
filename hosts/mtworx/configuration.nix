@@ -20,12 +20,12 @@ let
     goto ''${selected}
 
     :mrescue
-    kernel tftp://10.14.143.1/mrescue/kernel
-    initrd tftp://10.14.143.1/mrescue/initrd
+    kernel http://10.14.143.1/boot/mrescue/kernel
+    initrd http://10.14.143.1/boot/mrescue/initrd
     boot
 
     :netbootxyz
-    chain tftp://10.14.143.1/netboot.xyz.efi
+    chain http://10.14.143.1/boot/netboot.xyz.efi
 
     :shell
     shell
@@ -209,7 +209,40 @@ in
     };
   };
 
+  systemd.services = {
+    nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
+  };
+
   services = {
+
+    nginx = {
+      enable = true;
+      defaultListenAddresses = [ "0.0.0.0" ];
+      virtualHosts = {
+        "_" = {
+          default = true;
+          root = "/var/run/nginx/motiejus";
+          locations."/".extraConfig = ''
+            autoindex on;
+          '';
+          locations."/boot/" = {
+            alias = "${tftp-root}/";
+            extraConfig = ''
+              autoindex on;
+            '';
+          };
+        };
+        "go" = {
+          addSSL = true;
+          sslCertificate = "${../../shared/certs/go.pem}";
+          sslCertificateKey = "${../../shared/certs/go.key}";
+          locations."/".extraConfig = ''
+            return 301 https://golinks.io$request_uri;
+          '';
+        };
+      };
+    };
+
     tlp = {
       enable = true;
       settings = {
@@ -234,7 +267,10 @@ in
   users.extraGroups.vboxusers.members = [ "motiejus" ];
 
   environment = {
-    systemPackages = with pkgs; [ dnsmasq ];
+    systemPackages = with pkgs; [
+      dnsmasq
+      OVMF
+    ];
     etc."kolide-k2/secret" = {
       mode = "600";
       source = config.age.secrets.kolide-launcher.path;
@@ -277,7 +313,10 @@ in
           67 # DHCP
           69 # TFTP
         ];
-        allowedTCPPorts = [ 53 ]; # DNS
+        allowedTCPPorts = [
+          53 # DNS
+          80 # HTTP for boot files
+        ];
       };
       extraCommands = ''
         # Allow only through WiFi interface (to gateway and internet)
