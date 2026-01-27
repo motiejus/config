@@ -1,6 +1,7 @@
 {
   lib,
   runCommand,
+  symlinkJoin,
   makeInitrdNG,
   uutils-coreutils-noprefix,
   bash,
@@ -16,7 +17,8 @@
   writeScript,
   kmod,
   linuxPackages_latest,
-  linux-firmware,
+  glibc,
+  gcc-unwrapped,
 }:
 
 let
@@ -25,19 +27,22 @@ let
     #!${bash}/bin/bash
     set -e
 
-    # Mount essential filesystems
-    ${util-linux}/bin/mount -t proc proc /proc
-    ${util-linux}/bin/mount -t sysfs sys /sys
-    ${util-linux}/bin/mount -t devtmpfs dev /dev
-
-    # Set up environment
+    # Set up PATH first
     export PATH=/bin
     export HOME=/root
     export TERM=linux
 
+    # Create mount points
+    mkdir -p /proc /sys /dev /run /tmp
+
+    # Mount essential filesystems
+    mount -t proc proc /proc
+    mount -t sysfs sys /sys
+    mount -t devtmpfs dev /dev
+
     # Load essential kernel modules for hardware support
     echo "Loading kernel modules..."
-    ${kmod}/bin/modprobe -a \
+    modprobe -a \
       nvme sd_mod usb_storage ata_piix ahci \
       ext4 vfat btrfs xfs \
       e1000e igb r8169 virtio_net \
@@ -57,12 +62,12 @@ let
     echo "  Text: vim, grep, find, head, tail"
     echo "  System: ps, kill, chmod, chown"
     echo ""
-    echo "Kernel modules and firmware included."
+    echo "Kernel modules included."
     echo "Type 'exit' or Ctrl+D to reboot"
     echo ""
 
     # Drop to rescue shell
-    exec ${bash}/bin/bash
+    exec /bin/bash
   '';
 
   # Package binaries to include
@@ -174,6 +179,15 @@ let
     }
   ];
 
+  # Merge glibc and gcc libraries into one directory
+  mergedLibs = symlinkJoin {
+    name = "merged-libs";
+    paths = [
+      glibc
+      gcc-unwrapped.lib
+    ];
+  };
+
   # Generate binary entries for makeInitrdNG
   binaryEntries = lib.flatten (
     map (
@@ -201,15 +215,20 @@ let
         source = init;
         target = "/init";
       }
+      # Merged C libraries (glibc + gcc)
+      {
+        source = "${mergedLibs}/lib";
+        target = "/lib";
+      }
+      # Dynamic linker (also at /lib64 for compatibility)
+      {
+        source = "${mergedLibs}/lib/ld-linux-x86-64.so.2";
+        target = "/lib64/ld-linux-x86-64.so.2";
+      }
       # Kernel modules
       {
         source = "${linuxPackages_latest.kernel.modules}/lib/modules";
         target = "/lib/modules";
-      }
-      # Linux firmware
-      {
-        source = "${linux-firmware}/lib/firmware";
-        target = "/lib/firmware";
       }
     ]
     ++ binaryEntries;
