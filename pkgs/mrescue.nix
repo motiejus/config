@@ -202,7 +202,7 @@ let
       }
       # Kernel modules
       {
-        source = "${linuxPackages_latest.kernel.dev}/lib/modules";
+        source = "${linuxPackages_latest.kernel.modules}/lib/modules";
         target = "/lib/modules";
       }
       # Linux firmware
