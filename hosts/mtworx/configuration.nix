@@ -79,6 +79,7 @@ in
   nixpkgs.hostPlatform = "x86_64-linux";
 
   mj = {
+    profiles.desktop.enableUserServices = true;
     stateVersion = "23.11";
     timeZone = "UTC";
     username = "motiejus";

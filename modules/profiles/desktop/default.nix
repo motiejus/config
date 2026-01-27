@@ -5,7 +5,13 @@
   ...
 }:
 let
+  cfg = config.mj.profiles.desktop;
   inherit (config.mj) username;
+  inherit (lib)
+    types
+    mkOption
+    ;
+
   firefox =
     if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
   brightness = pkgs.writeShellApplication {
@@ -18,6 +24,13 @@ let
   };
 in
 {
+  options.mj.profiles.desktop = with types; {
+    enableUserServices = mkOption {
+      type = bool;
+      default = false;
+    };
+  };
+
   imports = [
     ../physical
   ];
@@ -60,7 +73,7 @@ in
       "docker"
     ];
 
-    services = {
+    services = lib.mkIf cfg.enableUserServices {
       blueman.enable = true;
       udev.packages = [ pkgs.yubikey-personalization ];
       gnome.gnome-keyring.enable = true;

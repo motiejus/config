@@ -89,6 +89,8 @@ in
   };
 
   mj = {
+    profiles.desktop.enableUserServices = true;
+
     stateVersion = "24.05";
     timeZone = "Europe/Vilnius";
     username = "motiejus";
