@@ -6,6 +6,10 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNU0Y624491Y";
+  tftp-root = pkgs.runCommand "tftp-root" { } ''
+    mkdir -p $out
+    cp ${pkgs.netbootxyz-efi} $out/netboot.xyz.efi
+  '';
 in
 {
   imports = [
@@ -180,6 +184,17 @@ in
       };
     };
     kolide-launcher.enable = true;
+
+    dnsmasq = {
+      enable = true;
+      settings = {
+        dhcp-range = [ "10.14.143.100,10.14.143.200" ];
+        dhcp-option = "66,\"0.0.0.0\"";
+        enable-tftp = true;
+        tftp-root = "${tftp-root}";
+        dhcp-boot = "netboot.xyz.efi";
+      };
+    };
   };
 
   users.extraGroups.vboxusers.members = [ "motiejus" ];
