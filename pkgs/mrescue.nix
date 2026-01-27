@@ -1,27 +1,12 @@
 {
   lib,
-  runCommand,
-  makeInitrdNG,
-  uutils-coreutils-noprefix,
-  bash,
-  util-linux,
-  e2fsprogs,
-  dosfstools,
-  parted,
-  vim-full,
-  findutils,
-  gnugrep,
-  procps,
-  less,
-  writeScript,
-  kmod,
-  linuxPackages_latest,
+  pkgs,
 }:
 
 let
   # Simple init script
-  init = writeScript "init" ''
-    #!${bash}/bin/bash
+  init = pkgs.writeScript "init" ''
+    #!${pkgs.bash}/bin/bash
     set -e
 
     # Set up PATH first
@@ -42,46 +27,74 @@ let
   '';
 
   # Packages to include (all binaries from each package will be included)
-  packages = [
-    uutils-coreutils-noprefix
+  packages = with pkgs; [
+    vim
     bash
-    util-linux
-    e2fsprogs
-    dosfstools
-    parted
-    vim-full
-    findutils
-    gnugrep
-    procps
     less
     kmod
+    parted
+    procps
+    gnugrep
+    findutils
+    e2fsprogs
+    dosfstools
+    btrfs-progs
+    util-linux
+    uutils-coreutils-noprefix
   ];
 
   # Generate binary entries for makeInitrdNG by auto-discovering all binaries
   binaryEntries =
     let
-      allEntries = lib.flatten (
+      # Collect all entries with package info
+      allEntriesWithPkg = lib.flatten (
         map (
           pkg:
           let
             binDir = "${pkg}/bin";
             # Get all files in the bin directory
             binFiles = if builtins.pathExists binDir then builtins.attrNames (builtins.readDir binDir) else [ ];
+            pkgName = pkg.name or (builtins.baseNameOf (builtins.toString pkg));
           in
           map (bin: {
             source = "${binDir}/${bin}";
             target = "/bin/${bin}";
+            package = pkgName;
+            binary = bin;
           }) binFiles
         ) packages
       );
-      # Deduplicate by target path, keeping first occurrence
+
+      # Build map of binary -> list of packages providing it
+      binaryMap = lib.foldl' (
+        acc: entry:
+        let
+          existing = acc.${entry.binary} or [ ];
+        in
+        acc // { ${entry.binary} = existing ++ [ entry.package ]; }
+      ) { } allEntriesWithPkg;
+
+      # Deduplicate by target path, keeping first occurrence and warning about duplicates
       deduped = lib.foldl' (
-        acc: entry: if builtins.any (e: e.target == entry.target) acc then acc else acc ++ [ entry ]
-      ) [ ] allEntries;
+        acc: entry:
+        let
+          alreadyExists = builtins.any (e: e.target == entry.target) acc;
+          providers = binaryMap.${entry.binary};
+          hasDuplicates = builtins.length providers > 1;
+        in
+        if alreadyExists then
+          acc
+        else if hasDuplicates then
+          builtins.trace
+            "Warning: binary '${entry.binary}' provided by multiple packages: ${builtins.concatStringsSep ", " providers}. Chose: ${entry.package}"
+            (acc ++ [ entry ])
+        else
+          acc ++ [ entry ]
+      ) [ ] allEntriesWithPkg;
     in
     deduped;
 
-  initrd = makeInitrdNG {
+  initrd = pkgs.makeInitrdNG {
     name = "mrescue-initrd";
     compressor = "zstd";
     compressorArgs = [
@@ -91,14 +104,12 @@ let
     ];
 
     contents = [
-      # Init script
       {
         source = init;
         target = "/init";
       }
-      # Kernel modules (not ELF binaries, must be added manually)
       {
-        source = "${linuxPackages_latest.kernel.modules}/lib/modules";
+        source = "${pkgs.linuxPackages_latest.kernel.modules}/lib/modules";
         target = "/lib/modules";
       }
     ]
@@ -107,9 +118,9 @@ let
 
 in
 # Package both kernel and initrd together
-runCommand "mrescue" { } ''
+pkgs.runCommand "mrescue" { } ''
   mkdir -p $out
-  ln -s ${linuxPackages_latest.kernel}/bzImage $out/bzImage
+  ln -s ${pkgs.linuxPackages_latest.kernel}/bzImage $out/bzImage
   ln -s ${initrd}/initrd $out/initrd
   ln -s ${initrd}/initrd $out/initrd.zst
 ''
