@@ -113,11 +113,18 @@
           # Debian Live flavors
           mrescue-debian-standard = mkDebianLive {
             flavor = "standard";
+            version = "13.3.0";
             hash = "sha256-7is9X5vGfYAe7+3b1WmO+7CzU1hyS37T20Yb4/Xn7NY=";
           };
           mrescue-debian-xfce = mkDebianLive {
             flavor = "xfce";
+            version = "13.3.0";
             hash = "sha256-xvHLR2gOOdsTIu7FrOZdxgfG6keqniEhhf9ywJmtNXQ=";
+          };
+          mrescue-debian-kde = mkDebianLive {
+            flavor = "kde";
+            version = "13.3.0";
+            hash = "sha256-ahYjQLygLt9n4VnIR81gVhinfVC/ggiO5RT4M2nkO4k=";
           };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
@@ -407,6 +414,7 @@
             mrescue-alpine
             mrescue-debian-standard
             mrescue-debian-xfce
+            mrescue-debian-kde
             sentinelone
             ;
         };

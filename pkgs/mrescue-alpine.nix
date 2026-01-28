@@ -6,11 +6,11 @@
 
 stdenv.mkDerivation rec {
   pname = "mrescue-alpine";
-  version = "3.23.2";
+  version = "3.23.3";
 
   src = fetchurl {
     url = "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/x86_64/alpine-netboot-${version}-x86_64.tar.gz";
-    hash = "sha256-nFfzrPH1KI2R3OXBOluV7wB/hY63ImxWp/tyzBahpK0=";
+    hash = "sha256-U/tUZvdhLU/2Fr3g9jfwuM0mfX5SrtxwUiD0h+Qx8VA=";
   };
 
   nativeBuildInputs = with pkgs; [

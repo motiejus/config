@@ -5,12 +5,13 @@
 }:
 {
   flavor,
+  version,
   hash,
 }:
 
 stdenv.mkDerivation rec {
   pname = "mrescue-debian-${flavor}";
-  version = "13.3.0";
+  inherit version;
 
   src = fetchurl {
     url = "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${version}-amd64-${flavor}.iso";
