@@ -116,6 +116,7 @@ in
   '';
 
   mj = {
+    profiles.desktop.enableUserServices = true;
     stateVersion = "25.05";
     timeZone = "Europe/Vilnius";
     username = "motiejus";
