@@ -42,3 +42,17 @@ HASH_SRI=$(nix-hash --type sha256 --to-sri "$HASH_HEX")
 # Output version and hash
 echo "version: $VERSION"
 echo "hash: $HASH_SRI"
+echo ""
+
+# Check mirror availability
+echo "Checking mirror availability..." >&2
+MIRROR_URL="https://dl.jakstys.lt/boot/alpine-netboot-${VERSION}-x86_64.tar.gz"
+if curl -sI "$MIRROR_URL" | head -1 | grep -q "200"; then
+  echo "✓ File available on mirror" >&2
+else
+  echo "⚠ Warning: File not found on mirror!" >&2
+  echo ""
+  echo "To upload to mirror, run:" >&2
+  echo "  ssh fwminex sh -c 'cd /var/www/dl/boot && wget https://dl-cdn.alpinelinux.org/alpine/${LATEST_MINOR}/releases/x86_64/alpine-netboot-${VERSION}-x86_64.tar.gz'" >&2
+  echo ""
+fi

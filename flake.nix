@@ -126,6 +126,11 @@
             version = "13.3.0";
             hash = "sha256-ahYjQLygLt9n4VnIR81gVhinfVC/ggiO5RT4M2nkO4k=";
           };
+
+          # NixOS netboot rescue image
+          # Note: Update URL and hash manually from https://nixos.org/download
+          mrescue-nixos = super.callPackage ./pkgs/mrescue-nixos.nix { };
+
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
@@ -415,6 +420,7 @@
             mrescue-debian-standard
             mrescue-debian-xfce
             mrescue-debian-kde
+            mrescue-nixos
             sentinelone
             ;
         };

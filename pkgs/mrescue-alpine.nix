@@ -9,7 +9,10 @@ stdenv.mkDerivation rec {
   version = "3.23.3";
 
   src = fetchurl {
-    url = "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/x86_64/alpine-netboot-${version}-x86_64.tar.gz";
+    urls = [
+      "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/x86_64/alpine-netboot-${version}-x86_64.tar.gz"
+      "https://dl.jakstys.lt/boot/alpine-netboot-${version}-x86_64.tar.gz"
+    ];
     hash = "sha256-U/tUZvdhLU/2Fr3g9jfwuM0mfX5SrtxwUiD0h+Qx8VA=";
   };
 

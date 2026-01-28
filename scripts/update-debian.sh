@@ -58,3 +58,16 @@ cat <<EOF
             hash = "${HASH_SRI}";
           };
 EOF
+
+echo ""
+echo "Checking mirror availability..." >&2
+MIRROR_URL="https://dl.jakstys.lt/boot/debian-live-${VERSION}-amd64-${FLAVOR}.iso"
+if curl -sI "$MIRROR_URL" | head -1 | grep -q "200"; then
+  echo "✓ File available on mirror" >&2
+else
+  echo "⚠ Warning: File not found on mirror!" >&2
+  echo ""
+  echo "To upload to mirror, run:" >&2
+  echo "  ssh fwminex sh -c 'cd /var/www/dl/boot && wget https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${VERSION}-amd64-${FLAVOR}.iso'" >&2
+  echo ""
+fi

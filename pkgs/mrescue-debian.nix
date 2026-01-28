@@ -14,7 +14,10 @@ stdenv.mkDerivation rec {
   inherit version;
 
   src = fetchurl {
-    url = "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${version}-amd64-${flavor}.iso";
+    urls = [
+      "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${version}-amd64-${flavor}.iso"
+      "https://dl.jakstys.lt/boot/debian-live-${version}-amd64-${flavor}.iso"
+    ];
     inherit hash;
   };
 
