@@ -268,8 +268,7 @@ in
         dhcp-option = "66,\"0.0.0.0\"";
         enable-tftp = true;
         tftp-root = "${tftp-root}";
-        listen-address = "10.14.143.1";
-        bind-interfaces = true;
+        interface = "br0";
 
         dhcp-match = [
           "set:efi-x86_64,option:client-arch,7" # EFI BC (x86-64)
