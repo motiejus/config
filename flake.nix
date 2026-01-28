@@ -105,7 +105,9 @@
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
           sentinelone = super.callPackage ./pkgs/sentinelone { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
-          mrescue = super.callPackage ./pkgs/mrescue.nix { };
+          mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
+          mrescue-debian-standard = super.callPackage ./pkgs/mrescue-debian-standard.nix { };
+          mrescue-debian-xfce = super.callPackage ./pkgs/mrescue-debian-xfce.nix { };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
@@ -391,7 +393,9 @@
             weather
             gamja
             chronoctl
-            mrescue
+            mrescue-alpine
+            mrescue-debian-standard
+            mrescue-debian-xfce
             sentinelone
             ;
         };

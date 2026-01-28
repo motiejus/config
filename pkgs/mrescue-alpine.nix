@@ -5,7 +5,7 @@
 }:
 
 stdenv.mkDerivation rec {
-  pname = "mrescue";
+  pname = "mrescue-alpine";
   version = "3.23.2";
 
   src = fetchurl {

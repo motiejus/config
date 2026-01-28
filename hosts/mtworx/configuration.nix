@@ -16,15 +16,27 @@ let
 
     :menu
     menu PXE Boot Menu
-    item mrescue Boot mrescue (Rescue System)
+    item alpine Boot Alpine Linux 3.23.2
+    item debian-standard Boot Debian Live 13.3.0 (Standard)
+    item debian-xfce Boot Debian Live 13.3.0 (XFCE)
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
-    choose --default mrescue --timeout 10000 selected || goto menu
+    choose --default alpine --timeout 10000 selected || goto menu
     goto ''${selected}
 
-    :mrescue
-    kernel http://10.14.143.1/boot/mrescue/kernel
-    initrd http://10.14.143.1/boot/mrescue/initrd
+    :alpine
+    kernel http://10.14.143.1/boot/alpine/kernel
+    initrd http://10.14.143.1/boot/alpine/initrd
+    boot
+
+    :debian-standard
+    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components fetch=http://10.14.143.1/boot/debian-standard/filesystem.squashfs
+    initrd http://10.14.143.1/boot/debian-standard/initrd
+    boot
+
+    :debian-xfce
+    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/filesystem.squashfs
+    initrd http://10.14.143.1/boot/debian-xfce/initrd
     boot
 
     :netbootxyz
@@ -47,11 +59,26 @@ let
 
   # TFTP root directory with all boot files
   tftp-root = pkgs.runCommand "tftp-root" { } ''
-    mkdir -p $out/mrescue
+    mkdir -p $out/alpine
+    mkdir -p $out/debian-standard
+    mkdir -p $out/debian-xfce
+
     cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
     cp ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
-    cp ${pkgs.mrescue}/kernel $out/mrescue/kernel
-    cp ${pkgs.mrescue}/initrd $out/mrescue/initrd
+
+    # Alpine
+    cp ${pkgs.mrescue-alpine}/kernel $out/alpine/kernel
+    cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
+
+    # Debian Standard
+    cp ${pkgs.mrescue-debian-standard}/kernel $out/debian-standard/kernel
+    cp ${pkgs.mrescue-debian-standard}/initrd $out/debian-standard/initrd
+    cp ${pkgs.mrescue-debian-standard}/filesystem.squashfs $out/debian-standard/filesystem.squashfs
+
+    # Debian XFCE
+    cp ${pkgs.mrescue-debian-xfce}/kernel $out/debian-xfce/kernel
+    cp ${pkgs.mrescue-debian-xfce}/initrd $out/debian-xfce/initrd
+    cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/filesystem.squashfs
   '';
 in
 {

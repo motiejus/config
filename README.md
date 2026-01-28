@@ -35,6 +35,15 @@ netboot
 1. `dmesg | grep enp0` <- find the usb interface
 2. Disable power saving: `echo -1 | sudo tee /sys/bus/usb/devices/2-1/power/autosuspend`.
 
+Testing netboot
+---------------
+
+```
+sudo ip tuntap add dev tap0 mode tap user "$USER"
+sudo ip link set dev tap0 up
+sudo ip link set dev tap0 master br0
+```
+
 efi:
 
 qemu-system-x86_64 \
