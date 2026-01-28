@@ -3,14 +3,18 @@
   stdenv,
   fetchurl,
 }:
+{
+  flavor,
+  hash,
+}:
 
 stdenv.mkDerivation rec {
-  pname = "mrescue-debian-xfce";
+  pname = "mrescue-debian-${flavor}";
   version = "13.3.0";
 
   src = fetchurl {
-    url = "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${version}-amd64-xfce.iso";
-    hash = "sha256-xvHLR2gOOdsTIu7FrOZdxgfG6keqniEhhf9ywJmtNXQ=";
+    url = "https://cdimage.debian.org/debian-cd/current-live/amd64/iso-hybrid/debian-live-${version}-amd64-${flavor}.iso";
+    inherit hash;
   };
 
   nativeBuildInputs = with pkgs; [

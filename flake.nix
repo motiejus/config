@@ -106,8 +106,19 @@
           sentinelone = super.callPackage ./pkgs/sentinelone { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
           mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
-          mrescue-debian-standard = super.callPackage ./pkgs/mrescue-debian-standard.nix { };
-          mrescue-debian-xfce = super.callPackage ./pkgs/mrescue-debian-xfce.nix { };
+
+          # Debian Live rescue images builder
+          mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };
+
+          # Debian Live flavors
+          mrescue-debian-standard = mkDebianLive {
+            flavor = "standard";
+            hash = "sha256-7is9X5vGfYAe7+3b1WmO+7CzU1hyS37T20Yb4/Xn7NY=";
+          };
+          mrescue-debian-xfce = mkDebianLive {
+            flavor = "xfce";
+            hash = "sha256-xvHLR2gOOdsTIu7FrOZdxgfG6keqniEhhf9ywJmtNXQ=";
+          };
           vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
