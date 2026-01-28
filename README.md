@@ -32,6 +32,9 @@ Borg
 netboot
 -------
 
+1. `dmesg | grep enp0` <- find the usb interface
+2. Disable power saving: `echo -1 | sudo tee /sys/bus/usb/devices/2-1/power/autosuspend`.
+
 efi:
 
 qemu-system-x86_64 \

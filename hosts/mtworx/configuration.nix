@@ -268,9 +268,9 @@ in
         dhcp-option = "66,\"0.0.0.0\"";
         enable-tftp = true;
         tftp-root = "${tftp-root}";
+        listen-address = "10.14.143.1";
+        bind-interfaces = true;
 
-        # Detect client architecture and serve appropriate bootloader
-        # DHCP option 93 = Client System Architecture Type
         dhcp-match = [
           "set:efi-x86_64,option:client-arch,7" # EFI BC (x86-64)
           "set:efi-x86_64,option:client-arch,9" # EFI x86-64
@@ -278,7 +278,6 @@ in
           "set:bios,option:client-arch,0" # BIOS x86
         ];
 
-        # Serve appropriate boot file based on architecture
         dhcp-boot = [
           "tag:efi-x86_64,boot.efi" # UEFI x86-64 clients
           "tag:efi-x86,boot.efi" # UEFI IA32 clients
