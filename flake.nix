@@ -160,6 +160,22 @@
           // inputs;
         };
 
+        hpmine = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            { nixpkgs.overlays = baseOverlays; }
+            ./hosts/hpmine/configuration.nix
+            home-manager.nixosModules.home-manager
+            nix-index-database.nixosModules.nix-index
+            agenix.nixosModules.default
+          ];
+
+          specialArgs = {
+            inherit myData;
+          }
+          // inputs;
+        };
+
         fwminex = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
@@ -260,6 +276,17 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
+              user = "root";
+            };
+          };
+        };
+
+        hpmine = {
+          hostname = "hpmine.jakst.vpn";
+          profiles = {
+            system = {
+              sshUser = "motiejus";
+              path = self.nixosConfigurations.hpmine.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.hpmine;
               user = "root";
             };
           };
