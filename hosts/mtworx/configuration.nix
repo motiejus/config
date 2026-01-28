@@ -16,9 +16,10 @@ let
 
     :menu
     menu PXE Boot Menu
-    item alpine Boot Alpine Linux 3.23.2
-    item debian-standard Boot Debian Live 13.3.0 (Standard)
-    item debian-xfce Boot Debian Live 13.3.0 (XFCE)
+    item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
+    item debian-standard Boot Debian Live ${pkgs.mrescue-debian-standard.version} (Standard)
+    item debian-xfce Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE)
+    item debian-kde Boot Debian Live ${pkgs.mrescue-debian-kde.version} (KDE)
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
     choose --default alpine --timeout 10000 selected || goto menu
@@ -37,6 +38,11 @@ let
     :debian-xfce
     kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/filesystem.squashfs
     initrd http://10.14.143.1/boot/debian-xfce/initrd
+    boot
+
+    :debian-kde
+    kernel http://10.14.143.1/boot/debian-kde/kernel boot=live components fetch=http://10.14.143.1/boot/debian-kde/filesystem.squashfs
+    initrd http://10.14.143.1/boot/debian-kde/initrd
     boot
 
     :netbootxyz
@@ -62,6 +68,7 @@ let
     mkdir -p $out/alpine
     mkdir -p $out/debian-standard
     mkdir -p $out/debian-xfce
+    mkdir -p $out/debian-kde
 
     cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
     cp ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
@@ -79,6 +86,11 @@ let
     cp ${pkgs.mrescue-debian-xfce}/kernel $out/debian-xfce/kernel
     cp ${pkgs.mrescue-debian-xfce}/initrd $out/debian-xfce/initrd
     cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/filesystem.squashfs
+
+    # Debian KDE
+    cp ${pkgs.mrescue-debian-kde}/kernel $out/debian-kde/kernel
+    cp ${pkgs.mrescue-debian-kde}/initrd $out/debian-kde/initrd
+    cp ${pkgs.mrescue-debian-kde}/filesystem.squashfs $out/debian-kde/filesystem.squashfs
   '';
 in
 {
