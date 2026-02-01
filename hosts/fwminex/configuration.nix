@@ -336,6 +336,9 @@ in
                 precompressed zstd br gzip
             }
           '';
+        "r.jakstys.lt".extraConfig = ''
+          redir https://rita.jakstys.lt{uri} 301
+        '';
         "rita.jakstys.lt".extraConfig = ''
           root * /var/www/rita.jakstys.lt
           file_server {
