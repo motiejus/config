@@ -34,6 +34,7 @@ in
 
           "jakstys.lt"
           "vno2.jakstys.lt"
+          "vno2-desk2.jakstys.lt"
           "fra1-c.jakstys.lt"
 
           "jetkvm.jakst.vpn"
