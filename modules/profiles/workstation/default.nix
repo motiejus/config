@@ -68,13 +68,15 @@ in
         cppcheck
         wasmtime
         bpftrace
-        hyperfine
         loccount
+        qrencode
+        hyperfine
         tesseract
         glabels-qt
         postgresql
         gcc_latest
         borgbackup
+        oath-toolkit
         redo-apenwarr
         joplin-desktop
         sweethome3d.application
