@@ -179,14 +179,6 @@ in
       device = "${nvme}-part1";
       fsType = "vfat";
     };
-    "/srv/boot" = {
-      device = "${tftp-root}";
-      fsType = "none";
-      options = [
-        "bind"
-        "ro"
-      ];
-    };
   };
 
   hardware.coral.usb.enable = true;
@@ -287,6 +279,23 @@ in
 
   systemd.services = {
     nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
+
+    unfs3 = {
+      description = "Userspace NFSv3 server";
+      after = [
+        "network.target"
+        "rpcbind.service"
+      ];
+      requires = [ "rpcbind.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.unfs3}/bin/unfsd -e ${exportsFile} -s -d -n 2049 -m 20048";
+        BindReadOnlyPaths = [ "${tftp-root}:/srv/boot" ];
+        DynamicUser = true;
+        ProtectHome = true;
+        ProtectSystem = "strict";
+      };
+    };
   };
 
   services = {
@@ -327,16 +336,7 @@ in
       };
     };
     kolide-launcher.enable = true;
-
-    nfs.server = {
-      enable = true;
-      mountdPort = 20048;
-      lockdPort = 32803;
-      statdPort = 32764;
-      exports = ''
-        /srv/boot 10.14.143.0/24(ro,no_subtree_check,no_root_squash,insecure) localhost(ro,no_subtree_check,no_root_squash,insecure)
-      '';
-    };
+    rpcbind.enable = true;
 
     dnsmasq = {
       enable = true;
@@ -415,8 +415,6 @@ in
           111 # rpcbind
           2049 # NFS
           20048 # mountd
-          32803 # lockd
-          32764 # statd
         ];
         allowedUDPPorts = [
           53 # DNS
@@ -424,8 +422,6 @@ in
           69 # TFTP
           111 # rpcbind
           20048 # mountd
-          32803 # lockd
-          32764 # statd
         ];
       };
       extraCommands = ''
