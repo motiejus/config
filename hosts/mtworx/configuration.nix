@@ -16,27 +16,23 @@ let
 
     :menu
     menu PXE Boot Menu
-    item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
     item debian-standard Boot Debian Live ${pkgs.mrescue-debian-standard.version} (Standard)
     item debian-xfce Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE)
     item nixos Boot NixOS ${pkgs.mrescue-nixos.version}
+    item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
-    choose --default alpine --timeout 10000 selected || goto menu
+    item tips mrescue tips
+    choose --default debian-standard --timeout 10000 selected || goto menu
     goto ''${selected}
 
-    :alpine
-    kernel http://10.14.143.1/boot/alpine/kernel ''${cmdline}
-    initrd http://10.14.143.1/boot/alpine/initrd
-    boot
-
     :debian-standard
-    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components fetch=http://10.14.143.1/boot/debian-standard/filesystem.squashfs ''${cmdline}
+    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-standard ''${cmdline}
     initrd http://10.14.143.1/boot/debian-standard/initrd
     boot
 
     :debian-xfce
-    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/filesystem.squashfs ''${cmdline}
+    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/initrd
     boot
 
@@ -46,12 +42,31 @@ let
     initrd http://10.14.143.1/boot/nixos/initrd
     boot
 
+    :alpine
+    kernel http://10.14.143.1/boot/alpine/kernel ''${cmdline}
+    initrd http://10.14.143.1/boot/alpine/initrd
+    boot
+
     :netbootxyz
     isset ''${platform} && iseq ''${platform} pcbios && chain --autofree https://boot.netboot.xyz/ipxe/netboot.xyz.kpxe ||
     chain --autofree https://boot.netboot.xyz/ipxe/netboot.xyz.efi
 
     :shell
     shell
+    goto menu
+
+    :tips
+    echo
+    echo To add kernel command line arguments:
+    echo   1. Select 'iPXE Shell' from menu
+    echo   2. Run: set cmdline systemd.unit=multi-user.target
+    echo   3. Type 'exit' to return to menu
+    echo   4. Select your OS to boot with custom args
+    echo
+    echo More useful commands:
+    echo  set cmdline console=ttyS0
+    echo
+    prompt Press any key to return to menu...
     goto menu
   '';
 
@@ -80,14 +95,16 @@ let
     cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
 
     # Debian Standard
+    mkdir -p $out/debian-standard/live
     cp ${pkgs.mrescue-debian-standard}/kernel $out/debian-standard/kernel
     cp ${pkgs.mrescue-debian-standard}/initrd $out/debian-standard/initrd
-    cp ${pkgs.mrescue-debian-standard}/filesystem.squashfs $out/debian-standard/filesystem.squashfs
+    cp ${pkgs.mrescue-debian-standard}/filesystem.squashfs $out/debian-standard/live/filesystem.squashfs
 
     # Debian XFCE
+    mkdir -p $out/debian-xfce/live
     cp ${pkgs.mrescue-debian-xfce}/kernel $out/debian-xfce/kernel
     cp ${pkgs.mrescue-debian-xfce}/initrd $out/debian-xfce/initrd
-    cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/filesystem.squashfs
+    cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/live/filesystem.squashfs
 
     # NixOS
     cp ${pkgs.mrescue-nixos}/kernel $out/nixos/kernel
@@ -159,6 +176,14 @@ in
     "/boot" = {
       device = "${nvme}-part1";
       fsType = "vfat";
+    };
+    "/srv/boot" = {
+      device = "${tftp-root}";
+      fsType = "none";
+      options = [
+        "bind"
+        "ro"
+      ];
     };
   };
 
@@ -301,6 +326,16 @@ in
     };
     kolide-launcher.enable = true;
 
+    nfs.server = {
+      enable = true;
+      mountdPort = 20048;
+      lockdPort = 32803;
+      statdPort = 32764;
+      exports = ''
+        /srv/boot 10.14.143.0/24(ro,no_subtree_check,no_root_squash,insecure) localhost(ro,no_subtree_check,no_root_squash,insecure)
+      '';
+    };
+
     dnsmasq = {
       enable = true;
       settings = {
@@ -331,8 +366,9 @@ in
 
   environment = {
     systemPackages = with pkgs; [
-      dnsmasq
       OVMF
+      libnfs # nfs-ls
+      dnsmasq
     ];
     etc."kolide-k2/secret" = {
       mode = "600";
@@ -371,14 +407,23 @@ in
     firewall = {
       rejectPackets = true;
       interfaces.br0 = {
+        allowedTCPPorts = [
+          53 # DNS
+          80 # HTTP for boot files
+          111 # rpcbind
+          2049 # NFS
+          20048 # mountd
+          32803 # lockd
+          32764 # statd
+        ];
         allowedUDPPorts = [
           53 # DNS
           67 # DHCP
           69 # TFTP
-        ];
-        allowedTCPPorts = [
-          53 # DNS
-          80 # HTTP for boot files
+          111 # rpcbind
+          20048 # mountd
+          32803 # lockd
+          32764 # statd
         ];
       };
       extraCommands = ''
