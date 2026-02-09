@@ -28,18 +28,18 @@ let
     goto ''${selected}
 
     :debian-shell-nfs
-    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce systemd.unit=multi-user.target ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/initrd
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce systemd.unit=multi-user.target ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
     :debian-xfce-nfs
-    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/initrd
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
     :debian-xfce-toram
-    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/initrd
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
     :nixos
@@ -99,11 +99,8 @@ let
     cp ${pkgs.mrescue-alpine}/kernel $out/alpine/kernel
     cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
 
-    # Debian XFCE
-    mkdir -p $out/debian-xfce/live
-    cp ${pkgs.mrescue-debian-xfce}/kernel $out/debian-xfce/kernel
-    cp ${pkgs.mrescue-debian-xfce}/initrd $out/debian-xfce/initrd
-    cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/live/filesystem.squashfs
+    # Debian XFCE (full ISO contents)
+    cp -r ${pkgs.mrescue-debian-xfce}/* $out/debian-xfce/
 
     # NixOS
     cp ${pkgs.mrescue-nixos}/kernel $out/nixos/kernel

@@ -36,7 +36,6 @@ stdenv.mkDerivation rec {
 
   buildPhase = ''
     runHook preBuild
-    # No build phase needed - files are extracted directly
     runHook postBuild
   '';
 
@@ -44,9 +43,7 @@ stdenv.mkDerivation rec {
     runHook preInstall
 
     mkdir -p $out
-    install -Dm644 debian-live/live/vmlinuz $out/kernel
-    install -Dm644 debian-live/live/initrd.img $out/initrd
-    install -Dm644 debian-live/live/filesystem.squashfs $out/filesystem.squashfs
+    cp -r debian-live/* $out/
 
     runHook postInstall
   '';
