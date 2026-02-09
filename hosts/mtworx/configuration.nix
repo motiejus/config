@@ -16,6 +16,7 @@ let
 
     :menu
     menu PXE Boot Menu
+    item debian-shell-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell) to RAM
     item debian-shell-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell) via NFS
     item debian-xfce-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) to RAM
     item debian-xfce-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) via NFS
@@ -24,21 +25,26 @@ let
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
     item tips mrescue tips
-    choose --default debian-shell-nfs --timeout 10000 selected || goto menu
+    choose --default debian-shell-toram --timeout 10000 selected || goto menu
     goto ''${selected}
+
+    :debian-shell-toram
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs systemd.unit=multi-user.target ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
+    boot
 
     :debian-shell-nfs
     kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce systemd.unit=multi-user.target ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
-    :debian-xfce-nfs
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
+    :debian-xfce-toram
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
-    :debian-xfce-toram
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
+    :debian-xfce-nfs
+    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
     boot
 
