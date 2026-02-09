@@ -16,23 +16,29 @@ let
 
     :menu
     menu PXE Boot Menu
-    item debian-standard Boot Debian Live ${pkgs.mrescue-debian-standard.version} (Standard)
-    item debian-xfce Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE)
+    item debian-shell-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell) via NFS
+    item debian-xfce-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) to RAM
+    item debian-xfce-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) via NFS
     item nixos Boot NixOS ${pkgs.mrescue-nixos.version}
     item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
     item tips mrescue tips
-    choose --default debian-standard --timeout 10000 selected || goto menu
+    choose --default debian-shell-nfs --timeout 10000 selected || goto menu
     goto ''${selected}
 
-    :debian-standard
-    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-standard ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-standard/initrd
+    :debian-shell-nfs
+    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce systemd.unit=multi-user.target ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/initrd
     boot
 
-    :debian-xfce
+    :debian-xfce-nfs
     kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components netboot=nfs nfsroot=10.14.143.1:/srv/boot/debian-xfce ''${cmdline}
+    initrd http://10.14.143.1/boot/debian-xfce/initrd
+    boot
+
+    :debian-xfce-toram
+    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/initrd
     boot
 
@@ -83,7 +89,6 @@ let
   # TFTP root directory with all boot files
   tftp-root = pkgs.runCommand "tftp-root" { } ''
     mkdir -p $out/alpine
-    mkdir -p $out/debian-standard
     mkdir -p $out/debian-xfce
     mkdir -p $out/nixos
 
@@ -93,12 +98,6 @@ let
     # Alpine
     cp ${pkgs.mrescue-alpine}/kernel $out/alpine/kernel
     cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
-
-    # Debian Standard
-    mkdir -p $out/debian-standard/live
-    cp ${pkgs.mrescue-debian-standard}/kernel $out/debian-standard/kernel
-    cp ${pkgs.mrescue-debian-standard}/initrd $out/debian-standard/initrd
-    cp ${pkgs.mrescue-debian-standard}/filesystem.squashfs $out/debian-standard/live/filesystem.squashfs
 
     # Debian XFCE
     mkdir -p $out/debian-xfce/live
