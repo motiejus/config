@@ -52,6 +52,7 @@ let
 
     :shell
     shell
+    goto menu
   '';
 
   # Custom iPXE with embedded menu (UEFI)
