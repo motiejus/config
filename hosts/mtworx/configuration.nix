@@ -19,7 +19,6 @@ let
     item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
     item debian-standard Boot Debian Live ${pkgs.mrescue-debian-standard.version} (Standard)
     item debian-xfce Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE)
-    item debian-kde Boot Debian Live ${pkgs.mrescue-debian-kde.version} (KDE)
     item nixos Boot NixOS ${pkgs.mrescue-nixos.version}
     item netbootxyz Boot netboot.xyz
     item shell iPXE Shell
@@ -27,27 +26,23 @@ let
     goto ''${selected}
 
     :alpine
-    kernel http://10.14.143.1/boot/alpine/kernel
+    kernel http://10.14.143.1/boot/alpine/kernel ''${cmdline}
     initrd http://10.14.143.1/boot/alpine/initrd
     boot
 
     :debian-standard
-    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components fetch=http://10.14.143.1/boot/debian-standard/filesystem.squashfs
+    kernel http://10.14.143.1/boot/debian-standard/kernel boot=live components fetch=http://10.14.143.1/boot/debian-standard/filesystem.squashfs ''${cmdline}
     initrd http://10.14.143.1/boot/debian-standard/initrd
     boot
 
     :debian-xfce
-    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/filesystem.squashfs
+    kernel http://10.14.143.1/boot/debian-xfce/kernel boot=live components fetch=http://10.14.143.1/boot/debian-xfce/filesystem.squashfs ''${cmdline}
     initrd http://10.14.143.1/boot/debian-xfce/initrd
     boot
 
-    :debian-kde
-    kernel http://10.14.143.1/boot/debian-kde/kernel boot=live components fetch=http://10.14.143.1/boot/debian-kde/filesystem.squashfs
-    initrd http://10.14.143.1/boot/debian-kde/initrd
-    boot
-
     :nixos
-    kernel http://10.14.143.1/boot/nixos/kernel init=/nix/store/*/init loglevel=4
+    # kernel params copied from https://github.com/nix-community/nixos-images/releases/download/nixos-25.11/netboot-x86_64-linux.ipxe
+    kernel http://10.14.143.1/boot/nixos/kernel init=/nix/store/lillmv6sbjxgyyyn1ilkica21q3hmpya-nixos-system-nixos-kexec-25.11beta-193477.gfedcba/init initrd=initrd-x86_64-linux nohibernate loglevel=4 lsm=landlock,yama,bpf ''${cmdline}
     initrd http://10.14.143.1/boot/nixos/initrd
     boot
 
@@ -74,7 +69,6 @@ let
     mkdir -p $out/alpine
     mkdir -p $out/debian-standard
     mkdir -p $out/debian-xfce
-    mkdir -p $out/debian-kde
     mkdir -p $out/nixos
 
     cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
@@ -93,11 +87,6 @@ let
     cp ${pkgs.mrescue-debian-xfce}/kernel $out/debian-xfce/kernel
     cp ${pkgs.mrescue-debian-xfce}/initrd $out/debian-xfce/initrd
     cp ${pkgs.mrescue-debian-xfce}/filesystem.squashfs $out/debian-xfce/filesystem.squashfs
-
-    # Debian KDE
-    cp ${pkgs.mrescue-debian-kde}/kernel $out/debian-kde/kernel
-    cp ${pkgs.mrescue-debian-kde}/initrd $out/debian-kde/initrd
-    cp ${pkgs.mrescue-debian-kde}/filesystem.squashfs $out/debian-kde/filesystem.squashfs
 
     # NixOS
     cp ${pkgs.mrescue-nixos}/kernel $out/nixos/kernel
