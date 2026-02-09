@@ -57,6 +57,10 @@ in
       firefox = {
         enable = true;
         package = firefox;
+        languagePacks = [
+          "en-US"
+          "lt"
+        ];
       };
       wireshark = {
         enable = true;
