@@ -16,10 +16,10 @@ let
 
     :menu
     menu PXE Boot Menu
-    item debian-shell-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell) to RAM
-    item debian-shell-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell) via NFS
-    item debian-xfce-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) to RAM
-    item debian-xfce-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (XFCE) via NFS
+    item debian-shell-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} Shell to RAM
+    item debian-shell-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} (Shell via NFS
+    item debian-xfce-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} XFCE to RAM
+    item debian-xfce-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} XFCE via NFS
     item nixos Boot NixOS ${pkgs.mrescue-nixos.version}
     item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
     item netbootxyz Boot netboot.xyz
