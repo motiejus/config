@@ -51,6 +51,7 @@ efi:
 qemu-system-x86_64 \
     -enable-kvm \
     -cpu host \
+    -smp 4 \
     -m 1024 \
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
     -device e1000,netdev=net0 \
@@ -64,6 +65,7 @@ bios:
 qemu-system-x86_64 \
     -enable-kvm \
     -cpu host \
+    -smp 4 \
     -m 8192 \
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
     -device e1000,netdev=net0 \
