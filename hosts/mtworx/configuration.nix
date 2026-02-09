@@ -92,25 +92,19 @@ let
     embedScript = ipxeMenu;
   };
 
+  exportsFile = pkgs.writeText "unfs3-exports" ''
+    /srv/boot 10.14.143.0/24(ro,no_subtree_check,no_root_squash,insecure) localhost(ro,no_subtree_check,no_root_squash,insecure)
+  '';
+
   # TFTP root directory with all boot files
   tftp-root = pkgs.runCommand "tftp-root" { } ''
-    mkdir -p $out/alpine
-    mkdir -p $out/debian-xfce
-    mkdir -p $out/nixos
+    mkdir -p $out
 
-    cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
-    cp ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
-
-    # Alpine
-    cp ${pkgs.mrescue-alpine}/kernel $out/alpine/kernel
-    cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
-
-    # Debian XFCE (full ISO contents)
-    cp -r ${pkgs.mrescue-debian-xfce}/* $out/debian-xfce/
-
-    # NixOS
-    cp ${pkgs.mrescue-nixos}/kernel $out/nixos/kernel
-    cp ${pkgs.mrescue-nixos}/initrd $out/nixos/initrd
+    ln -s ${customIpxeEfi}/ipxe.efi $out/boot.efi
+    ln -s ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
+    ln -s ${pkgs.mrescue-alpine} $out/alpine
+    ln -s ${pkgs.mrescue-debian-xfce} $out/debian-xfce
+    ln -s ${pkgs.mrescue-nixos} $out/nixos
   '';
 in
 {
@@ -290,7 +284,12 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${pkgs.unfs3}/bin/unfsd -e ${exportsFile} -s -d -n 2049 -m 20048";
-        BindReadOnlyPaths = [ "${tftp-root}:/srv/boot" ];
+        TemporaryFileSystem = [ "/srv/boot:ro" ];
+        BindReadOnlyPaths = [
+          "${pkgs.mrescue-alpine}:/srv/boot/alpine"
+          "${pkgs.mrescue-debian-xfce}:/srv/boot/debian-xfce"
+          "${pkgs.mrescue-nixos}:/srv/boot/nixos"
+        ];
         DynamicUser = true;
         ProtectHome = true;
         ProtectSystem = "strict";
