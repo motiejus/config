@@ -30,7 +30,7 @@ stdenv.mkDerivation rec {
   unpackPhase = ''
     runHook preUnpack
     mkdir debian-live
-    7z x -odebian-live $src >/dev/null
+    7z x -odebian-live $src
     runHook postUnpack
   '';
 
