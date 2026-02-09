@@ -42,6 +42,7 @@ Testing netboot
 sudo ip tuntap add dev tap0 mode tap user "$USER"
 sudo ip link set dev tap0 up
 sudo ip link set dev tap0 master br0
+sudo brctl addif br0 tap0
 ```
 
 efi:
