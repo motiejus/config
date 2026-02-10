@@ -380,10 +380,11 @@ in
                 }
                 ''
                   mkdir -p $out
-                  cp ${../../jakstys.lt.html} $out/index.html
-                  zstd -k -19 $out/index.html
-                  brotli -k $out/index.html
-                  zopfli -k $out/index.html
+                  cp ${../../jakstys.lt/index.html} $out/index.html
+                  cp ${../../jakstys.lt/robots.txt} $out/robots.txt
+                  zstd -k -19 $out/{index.html,robots.txt}
+                  brotli -k $out/{index.html,robots.txt}
+                  zopfli -k $out/{index.html,robots.txt}
                 '';
           in
           ''
