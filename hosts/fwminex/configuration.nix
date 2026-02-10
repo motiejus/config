@@ -258,7 +258,7 @@ in
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
-        grace_period 5s
+        grace_period 1s
         metrics {
           per_host
         }
