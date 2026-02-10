@@ -262,7 +262,7 @@ in
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
-        grace_period 1s
+        grace_period 5s
         metrics {
           per_host
         }
