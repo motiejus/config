@@ -382,9 +382,12 @@ in
                   mkdir -p $out
                   cp ${../../jakstys.lt/index.html} $out/index.html
                   cp ${../../jakstys.lt/robots.txt} $out/robots.txt
-                  zstd -k -19 $out/{index.html,robots.txt}
-                  brotli -k $out/{index.html,robots.txt}
-                  zopfli -k $out/{index.html,robots.txt}
+                  OUTS=($out/index.html $out/robots.txt)
+                  for outfile in "''${OUTS[@]}"; do
+                    zstd -k -19 "$outfile"
+                    brotli -k "$outfile"
+                    zopfli -k "$outfile"
+                  done
                 '';
           in
           ''
