@@ -149,7 +149,11 @@ in
           bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
         in
         {
-          preStart = "ln -sf $CREDENTIALS_DIRECTORY/up.jakstys.lt.env /run/caddy/up.jakstys.lt.env";
+          preStart = ''
+            for f in $CREDENTIALS_DIRECTORY/*; do
+              ln -sf "$f" /run/caddy/
+            done
+          '';
           serviceConfig = {
             LoadCredential = [
               "r1.jakstys.lt-cert.pem:${r1.certFile}"
@@ -273,12 +277,12 @@ in
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
             reverse_proxy 127.0.0.1:${toString myData.ports.grafana}
-          tls {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/grafana.jakstys.lt-key.pem
+          tls /run/caddy/grafana.jakstys.lt-cert.pem /run/caddy/grafana.jakstys.lt-key.pem
         '';
         "bitwarden.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
-          tls {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/bitwarden.jakstys.lt-key.pem
+          tls /run/caddy/bitwarden.jakstys.lt-cert.pem /run/caddy/bitwarden.jakstys.lt-key.pem
 
           # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
           encode gzip
@@ -300,7 +304,7 @@ in
           redir https://jakstys.lt
         '';
         "r1.jakstys.lt".extraConfig = ''
-          tls {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/r1.jakstys.lt-key.pem
+          tls /run/caddy/r1.jakstys.lt-cert.pem /run/caddy/r1.jakstys.lt-key.pem
           redir https://r1.jakstys.lt:8443
         '';
         "up.jakstys.lt".extraConfig = ''
@@ -323,7 +327,7 @@ in
           ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            tls {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-cert.pem {$CREDENTIALS_DIRECTORY}/irc.jakstys.lt-key.pem
+            tls /run/caddy/irc.jakstys.lt-cert.pem /run/caddy/irc.jakstys.lt-key.pem
 
             root * ${gamja}
             file_server browse {
