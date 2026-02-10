@@ -259,10 +259,8 @@ in
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
         grace_period 5s
-        servers {
-          metrics {
-            per_host
-          }
+        metrics {
+          per_host
         }
       '';
       virtualHosts = {
