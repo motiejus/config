@@ -107,6 +107,16 @@
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
           mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 
+          # needs 0.9.28+ for __attribute__((cleanup))
+          tinycc = super.tinycc.overrideAttrs (_: {
+            version = "0.9.27-unstable-2026-02-07";
+            src = super.fetchFromRepoOrCz {
+              repo = "tinycc";
+              rev = "4597a9621e70a337b241d424f4ab4729cb75b426";
+              hash = "sha256-/jm00d4BZQateOHkUatc9Y2ZofwvgkRgps72vgAOWno=";
+            };
+          });
+
           mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };
           mrescue-debian-xfce = mkDebianLive {
             flavor = "xfce";
