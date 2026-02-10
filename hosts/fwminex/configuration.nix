@@ -151,11 +151,6 @@ in
         {
           preStart = "ln -sf $CREDENTIALS_DIRECTORY/up.jakstys.lt.env /run/caddy/up.jakstys.lt.env";
           serviceConfig = {
-            # 2025-02-11 blocks system from upgrading during reload
-            # 2025-06-02 still necessary
-            # 2025-12-12 Failed to reload caddy.service: Job type reload is not applicable for unit caddy.service.
-            #ExecReload = lib.mkForce "";
-
             LoadCredential = [
               "r1.jakstys.lt-cert.pem:${r1.certFile}"
               "r1.jakstys.lt-key.pem:${r1.keyFile}"
@@ -263,6 +258,7 @@ in
       enable = true;
       email = "motiejus+acme@jakstys.lt";
       globalConfig = ''
+        grace_period 5s
         servers {
           metrics {
             per_host
