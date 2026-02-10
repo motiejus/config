@@ -383,11 +383,11 @@ in
                   cp ${../../jakstys.lt/index.html} $out/index.html
                   cp ${../../jakstys.lt/robots.txt} $out/robots.txt
                   cp ${../../jakstys.lt/robots.txt} $out/googlebfa9b278b6db80a4.html
-                  OUTS=($out/index.html $out/robots.txt googlebfa9b278b6db80a4.html)
+                  OUTS=(index.html robots.txt googlebfa9b278b6db80a4.html)
                   for outfile in "''${OUTS[@]}"; do
-                    zstd -k -19 "$outfile"
-                    brotli -k "$outfile"
-                    zopfli -k "$outfile"
+                    zstd -k -19 "$out/$outfile"
+                    brotli -k "$out/$outfile"
+                    zopfli -k "$out/$outfile"
                   done
                 '';
           in
