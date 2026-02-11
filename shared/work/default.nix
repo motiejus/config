@@ -28,7 +28,7 @@
     chronoctl
     terraform
     github-cli
-    pkgs.pkgs-unstable.claude-code
+    #pkgs.pkgs-unstable.claude-code
     docker-compose
     gcloud-wrapped
     kubectl-node-shell

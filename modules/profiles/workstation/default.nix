@@ -85,6 +85,7 @@ in
         nixpkgs-review
         wineWowPackages.full
         openorienteering-mapper
+        pkgs.pkgs-unstable.claude-code
 
         (python3.withPackages (
           ps: with ps; [
