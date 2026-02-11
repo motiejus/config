@@ -103,6 +103,7 @@
           weather = super.callPackage ./pkgs/weather { };
           nicer = super.callPackage ./pkgs/nicer.nix { };
           tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
+          sand = super.callPackage ./pkgs/sand.nix { };
           sentinelone = super.callPackage ./pkgs/sentinelone { };
           chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
           mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };

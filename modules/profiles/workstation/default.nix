@@ -34,6 +34,8 @@ in
     environment.systemPackages =
       with pkgs;
       [
+        sand
+
         rr
         uv
         wrk2
@@ -72,6 +74,7 @@ in
         qrencode
         hyperfine
         tesseract
+        bubblewrap
         glabels-qt
         postgresql
         gcc_latest
