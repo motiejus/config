@@ -34,7 +34,7 @@ writeShellApplication {
       --chdir "$HOME/code" \
       --unshare-user \
       --uid 1001 --gid 1001 -- \
-        ${pkgs.tmux}/bin/tmux new-session -s claude "claude --allow-dangerously-skip-permissions" \; \
+        ${pkgs.tmux}/bin/tmux new-session -s claude "claude --allow-dangerously-skip-permissions $*" \; \
           set -g status-bg cyan
   '';
 }
