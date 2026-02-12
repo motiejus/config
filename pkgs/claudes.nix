@@ -30,9 +30,9 @@ writeShellApplication {
       --bind "$HOME/.config/nvim" "$HOME/.config/nvim" \
       --bind "$HOME/code" "$HOME/code" \
       --setenv HOME "$HOME" \
-      --setenv USER motiejus \
+      --setenv USER "$USER" \
       --die-with-parent \
-      --chdir "$HOME/code" \
+      --chdir "$PWD" \
       --unshare-user \
       --uid 1001 \
       --gid 1001 -- \
