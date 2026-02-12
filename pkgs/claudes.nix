@@ -4,7 +4,7 @@
   ...
 }:
 writeShellApplication {
-  name = "claudec";
+  name = "claudes";
   text = ''
     ${pkgs.bubblewrap}/bin/bwrap --proc /proc \
       --dev /dev \

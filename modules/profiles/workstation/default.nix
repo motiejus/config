@@ -34,7 +34,7 @@ in
     environment.systemPackages =
       with pkgs;
       [
-        claudec
+        claudes
 
         rr
         uv
