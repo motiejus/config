@@ -4,7 +4,7 @@
   ...
 }:
 writeShellApplication {
-  name = "sand";
+  name = "claudec";
   text = ''
     ${pkgs.bubblewrap}/bin/bwrap --proc /proc \
       --dev /dev \
@@ -33,8 +33,8 @@ writeShellApplication {
       --die-with-parent \
       --chdir "$HOME/code" \
       --unshare-user \
-      --uid 1001 --gid 1001 -- \
-        ${pkgs.tmux}/bin/tmux new-session -s claude "claude --allow-dangerously-skip-permissions $*" \; \
-          set -g status-bg cyan
+      --uid 1001 \
+      --gid 1001 -- \
+        claude --dangerously-skip-permissions "$@"
   '';
 }
