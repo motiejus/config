@@ -23,6 +23,7 @@ writeShellApplication {
       --ro-bind /etc/passwd /etc/passwd \
       --ro-bind /etc/group /etc/group \
       --ro-bind /etc/nix /etc/nix \
+      --ro-bind "$HOME/.config/git" "$HOME/.config/git" \
       --bind "$HOME/.claude.json" "$HOME/.claude.json" \
       --bind "$HOME/.cache/zig" "$HOME/.cache/zig" \
       --bind "$HOME/.claude" "$HOME/.claude" \
