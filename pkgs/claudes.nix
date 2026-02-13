@@ -28,7 +28,6 @@ writeShellApplication {
       --bind "$HOME/.cache/zig" "$HOME/.cache/zig" \
       --bind "$HOME/.claude" "$HOME/.claude" \
       --bind "$HOME/.config/nvim" "$HOME/.config/nvim" \
-      --bind "$HOME/dev" "$HOME/dev" \
       --bind "$HOME/code" "$HOME/code" \
       --setenv HOME "$HOME" \
       --setenv USER "$USER" \
