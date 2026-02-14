@@ -845,7 +845,9 @@ in
           ]
         ))
 
+        # wip zig0 stuff
         tinycc
+        gcc_latest
       ]
       ++ (with llvmPackages_19; [
         clang
