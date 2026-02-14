@@ -847,7 +847,9 @@ in
 
         # wip zig0 stuff
         tinycc
+        claudes
         gcc_latest
+        pkgs.pkgs-unstable.claude-code
       ]
       ++ (with llvmPackages_19; [
         clang
