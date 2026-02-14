@@ -827,20 +827,36 @@ in
 
   environment = {
     enableDebugInfo = true;
-    systemPackages = with pkgs; [
-      yt-dlp
-      inferno
-      tpm2-tools
-      amdgpu_top
-      graphicsmagick
-      ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
-      age-plugin-yubikey
-      (python3.withPackages (
-        ps: with ps; [
-          ipython
-        ]
-      ))
-    ];
+    systemPackages =
+      with pkgs;
+      [
+        yt-dlp
+        inferno
+        tpm2-tools
+        amdgpu_top
+        graphicsmagick
+        ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
+        age-plugin-yubikey
+        (python3.withPackages (
+          ps: with ps; [
+            ipython
+
+          ]
+        ))
+
+        tinycc
+      ]
+      ++ (with llvmPackages_19; [
+        clang
+        lld.dev
+        llvm.dev
+        clang-tools
+        libllvm.dev
+        libclang.dev
+        llvm-manpages
+        clang-manpages
+        compiler-rt.dev
+      ]);
   };
 
   networking = {
