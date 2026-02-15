@@ -112,7 +112,7 @@ in
             ;
         })
       ]
-      ++ (with llvmPackages_19; [
+      ++ (with llvmPackages_20; [
         clang
         lld.dev
         llvm.dev

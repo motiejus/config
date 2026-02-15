@@ -848,11 +848,12 @@ in
         # wip zig0 stuff
         tinycc
         claudes
+        cppcheck
         valgrind
         gcc_latest
         pkgs.pkgs-unstable.claude-code
       ]
-      ++ (with llvmPackages_19; [
+      ++ (with llvmPackages_20; [
         clang
         lld.dev
         llvm.dev
