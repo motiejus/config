@@ -16,6 +16,7 @@ writeShellApplication {
       --symlink "$(readlink -f /etc/static/ssl)" /etc/ssl \
       --symlink "$(readlink -f /usr/bin/env)" /usr/bin/env \
       --symlink "$(readlink -f "$HOME/.nix-profile")" "$HOME/.nix-profile" \
+      --ro-bind /bin /bin \
       --ro-bind /nix/store /nix/store \
       --ro-bind /nix/var/nix/db /nix/var/nix/db \
       --ro-bind /run/wrappers /run/wrappers \
