@@ -846,6 +846,8 @@ in
         ))
 
         # wip zig0 stuff
+        cmake
+        ninja
         tinycc
         claudes
         cppcheck
