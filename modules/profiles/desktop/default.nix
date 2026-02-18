@@ -183,6 +183,7 @@ in
       cmake
       typst
       sioyek
+      cowsay
       (kazam.override {
         python3Packages = pkgs.python311Packages;
       }) # alternative to gtk-recordMyDesktop

@@ -152,7 +152,15 @@ in
           };
           log.date = "iso-strict-local";
           pull.ff = "only";
-          core.abbrev = 12;
+          core = {
+            abbrev = 12;
+            pager = "${pkgs.delta}/bin/delta";
+          };
+          interactive.diffFilter = "${pkgs.delta}/bin/delta --color-only";
+          delta = {
+            navigate = true;
+            side-by-side = true;
+          };
           pretty.fixes = "Fixes: %h (\"%s\")";
           rerere.enabled = true;
           init.defaultBranch = "main";
