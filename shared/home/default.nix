@@ -154,13 +154,13 @@ in
           pull.ff = "only";
           core = {
             abbrev = 12;
-            pager = "${pkgs.delta}/bin/delta";
+            #pager = "${pkgs.delta}/bin/delta";
           };
-          interactive.diffFilter = "${pkgs.delta}/bin/delta --color-only";
-          delta = {
-            navigate = true;
-            side-by-side = true;
-          };
+          #interactive.diffFilter = "${pkgs.delta}/bin/delta --color-only";
+          #delta = {
+          #  navigate = true;
+          #  side-by-side = false;
+          #};
           pretty.fixes = "Fixes: %h (\"%s\")";
           rerere.enabled = true;
           init.defaultBranch = "main";
