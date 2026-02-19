@@ -36,7 +36,8 @@ writeShellApplication {
       --chdir "$PWD" \
       --unshare-user \
       --uid 1001 \
-      --gid 1001 -- \
+      --gid 1001 \
+      --cap-add CAP_SYS_PTRACE -- \
         claude --dangerously-skip-permissions "$@"
   '';
 }
