@@ -846,6 +846,7 @@ in
         ))
 
         # wip zig0 stuff
+        gdb
         cmake
         ninja
         tinycc
