@@ -24,14 +24,23 @@ in
     services = {
       caddy = {
         enable = true;
-        virtualHosts."hdd.jakstys.lt:80".extraConfig = with myData.subnets; ''
-          root * ${cfg.dataDir}
-          @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
-          file_server browse {
-            hide .stfolder
-          }
-          encode gzip
-        '';
+        virtualHosts = {
+          "jonas.jakstys.lt:80".extraConfig = with myData.subnets; ''
+            root * ${cfg.dataDir}/jonas.jakstys.lt
+            file_server browse {
+              hide .stfolder
+            }
+            encode gzip
+          '';
+          "hdd.jakstys.lt:80".extraConfig = with myData.subnets; ''
+            root * ${cfg.dataDir}
+            @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
+            file_server browse {
+              hide .stfolder
+            }
+            encode gzip
+          '';
+        };
       };
 
       samba =
