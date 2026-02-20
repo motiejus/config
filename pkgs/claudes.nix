@@ -6,6 +6,7 @@
 writeShellApplication {
   name = "claudes";
   text = ''
+    mkdir -p /tmp/claude-1001 && \
     ${pkgs.bubblewrap}/bin/bwrap --proc /proc \
       --dev /dev \
       --tmpfs /tmp \
@@ -25,6 +26,7 @@ writeShellApplication {
       --ro-bind /etc/group /etc/group \
       --ro-bind /etc/nix /etc/nix \
       --ro-bind "$HOME/.config/git" "$HOME/.config/git" \
+      --bind /tmp/claude-1001/ "/tmp/claude-1001" \
       --bind "$HOME/.claude.json" "$HOME/.claude.json" \
       --bind "$HOME/.cache/zig" "$HOME/.cache/zig" \
       --bind "$HOME/.claude" "$HOME/.claude" \
