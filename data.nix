@@ -185,6 +185,7 @@ rec {
       vno2                             A     ${vno2}
       r1                               A     ${vno1}
       m                                A     ${vno1}
+      jonas                            A     ${vno1}
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
       @                               TXT    hosted-email-verify=rvyd6h64

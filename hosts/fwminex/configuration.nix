@@ -268,6 +268,9 @@ in
         }
       '';
       virtualHosts = {
+        "jonas.jakstys.lt".extraConfig = ''
+          reverse_proxy vno3-nk:80
+        '';
         "hass.jakstys.lt:80".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
