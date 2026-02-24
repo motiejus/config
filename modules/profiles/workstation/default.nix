@@ -72,6 +72,7 @@ in
         bpftrace
         loccount
         qrencode
+        ladybird
         hyperfine
         tesseract
         bubblewrap
