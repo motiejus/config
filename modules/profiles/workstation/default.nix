@@ -23,12 +23,18 @@ in
       };
     };
 
-    services.xserver = {
-      windowManager.awesome.enable = true;
+    programs = {
+      ladybird.enable = true;
     };
 
-    services.displayManager = {
-      defaultSession = lib.mkDefault "none+awesome";
+    services = {
+      xserver = {
+        windowManager.awesome.enable = true;
+      };
+
+      displayManager = {
+        defaultSession = lib.mkDefault "none+awesome";
+      };
     };
 
     environment.systemPackages =
@@ -72,7 +78,6 @@ in
         bpftrace
         loccount
         qrencode
-        ladybird
         hyperfine
         tesseract
         bubblewrap
