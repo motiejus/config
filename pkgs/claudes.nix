@@ -11,6 +11,7 @@ writeShellApplication {
       --dev /dev \
       --tmpfs /tmp \
       --tmpfs "$HOME" \
+      --setenv CLAUDE_CODE_MAX_OUTPUT_TOKENS 100000 \
       --symlink "$(readlink -f /run/current-system)" /run/current-system \
       --symlink "$(readlink -f /etc/hosts)" /etc/hosts \
       --symlink "$(readlink -f /etc/static)" /etc/static \
