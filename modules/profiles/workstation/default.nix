@@ -62,7 +62,6 @@ in
         bloaty
         skopeo
         remake
-        xboard
         inferno
         neomutt
         undocker

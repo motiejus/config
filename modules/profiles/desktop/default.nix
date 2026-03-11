@@ -184,6 +184,7 @@ in
       typst
       sioyek
       cowsay
+      xboard
       (kazam.override {
         python3Packages = pkgs.python311Packages;
       }) # alternative to gtk-recordMyDesktop
@@ -210,6 +211,7 @@ in
       libheif
       mplayer
       tcpflow
+      fairymax
       ddrescue
       gcompris
       nautilus
