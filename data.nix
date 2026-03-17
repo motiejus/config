@@ -162,30 +162,39 @@ rec {
     ''
       $ORIGIN jakstys.lt.
       $TTL 3600
-      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2023100800 86400 86400 86400 86400)
+      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026031700 86400 86400 86400 86400)
       @                       86400    NS     ns1.jakstys.lt.
       @                       86400    NS     ns2.jakstys.lt.
       @                             HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       @                                A     ${vno1}
+      www                          HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       www                              A     ${vno1}
       photos                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
       ns1                     86400    A     ${vno1}
       ns2                     86400    A     ${fra1c}
       vpn                      3600    A     ${fra1c}
+      rita                         HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       rita                             A     ${vno1}
+      r                            HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       r                                A     ${vno1}
       git                              A     ${vno1}
       git                          HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       auth                             A     ${vno1}
+      dl                           HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       dl                               A     ${vno1}
+      up                           HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       up                               A     ${vno1}
       fra1-c                           A     ${fra1c}
       fra1-c                        AAAA     ${fra1cv6}
       vno4                             A     ${vno4}
       vno2                             A     ${vno2}
+      r1                           HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       r1                               A     ${vno1}
+      m                            HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       m                                A     ${vno1}
+      jonas                        HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       jonas                            A     ${vno1}
+      rolandas                     HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       rolandas                         A     ${vno1}
 
       @                               TXT    google-site-verification=sU99fmO8gEJF-0lbOY-IzkovC6MXsP3Gozqrs8BR5OM
