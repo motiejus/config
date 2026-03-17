@@ -269,9 +269,11 @@ in
       '';
       virtualHosts = {
         "jonas.jakstys.lt".extraConfig = ''
+          header Alt-Svc "h3=\":443\"; ma=86400"
           reverse_proxy vno3-nk:80
         '';
         "rolandas.jakstys.lt".extraConfig = ''
+          header Alt-Svc "h3=\":443\"; ma=86400"
           reverse_proxy vno3-nk:80
         '';
         "hass.jakstys.lt:80".extraConfig = ''
@@ -282,6 +284,7 @@ in
         "grafana.jakstys.lt".extraConfig = ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
+            header Alt-Svc "h3=\":443\"; ma=86400"
             reverse_proxy 127.0.0.1:${toString myData.ports.grafana}
           tls /run/caddy/grafana.jakstys.lt-cert.pem /run/caddy/grafana.jakstys.lt-key.pem
         '';
@@ -314,6 +317,7 @@ in
           redir https://r1.jakstys.lt:8443
         '';
         "up.jakstys.lt".extraConfig = ''
+          header Alt-Svc "h3=\":443\"; ma=86400"
           basic_auth {
             {$PLIK_USER} {$PLIK_PASSWORD}
           }
@@ -334,6 +338,7 @@ in
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
             tls /run/caddy/irc.jakstys.lt-cert.pem /run/caddy/irc.jakstys.lt-key.pem
+            header Alt-Svc "h3=\":443\"; ma=86400"
 
             root * ${gamja}
             file_server browse {
@@ -344,12 +349,14 @@ in
           redir https://rita.jakstys.lt{uri} 301
         '';
         "rita.jakstys.lt".extraConfig = ''
+          header Alt-Svc "h3=\":443\"; ma=86400"
           root * /var/www/rita.jakstys.lt
           file_server {
             precompressed zstd br gzip
           }
         '';
         "dl.jakstys.lt".extraConfig = ''
+          header Alt-Svc "h3=\":443\"; ma=86400"
           root * /var/www/dl
           file_server browse {
             hide .stfolder
