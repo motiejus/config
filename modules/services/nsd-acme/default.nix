@@ -68,6 +68,10 @@ in
                 type = int;
                 default = 30;
               };
+              extraDomains = lib.mkOption {
+                type = listOf str;
+                default = [ ];
+              };
               staging = lib.mkOption {
                 type = bool;
                 default = false;
@@ -146,7 +150,7 @@ in
                 hook = mkHook zone;
                 days = builtins.toString cfg.days;
               in
-              "${pkgs.uacme}/bin/uacme -c \${STATE_DIRECTORY} --verbose --days ${days} --hook ${hook} ${lib.optionalString cfg.staging "--staging"} issue ${zone}";
+              "${pkgs.uacme}/bin/uacme -c \${STATE_DIRECTORY} --verbose --days ${days} --hook ${hook} ${lib.optionalString cfg.staging "--staging"} issue ${zone} ${lib.concatStringsSep " " cfg.extraDomains}";
 
             UMask = "0022";
             User = "nsd";
