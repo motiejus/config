@@ -690,7 +690,7 @@ in
           enable = true;
           zones = {
             "jakstys.lt" = {
-              inherit (accountKey) ;
+              inherit accountKey;
               extraDomains = [ "*.jakstys.lt" ];
             };
             "r1.jakstys.lt".accountKey = accountKey;
