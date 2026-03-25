@@ -130,20 +130,20 @@ in
 
       nginx =
         let
-          r1 = config.mj.services.nsd-acme.zones."r1.jakstys.lt";
+          wc = config.mj.services.nsd-acme.zones."jakstys.lt";
         in
         {
           serviceConfig.LoadCredential = [
-            "r1.jakstys.lt-cert.pem:${r1.certFile}"
-            "r1.jakstys.lt-key.pem:${r1.keyFile}"
+            "jakstys.lt-cert.pem:${wc.certFile}"
+            "jakstys.lt-key.pem:${wc.keyFile}"
           ];
-          after = [ "nsd-acme-r1.jakstys.lt.service" ];
-          requires = [ "nsd-acme-r1.jakstys.lt.service" ];
+          after = [ "nsd-acme-jakstys.lt.service" ];
+          requires = [ "nsd-acme-jakstys.lt.service" ];
         };
 
       caddy =
         let
-          r1 = config.mj.services.nsd-acme.zones."r1.jakstys.lt";
+          wc = config.mj.services.nsd-acme.zones."jakstys.lt";
           irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
           grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
           bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
@@ -156,8 +156,8 @@ in
           '';
           serviceConfig = {
             LoadCredential = [
-              "r1.jakstys.lt-cert.pem:${r1.certFile}"
-              "r1.jakstys.lt-key.pem:${r1.keyFile}"
+              "jakstys.lt-cert.pem:${wc.certFile}"
+              "jakstys.lt-key.pem:${wc.keyFile}"
               "irc.jakstys.lt-cert.pem:${irc.certFile}"
               "irc.jakstys.lt-key.pem:${irc.keyFile}"
               "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
@@ -170,13 +170,13 @@ in
             EnvironmentFile = [ "-/run/caddy/up.jakstys.lt.env" ];
           };
           after = [
-            "nsd-acme-r1.jakstys.lt.service"
+            "nsd-acme-jakstys.lt.service"
             "nsd-acme-irc.jakstys.lt.service"
             "nsd-acme-grafana.jakstys.lt.service"
             "nsd-acme-bitwarden.jakstys.lt.service"
           ];
           requires = [
-            "nsd-acme-r1.jakstys.lt.service"
+            "nsd-acme-jakstys.lt.service"
             "nsd-acme-irc.jakstys.lt.service"
             "nsd-acme-grafana.jakstys.lt.service"
             "nsd-acme-bitwarden.jakstys.lt.service"
@@ -223,7 +223,7 @@ in
         wantedBy = [ "multi-user.target" ];
         pathConfig = {
           PathChanged = [
-            config.mj.services.nsd-acme.zones."r1.jakstys.lt".certFile
+            config.mj.services.nsd-acme.zones."jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
             config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
@@ -313,7 +313,7 @@ in
           redir https://jakstys.lt
         '';
         "r1.jakstys.lt".extraConfig = ''
-          tls /run/caddy/r1.jakstys.lt-cert.pem /run/caddy/r1.jakstys.lt-key.pem
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           redir https://r1.jakstys.lt:8443
         '';
         "up.jakstys.lt".extraConfig = ''
@@ -496,8 +496,8 @@ in
         '';
 
         addSSL = true;
-        sslCertificate = "/run/credentials/nginx.service/r1.jakstys.lt-cert.pem";
-        sslCertificateKey = "/run/credentials/nginx.service/r1.jakstys.lt-key.pem";
+        sslCertificate = "/run/credentials/nginx.service/jakstys.lt-cert.pem";
+        sslCertificateKey = "/run/credentials/nginx.service/jakstys.lt-key.pem";
       };
     };
 
