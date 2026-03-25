@@ -212,40 +212,14 @@ rec {
       ns._acme-endpoint                    A     ${vno1}
 
       grafana                             A     ${hosts."fwminex.jakst.vpn".jakstIP}
-      _acme-challenge.grafana         CNAME     _acme-endpoint.grafana
-      _acme-endpoint.grafana             NS     ns._acme-endpoint.grafana
-      ns._acme-endpoint.grafana           A     ${vno1}
-
       hass                                A     ${hosts."fwminex.jakst.vpn".jakstIP}
-      _acme-challenge.hass            CNAME     _acme-endpoint.hass
-      _acme-endpoint.hass                NS     ns._acme-endpoint.hass
-      ns._acme-endpoint.hass              A     ${vno1}
-
       irc                                 A     ${hosts."fwminex.jakst.vpn".jakstIP}
-      _acme-challenge.irc             CNAME     _acme-endpoint.irc
-      _acme-endpoint.irc                 NS     ns._acme-endpoint.irc
-      ns._acme-endpoint.irc               A     ${vno1}
-
-      hass                                A     ${hosts."fwminex.jakst.vpn".jakstIP}
-      _acme-challenge.hass            CNAME     _acme-endpoint.hass
-      _acme-endpoint.hass                NS     ns._acme-endpoint.hass
-      ns._acme-endpoint.hass              A     ${vno1}
 
       bitwarden                       HTTPS     1 . alpn="h3,h2" ipv4hint="${
         hosts."fwminex.jakst.vpn".jakstIP
       }"
       bitwarden                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
-      _acme-challenge.bitwarden       CNAME     _acme-endpoint.bitwarden
-      _acme-endpoint.bitwarden           NS     ns._acme-endpoint.bitwarden
-      ns._acme-endpoint.bitwarden         A     ${vno1}
 
       hdd                                 A     ${hosts."vno3-nk.jakst.vpn".jakstIP}
-      _acme-challenge.hdd             CNAME     _acme-endpoint.hdd
-      _acme-endpoint.hdd                 NS     ns._acme-endpoint.hdd
-      ns._acme-endpoint.hdd               A     ${vno1}
-
-      _acme-challenge.r1              CNAME     _acme-endpoint.r1
-      _acme-endpoint.r1                  NS     ns._acme-endpoint.r1
-      ns._acme-endpoint.r1                A     ${vno1}
     '';
 }

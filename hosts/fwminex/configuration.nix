@@ -144,9 +144,6 @@ in
       caddy =
         let
           wc = config.mj.services.nsd-acme.zones."jakstys.lt";
-          irc = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
-          grafana = config.mj.services.nsd-acme.zones."grafana.jakstys.lt";
-          bitwarden = config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt";
         in
         {
           preStart = ''
@@ -158,53 +155,37 @@ in
             LoadCredential = [
               "jakstys.lt-cert.pem:${wc.certFile}"
               "jakstys.lt-key.pem:${wc.keyFile}"
-              "irc.jakstys.lt-cert.pem:${irc.certFile}"
-              "irc.jakstys.lt-key.pem:${irc.keyFile}"
-              "grafana.jakstys.lt-cert.pem:${grafana.certFile}"
-              "grafana.jakstys.lt-key.pem:${grafana.keyFile}"
-              "bitwarden.jakstys.lt-cert.pem:${bitwarden.certFile}"
-              "bitwarden.jakstys.lt-key.pem:${bitwarden.keyFile}"
               "up.jakstys.lt.env:${config.age.secrets.plik.path}"
             ];
             RuntimeDirectory = "caddy";
             EnvironmentFile = [ "-/run/caddy/up.jakstys.lt.env" ];
           };
-          after = [
-            "nsd-acme-jakstys.lt.service"
-            "nsd-acme-irc.jakstys.lt.service"
-            "nsd-acme-grafana.jakstys.lt.service"
-            "nsd-acme-bitwarden.jakstys.lt.service"
-          ];
-          requires = [
-            "nsd-acme-jakstys.lt.service"
-            "nsd-acme-irc.jakstys.lt.service"
-            "nsd-acme-grafana.jakstys.lt.service"
-            "nsd-acme-bitwarden.jakstys.lt.service"
-          ];
+          after = [ "nsd-acme-jakstys.lt.service" ];
+          requires = [ "nsd-acme-jakstys.lt.service" ];
         };
 
       soju =
         let
-          acme = config.mj.services.nsd-acme.zones."irc.jakstys.lt";
+          wc = config.mj.services.nsd-acme.zones."jakstys.lt";
         in
         {
           serviceConfig = {
             RuntimeDirectory = "soju";
             LoadCredential = [
-              "irc.jakstys.lt-cert.pem:${acme.certFile}"
-              "irc.jakstys.lt-key.pem:${acme.keyFile}"
+              "jakstys.lt-cert.pem:${wc.certFile}"
+              "jakstys.lt-key.pem:${wc.keyFile}"
             ];
           };
           preStart = ''
-            ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-cert.pem /run/soju/cert.pem
-            ln -sf $CREDENTIALS_DIRECTORY/irc.jakstys.lt-key.pem /run/soju/key.pem
+            ln -sf $CREDENTIALS_DIRECTORY/jakstys.lt-cert.pem /run/soju/cert.pem
+            ln -sf $CREDENTIALS_DIRECTORY/jakstys.lt-key.pem /run/soju/key.pem
           '';
-          after = [ "nsd-acme-irc.jakstys.lt.service" ];
-          requires = [ "nsd-acme-irc.jakstys.lt.service" ];
+          after = [ "nsd-acme-jakstys.lt.service" ];
+          requires = [ "nsd-acme-jakstys.lt.service" ];
         };
 
       cert-watcher = {
-        description = "Restart nginx+caddy when tls keys/certs change";
+        description = "Restart nginx+caddy+soju when tls keys/certs change";
         wantedBy = [ "multi-user.target" ];
         unitConfig = {
           StartLimitIntervalSec = 10;
@@ -212,7 +193,7 @@ in
         };
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${pkgs.systemd}/bin/systemctl restart --no-block nginx.service caddy.service";
+          ExecStart = "${pkgs.systemd}/bin/systemctl restart --no-block nginx.service caddy.service soju.service";
         };
       };
 
@@ -224,9 +205,6 @@ in
         pathConfig = {
           PathChanged = [
             config.mj.services.nsd-acme.zones."jakstys.lt".certFile
-            config.mj.services.nsd-acme.zones."irc.jakstys.lt".certFile
-            config.mj.services.nsd-acme.zones."grafana.jakstys.lt".certFile
-            config.mj.services.nsd-acme.zones."bitwarden.jakstys.lt".certFile
           ];
           Unit = "cert-watcher.service";
         };
@@ -269,10 +247,12 @@ in
       '';
       virtualHosts = {
         "jonas.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header Alt-Svc "h3=\":443\"; ma=86400"
           reverse_proxy vno3-nk:80
         '';
         "rolandas.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header Alt-Svc "h3=\":443\"; ma=86400"
           reverse_proxy vno3-nk:80
         '';
@@ -286,12 +266,12 @@ in
             abort @denied
             header Alt-Svc "h3=\":443\"; ma=86400"
             reverse_proxy 127.0.0.1:${toString myData.ports.grafana}
-          tls /run/caddy/grafana.jakstys.lt-cert.pem /run/caddy/grafana.jakstys.lt-key.pem
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         '';
         "bitwarden.jakstys.lt".extraConfig = ''
           @denied not remote_ip ${myData.subnets.tailscale.cidr}
           abort @denied
-          tls /run/caddy/bitwarden.jakstys.lt-cert.pem /run/caddy/bitwarden.jakstys.lt-key.pem
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
 
           # from https://github.com/dani-garcia/vaultwarden/wiki/Proxy-examples
           encode gzip
@@ -310,6 +290,7 @@ in
           }
         '';
         "www.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           redir https://jakstys.lt
         '';
         "r1.jakstys.lt".extraConfig = ''
@@ -317,6 +298,7 @@ in
           redir https://r1.jakstys.lt:8443
         '';
         "up.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header Alt-Svc "h3=\":443\"; ma=86400"
           basic_auth {
             {$PLIK_USER} {$PLIK_PASSWORD}
@@ -337,7 +319,7 @@ in
           ''
             @denied not remote_ip ${myData.subnets.tailscale.cidr}
             abort @denied
-            tls /run/caddy/irc.jakstys.lt-cert.pem /run/caddy/irc.jakstys.lt-key.pem
+            tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
             header Alt-Svc "h3=\":443\"; ma=86400"
 
             root * ${gamja}
@@ -346,9 +328,11 @@ in
             }
           '';
         "r.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           redir https://rita.jakstys.lt{uri} 301
         '';
         "rita.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header Alt-Svc "h3=\":443\"; ma=86400"
           root * /var/www/rita.jakstys.lt
           file_server {
@@ -356,6 +340,7 @@ in
           }
         '';
         "dl.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header Alt-Svc "h3=\":443\"; ma=86400"
           root * /var/www/dl
           file_server browse {
@@ -364,6 +349,7 @@ in
           encode gzip
         '';
         "m.jakstys.lt".extraConfig = ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
           header {
             Strict-Transport-Security "max-age=15768000"
             Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
@@ -694,10 +680,6 @@ in
               inherit accountKey;
               extraDomains = [ "*.jakstys.lt" ];
             };
-            "r1.jakstys.lt".accountKey = accountKey;
-            "irc.jakstys.lt".accountKey = accountKey;
-            "grafana.jakstys.lt".accountKey = accountKey;
-            "bitwarden.jakstys.lt".accountKey = accountKey;
           };
         };
 
