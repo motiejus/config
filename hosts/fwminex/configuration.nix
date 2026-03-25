@@ -403,6 +403,7 @@ in
                 '';
           in
           ''
+            tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
             @redirects {
               path /2022/big-tech-hiring/
               path /2022/first-post-here/
