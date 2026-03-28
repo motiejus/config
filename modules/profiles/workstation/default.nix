@@ -62,6 +62,7 @@ in
         bloaty
         skopeo
         remake
+        esptool
         inferno
         neomutt
         undocker
@@ -94,7 +95,6 @@ in
         nixpkgs-review
         wineWowPackages.full
         openorienteering-mapper
-        pkgs.pkgs-unstable.codex
         pkgs.pkgs-unstable.claude-code
 
         (python3.withPackages (
