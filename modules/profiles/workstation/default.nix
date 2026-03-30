@@ -79,6 +79,7 @@ in
         bpftrace
         loccount
         qrencode
+        distrobox
         hyperfine
         tesseract
         bubblewrap
