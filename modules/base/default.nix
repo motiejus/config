@@ -60,7 +60,6 @@ in
             git
             lz4
             mmv
-            fio
             htop
             file # file duh
             host # look up host info
@@ -69,7 +68,6 @@ in
             rage # encrypt-decrypt
             ncdu # disk usage navigator
             entr
-            poop # hopefully poof some day
             pigz
             zstd
             unrar

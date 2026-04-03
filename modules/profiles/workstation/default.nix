@@ -51,6 +51,7 @@ in
         pdal
         gdal
         flex
+        poop
         ninja
         putty
         bison
