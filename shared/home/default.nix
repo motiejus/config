@@ -75,7 +75,8 @@ in
       };
       firefox = lib.mkIf devTools {
         enable = true;
-        package = pkgs.firefox-bin;
+        # TODO(26.05): switch back to pkgs.firefox-bin
+        package = if pkgs.stdenv.isDarwin then pkgs.pkgs-unstable.firefox-bin else pkgs.firefox-bin;
         policies.DisableAppUpdate = true;
         profiles = {
           xdefault = {
