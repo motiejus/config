@@ -40,6 +40,18 @@ in
         nonUS.remapTilde = true;
       };
 
+      defaults.dock.autohide-time-modifier = 0.0;
+      defaults.dock.autohide-delay = 0.0;
+      defaults.dock.expose-animation-duration = 0.0;
+      defaults.dock.launchanim = false;
+      defaults.dock.mineffect = "scale";
+
+      defaults.NSGlobalDomain.NSAutomaticWindowAnimationsEnabled = false;
+      defaults.NSGlobalDomain.NSScrollAnimationEnabled = false;
+      defaults.NSGlobalDomain.NSWindowResizeTime = 0.001;
+
+      defaults.menuExtraClock.ShowSeconds = true;
+
       defaults.CustomUserPreferences."com.apple.HIToolbox" = {
         AppleEnabledInputSources = [
           {
