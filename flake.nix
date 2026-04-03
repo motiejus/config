@@ -138,8 +138,8 @@
             overlays = [
               (_self: super: {
                 go = super.go_1_26;
-                buildGoModule = super.buildGo125Module;
-                buildGoPackage = super.buildGo125Package;
+                buildGoModule = super.buildGo126Module;
+                buildGoPackage = super.buildGo126Package;
               })
             ];
           };
