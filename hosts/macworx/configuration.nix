@@ -38,6 +38,7 @@ in
     "/Users/${config.mj.username}/Applications/Home Manager Apps/Firefox.app"
     "/Applications/Self Service.app"
     "/System/Library/CoreServices/Finder.app"
+    "/System/Applications/System Settings.app"
   ];
 
   system.activationScripts.postActivation.text = ''
