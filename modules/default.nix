@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ./base
+    ./linuxbase
     ./services
   ];
 }

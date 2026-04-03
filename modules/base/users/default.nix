@@ -91,7 +91,6 @@ in
           inherit pkgs;
           inherit (config.mj) stateVersion username;
           inherit (cfg) devTools email wrapGo;
-          hmOnly = false;
         };
     };
   };

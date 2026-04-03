@@ -297,7 +297,12 @@
           modules = [
             { nixpkgs.overlays = baseOverlays; }
             ./hosts/macworx/configuration.nix
+            home-manager.darwinModules.home-manager
           ];
+          specialArgs = {
+            inherit myData;
+          }
+          // inputs;
         };
       };
 

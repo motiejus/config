@@ -32,6 +32,7 @@ in
   };
 
   imports = [
+    ../basedesktop
     ../physical
   ];
   config = {
@@ -289,19 +290,9 @@ in
 
         programs = {
           ghostty = {
-            enable = true;
-            installVimSyntax = true;
-            enableBashIntegration = true;
             settings = {
-              theme = "iTerm2 Default";
-              command = lib.getExe pkgs.tmuxbash;
               window-decoration = false;
               gtk-single-instance = true;
-              font-feature = [
-                "-calt"
-                "-liga"
-                "-dlig"
-              ];
             };
           };
 

@@ -8,12 +8,6 @@ let
   cfg = config.mj;
 in
 {
-  imports = [
-    ./sshd
-    ./unitstatus
-    ./users
-  ];
-
   options.mj = with lib.types; {
     stateVersion = lib.mkOption {
       type = str;
@@ -32,37 +26,13 @@ in
   };
 
   config = {
-    boot = {
-      # https://github.com/NixOS/nixpkgs/issues/83694#issuecomment-605657381
-      kernel.sysctl = {
-        "kernel.sysrq" = "438";
-        "kernel.perf_event_paranoid" = "-1";
-        "kernel.kptr_restrict" = "0";
-      };
-
-      kernelPackages = lib.mkDefault pkgs.linuxPackages;
-
-      supportedFilesystems = [
-        "btrfs"
-        "ext4"
-      ];
-    };
-
     nixpkgs.config.allowUnfree = true;
 
-    hardware.enableRedistributableFirmware = true;
-
     time.timeZone = cfg.timeZone;
-
-    i18n = {
-      defaultLocale = "en_US.UTF-8";
-      supportedLocales = [ "all" ];
-    };
 
     nix = {
       gc = {
         automatic = true;
-        dates = "weekly";
         options = "--delete-older-than 7d";
       };
       settings = {
@@ -71,15 +41,6 @@ in
           "flakes"
         ];
         trusted-users = [ cfg.username ];
-      };
-    };
-
-    system.stateVersion = cfg.stateVersion;
-
-    security = {
-      sudo = {
-        wheelNeedsPassword = false;
-        execWheelOnly = true;
       };
     };
 
@@ -107,51 +68,32 @@ in
             lsof # lsof yay
             rage # encrypt-decrypt
             ncdu # disk usage navigator
-            btdu
-            lshw
             entr
             poop # hopefully poof some day
             pigz
             zstd
             unrar
-            iotop
             wdiff
             sshfs
             pwgen
-            below # tracking cgroups
-            mdadm
             zopfli
             brotli
             bindfs
             spiped
-            parted
-            dhcpcd
-            procps
             unison
-            usbtop
             vmtouch
             vimv-rs
-            sysstat
             ripgrep
-            ethtool
             gettext
             exiftool
-            keyutils
-            libkcapi
             usbutils
             pciutils
-            bsdgames
             parallel
             yamllint
             dos2unix
-            compsize
             rtorrent
             p7zip-rar
             moreutils
-            cryptsetup
-            lm_sensors
-            inotify-info
-            inotify-tools
             smartmontools
             unixtools.xxd
             ghostty.terminfo
@@ -166,7 +108,6 @@ in
             ngrep
             iftop
             whois
-            ipset
             iperf3
             jnettop
             openssl
@@ -175,59 +116,11 @@ in
             dnsutils
             curl
             bandwhich
-            bridge-utils
             speedtest-cli
             nix-output-monitor
-
-            perf
-            config.boot.kernelPackages.vm-tools
           ]
         ];
     };
 
-    programs = {
-      nano.enable = false;
-      mtr.enable = true;
-      bcc.enable = true;
-
-      tmux = {
-        enable = true;
-        keyMode = "vi";
-        historyLimit = 1000000;
-      };
-
-      neovim = {
-        enable = true;
-        vimAlias = true;
-        defaultEditor = true;
-      };
-    };
-
-    networking.firewall.logRefusedConnections = false;
-
-    systemd.services.dbus = {
-      restartIfChanged = false;
-      reloadIfChanged = lib.mkForce false;
-    };
-
-    services = {
-      iperf3.enable = true;
-      atd.enable = true;
-
-      chrony = {
-        enable = true;
-        servers = [ "time.cloudflare.com" ];
-        initstepslew.threshold = 1;
-        extraConfig = ''
-          makestep 1 -1
-        '';
-      };
-
-      locate = {
-        enable = true;
-        package = pkgs.plocate;
-        prunePaths = [ "/home/.btrfs" ];
-      };
-    };
   };
 }

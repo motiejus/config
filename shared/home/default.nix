@@ -4,13 +4,13 @@
   stateVersion,
   email ? null,
   devTools,
-  hmOnly,
   username,
+  homeDirectory ? "/home/${username}",
   wrapGo ? false,
   ...
 }:
 let
-  homeDirectory = "/home/${username}";
+  clipboard = if pkgs.stdenv.isDarwin then "pbcopy" else "xclip -selection clipboard";
 in
 {
   home = {
@@ -42,24 +42,20 @@ in
         pkgs.zigpkgs."0.15.1"
       ])
 
-      (lib.mkIf hmOnly [
-        # pkgs by motiejus
-        tmuxbash
-        nicer
+      [ tmuxbash ]
 
-        ncdu
-        poop
+      (lib.mkIf pkgs.stdenv.isLinux [
+        # pkgs by motiejus, Linux-only
+        nicer
+      ])
+
+      [
         tokei
         bloaty
         scrcpy
         yt-dlp
-        vimv-rs
-        ripgrep
-        yamllint
-        bandwhich
         hyperfine
-        nix-output-monitor
-      ])
+      ]
     ];
 
   programs = lib.mkMerge [
@@ -70,7 +66,7 @@ in
         generateCaches = true;
       };
 
-      chromium = lib.mkIf devTools {
+      chromium = lib.mkIf (devTools && pkgs.stdenv.isLinux) {
         enable = true;
         extensions = [
           { id = "cjpalhdlnbpafiamejdnhcphjbkeiagm"; } # ublock origin
@@ -222,13 +218,15 @@ in
         '';
       };
     }
-    (lib.mkIf (!hmOnly) {
+    {
       bash = {
         enable = true;
         shellAliases = {
-          "l" = "echo -n ł | xclip -selection clipboard";
-          "L" = "echo -n Ł | xclip -selection clipboard";
           "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
+        }
+        // {
+          "l" = "echo -n ł | ${clipboard}";
+          "L" = "echo -n Ł | ${clipboard}";
         };
         initExtra = ''
           t() { git rev-parse --show-toplevel; }
@@ -236,6 +234,6 @@ in
           source ${./gg.sh}
         '';
       };
-    })
+    }
   ];
 }
