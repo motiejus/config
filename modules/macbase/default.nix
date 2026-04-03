@@ -60,6 +60,10 @@ in
     programs.zsh.enable = lib.mkForce false;
     environment.shells = [ pkgs.bash ];
 
+    system.activationScripts.postActivation.text = ''
+      dscl . -create /Users/${cfg.username} UserShell /run/current-system/sw/bin/bash
+    '';
+
     home-manager = {
       useGlobalPkgs = true;
       backupFileExtension = "bk";
