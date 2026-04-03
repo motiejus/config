@@ -94,7 +94,6 @@ in
             moreutils
             smartmontools
             unixtools.xxd
-            ghostty.terminfo
             sqlite-interactive
 
             # networking

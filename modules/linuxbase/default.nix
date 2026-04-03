@@ -70,6 +70,7 @@ in
       inotify-tools
       compsize
       bsdgames
+      ghostty.terminfo
       ipset
       bridge-utils
 
