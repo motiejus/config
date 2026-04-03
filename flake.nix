@@ -43,6 +43,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -79,6 +84,7 @@
       nur,
       zig,
       kolide-launcher,
+      nix-darwin,
       ...
     }@inputs:
     let
@@ -97,53 +103,59 @@
         #  };
         #  deploy-rs-pkg = null;
         #})
-        (_: super: rec {
-          gamja = super.callPackage ./pkgs/gamja.nix { };
-          weather = super.callPackage ./pkgs/weather { };
-          nicer = super.callPackage ./pkgs/nicer.nix { };
-          tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
-          claudes = super.callPackage ./pkgs/claudes.nix { };
-          sentinelone = super.callPackage ./pkgs/sentinelone { };
-          chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
-          mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
+        (
+          _: super:
+          rec {
+            gamja = super.callPackage ./pkgs/gamja.nix { };
+            weather = super.callPackage ./pkgs/weather { };
+            tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
+            gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
+          }
+          // super.lib.optionalAttrs super.stdenv.isLinux rec {
+            nicer = super.callPackage ./pkgs/nicer.nix { };
+            go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
+            claudes = super.callPackage ./pkgs/claudes.nix { };
+            sentinelone = super.callPackage ./pkgs/sentinelone { };
+            chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
+            mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 
-          # needs 0.9.28+ for __attribute__((cleanup))
-          tinycc = super.tinycc.overrideAttrs {
-            version = "0.9.27-unstable-2026-02-07";
-            src = super.fetchFromRepoOrCz {
-              repo = "tinycc";
-              rev = "4597a9621e70a337b241d424f4ab4729cb75b426";
-              hash = "sha256-/jm00d4BZQateOHkUatc9Y2ZofwvgkRgps72vgAOWno=";
+            # needs 0.9.28+ for __attribute__((cleanup))
+            tinycc = super.tinycc.overrideAttrs {
+              version = "0.9.27-unstable-2026-02-07";
+              src = super.fetchFromRepoOrCz {
+                repo = "tinycc";
+                rev = "4597a9621e70a337b241d424f4ab4729cb75b426";
+                hash = "sha256-/jm00d4BZQateOHkUatc9Y2ZofwvgkRgps72vgAOWno=";
+              };
             };
-          };
 
-          mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };
-          mrescue-debian-xfce = mkDebianLive {
-            flavor = "xfce";
-            version = "13.3.0";
-            hash = "sha256-xvHLR2gOOdsTIu7FrOZdxgfG6keqniEhhf9ywJmtNXQ=";
-          };
+            mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };
+            mrescue-debian-xfce = mkDebianLive {
+              flavor = "xfce";
+              version = "13.3.0";
+              hash = "sha256-xvHLR2gOOdsTIu7FrOZdxgfG6keqniEhhf9ywJmtNXQ=";
+            };
 
-          # NixOS netboot rescue image
-          # Note: Update URL and hash manually from https://nixos.org/download
-          mrescue-nixos = super.callPackage ./pkgs/mrescue-nixos.nix { };
+            # NixOS netboot rescue image
+            # Note: Update URL and hash manually from https://nixos.org/download
+            mrescue-nixos = super.callPackage ./pkgs/mrescue-nixos.nix { };
 
-          vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
-          gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
-          go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
-
-          pkgs-unstable = import nixpkgs-unstable {
-            inherit (super.stdenv.hostPlatform) system;
-            config.allowUnfree = true;
-            overlays = [
-              (_self: super: {
-                go = super.go_1_26;
-                buildGoModule = super.buildGo126Module;
-                buildGoPackage = super.buildGo126Package;
-              })
-            ];
-          };
-        })
+            vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
+          }
+          // {
+            pkgs-unstable = import nixpkgs-unstable {
+              inherit (super.stdenv.hostPlatform) system;
+              config.allowUnfree = true;
+              overlays = [
+                (_self: super: {
+                  go = super.go_1_26;
+                  buildGoModule = super.buildGo126Module;
+                  buildGoPackage = super.buildGo126Package;
+                })
+              ];
+            };
+          }
+        )
       ];
 
     in
@@ -278,6 +290,15 @@
           // inputs;
         };
 
+      };
+
+      darwinConfigurations = {
+        macworx = nix-darwin.lib.darwinSystem {
+          modules = [
+            { nixpkgs.overlays = baseOverlays; }
+            ./hosts/macworx/configuration.nix
+          ];
+        };
       };
 
       deploy.nodes = {
