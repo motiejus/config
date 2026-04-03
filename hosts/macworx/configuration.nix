@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 {
   imports = [
     ../../modules/macbase
@@ -10,10 +10,10 @@
 
   mj = {
     stateVersion = "25.11";
-    timeZone = "UTC";
-    username = "motiejus";
+    timeZone = "GMT";
+    username = "mjakstys";
     base.mac.devTools = true;
   };
 
-  home-manager.users.motiejus.programs.ghostty.package = pkgs.ghostty-bin;
+  home-manager.users.${config.mj.username}.programs.ghostty.package = pkgs.ghostty-bin;
 }
