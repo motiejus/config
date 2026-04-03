@@ -57,6 +57,21 @@ in
     };
 
     programs.bash.enable = true;
+    programs.bash.interactiveShellInit = ''
+      # Provide a nice prompt if the terminal supports it.
+      if [ "$TERM" != "dumb" ] || [ -n "$INSIDE_EMACS" ]; then
+        PROMPT_COLOR="1;31m"
+        ((UID)) && PROMPT_COLOR="1;32m"
+        if [ -n "$INSIDE_EMACS" ]; then
+          PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
+        else
+          PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
+          if [[ "$TERM" =~ xterm ]]; then
+            PS1="\[\033]0;\u@\h: \w\007\]$PS1"
+          fi
+        fi
+      fi
+    '';
     programs.zsh.enable = lib.mkForce false;
     environment.shells = [ pkgs.bash ];
 
