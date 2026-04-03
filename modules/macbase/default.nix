@@ -33,6 +33,11 @@ in
 
     users.users.${cfg.username}.home = "/Users/${cfg.username}";
 
+    system.keyboard = {
+      enableKeyMapping = true;
+      nonUS.remapTilde = true;
+    };
+
     programs.bash.enable = true;
     programs.zsh.enable = lib.mkForce false;
     environment.shells = [ pkgs.bash ];
