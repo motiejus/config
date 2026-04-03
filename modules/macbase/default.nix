@@ -33,9 +33,27 @@ in
 
     users.users.${cfg.username}.home = "/Users/${cfg.username}";
 
-    system.keyboard = {
-      enableKeyMapping = true;
-      nonUS.remapTilde = true;
+    system = {
+      primaryUser = cfg.username;
+      keyboard = {
+        enableKeyMapping = true;
+        nonUS.remapTilde = true;
+      };
+
+      defaults.CustomUserPreferences."com.apple.HIToolbox" = {
+        AppleEnabledInputSources = [
+          {
+            InputSourceKind = "Keyboard Layout";
+            "KeyboardLayout ID" = 0;
+            "KeyboardLayout Name" = "U.S.";
+          }
+          {
+            InputSourceKind = "Keyboard Layout";
+            "KeyboardLayout ID" = 30;
+            "KeyboardLayout Name" = "Lithuanian";
+          }
+        ];
+      };
     };
 
     programs.bash.enable = true;

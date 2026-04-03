@@ -9,21 +9,6 @@
   nixpkgs.hostPlatform = "aarch64-darwin";
   system = {
     stateVersion = 6;
-
-    defaults.CustomUserPreferences."com.apple.HIToolbox" = {
-      AppleEnabledInputSources = [
-        {
-          InputSourceKind = "Keyboard Layout";
-          "KeyboardLayout ID" = 0;
-          "KeyboardLayout Name" = "U.S.";
-        }
-        {
-          InputSourceKind = "Keyboard Layout";
-          "KeyboardLayout ID" = 30;
-          "KeyboardLayout Name" = "Lithuanian";
-        }
-      ];
-    };
   };
 
   mj = {
