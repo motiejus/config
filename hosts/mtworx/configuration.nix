@@ -119,7 +119,7 @@ let
 in
 {
   imports = [
-    ../../shared/work
+    ../../shared/work/linuxwork.nix
     ../../modules
     ../../modules/profiles/workstation
     ../../modules/profiles/autorandr

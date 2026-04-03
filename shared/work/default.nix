@@ -1,18 +1,5 @@
 { config, pkgs, ... }:
 {
-  mj.base.users = {
-    email = null;
-    wrapGo = true;
-  };
-
-  networking = {
-    hosts."127.0.0.1" = [
-      "go"
-      "go."
-    ];
-    firewall.allowedTCPPorts = [ 80 ];
-  };
-
   environment.systemPackages = with pkgs; [
     #swc
     turbo
@@ -25,15 +12,12 @@
     mysql80
     kubectl
     kubectx
-    chronoctl
     terraform
     github-cli
     #pkgs.pkgs-unstable.claude-code
     docker-compose
     gcloud-wrapped
     kubectl-node-shell
-
-    liburing.dev
   ];
 
   programs._1password.enable = true;
@@ -52,11 +36,6 @@
         url."git@github.com:".insteadOf = "https://github.com";
         user.useConfigOnly = true;
       };
-      chromium.extensions = [
-        { id = "aeblfdkhhhdcdjpifhhbdiojplfjncoa"; } # 1password
-        { id = "mdkgfdijbhbcbajcdlebbodoppgnmhab"; } # GoLinks
-        { id = "kgjfgplpablkjnlkjmjdecgdpfankdle"; } # Zoom
-      ];
       bash.initExtra = ''
         droidcli() {
           (cd $HOME/dev/monorepo; bin/droidcli "$@")
