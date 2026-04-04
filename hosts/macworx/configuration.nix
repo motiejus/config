@@ -1,10 +1,13 @@
 { config, pkgs, ... }:
 let
-  tealWallpaper = pkgs.runCommand "teal-wallpaper.png" {
-    nativeBuildInputs = [ pkgs.imagemagick ];
-  } ''
-    magick -size 3840x2160 canvas:"#008080" $out
-  '';
+  tealWallpaper =
+    pkgs.runCommand "teal-wallpaper.png"
+      {
+        nativeBuildInputs = [ pkgs.imagemagick ];
+      }
+      ''
+        magick -size 3840x2160 canvas:"#008080" $out
+      '';
 in
 {
   imports = [

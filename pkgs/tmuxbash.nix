@@ -1,4 +1,9 @@
-{ tmux, bash, writeShellApplication, ... }:
+{
+  tmux,
+  bash,
+  writeShellApplication,
+  ...
+}:
 writeShellApplication {
   name = "tmuxbash";
   text = ''

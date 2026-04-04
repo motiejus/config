@@ -40,51 +40,62 @@ in
         nonUS.remapTilde = true;
       };
 
-      defaults.dock.autohide-time-modifier = 0.0;
-      defaults.dock.autohide-delay = 0.0;
-      defaults.dock.expose-animation-duration = 0.0;
-      defaults.dock.launchanim = false;
-      defaults.dock.mineffect = "scale";
+      defaults = {
+        dock = {
+          autohide-time-modifier = 0.0;
+          autohide-delay = 0.0;
+          expose-animation-duration = 0.0;
+          launchanim = false;
+          mineffect = "scale";
+        };
 
-      defaults.NSGlobalDomain.NSAutomaticWindowAnimationsEnabled = false;
-      defaults.NSGlobalDomain.NSScrollAnimationEnabled = false;
-      defaults.NSGlobalDomain.NSWindowResizeTime = 0.001;
+        NSGlobalDomain = {
+          NSAutomaticWindowAnimationsEnabled = false;
+          NSScrollAnimationEnabled = false;
+          NSWindowResizeTime = 0.001;
+        };
 
-      defaults.menuExtraClock.ShowSeconds = true;
+        menuExtraClock.ShowSeconds = true;
 
-      defaults.CustomUserPreferences."com.apple.HIToolbox" = {
-        AppleEnabledInputSources = [
-          {
-            InputSourceKind = "Keyboard Layout";
-            "KeyboardLayout ID" = 0;
-            "KeyboardLayout Name" = "U.S.";
-          }
-          {
-            InputSourceKind = "Keyboard Layout";
-            "KeyboardLayout ID" = 30;
-            "KeyboardLayout Name" = "Lithuanian";
-          }
-        ];
+        CustomUserPreferences."com.apple.HIToolbox" = {
+          AppleEnabledInputSources = [
+            {
+              InputSourceKind = "Keyboard Layout";
+              "KeyboardLayout ID" = 0;
+              "KeyboardLayout Name" = "U.S.";
+            }
+            {
+              InputSourceKind = "Keyboard Layout";
+              "KeyboardLayout ID" = 30;
+              "KeyboardLayout Name" = "Lithuanian";
+            }
+          ];
+        };
       };
     };
 
-    programs.bash.enable = true;
-    programs.bash.interactiveShellInit = ''
-      # Provide a nice prompt if the terminal supports it.
-      if [ "$TERM" != "dumb" ] || [ -n "$INSIDE_EMACS" ]; then
-        PROMPT_COLOR="1;31m"
-        ((UID)) && PROMPT_COLOR="1;32m"
-        if [ -n "$INSIDE_EMACS" ]; then
-          PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
-        else
-          PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
-          if [[ "$TERM" =~ xterm ]]; then
-            PS1="\[\033]0;\u@\h: \w\007\]$PS1"
+    programs = {
+      bash = {
+        enable = true;
+        interactiveShellInit = ''
+          # Provide a nice prompt if the terminal supports it.
+          if [ "$TERM" != "dumb" ] || [ -n "$INSIDE_EMACS" ]; then
+            PROMPT_COLOR="1;31m"
+            ((UID)) && PROMPT_COLOR="1;32m"
+            if [ -n "$INSIDE_EMACS" ]; then
+              PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
+            else
+              PS1="\n\[\033[$PROMPT_COLOR\][\u@\h:\w]\\$\[\033[0m\] "
+              if [[ "$TERM" =~ xterm ]]; then
+                PS1="\[\033]0;\u@\h: \w\007\]$PS1"
+              fi
+            fi
           fi
-        fi
-      fi
-    '';
-    programs.zsh.enable = lib.mkForce false;
+        '';
+      };
+
+      zsh.enable = lib.mkForce false;
+    };
     environment.shells = [ pkgs.bash ];
 
     system.activationScripts.postActivation.text = ''
