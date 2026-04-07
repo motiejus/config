@@ -57,7 +57,12 @@ in
           NSWindowShouldDragOnGesture = true;
         };
 
-        menuExtraClock.ShowSeconds = true;
+        menuExtraClock = {
+          ShowSeconds = true;
+          Show24Hour = true;
+          ShowDate = 1; # always show date
+          ShowDayOfWeek = true;
+        };
 
         CustomUserPreferences."com.apple.symbolichotkeys" = let
           selectPreviousInputSource = "60";
