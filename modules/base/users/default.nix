@@ -29,10 +29,6 @@ in
 {
   options.mj.base.users = with lib.types; {
     enable = lib.mkEnableOption "enable motiejus and root";
-    email = lib.mkOption {
-      type = nullOr str;
-      default = "motiejus@jakstys.lt";
-    };
     user = props;
     root = props;
   };
@@ -76,14 +72,12 @@ in
     home-manager = {
       useGlobalPkgs = true;
       backupFileExtension = "bk";
-      users.${config.mj.username} =
-        { pkgs, ... }:
-        import ../../../shared/home {
-          inherit lib;
-          inherit pkgs;
+      users.${config.mj.username} = {
+        imports = [ ../../../shared/home ];
+        home = {
           inherit (config.mj) stateVersion username;
-          inherit (cfg) email;
         };
+      };
     };
   };
 }

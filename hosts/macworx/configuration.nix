@@ -15,7 +15,7 @@ in
     ../../modules/profiles/basedesktop
     ../../modules/profiles/terminal
     ../../modules/profiles/devtools
-    ../../shared/work/macwork.nix
+    ../../modules/profiles/work/mac.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";

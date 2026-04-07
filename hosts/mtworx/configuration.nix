@@ -119,7 +119,7 @@ let
 in
 {
   imports = [
-    ../../shared/work/linuxwork.nix
+    ../../modules/profiles/work/linux.nix
     ../../modules
     ../../modules/profiles/workstation
     ../../modules/profiles/physical
@@ -157,33 +157,12 @@ in
       ];
 
       systemd.emergencyAccess = true;
-      luks.devices = {
-        luksroot = {
-          device = "${nvme}-part3";
-          allowDiscards = true;
-          crypttabExtraOpts = [ "tpm2-device=auto" ];
-        };
-      };
     };
   };
 
-  swapDevices = [
-    {
-      device = "${nvme}-part2";
-      randomEncryption.enable = true;
-    }
-  ];
-
-  fileSystems = {
-    "/" = {
-      device = "/dev/mapper/luksroot";
-      fsType = "btrfs";
-      options = [ "compress=zstd" ];
-    };
-    "/boot" = {
-      device = "${nvme}-part1";
-      fsType = "vfat";
-    };
+  mj.profiles.btrfs = {
+    disk = nvme;
+    luksExtraConfig.crypttabExtraOpts = [ "tpm2-device=auto" ];
   };
 
   hardware.coral.usb.enable = true;
@@ -264,11 +243,6 @@ in
           uidgid = myData.uidgid.updaterbot-deployee;
           sshAllowSubnets = with myData.subnets; [ tailscale.sshPattern ];
         };
-      };
-
-      postfix = {
-        enable = false;
-        #saslPasswdPath = config.age.secrets.sasl-passwd.path;
       };
 
       syncthing = {

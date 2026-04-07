@@ -41,33 +41,10 @@ in
         "usbhid"
         "tpm_tis"
       ];
-      luks.devices = {
-        luksroot = {
-          device = "${disk}-part3";
-          allowDiscards = true;
-        };
-      };
     };
   };
 
-  swapDevices = [
-    {
-      device = "${disk}-part2";
-      randomEncryption.enable = true;
-    }
-  ];
-
-  fileSystems = {
-    "/" = {
-      device = "/dev/mapper/luksroot";
-      fsType = "btrfs";
-      options = [ "compress=zstd" ];
-    };
-    "/boot" = {
-      device = "${disk}-part1";
-      fsType = "vfat";
-    };
-  };
+  mj.profiles.btrfs.disk = disk;
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";

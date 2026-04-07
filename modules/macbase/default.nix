@@ -9,12 +9,6 @@ let
 in
 {
   imports = [ ../base ];
-  options.mj.base.mac = with lib.types; {
-    email = lib.mkOption {
-      type = nullOr str;
-      default = null;
-    };
-  };
 
   config = {
     nix.gc.interval = {
@@ -204,24 +198,22 @@ in
     home-manager = {
       useGlobalPkgs = true;
       backupFileExtension = "bk";
-      users.${cfg.username} =
-        { pkgs, ... }:
-        import ../../shared/home {
-          inherit lib pkgs;
+      users.${cfg.username} = {
+        imports = [ ../../shared/home ];
+        home = {
           inherit (cfg) stateVersion username;
-          inherit (cfg.base.mac) email;
           homeDirectory = "/Users/${cfg.username}";
         };
-    };
-
-    # Secure Enclave SSH key
-    home-manager.users.${cfg.username}.programs.ssh = {
-      enable = true;
-      enableDefaultConfig = false;
-      matchBlocks."*" = {
-        identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
-        extraOptions = {
-          SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
+        # Secure Enclave SSH key
+        programs.ssh = {
+          enable = true;
+          enableDefaultConfig = false;
+          matchBlocks."*" = {
+            identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
+            extraOptions = {
+              SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
+            };
+          };
         };
       };
     };

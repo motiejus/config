@@ -10,10 +10,6 @@
     firewall.allowedTCPPorts = [ 80 ];
   };
 
-  mj.base.users = {
-    email = null;
-  };
-
   environment.systemPackages = with pkgs; [
     chronoctl
     (pkgs.go-raceless.override { inherit (pkgs.pkgs-unstable) go; })

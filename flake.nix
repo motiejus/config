@@ -266,7 +266,6 @@
             agenix.nixosModules.default
             home-manager.nixosModules.home-manager
             ./hosts/fra1-c/configuration.nix
-            ./modules
           ];
 
           specialArgs = {

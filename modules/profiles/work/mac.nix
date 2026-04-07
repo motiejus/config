@@ -21,8 +21,8 @@ let
       server {
         listen 443 ssl;
         server_name go go.;
-        ssl_certificate ${../certs/go.pem};
-        ssl_certificate_key ${../certs/go.key};
+        ssl_certificate ${../../../shared/certs/go.pem};
+        ssl_certificate_key ${../../../shared/certs/go.key};
         location / {
           return 301 https://golinks.io$request_uri;
         }
@@ -32,10 +32,6 @@ let
 in
 {
   imports = [ ./. ];
-
-  mj.base.mac = {
-    email = null;
-  };
 
   environment.etc.hosts.text = ''
     127.0.0.1 localhost

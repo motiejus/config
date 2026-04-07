@@ -46,33 +46,10 @@ in
         "usbhid"
         "tpm_tis"
       ];
-      luks.devices = {
-        luksroot = {
-          device = "${nvme}-part3";
-          allowDiscards = true;
-        };
-      };
     };
   };
 
-  swapDevices = [
-    {
-      device = "${nvme}-part2";
-      randomEncryption.enable = true;
-    }
-  ];
-
-  fileSystems = {
-    "/" = {
-      device = "/dev/mapper/luksroot";
-      fsType = "btrfs";
-      options = [ "compress=zstd" ];
-    };
-    "/boot" = {
-      device = "${nvme}-part1";
-      fsType = "vfat";
-    };
-  };
+  mj.profiles.btrfs.disk = nvme;
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";

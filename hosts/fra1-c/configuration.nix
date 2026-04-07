@@ -8,7 +8,10 @@ let
   disk = "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_64370894";
 in
 {
-  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
+  imports = [
+    ../../modules
+    (modulesPath + "/profiles/qemu-guest.nix")
+  ];
 
   age.secrets = {
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
