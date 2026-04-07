@@ -118,7 +118,7 @@ in
           alt-o = "move-node-to-monitor --wrap-around next";
 
           # Fullscreen (awesome: mod+f)
-          alt-f = "fullscreen";
+          #alt-f = "fullscreen";
 
           # Close window (awesome: mod+shift+c / mod+shift+q)
           alt-shift-c = "close";
@@ -130,9 +130,10 @@ in
           # Toggle layout (awesome: mod+space)
           alt-space = "layout tiles horizontal vertical";
 
-          # Resize (awesome: mod+h/l for master width)
+          # Resize
           alt-minus = "resize smart -50";
           alt-equal = "resize smart +50";
+          alt-r = "mode resize";
 
           # Workspaces (awesome: mod+1-9)
           alt-1 = "workspace 1";
@@ -165,6 +166,15 @@ in
 
           # Terminal (awesome: mod+return)
           alt-enter = "exec-and-forget open -na Ghostty";
+        };
+
+        mode.resize.binding = {
+          h = "resize width -50";
+          l = "resize width +50";
+          j = "resize height +50";
+          k = "resize height -50";
+          esc = "mode main";
+          enter = "mode main";
         };
       };
     };
