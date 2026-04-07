@@ -157,6 +157,10 @@ in
           alt-shift-8 = "move-node-to-workspace 8";
           alt-shift-9 = "move-node-to-workspace 9";
 
+          # Cycle workspaces
+          ctrl-left = "workspace --wrap-around prev";
+          ctrl-right = "workspace --wrap-around next";
+
           # Lock screen (awesome: mod+x)
           alt-x = "exec-and-forget pmset displaysleepnow";
 
