@@ -9,7 +9,7 @@ let
 in
 {
   imports = [
-    ../desktop
+    ../linuxdesktop
     ../devtools
   ];
 
@@ -104,7 +104,7 @@ in
       { pkgs, ... }:
       {
         xdg.configFile = {
-          "awesome/rc.lua".source = ../desktop/rc.lua;
+          "awesome/rc.lua".source = ../linuxdesktop/rc.lua;
           "gdb/gdbinit".text = ''
             set style address foreground yellow
             set style function foreground cyan
@@ -212,7 +212,7 @@ in
                 mailboxes ="[Gmail]/Starred"
                 mailboxes ="[Gmail]/Sent Mail"
 
-                source ${../desktop/notmuch-colors.muttrc}
+                source ${../linuxdesktop/notmuch-colors.muttrc}
               '';
             };
           };

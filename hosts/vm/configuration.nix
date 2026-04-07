@@ -11,7 +11,7 @@
     "${modulesPath}/installer/cd-dvd/iso-image.nix"
     ../../modules
     ../../modules/profiles/btrfs
-    ../../modules/profiles/desktop
+    ../../modules/profiles/linuxdesktop
   ];
 
   mj = {

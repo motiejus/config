@@ -189,11 +189,9 @@ in
         python3Packages = pkgs.python311Packages;
       }) # alternative to gtk-recordMyDesktop
       x11vnc
-      ffmpeg
       tinycc
       cheese
       arandr
-      pandoc
       evince
       ioping
       motion
@@ -232,23 +230,19 @@ in
       winetricks
       shellcheck
       virtualenv
-      imagemagick
       get_iplayer
       #ventoy-full
-      ghostscript
       pavucontrol
       photocollage
       libqalculate # qalc
       qalculate-qt # qalculate
       google-chrome
       wirelesstools
-      poppler-utils
       squashfsTools
       aspellDicts.en
       aspellDicts.lt
       libreoffice-qt
       graphicsmagick
-      magic-wormhole
       signal-desktop
       gnome-calendar
       element-desktop
@@ -257,7 +251,6 @@ in
       gnome-calculator
       kdePackages.okular
       nvtopPackages.amd
-      age-plugin-yubikey
       nvtopPackages.intel
       hunspellDicts.en_US
       samsung-unified-linux-driver
