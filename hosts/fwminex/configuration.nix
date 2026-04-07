@@ -12,6 +12,7 @@ in
   imports = [
     ../../modules
     ../../modules/profiles/physical
+    ../../modules/profiles/devtools
     ../../modules/profiles/btrfs
   ];
 
@@ -832,29 +833,15 @@ in
       with pkgs;
       [
         yt-dlp
-        inferno
         tpm2-tools
         amdgpu_top
         graphicsmagick
         ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
         age-plugin-yubikey
-        (python3.withPackages (
-          ps: with ps; [
-            ipython
-
-          ]
-        ))
 
         # wip zig0 stuff
-        gdb
-        cmake
-        ninja
         tinycc
-        claudes
-        cppcheck
         valgrind
-        gcc_latest
-        pkgs.pkgs-unstable.claude-code
       ]
       ++ (with llvmPackages_20; [
         clang

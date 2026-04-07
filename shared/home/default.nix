@@ -50,11 +50,8 @@ in
       ])
 
       [
-        tokei
-        bloaty
         scrcpy
         yt-dlp
-        hyperfine
       ]
     ];
 

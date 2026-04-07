@@ -8,7 +8,10 @@ let
   inherit (config.mj) username;
 in
 {
-  imports = [ ../desktop ];
+  imports = [
+    ../desktop
+    ../devtools
+  ];
 
   config = {
 
@@ -40,74 +43,30 @@ in
     environment.systemPackages =
       with pkgs;
       [
-        claudes
-
         rr
-        uv
         wrk2
-        cloc
-        josm
-        zbar
         pdal
         gdal
-        flex
         poop
-        ninja
-        putty
-        bison
-        shfmt
-        tokei
         tracy
-        shfmt
         mbpoll # modbus poll
-        bloaty
-        skopeo
-        remake
-        esptool
-        inferno
         neomutt
-        undocker
         chromium
         binutils
         openscad
         patchelf
         valgrind
         musl.dev
-        graphviz
         qgis-ltr
-        cppcheck
-        wasmtime
         bpftrace
-        loccount
-        qrencode
         distrobox
-        hyperfine
-        tesseract
         bubblewrap
         glabels-qt
-        postgresql
-        gcc_latest
-        borgbackup
-        oath-toolkit
-        redo-apenwarr
         joplin-desktop
         sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
-        git-filter-repo
-        nixpkgs-review
         wineWowPackages.full
         openorienteering-mapper
-        pkgs.pkgs-unstable.claude-code
-
-        (python3.withPackages (
-          ps: with ps; [
-            numpy
-            pyyaml
-            ipython
-            pymodbus
-            matplotlib
-          ]
-        ))
 
         (texlive.combine {
           inherit (texlive)

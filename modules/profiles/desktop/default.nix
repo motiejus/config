@@ -32,8 +32,7 @@ in
   };
 
   imports = [
-    ../basedesktop
-    ../physical
+    ../terminal
   ];
   config = {
     boot = {

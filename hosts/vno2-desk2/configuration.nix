@@ -12,6 +12,7 @@ in
   imports = [
     ../../modules
     ../../modules/profiles/xfce4
+    ../../modules/profiles/physical
     ../../modules/profiles/btrfs
   ];
 

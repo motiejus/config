@@ -122,6 +122,7 @@ in
     ../../shared/work/linuxwork.nix
     ../../modules
     ../../modules/profiles/workstation
+    ../../modules/profiles/physical
     ../../modules/profiles/autorandr
     ../../modules/profiles/btrfs
   ];

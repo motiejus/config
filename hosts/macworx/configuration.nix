@@ -12,7 +12,8 @@ in
 {
   imports = [
     ../../modules/macbase
-    ../../modules/profiles/basedesktop
+    ../../modules/profiles/terminal
+    ../../modules/profiles/devtools
     ../../shared/work/macwork.nix
   ];
 
