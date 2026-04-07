@@ -39,6 +39,7 @@
       ps: with ps; [
         numpy
         pyyaml
+        plotly
         ipython
         pymodbus
         matplotlib
