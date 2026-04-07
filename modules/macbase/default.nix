@@ -115,7 +115,7 @@ in
           alt-ctrl-k = "focus-monitor --wrap-around prev";
 
           # Move window to monitor (awesome: mod+o)
-          alt-o = "move-node-to-monitor --wrap-around next";
+          alt-o = "move-node-to-monitor --wrap-around --focus-follows-window next";
 
           # Fullscreen (awesome: mod+f)
           #alt-f = "fullscreen";
