@@ -45,7 +45,18 @@ in
     osascript -e 'tell application "System Events" to tell every desktop to set picture to "${tealWallpaper}"'
   '';
 
-  environment.systemPackages = [ pkgs.vlc-bin ];
+  environment.systemPackages = [
+    pkgs.vlc-bin
+    pkgs.autoraise
+  ];
+
+  launchd.user.agents.autoraise = {
+    command = "${pkgs.autoraise}/bin/autoraise";
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
+    };
+  };
 
   home-manager.users.${config.mj.username}.programs.ghostty.package = pkgs.ghostty-bin;
 }
