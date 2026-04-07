@@ -94,6 +94,16 @@ in
       };
     };
 
+    services.aerospace = {
+      enable = true;
+      settings = {
+        mode.main.binding = {
+          alt-shift-comma = "move-node-to-monitor --wrap-around prev";
+          alt-shift-period = "move-node-to-monitor --wrap-around next";
+        };
+      };
+    };
+
     programs = {
       bash = {
         enable = true;
