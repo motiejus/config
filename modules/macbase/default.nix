@@ -98,8 +98,66 @@ in
       enable = true;
       settings = {
         mode.main.binding = {
-          alt-shift-comma = "move-node-to-monitor --wrap-around prev";
-          alt-shift-period = "move-node-to-monitor --wrap-around next";
+          # Focus (awesome: mod+j/k), wraps around within workspace + across monitors
+          alt-j = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors down";
+          alt-k = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors up";
+          alt-h = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors left";
+          alt-l = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors right";
+
+          # Swap windows (awesome: mod+shift+j/k)
+          alt-shift-j = "move down";
+          alt-shift-k = "move up";
+          alt-shift-h = "move left";
+          alt-shift-l = "move right";
+
+          # Focus monitor (awesome: mod+ctrl+j/k)
+          alt-ctrl-j = "focus-monitor --wrap-around next";
+          alt-ctrl-k = "focus-monitor --wrap-around prev";
+
+          # Move window to monitor (awesome: mod+o)
+          alt-o = "move-node-to-monitor --wrap-around next";
+
+          # Fullscreen (awesome: mod+f)
+          alt-f = "fullscreen";
+
+          # Close window (awesome: mod+shift+c / mod+shift+q)
+          alt-shift-c = "close";
+          alt-shift-q = "close";
+
+          # Toggle floating (awesome: mod+ctrl+space)
+          alt-ctrl-space = "layout floating tiling";
+
+          # Toggle layout (awesome: mod+space)
+          alt-space = "layout tiles horizontal vertical";
+
+          # Resize (awesome: mod+h/l for master width)
+          alt-minus = "resize smart -50";
+          alt-equal = "resize smart +50";
+
+          # Workspaces (awesome: mod+1-9)
+          alt-1 = "workspace 1";
+          alt-2 = "workspace 2";
+          alt-3 = "workspace 3";
+          alt-4 = "workspace 4";
+          alt-5 = "workspace 5";
+          alt-6 = "workspace 6";
+          alt-7 = "workspace 7";
+          alt-8 = "workspace 8";
+          alt-9 = "workspace 9";
+
+          # Move window to workspace (awesome: mod+shift+1-9)
+          alt-shift-1 = "move-node-to-workspace 1";
+          alt-shift-2 = "move-node-to-workspace 2";
+          alt-shift-3 = "move-node-to-workspace 3";
+          alt-shift-4 = "move-node-to-workspace 4";
+          alt-shift-5 = "move-node-to-workspace 5";
+          alt-shift-6 = "move-node-to-workspace 6";
+          alt-shift-7 = "move-node-to-workspace 7";
+          alt-shift-8 = "move-node-to-workspace 8";
+          alt-shift-9 = "move-node-to-workspace 9";
+
+          # Terminal (awesome: mod+return)
+          alt-enter = "exec-and-forget open -na Ghostty";
         };
       };
     };
