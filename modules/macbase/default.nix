@@ -99,8 +99,8 @@ in
       settings = {
         mode.main.binding = {
           # Focus (awesome: mod+j/k), wraps around within workspace + across monitors
-          alt-j = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors down";
-          alt-k = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors up";
+          alt-j = "focus --boundaries-action wrap-around-the-workspace dfs-next";
+          alt-k = "focus --boundaries-action wrap-around-the-workspace dfs-prev";
           alt-h = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors left";
           alt-l = "focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors right";
 
