@@ -1,8 +1,6 @@
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
-    claudes
-
     uv
     cloc
     josm

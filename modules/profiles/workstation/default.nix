@@ -50,6 +50,7 @@ in
         poop
         tracy
         mbpoll # modbus poll
+        claudes
         neomutt
         chromium
         binutils
