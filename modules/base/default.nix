@@ -49,6 +49,8 @@ in
         with pkgs;
         lib.mkMerge [
           [
+            extract_url
+            tmuxbash
             bc
             jc # parse different formats and command outputs to json
             jq # parse, format and query json documents

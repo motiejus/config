@@ -164,7 +164,6 @@ in
       # packages defined here
       open
       nicer
-      tmuxbash
       brightness
 
       f3 # flight-flash-fraud

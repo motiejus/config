@@ -217,5 +217,17 @@ in
           homeDirectory = "/Users/${cfg.username}";
         };
     };
+
+    # Secure Enclave SSH key
+    home-manager.users.${cfg.username}.programs.ssh = {
+      enable = true;
+      enableDefaultConfig = false;
+      matchBlocks."*" = {
+        identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
+        extraOptions = {
+          SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
+        };
+      };
+    };
   };
 }

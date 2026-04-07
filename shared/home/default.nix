@@ -22,21 +22,6 @@ in
 
   home.sessionVariables = lib.mkIf devTools { GOPATH = "${homeDirectory}/.go"; };
 
-  home.packages =
-    with pkgs;
-    lib.mkMerge [
-      [ extract_url ]
-
-      [ tmuxbash ]
-
-      (lib.mkIf pkgs.stdenv.isLinux [
-        # pkgs by motiejus, Linux-only
-        nicer
-      ])
-
-      [ ]
-    ];
-
   programs = lib.mkMerge [
     {
       direnv.enable = true;
@@ -160,17 +145,6 @@ in
       };
     }
     {
-      ssh = lib.mkIf pkgs.stdenv.isDarwin {
-        enable = true;
-        enableDefaultConfig = false;
-        matchBlocks."*" = {
-          identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
-          extraOptions = {
-            SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
-          };
-        };
-      };
-
       bash = {
         enable = true;
         shellAliases = {
