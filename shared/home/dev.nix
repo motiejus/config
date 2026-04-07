@@ -1,6 +1,8 @@
-{ lib, pkgs, config, ... }:
+{ pkgs, config, ... }:
 {
-  home.sessionVariables = { GOPATH = "${config.home.homeDirectory}/.go"; };
+  home.sessionVariables = {
+    GOPATH = "${config.home.homeDirectory}/.go";
+  };
 
   programs.neovim = {
     plugins = [

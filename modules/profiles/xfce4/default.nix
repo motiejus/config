@@ -3,7 +3,7 @@
   ...
 }:
 {
-  imports = [ ../desktop ];
+  imports = [ ../linuxdesktop ];
 
   config = {
     services.xserver = {
