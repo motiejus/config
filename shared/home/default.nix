@@ -220,6 +220,17 @@ in
       };
     }
     {
+      ssh = lib.mkIf pkgs.stdenv.isDarwin {
+        enable = true;
+        enableDefaultConfig = false;
+        matchBlocks."*" = {
+          identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
+          extraOptions = {
+            SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
+          };
+        };
+      };
+
       bash = {
         enable = true;
         shellAliases = {
