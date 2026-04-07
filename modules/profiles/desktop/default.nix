@@ -32,6 +32,7 @@ in
   };
 
   imports = [
+    ../basedesktop
     ../terminal
   ];
   config = {
@@ -169,7 +170,6 @@ in
       f3 # flight-flash-fraud
       gdb
       ntp
-      vlc
       sox
       mpv
       imv # image viewer
@@ -189,10 +189,8 @@ in
         python3Packages = pkgs.python311Packages;
       }) # alternative to gtk-recordMyDesktop
       x11vnc
-      yt-dlp
       ffmpeg
       tinycc
-      scrcpy
       cheese
       arandr
       pandoc

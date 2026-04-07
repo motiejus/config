@@ -12,6 +12,7 @@ in
 {
   imports = [
     ../../modules/macbase
+    ../../modules/profiles/basedesktop
     ../../modules/profiles/terminal
     ../../modules/profiles/devtools
     ../../shared/work/macwork.nix
@@ -47,7 +48,6 @@ in
   '';
 
   environment.systemPackages = [
-    pkgs.vlc-bin
     pkgs.autoraise
     pkgs.syncthing-macos
   ];
