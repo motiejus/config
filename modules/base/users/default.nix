@@ -33,10 +33,6 @@ in
       type = bool;
       default = false;
     };
-    wrapGo = lib.mkOption {
-      type = bool;
-      default = false;
-    };
     email = lib.mkOption {
       type = nullOr str;
       default = "motiejus@jakstys.lt";
@@ -90,7 +86,7 @@ in
           inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion username;
-          inherit (cfg) devTools email wrapGo;
+          inherit (cfg) devTools email;
         };
     };
   };

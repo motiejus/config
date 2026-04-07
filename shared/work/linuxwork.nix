@@ -12,11 +12,11 @@
 
   mj.base.users = {
     email = null;
-    wrapGo = true;
   };
 
   environment.systemPackages = with pkgs; [
     chronoctl
+    (pkgs.go-raceless.override { inherit (pkgs.pkgs-unstable) go; })
   ];
 
   home-manager.users.${config.mj.username}.programs.chromium.extensions = [

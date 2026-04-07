@@ -14,10 +14,6 @@ in
       type = bool;
       default = false;
     };
-    wrapGo = lib.mkOption {
-      type = bool;
-      default = false;
-    };
     email = lib.mkOption {
       type = nullOr str;
       default = null;
@@ -217,7 +213,7 @@ in
         import ../../shared/home {
           inherit lib pkgs;
           inherit (cfg) stateVersion username;
-          inherit (cfg.base.mac) devTools wrapGo email;
+          inherit (cfg.base.mac) devTools email;
           homeDirectory = "/Users/${cfg.username}";
         };
     };

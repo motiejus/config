@@ -1,6 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   environment.systemPackages = with pkgs; [
+    universal-ctags
+    pkgs-unstable.go
+    pkgs-unstable.delve
+    pkgs-unstable.go-tools
+    pkgs.zigpkgs."0.15.1"
     uv
     cloc
     josm

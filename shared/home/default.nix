@@ -6,7 +6,6 @@
   devTools,
   username,
   homeDirectory ? "/home/${username}",
-  wrapGo ? false,
   ...
 }:
 let
@@ -27,20 +26,6 @@ in
     with pkgs;
     lib.mkMerge [
       [ extract_url ]
-
-      (lib.mkIf devTools [
-        universal-ctags
-
-        (
-          if wrapGo then
-            pkgs.go-raceless.override { inherit (pkgs.pkgs-unstable) go; }
-          else
-            pkgs.pkgs-unstable.go
-        )
-        pkgs-unstable.delve
-        pkgs-unstable.go-tools
-        pkgs.zigpkgs."0.15.1"
-      ])
 
       [ tmuxbash ]
 
