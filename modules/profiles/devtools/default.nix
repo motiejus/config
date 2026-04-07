@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 {
+  home-manager.users.${config.mj.username} = {
+    imports = [ ../../../shared/home/dev.nix ];
+  };
   environment.systemPackages = with pkgs; [
     universal-ctags
     pkgs-unstable.go

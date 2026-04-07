@@ -585,7 +585,6 @@ in
     base = {
       users = {
         enable = true;
-        devTools = true;
         root.hashedPasswordFile = config.age.secrets.root-server-passwd-hash.path;
         user.hashedPasswordFile = config.age.secrets.motiejus-server-passwd-hash.path;
       };

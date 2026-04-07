@@ -29,10 +29,6 @@ in
 {
   options.mj.base.users = with lib.types; {
     enable = lib.mkEnableOption "enable motiejus and root";
-    devTools = lib.mkOption {
-      type = bool;
-      default = false;
-    };
     email = lib.mkOption {
       type = nullOr str;
       default = "motiejus@jakstys.lt";
@@ -86,7 +82,7 @@ in
           inherit lib;
           inherit pkgs;
           inherit (config.mj) stateVersion username;
-          inherit (cfg) devTools email;
+          inherit (cfg) email;
         };
     };
   };

@@ -3,7 +3,6 @@
   pkgs,
   stateVersion,
   email ? null,
-  devTools,
   username,
   homeDirectory ? "/home/${username}",
   ...
@@ -20,8 +19,6 @@ in
     ".parallel/will-cite".text = "";
   };
 
-  home.sessionVariables = lib.mkIf devTools { GOPATH = "${homeDirectory}/.go"; };
-
   programs = lib.mkMerge [
     {
       direnv.enable = true;
@@ -30,36 +27,14 @@ in
         generateCaches = true;
       };
 
-      neovim = lib.mkMerge [
-        {
-          enable = true;
-          vimAlias = true;
-          vimdiffAlias = true;
-          defaultEditor = true;
-          plugins = lib.mkMerge [
-            [ pkgs.vimPlugins.fugitive ]
-            (lib.mkIf devTools [
-              pkgs.vimPlugins.fzf-vim
-              pkgs.vimPlugins.typst-vim
-              pkgs.vimPlugins.vim-gh-line
-              pkgs.vimPlugins.vim-gutentags
-              pkgs.vimPlugins.nvim-lspconfig
-
-              pkgs.pkgs-unstable.vimPlugins.vim-go
-              pkgs.pkgs-unstable.vimPlugins.zig-vim
-            ])
-          ];
-          extraConfig = builtins.readFile ./vimrc;
-        }
-        (lib.mkIf devTools {
-          extraLuaConfig =
-            builtins.readFile
-              (pkgs.replaceVars ./dev.lua {
-                inherit (pkgs) ripgrep;
-                inherit (pkgs.pkgs-unstable) gopls;
-              }).outPath;
-        })
-      ];
+      neovim = {
+        enable = true;
+        vimAlias = true;
+        vimdiffAlias = true;
+        defaultEditor = true;
+        plugins = [ pkgs.vimPlugins.fugitive ];
+        extraConfig = builtins.readFile ./vimrc;
+      };
 
       git = {
         enable = true;

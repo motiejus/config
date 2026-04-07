@@ -10,10 +10,6 @@ in
 {
   imports = [ ../base ];
   options.mj.base.mac = with lib.types; {
-    devTools = lib.mkOption {
-      type = bool;
-      default = false;
-    };
     email = lib.mkOption {
       type = nullOr str;
       default = null;
@@ -213,7 +209,7 @@ in
         import ../../shared/home {
           inherit lib pkgs;
           inherit (cfg) stateVersion username;
-          inherit (cfg.base.mac) devTools email;
+          inherit (cfg.base.mac) email;
           homeDirectory = "/Users/${cfg.username}";
         };
     };

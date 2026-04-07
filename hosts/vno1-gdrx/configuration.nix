@@ -98,7 +98,6 @@ in
 
     base.users = {
       enable = true;
-      devTools = true;
       root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
       user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
     };

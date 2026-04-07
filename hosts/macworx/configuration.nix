@@ -27,7 +27,6 @@ in
     stateVersion = "25.11";
     timeZone = "GMT";
     username = "mjakstys";
-    base.mac.devTools = true;
   };
 
   system.defaults.dock.show-recents = false;
