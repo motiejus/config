@@ -5,32 +5,20 @@
     cloc
     josm
     zbar
-    flex
     ninja
-    putty
-    bison
     shfmt
     tokei
     bloaty
     skopeo
-    remake
-    esptool
     inferno
     undocker
     graphviz
-    cppcheck
-    wasmtime
     loccount
-    qrencode
     hyperfine
     tesseract
-    postgresql
-    gcc_latest
-    borgbackup
     oath-toolkit
-    redo-apenwarr
-    git-filter-repo
     nixpkgs-review
+    git-filter-repo
     pkgs.pkgs-unstable.claude-code
 
     (python3.withPackages (

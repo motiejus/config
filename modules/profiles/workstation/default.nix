@@ -48,8 +48,11 @@ in
         pdal
         gdal
         poop
+        flex
+        bison
         tracy
         mbpoll # modbus poll
+        esptool
         claudes
         neomutt
         chromium
@@ -60,9 +63,13 @@ in
         musl.dev
         qgis-ltr
         bpftrace
+        cppcheck
+        wasmtime
         distrobox
+        postgresql
         bubblewrap
         glabels-qt
+        borgbackup
         joplin-desktop
         sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
