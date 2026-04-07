@@ -48,6 +48,7 @@ in
   environment.systemPackages = [
     pkgs.vlc-bin
     pkgs.autoraise
+    pkgs.syncthing-macos
   ];
 
   launchd.user.agents.autoraise = {
