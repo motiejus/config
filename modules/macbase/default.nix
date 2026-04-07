@@ -57,12 +57,9 @@ in
           NSWindowShouldDragOnGesture = true;
         };
 
-        menuExtraClock = {
-          ShowSeconds = true;
-          Show24Hour = true;
-          ShowDate = 1; # always show date
-          ShowDayOfWeek = true;
-        };
+        menuExtraClock.ShowSeconds = true;
+        # Show24Hour, ShowDate, DateFormat are ignored by macOS Tahoe;
+        # set manually in System Settings > Control Center > Clock Options.
 
         CustomUserPreferences."com.apple.symbolichotkeys" = let
           selectPreviousInputSource = "60";
