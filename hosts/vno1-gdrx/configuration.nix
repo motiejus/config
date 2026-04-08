@@ -147,29 +147,26 @@ in
     wantedBy = [ "default.target" ];
     after = [ "network.target" ];
     serviceConfig = {
-      Environment = "PATH=${
-        lib.makeBinPath [
-          pkgs.xorg.xinit
-          pkgs.xorg.xauth
-          pkgs.coreutils
-        ]
-      }";
       ExecStart = toString [
-        "${pkgs.tigervnc}/bin/vncserver"
+        "${pkgs.tigervnc}/bin/Xvnc"
         ":1"
         "-geometry"
         "3456x2234"
         "-localhost"
-        "yes"
-        "-fg"
-        "-xstartup"
-        "${pkgs.writeShellScript "vnc-xstartup" ''
-          ${pkgs.autocutsel}/bin/autocutsel -fork
-          ${pkgs.autocutsel}/bin/autocutsel -selection PRIMARY -fork
-          ${pkgs.xfce.xfce4-session}/bin/xfce4-session
-        ''}"
+        "-depth"
+        "24"
+        "-SecurityTypes"
+        "VncAuth"
+        "-PasswordFile"
+        "%h/.vnc/passwd"
       ];
-      ExecStop = "${pkgs.tigervnc}/bin/vncserver -kill :1";
+      ExecStartPost = "${pkgs.writeShellScript "vnc-session" ''
+        export DISPLAY=:1
+        ${pkgs.xorg.xauth}/bin/xauth generate :1 . trusted
+        ${pkgs.autocutsel}/bin/autocutsel -display :1 -fork
+        ${pkgs.autocutsel}/bin/autocutsel -display :1 -selection PRIMARY -fork
+        ${pkgs.xfce.xfce4-session}/bin/xfce4-session &
+      ''}";
       Restart = "on-failure";
     };
   };
