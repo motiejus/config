@@ -142,13 +142,19 @@ in
     };
   };
 
-  services.sunshine = {
-    enable = true;
-    capSysAdmin = true;
-    openFirewall = true;
+  systemd.user.services.rustdesk = {
+    description = "RustDesk remote desktop service";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.rustdesk}/bin/rustdesk --service";
+      Restart = "on-failure";
+    };
   };
 
   environment.systemPackages = with pkgs; [
+    rustdesk
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     #linuxPackage.rr-zen_workaround # TODO(motiejus) broken on/since 2025-08
     prismlauncher

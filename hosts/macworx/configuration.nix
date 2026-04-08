@@ -73,7 +73,7 @@ in
     pkgs.autoraise
     pkgs.syncthing-macos
     pkgs.tailscale
-    pkgs.moonlight-qt
+    # RustDesk client: install .dmg from rustdesk.com (nix doesn't build on darwin)
   ];
 
   launchd.daemons.tailscaled = {
