@@ -147,6 +147,13 @@ in
     wantedBy = [ "default.target" ];
     after = [ "network.target" ];
     serviceConfig = {
+      Environment = "PATH=${
+        lib.makeBinPath [
+          pkgs.xorg.xinit
+          pkgs.xorg.xauth
+          pkgs.coreutils
+        ]
+      }";
       ExecStart = toString [
         "${pkgs.tigervnc}/bin/vncserver"
         ":1"
