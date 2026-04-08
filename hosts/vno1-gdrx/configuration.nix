@@ -198,6 +198,9 @@ in
       allowedUDPPorts = [
         53
       ];
+      allowedTCPPorts = [
+        6080
+      ];
     };
   };
 }
