@@ -213,14 +213,14 @@ in
           inherit (cfg) stateVersion username;
           homeDirectory = "/Users/${cfg.username}";
         };
-        # Secure Enclave SSH key
         programs.ssh = {
           enable = true;
           enableDefaultConfig = false;
           matchBlocks."*" = {
-            identityFile = [ "~/.ssh/id_ecdsa_sk_rk" ];
+            identityFile = [ "~/.ssh/id_ed25519" ];
             extraOptions = {
-              SecurityKeyProvider = "/usr/lib/ssh-keychain.dylib";
+              AddKeysToAgent = "yes";
+              UseKeychain = "yes";
             };
           };
         };
