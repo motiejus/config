@@ -11,6 +11,7 @@
     enableBashIntegration = true;
     settings = {
       theme = "iTerm2 Default";
+      window-decoration = false;
       command = lib.getExe pkgs.tmuxbash;
       font-feature = [
         "-calt"

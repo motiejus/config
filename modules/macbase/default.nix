@@ -43,6 +43,9 @@ in
           NSWindowShouldDragOnGesture = true;
         };
 
+        screensaver.askForPassword = true;
+        screensaver.askForPasswordDelay = 0;
+
         menuExtraClock.ShowSeconds = true;
         # Show24Hour, ShowDate, DateFormat are ignored by macOS Tahoe;
         # set manually in System Settings > Control Center > Clock Options.
