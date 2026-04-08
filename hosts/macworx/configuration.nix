@@ -49,7 +49,16 @@ in
   environment.systemPackages = [
     pkgs.autoraise
     pkgs.syncthing-macos
+    pkgs.tailscale
   ];
+
+  launchd.daemons.tailscaled = {
+    command = "${pkgs.tailscale}/bin/tailscaled";
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
+    };
+  };
 
   launchd.user.agents.autoraise = {
     command = "${pkgs.autoraise}/bin/autoraise";
