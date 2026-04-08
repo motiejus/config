@@ -73,6 +73,7 @@ in
     pkgs.autoraise
     pkgs.syncthing-macos
     pkgs.tailscale
+    pkgs.moonlight-qt
   ];
 
   launchd.daemons.tailscaled = {
