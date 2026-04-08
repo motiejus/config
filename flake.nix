@@ -399,7 +399,7 @@
         }
       ) deploy-rs.lib;
     }
-    // flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
+    // flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (
       system:
       let
         pkgs = import nixpkgs {
@@ -415,10 +415,18 @@
             pkgs.nix-output-monitor
             pkgs.rage
             pkgs.age-plugin-yubikey
-            pkgs.deploy-rs.deploy-rs
             agenix.packages.${system}.agenix
+          ]
+          ++ [
+            (
+              if pkgs.stdenv.isDarwin then
+                # deploy-rs overlay doesn't build on darwin; use nixpkgs version
+                (import nixpkgs { inherit system; }).deploy-rs
+              else
+                pkgs.deploy-rs.deploy-rs
+            )
           ];
-          inherit (self.checks.${system}.pre-commit-check) shellHook;
+          shellHook = (self.checks.${system}.pre-commit-check or { }).shellHook or "";
         };
 
         formatter = pkgs.nixfmt-rfc-style;
