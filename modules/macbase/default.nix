@@ -47,23 +47,29 @@ in
         # Show24Hour, ShowDate, DateFormat are ignored by macOS Tahoe;
         # set manually in System Settings > Control Center > Clock Options.
 
-        CustomUserPreferences."com.apple.symbolichotkeys" = let
-          selectPreviousInputSource = "60";
-          shift = 131072;
-          option = 524288; # Alt
-          spaceAscii = 32;
-          spaceVirtualKey = 49;
-        in {
-          AppleSymbolicHotKeys = {
-            ${selectPreviousInputSource} = {
-              enabled = true;
-              value = {
-                parameters = [ spaceAscii spaceVirtualKey (shift + option) ];
-                type = "standard";
+        CustomUserPreferences."com.apple.symbolichotkeys" =
+          let
+            selectPreviousInputSource = "60";
+            shift = 131072;
+            option = 524288; # Alt
+            spaceAscii = 32;
+            spaceVirtualKey = 49;
+          in
+          {
+            AppleSymbolicHotKeys = {
+              ${selectPreviousInputSource} = {
+                enabled = true;
+                value = {
+                  parameters = [
+                    spaceAscii
+                    spaceVirtualKey
+                    (shift + option)
+                  ];
+                  type = "standard";
+                };
               };
             };
           };
-        };
 
         CustomUserPreferences."com.apple.HIToolbox" = {
           AppleEnabledInputSources = [

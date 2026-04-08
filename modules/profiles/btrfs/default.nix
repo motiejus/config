@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.mj.profiles.btrfs;
 in
@@ -27,7 +32,8 @@ in
       boot.initrd.luks.devices.luksroot = {
         device = "${cfg.disk}-part3";
         allowDiscards = true;
-      } // cfg.luksExtraConfig;
+      }
+      // cfg.luksExtraConfig;
 
       fileSystems = {
         "/" = {
