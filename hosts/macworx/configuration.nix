@@ -51,6 +51,12 @@ in
 
   mj.services.tailscale-ssh.enable = true;
 
+  # git.jakstys.lt is fwminex; route via tailscale (no MagicDNS)
+  programs.ssh.extraConfig = ''
+    Host git.jakstys.lt
+      ProxyCommand bash -c 'exec nc $(${pkgs.tailscale}/bin/tailscale ip -4 fwminex) %p'
+  '';
+
   mj.services.ssh8022.client = {
     enable = true;
     keyfile = config.age.secrets.ssh8022-client.path;

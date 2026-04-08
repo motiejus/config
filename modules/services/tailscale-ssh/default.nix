@@ -14,15 +14,12 @@ let
 
   hostConfigs = lib.concatStringsSep "\n" (
     lib.mapAttrsToList (
-      fqdn: hostData:
+      fqdn: _:
       let
         shortName = lib.removeSuffix vpnDomain fqdn;
-        extraNames = lib.filter (n: n != shortName) (hostData.extraHostNames or [ ]);
-        allNames = [ shortName ] ++ extraNames;
-        hostPattern = lib.concatStringsSep " " allNames;
       in
       ''
-        Host ${hostPattern}
+        Host ${shortName}
           User motiejus
           ProxyCommand bash -c 'exec nc $(${pkgs.tailscale}/bin/tailscale ip -4 ${shortName}) %p'
       ''

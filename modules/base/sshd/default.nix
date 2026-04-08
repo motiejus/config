@@ -9,5 +9,9 @@ _: {
       };
     };
     programs.mosh.enable = true;
+    programs.ssh.extraConfig = ''
+      Host git.jakstys.lt
+        HostName fwminex.jakst.vpn
+    '';
   };
 }

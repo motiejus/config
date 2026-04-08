@@ -124,11 +124,6 @@ in
         ];
     };
 
-    programs.ssh.extraConfig = ''
-      Host git.jakstys.lt
-        HostName fwminex.jakst.vpn
-    '';
-
     programs.ssh.knownHosts =
       let
         filtered = lib.filterAttrs (_key: value: lib.hasAttr "publicKey" value) myData.hosts;
