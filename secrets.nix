@@ -12,6 +12,7 @@ let
   mtworx = (import ./data.nix).hosts."mtworx.jakst.vpn".publicKey;
   vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.jakst.vpn".publicKey;
   vno2-desk2 = (import ./data.nix).hosts."vno2-desk2.jakst.vpn".publicKey;
+  macworx = (import ./data.nix).hosts."macworx.jakst.vpn".publicKey;
 
   systems = [
     fra1-c
@@ -20,6 +21,7 @@ let
     vno3-nk
     vno1-gdrx
     vno2-desk2
+    macworx
   ];
 
   mk =

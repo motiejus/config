@@ -56,6 +56,7 @@ in
               [
                 myData.people_pubkeys.motiejus
                 myData.people_pubkeys.motiejus_work
+                myData.people_pubkeys.motiejus_macworx
               ]
 
               (lib.mkIf (builtins.hasAttr fqdn myData.hosts) [

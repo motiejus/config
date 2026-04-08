@@ -17,7 +17,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
-        darwin.follows = "";
+        darwin.follows = "nix-darwin";
       };
     };
 
@@ -301,6 +301,7 @@
             { nixpkgs.overlays = baseOverlays; }
             ./hosts/macworx/configuration.nix
             home-manager.darwinModules.home-manager
+            agenix.darwinModules.default
           ];
           specialArgs = {
             inherit myData;

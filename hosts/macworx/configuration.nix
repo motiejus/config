@@ -16,8 +16,7 @@ in
     ../../modules/profiles/terminal
     ../../modules/profiles/devtools
     ../../modules/profiles/work/mac.nix
-    # TODO: enable ssh8022 client once key is provisioned
-    #../../modules/services/ssh8022/client.nix
+    ../../modules/services/ssh8022/client.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
@@ -43,6 +42,16 @@ in
     "/System/Library/CoreServices/Finder.app"
     "/System/Applications/System Settings.app"
   ];
+
+  age.secrets.ssh8022-client = {
+    file = ../../secrets/ssh8022.age;
+    mode = "444";
+  };
+
+  mj.services.ssh8022.client = {
+    enable = true;
+    keyfile = config.age.secrets.ssh8022-client.path;
+  };
 
   system.activationScripts.postActivation.text = ''
     osascript -e 'tell application "System Events" to tell every desktop to set picture to "${tealWallpaper}"'
