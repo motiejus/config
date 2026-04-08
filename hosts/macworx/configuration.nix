@@ -17,6 +17,7 @@ in
     ../../modules/profiles/devtools
     ../../modules/profiles/work/mac.nix
     ../../modules/services/ssh8022/client.nix
+    ../../modules/services/tailscale-ssh
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
@@ -47,6 +48,8 @@ in
     file = ../../secrets/ssh8022.age;
     mode = "444";
   };
+
+  mj.services.tailscale-ssh.enable = true;
 
   mj.services.ssh8022.client = {
     enable = true;
