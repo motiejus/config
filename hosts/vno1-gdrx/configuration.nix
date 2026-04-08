@@ -142,19 +142,42 @@ in
     };
   };
 
-  systemd.user.services.rustdesk = {
-    description = "RustDesk remote desktop service";
-    wantedBy = [ "graphical-session.target" ];
-    partOf = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
+  systemd.user.services.vncserver = {
+    description = "TigerVNC server";
+    wantedBy = [ "default.target" ];
+    after = [ "network.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.rustdesk}/bin/rustdesk --service";
+      ExecStart = toString [
+        "${pkgs.tigervnc}/bin/vncserver"
+        ":1"
+        "-geometry"
+        "3456x2234"
+        "-localhost"
+        "yes"
+        "-fg"
+        "-xstartup"
+        "${pkgs.writeShellScript "vnc-xstartup" ''
+          ${pkgs.autocutsel}/bin/autocutsel -fork
+          ${pkgs.autocutsel}/bin/autocutsel -selection PRIMARY -fork
+          ${pkgs.xfce.xfce4-session}/bin/xfce4-session
+        ''}"
+      ];
+      ExecStop = "${pkgs.tigervnc}/bin/vncserver -kill :1";
+      Restart = "on-failure";
+    };
+  };
+
+  systemd.user.services.novnc = {
+    description = "noVNC WebSocket proxy";
+    wantedBy = [ "default.target" ];
+    after = [ "vncserver.service" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.novnc}/bin/novnc --listen 6080 --vnc localhost:5901";
       Restart = "on-failure";
     };
   };
 
   environment.systemPackages = with pkgs; [
-    rustdesk
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     #linuxPackage.rr-zen_workaround # TODO(motiejus) broken on/since 2025-08
     prismlauncher
