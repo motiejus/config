@@ -1,4 +1,8 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 {
   home-manager.users.${config.mj.username} = {
     imports = [ ../../../shared/home/dev.nix ];
@@ -29,15 +33,26 @@
     git-filter-repo
     pkgs.pkgs-unstable.claude-code
 
-    (python3.withPackages (
-      ps: with ps; [
-        numpy
-        pyyaml
-        plotly
-        ipython
-        pymodbus
-        matplotlib
-      ]
-    ))
+    (
+      let
+        py = python3.override {
+          packageOverrides = _: pyPrev: {
+            # ffmpeg/fish get SIGKILL in nix sandbox on darwin
+            imageio-ffmpeg = pyPrev.imageio-ffmpeg.overridePythonAttrs { doCheck = false; };
+            imageio = pyPrev.imageio.overridePythonAttrs { doCheck = false; };
+          };
+        };
+      in
+      py.withPackages (
+        ps: with ps; [
+          numpy
+          pyyaml
+          plotly
+          ipython
+          pymodbus
+          matplotlib
+        ]
+      )
+    )
   ];
 }

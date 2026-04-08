@@ -111,6 +111,10 @@
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
           }
+          // super.lib.optionalAttrs super.stdenv.isDarwin {
+            # fish gets SIGKILL in nix sandbox on darwin, breaking direnv tests
+            direnv = super.direnv.overrideAttrs { doCheck = false; };
+          }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
             nicer = super.callPackage ./pkgs/nicer.nix { };
             go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
