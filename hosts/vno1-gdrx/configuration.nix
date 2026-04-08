@@ -177,7 +177,7 @@ in
     wantedBy = [ "default.target" ];
     after = [ "vncserver.service" ];
     serviceConfig = {
-      ExecStart = "${pkgs.novnc}/bin/novnc --listen 6080 --vnc localhost:5901";
+      ExecStart = "${pkgs.novnc}/bin/novnc --listen 0.0.0.0:6080 --vnc localhost:5901";
       Restart = "on-failure";
     };
   };
@@ -197,9 +197,6 @@ in
       rejectPackets = true;
       allowedUDPPorts = [
         53
-      ];
-      allowedTCPPorts = [
-        6080
       ];
     };
   };
