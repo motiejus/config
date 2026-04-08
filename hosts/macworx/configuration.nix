@@ -16,6 +16,8 @@ in
     ../../modules/profiles/terminal
     ../../modules/profiles/devtools
     ../../modules/profiles/work/mac.nix
+    # TODO: enable ssh8022 client once key is provisioned
+    #../../modules/services/ssh8022/client.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
