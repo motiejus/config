@@ -23,6 +23,7 @@ let
       in
       ''
         Host ${hostPattern}
+          User motiejus
           ProxyCommand bash -c 'exec nc $(${pkgs.tailscale}/bin/tailscale ip -4 ${shortName}) %p'
       ''
     ) vpnHosts
