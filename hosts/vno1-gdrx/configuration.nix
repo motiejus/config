@@ -162,6 +162,7 @@ in
       ];
       ExecStartPost = "${pkgs.writeShellScript "vnc-session" ''
         export DISPLAY=:1
+        export PATH=/run/current-system/sw/bin:$PATH
         ${pkgs.xorg.xauth}/bin/xauth generate :1 . trusted
         ${pkgs.autocutsel}/bin/autocutsel -display :1 -fork
         ${pkgs.autocutsel}/bin/autocutsel -display :1 -selection PRIMARY -fork
