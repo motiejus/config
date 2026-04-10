@@ -75,7 +75,8 @@ in
     syncthing-macos
     pkgs-unstable.colima
     pkgs-unstable.docker-client
-    xquartz
+    # TODO(26.05): switch to pkgs.xquartz
+    pkgs-unstable.xquartz
   ];
 
   launchd.daemons.tailscaled = {
