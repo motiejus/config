@@ -78,31 +78,19 @@ in
     # RustDesk client: install .dmg from rustdesk.com (nix doesn't build on darwin)
   ];
 
-  launchd = {
-    daemons.tailscaled = {
-      command = "${pkgs.tailscale}/bin/tailscaled";
-      serviceConfig = {
-        KeepAlive = true;
-        RunAtLoad = true;
-      };
+  launchd.daemons.tailscaled = {
+    command = "${pkgs.tailscale}/bin/tailscaled";
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
     };
+  };
 
-    user.agents = {
-      colima = {
-        command = "${pkgs.pkgs-unstable.colima}/bin/colima start --foreground";
-        serviceConfig = {
-          KeepAlive = true;
-          RunAtLoad = true;
-        };
-      };
-
-      autoraise = {
-        command = "${pkgs.autoraise}/bin/autoraise";
-        serviceConfig = {
-          KeepAlive = true;
-          RunAtLoad = true;
-        };
-      };
+  launchd.user.agents.autoraise = {
+    command = "${pkgs.autoraise}/bin/autoraise";
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
     };
   };
 
