@@ -69,13 +69,12 @@ in
     defaults -currentHost write com.apple.screensaver idleTime -int 0
   '';
 
-  environment.systemPackages = [
-    pkgs.autoraise
-    pkgs.syncthing-macos
-    pkgs.pkgs-unstable.colima
-    pkgs.pkgs-unstable.docker-client
-    pkgs.tailscale
-    # RustDesk client: install .dmg from rustdesk.com (nix doesn't build on darwin)
+  environment.systemPackages = with pkgs; [
+    autoraise
+    tailscale
+    syncthing-macos
+    pkgs-unstable.colima
+    pkgs-unstable.docker-client
   ];
 
   launchd.daemons.tailscaled = {
