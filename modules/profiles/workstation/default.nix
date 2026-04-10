@@ -52,6 +52,7 @@ in
         bison
         tracy
         mbpoll # modbus poll
+        kicad
         esptool
         claudes
         neomutt

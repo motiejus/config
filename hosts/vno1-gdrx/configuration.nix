@@ -142,46 +142,6 @@ in
     };
   };
 
-  systemd.user.services.vncserver = {
-    description = "TigerVNC server";
-    wantedBy = [ "default.target" ];
-    after = [ "network.target" ];
-    serviceConfig = {
-      ExecStart = toString [
-        "${pkgs.tigervnc}/bin/Xvnc"
-        ":1"
-        "-geometry"
-        "3456x2234"
-        "-localhost"
-        "-depth"
-        "24"
-        "-SecurityTypes"
-        "VncAuth"
-        "-PasswordFile"
-        "%h/.vnc/passwd"
-      ];
-      ExecStartPost = "${pkgs.writeShellScript "vnc-session" ''
-        export DISPLAY=:1
-        export PATH=/run/current-system/sw/bin:$PATH
-        ${pkgs.xorg.xauth}/bin/xauth generate :1 . trusted
-        ${pkgs.autocutsel}/bin/autocutsel -display :1 -fork
-        ${pkgs.autocutsel}/bin/autocutsel -display :1 -selection PRIMARY -fork
-        ${pkgs.xfce.xfce4-session}/bin/xfce4-session &
-      ''}";
-      Restart = "on-failure";
-    };
-  };
-
-  systemd.user.services.novnc = {
-    description = "noVNC WebSocket proxy";
-    wantedBy = [ "default.target" ];
-    after = [ "vncserver.service" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.novnc}/bin/novnc --listen 0.0.0.0:6080 --vnc localhost:5901";
-      Restart = "on-failure";
-    };
-  };
-
   environment.systemPackages = with pkgs; [
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     #linuxPackage.rr-zen_workaround # TODO(motiejus) broken on/since 2025-08
