@@ -6,6 +6,7 @@ _: {
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         PermitRootLogin = "no";
+        X11Forwarding = true;
       };
     };
     programs.mosh.enable = true;
