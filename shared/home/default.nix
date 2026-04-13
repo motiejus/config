@@ -100,8 +100,6 @@ in
       enable = true;
       shellAliases = {
         "gp" = "${pkgs.git}/bin/git remote | ${pkgs.parallel}/bin/parallel --verbose git push";
-      }
-      // {
         "l" = "echo -n ł | ${clipboard}";
         "L" = "echo -n Ł | ${clipboard}";
       };
