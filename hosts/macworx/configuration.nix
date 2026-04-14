@@ -67,6 +67,10 @@ in
 
     # Disable screensaver
     defaults -currentHost write com.apple.screensaver idleTime -int 0
+
+    # Install xscreensaver .saver bundles
+    mkdir -p "/Users/${config.mj.username}/Library/Screen Savers"
+    ln -sf ${pkgs.xscreensaver-mac}/Library/Screen\ Savers/*.saver "/Users/${config.mj.username}/Library/Screen Savers/"
   '';
 
   environment.systemPackages = with pkgs; [
@@ -77,6 +81,7 @@ in
     pkgs-unstable.docker-client
     # TODO(26.05): switch to pkgs.xquartz
     pkgs-unstable.xquartz
+    pkgs.xscreensaver-mac
   ];
 
   launchd.daemons.tailscaled = {
