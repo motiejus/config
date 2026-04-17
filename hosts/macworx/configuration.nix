@@ -103,5 +103,21 @@ in
     };
   };
 
-  home-manager.users.${config.mj.username}.programs.ghostty.package = pkgs.ghostty-bin;
+  home-manager.users.${config.mj.username} = {
+    programs.ghostty.package = pkgs.ghostty-bin;
+
+    home.file.".colima/_templates/default.yaml".text = ''
+      cpu: 2
+      memory: 4
+      disk: 100
+      arch: aarch64
+      runtime: docker
+      vmType: vz
+      mountType: virtiofs
+      mountInotify: true
+      mounts:
+        - location: /var/folders
+          writable: true
+    '';
+  };
 }
