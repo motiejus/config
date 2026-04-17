@@ -65,6 +65,9 @@ in
   system.activationScripts.postActivation.text = ''
     osascript -e 'tell application "System Events" to tell every desktop to set picture to "${tealWallpaper}"'
 
+    # Disable automatic timezone
+    defaults write /Library/Preferences/com.apple.timezone.auto Active -bool false
+
     # Disable screensaver
     defaults -currentHost write com.apple.screensaver idleTime -int 0
 

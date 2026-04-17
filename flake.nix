@@ -392,10 +392,24 @@
       };
       checks = builtins.mapAttrs (
         system: deployLib:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
         deployLib.deployChecks self.deploy
         // {
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
+            # pre-commit's nativeCheckInputs pull in dotnet-sdk, go, cargo etc.;
+            # pytestCheckHook leaks in via `identify` propagatedBuildInputs
+            package = pkgs.pre-commit.overridePythonAttrs {
+              doCheck = false;
+              doInstallCheck = false;
+              dontUsePytestCheck = true;
+              nativeCheckInputs = [ ];
+              preCheck = "";
+              pytestFlags = [ ];
+              disabledTests = [ ];
+            };
             hooks = {
               statix.enable = true;
               deadnix.enable = true;
