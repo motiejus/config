@@ -116,6 +116,8 @@ in
       mountType: virtiofs
       mountInotify: true
       mounts:
+        - location: /Users/mjakstys
+          writable: true
         - location: /var/folders
           writable: true
     '';
