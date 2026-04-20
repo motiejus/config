@@ -198,7 +198,13 @@ in
 
       zsh.enable = lib.mkForce false;
     };
-    environment.shells = [ pkgs.bash ];
+    environment = {
+      shells = [ pkgs.bash ];
+
+      systemPackages = with pkgs; [
+        watch
+      ];
+    };
 
     system.activationScripts.postActivation.text = ''
       dscl . -create /Users/${cfg.username} UserShell /run/current-system/sw/bin/bash
