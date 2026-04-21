@@ -108,7 +108,7 @@ in
 
     home.file.".colima/_templates/default.yaml".text = ''
       cpu: 2
-      memory: 4
+      memory: 6
       disk: 100
       arch: aarch64
       runtime: docker
