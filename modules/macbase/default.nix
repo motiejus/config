@@ -92,7 +92,7 @@ in
     };
 
     services.aerospace = {
-      enable = true;
+      enable = false;
       settings = {
         mode.main.binding = {
           # Focus (awesome: mod+j/k), wraps around within workspace + across monitors
