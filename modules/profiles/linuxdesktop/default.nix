@@ -12,8 +12,6 @@ let
     mkOption
     ;
 
-  firefox =
-    if (pkgs.stdenv.hostPlatform.system == "x86_64-linux") then pkgs.firefox-bin else pkgs.firefox;
   brightness = pkgs.writeShellApplication {
     name = "brightness";
     text = builtins.readFile ./brightness;
@@ -35,6 +33,7 @@ in
     ../basedesktop
     ../terminal
   ];
+
   config = {
     boot = {
       kernelModules = [ "kvm-intel" ];
@@ -57,12 +56,13 @@ in
     programs = {
       firefox = {
         enable = true;
-        package = firefox;
+        package = pkgs.firefox-bin;
         languagePacks = [
           "en-US"
           "lt"
         ];
       };
+
       wireshark = {
         enable = true;
         package = pkgs.wireshark-qt;
@@ -282,6 +282,44 @@ in
             settings = {
               window-decoration = false;
               gtk-single-instance = true;
+            };
+          };
+
+          chromium = lib.mkIf pkgs.stdenv.isLinux {
+            enable = true;
+            extensions = [
+              { id = "cjpalhdlnbpafiamejdnhcphjbkeiagm"; } # ublock origin
+              { id = "mdjildafknihdffpkfmmpnpoiajfjnjd"; } # consent-o-matic
+            ];
+          };
+
+          firefox = {
+            enable = true;
+            package = pkgs.firefox-bin;
+            policies.DisableAppUpdate = true;
+            profiles = {
+              xdefault = {
+                isDefault = true;
+                settings = {
+                  "app.update.auto" = false;
+                  "browser.uidensity" = 1;
+                  "browser.aboutConfig.showWarning" = false;
+                  "browser.contentblocking.category" = "strict";
+                  "browser.urlbar.showSearchSuggestionsFirst" = false;
+                  "layout.css.prefers-color-scheme.content-override" = 0;
+                  "signon.management.page.breach-alerts.enabled" = false;
+                  "signon.rememberSignons" = false;
+
+                  # go/
+                  "browser.fixup.domainwhitelist.go" = true;
+                };
+                extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
+                  bitwarden
+                  ublock-origin
+                  consent-o-matic
+                  multi-account-containers
+                ];
+              };
             };
           };
 
