@@ -30,13 +30,18 @@
             # go/
             "browser.fixup.domainwhitelist.go" = true;
           };
-          extensions.packages = with pkgs.nur.repos.rycee.firefox-addons; [
-            bitwarden
-            header-editor
-            ublock-origin
-            consent-o-matic
-            multi-account-containers
-          ];
+          extensions.packages =
+            with pkgs.nur.repos.rycee.firefox-addons;
+            lib.mkMerge [
+              [
+                ublock-origin
+                consent-o-matic
+              ]
+              (lib.mkIf pkgs.stdenv.isLinux [
+                bitwarden
+                multi-account-containers
+              ])
+            ];
         };
       };
     };
