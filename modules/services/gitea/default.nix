@@ -24,6 +24,9 @@
       groups.gitea.gid = myData.uidgid.gitea;
     };
 
+    # bots
+    systemd.services.gitea.serviceConfig.CPUQuota = "50%";
+
     services = {
       gitea = {
         enable = true;
