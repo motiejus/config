@@ -113,7 +113,7 @@ rec {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlWSZ/H6DR5i5aCrlrEQLVF9MXNvls/pjlLPLaav3f+";
       publicIP = "185.104.176.238";
-      jakstIP = "100.89.176.6";
+      jakstIP = "100.89.176.13";
       vno1IP = "192.168.189.10";
     };
     "mtworx.jakst.vpn" = rec {
