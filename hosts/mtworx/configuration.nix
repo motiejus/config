@@ -6,116 +6,6 @@
 }:
 let
   nvme = "/dev/disk/by-id/nvme-Samsung_SSD_990_PRO_2TB_S7DNNU0Y624491Y";
-
-  # iPXE boot menu script
-  ipxeMenu = pkgs.writeText "boot.ipxe" ''
-    #!ipxe
-
-    # Ensure network is configured
-    dhcp || echo DHCP failed, trying to continue anyway
-
-    :menu
-    menu PXE Boot Menu
-    item debian-shell-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} Shell to RAM
-    item debian-shell-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} Shell via NFS
-    item debian-xfce-toram Boot Debian Live ${pkgs.mrescue-debian-xfce.version} XFCE to RAM
-    item debian-xfce-nfs Boot Debian Live ${pkgs.mrescue-debian-xfce.version} XFCE via NFS
-    item nixos Boot NixOS ${pkgs.mrescue-nixos.version}
-    item alpine Boot Alpine Linux ${pkgs.mrescue-alpine.version}
-    item netbootxyz Boot netboot.xyz
-    item shell iPXE Shell
-    item tips mrescue tips
-    choose --default debian-shell-toram --timeout 10000 selected || goto menu
-    goto ''${selected}
-
-    :debian-shell-toram
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs systemd.unit=multi-user.target ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
-    boot
-
-    :debian-shell-nfs
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/boot/debian-xfce systemd.unit=multi-user.target ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
-    boot
-
-    :debian-xfce-toram
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components fetch=http://10.14.143.1/boot/debian-xfce/live/filesystem.squashfs ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
-    boot
-
-    :debian-xfce-nfs
-    kernel http://10.14.143.1/boot/debian-xfce/live/vmlinuz boot=live components netboot=nfs nfsroot=10.14.143.1:/boot/debian-xfce ''${cmdline}
-    initrd http://10.14.143.1/boot/debian-xfce/live/initrd.img
-    boot
-
-    :nixos
-    # kernel params copied from https://github.com/nix-community/nixos-images/releases/download/nixos-25.11/netboot-x86_64-linux.ipxe
-    kernel http://10.14.143.1/boot/nixos/kernel init=/nix/store/lillmv6sbjxgyyyn1ilkica21q3hmpya-nixos-system-nixos-kexec-25.11beta-193477.gfedcba/init initrd=initrd-x86_64-linux nohibernate loglevel=4 lsm=landlock,yama,bpf ''${cmdline}
-    initrd http://10.14.143.1/boot/nixos/initrd
-    boot
-
-    :alpine
-    kernel http://10.14.143.1/boot/alpine/kernel ''${cmdline}
-    initrd http://10.14.143.1/boot/alpine/initrd
-    boot
-
-    :netbootxyz
-    isset ''${platform} && iseq ''${platform} pcbios && chain --autofree https://boot.netboot.xyz/ipxe/netboot.xyz.kpxe ||
-    chain --autofree https://boot.netboot.xyz/ipxe/netboot.xyz.efi
-
-    :shell
-    shell
-    goto menu
-
-    :tips
-    echo
-    echo To add kernel command line arguments:
-    echo   1. Select 'iPXE Shell' from menu
-    echo   2. Run: set cmdline systemd.unit=multi-user.target
-    echo   3. Type 'exit' to return to menu
-    echo   4. Select your OS to boot with custom args
-    echo
-    echo More useful commands:
-    echo  set cmdline console=ttyS0
-    echo
-    prompt Press any key to return to menu...
-    goto menu
-  '';
-
-  # Custom iPXE with embedded menu (UEFI)
-  customIpxeEfi = pkgs.ipxe.override {
-    embedScript = ipxeMenu;
-  };
-
-  # Custom iPXE with embedded menu (BIOS)
-  customIpxeBios = pkgs.ipxe.override {
-    embedScript = ipxeMenu;
-  };
-
-  exportsFile = pkgs.writeText "unfs3-exports" ''
-    /boot 10.14.143.0/24(ro,no_subtree_check,no_root_squash,insecure) localhost(ro,no_subtree_check,no_root_squash,insecure)
-  '';
-
-  # TFTP root directory with all boot files
-  tftp-root = pkgs.runCommand "tftp-root" { } ''
-    mkdir -p $out/alpine
-    mkdir -p $out/debian-xfce
-    mkdir -p $out/nixos
-
-    cp ${customIpxeEfi}/ipxe.efi $out/boot.efi
-    cp ${customIpxeBios}/undionly.kpxe $out/boot.kpxe
-
-    # Alpine
-    cp ${pkgs.mrescue-alpine}/kernel $out/alpine/kernel
-    cp ${pkgs.mrescue-alpine}/initrd $out/alpine/initrd
-
-    # Debian XFCE (full ISO contents)
-    cp -r ${pkgs.mrescue-debian-xfce}/* $out/debian-xfce/
-
-    # NixOS
-    cp ${pkgs.mrescue-nixos}/kernel $out/nixos/kernel
-    cp ${pkgs.mrescue-nixos}/initrd $out/nixos/initrd
-  '';
 in
 {
   imports = [
@@ -258,54 +148,9 @@ in
   systemd.services = {
     nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
 
-    unfs3 = {
-      description = "Userspace NFSv3 server";
-      after = [
-        "network.target"
-        "rpcbind.service"
-      ];
-      requires = [ "rpcbind.service" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.unfs3}/bin/unfsd -e ${exportsFile} -s -d -n 2049 -m 20048";
-        BindReadOnlyPaths = [ "${tftp-root}:/boot" ];
-        DynamicUser = true;
-        ProtectHome = true;
-        ProtectSystem = "strict";
-      };
-    };
   };
 
   services = {
-
-    nginx = {
-      enable = true;
-      defaultListenAddresses = [ "0.0.0.0" ];
-      virtualHosts = {
-        "_" = {
-          default = true;
-          root = "/var/run/nginx/motiejus";
-          locations."/".extraConfig = ''
-            autoindex on;
-          '';
-          locations."/boot/" = {
-            alias = "${tftp-root}/";
-            extraConfig = ''
-              autoindex on;
-            '';
-          };
-        };
-        "go" = {
-          addSSL = true;
-          sslCertificate = "${../../shared/certs/go.pem}";
-          sslCertificateKey = "${../../shared/certs/go.key}";
-          locations."/".extraConfig = ''
-            return 301 https://golinks.io$request_uri;
-          '';
-        };
-      };
-    };
-
     tlp = {
       enable = true;
       settings = {
@@ -314,32 +159,7 @@ in
       };
     };
     kolide-launcher.enable = true;
-    rpcbind.enable = true;
 
-    dnsmasq = {
-      enable = true;
-      settings = {
-        dhcp-range = [ "10.14.143.100,10.14.143.200" ];
-        dhcp-option = "66,\"0.0.0.0\"";
-        enable-tftp = true;
-        tftp-root = "${tftp-root}";
-        interface = "br0";
-
-        dhcp-match = [
-          "set:efi-x86_64,option:client-arch,7" # EFI BC (x86-64)
-          "set:efi-x86_64,option:client-arch,9" # EFI x86-64
-          "set:efi-x86,option:client-arch,6" # EFI IA32
-          "set:bios,option:client-arch,0" # BIOS x86
-        ];
-
-        dhcp-boot = [
-          "tag:efi-x86_64,boot.efi" # UEFI x86-64 clients
-          "tag:efi-x86,boot.efi" # UEFI IA32 clients
-          "tag:bios,boot.kpxe" # BIOS clients
-          "boot.efi" # Default to UEFI if undetected
-        ];
-      };
-    };
   };
 
   users.extraGroups.vboxusers.members = [ "motiejus" ];
@@ -363,55 +183,5 @@ in
     hostName = "mtworx";
     domain = "jakst.vpn";
 
-    bridges.br0 = {
-      interfaces = [ ];
-    };
-
-    # Configure bridge with internal IP
-    interfaces.br0 = {
-      ipv4.addresses = [
-        {
-          address = "10.14.143.1";
-          prefixLength = 24;
-        }
-      ];
-    };
-
-    nat = {
-      enable = true;
-      externalInterface = "wlp0s20f3";
-      internalInterfaces = [ "br0" ];
-      internalIPs = [ "10.14.143.0/24" ];
-    };
-
-    firewall = {
-      rejectPackets = true;
-      interfaces.br0 = {
-        allowedTCPPorts = [
-          53 # DNS
-          80 # HTTP for boot files
-          111 # rpcbind
-          2049 # NFS
-          20048 # mountd
-        ];
-        allowedUDPPorts = [
-          53 # DNS
-          67 # DHCP
-          69 # TFTP
-          111 # rpcbind
-          20048 # mountd
-        ];
-      };
-      extraCommands = ''
-        # Allow only through WiFi interface (to gateway and internet)
-        iptables -A FORWARD -s 10.14.143.0/24 -o wlp0s20f3 -j ACCEPT
-
-        # Allow established connections back
-        iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-        # Block everything else from 10.14.143.0/24
-        iptables -A FORWARD -s 10.14.143.0/24 -j DROP
-      '';
-    };
   };
 }

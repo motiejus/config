@@ -11,6 +11,7 @@
     ./hass
     ./headscale
     ./immich
+    ./ipxe
     ./jakstpub
     ./matrix-synapse
     ./minidlna
