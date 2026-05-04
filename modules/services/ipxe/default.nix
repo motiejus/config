@@ -241,7 +241,7 @@ in
         };
         extraCommands = ''
           # Allow only through WiFi interface (to gateway and internet)
-          iptables -A FORWARD -s 10.14.143.0/24 -o wlp0s20f3 -j ACCEPT
+          iptables -A FORWARD -s 10.14.143.0/24 -o ${cfg.ifWan} -j ACCEPT
 
           # Allow established connections back
           iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
