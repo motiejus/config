@@ -14,7 +14,6 @@ in
     ../../modules
     ../../modules/profiles/workstation
     ../../modules/profiles/physical
-    ../../modules/profiles/autorandr
     ../../modules/profiles/btrfs
   ];
 
@@ -49,17 +48,6 @@ in
 
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
-
-  services.nsd = {
-    enable = true;
-    interfaces = [
-      "0.0.0.0"
-      "::"
-    ];
-    zones = {
-      "jakstys.lt.".data = myData.jakstysLTZone;
-    };
-  };
 
   mj = {
     profiles.desktop.enableUserServices = true;
@@ -142,13 +130,20 @@ in
     };
   };
 
+  services = {
+    displayManager.defaultSession = "plasma";
+    desktopManager.plasma6.enable = true;
+    tlp.enable = false; # power-profiles-daemon overwrites this
+  };
+  programs.steam.enable = true;
+
   environment.systemPackages = with pkgs; [
     (python3.withPackages (ps: [ ps.onvif-zeep ]))
     #linuxPackage.rr-zen_workaround # TODO(motiejus) broken on/since 2025-08
     prismlauncher
   ];
 
-  powerManagement.cpuFreqGovernor = "performance";
+  powerManagement.cpuFreqGovernor = "powersave";
 
   networking = {
     hostName = "vno1-gdrx";
