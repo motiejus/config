@@ -127,7 +127,7 @@ in
 
     programs = {
       adb.enable = true;
-      slock.enable = true;
+      slock.enable = false; # TODO(motiejus) re-enable on awesome
       nm-applet.enable = true;
       command-not-found.enable = false;
     };
@@ -349,7 +349,7 @@ in
           };
 
           screen-locker = {
-            enable = true;
+            enable = lib.mkDefault false; # TODO*motiejus) re-enable w/ awesome
             xautolock.enable = false;
             lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
           };
