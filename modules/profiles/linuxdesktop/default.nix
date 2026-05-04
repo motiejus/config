@@ -280,7 +280,7 @@ in
         programs = {
           ghostty = {
             settings = {
-              window-decoration = false;
+              #window-decoration = false; # kde
               gtk-single-instance = true;
             };
           };
