@@ -49,6 +49,8 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  systemd.services.nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
+
   mj = {
     profiles.desktop.enableUserServices = true;
 
@@ -64,6 +66,11 @@ in
 
     services = {
       ping_exporter.enable = true;
+
+      ipxe = {
+        enable = true;
+        ifWan = "wlp1s0";
+      };
 
       node_exporter = {
         enable = true;

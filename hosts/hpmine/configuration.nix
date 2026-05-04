@@ -75,11 +75,6 @@ in
         extraSubnets = [ myData.subnets.vno1.cidr ];
       };
 
-      ipxe = {
-        enable = true;
-        ifWan = "wlp1s0";
-      };
-
       ssh8022.client = {
         enable = true;
         keyfile = config.age.secrets.ssh8022-client.path;

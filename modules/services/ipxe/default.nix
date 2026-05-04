@@ -118,7 +118,7 @@ in
 {
   options.mj.services.ipxe = with lib.types; {
     enable = lib.mkEnableOption "enable ipxe boot stuff";
-    ifWan = lib.mkOption { type = string; };
+    ifWan = lib.mkOption { type = str; };
   };
 
   config = lib.mkIf cfg.enable {
@@ -169,32 +169,26 @@ in
               '';
             };
           };
-          "go" = {
-            addSSL = true;
-            sslCertificate = "${../../shared/certs/go.pem}";
-            sslCertificateKey = "${../../shared/certs/go.key}";
-            locations."/".extraConfig = ''
-              return 301 https://golinks.io$request_uri;
-            '';
-          };
         };
       };
     };
 
-    systemd.services.unfs3 = {
-      description = "Userspace NFSv3 server";
-      after = [
-        "network.target"
-        "rpcbind.service"
-      ];
-      requires = [ "rpcbind.service" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.unfs3}/bin/unfsd -e ${exportsFile} -s -d -n 2049 -m 20048";
-        BindReadOnlyPaths = [ "${tftp-root}:/boot" ];
-        DynamicUser = true;
-        ProtectHome = true;
-        ProtectSystem = "strict";
+    systemd.services = {
+      unfs3 = {
+        description = "Userspace NFSv3 server";
+        after = [
+          "network.target"
+          "rpcbind.service"
+        ];
+        requires = [ "rpcbind.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "${pkgs.unfs3}/bin/unfsd -e ${exportsFile} -s -d -n 2049 -m 20048";
+          BindReadOnlyPaths = [ "${tftp-root}:/boot" ];
+          DynamicUser = true;
+          ProtectHome = true;
+          ProtectSystem = "strict";
+        };
       };
     };
 

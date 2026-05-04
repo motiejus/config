@@ -145,11 +145,6 @@ in
     };
   };
 
-  systemd.services = {
-    nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
-
-  };
-
   services = {
     tlp = {
       enable = true;
