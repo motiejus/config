@@ -68,7 +68,7 @@ in
       ping_exporter.enable = true;
 
       ipxe = {
-        enable = true;
+        enable = false;
         ifWan = "wlp1s0";
       };
 
