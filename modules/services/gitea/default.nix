@@ -12,13 +12,16 @@
 
   config = lib.mkIf config.mj.services.gitea.enable {
     users = {
-      users.git = {
-        description = "Gitea Service";
-        home = "/var/lib/gitea";
-        shell = "/bin/sh";
-        group = "gitea";
-        isSystemUser = true;
-        uid = myData.uidgid.gitea;
+      users = {
+        git = {
+          description = "Gitea Service";
+          home = "/var/lib/gitea";
+          shell = "/bin/sh";
+          group = "gitea";
+          isSystemUser = true;
+          uid = myData.uidgid.gitea;
+        };
+        caddy.extraGroups = [ config.users.groups.anubis.name ];
       };
 
       groups.gitea.gid = myData.uidgid.gitea;
@@ -28,6 +31,9 @@
     systemd.services.gitea.serviceConfig.CPUQuota = "200%";
 
     services = {
+      anubis = {
+        instances.gitea.settings.TARGET = "http://127.0.0.1:${toString myData.ports.gitea}";
+      };
       gitea = {
         enable = true;
         user = "git";
@@ -99,7 +105,7 @@
             Alt-Svc "h3=\":443\"; ma=86400"
           }
 
-          reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
+          reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND}
         '';
       };
     };
