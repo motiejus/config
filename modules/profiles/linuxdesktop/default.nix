@@ -127,7 +127,7 @@ in
 
     programs = {
       adb.enable = true;
-      slock.enable = false; # TODO(motiejus) re-enable on awesome
+      slock.enable = true;
       nm-applet.enable = true;
       command-not-found.enable = false;
     };
@@ -280,7 +280,7 @@ in
         programs = {
           ghostty = {
             settings = {
-              #window-decoration = false; # kde
+              window-decoration = false;
               gtk-single-instance = true;
             };
           };
@@ -349,7 +349,7 @@ in
           };
 
           screen-locker = {
-            enable = lib.mkDefault false; # TODO*motiejus) re-enable w/ awesome
+            enable = lib.mkDefault true;
             xautolock.enable = false;
             lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
           };

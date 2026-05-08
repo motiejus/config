@@ -79,6 +79,7 @@ in
             wdiff
             sshfs
             pwgen
+            elinks
             zopfli
             brotli
             bindfs

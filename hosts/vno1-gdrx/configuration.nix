@@ -143,11 +143,6 @@ in
     };
   };
 
-  services = {
-    displayManager.defaultSession = "plasma";
-    desktopManager.plasma6.enable = true;
-    tlp.enable = false; # power-profiles-daemon overwrites this
-  };
   programs.steam.enable = true;
 
   environment.systemPackages = with pkgs; [
