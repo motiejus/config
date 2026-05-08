@@ -9,14 +9,12 @@ let
   fwminex = (import ./data.nix).hosts."fwminex.jakst.vpn".publicKey;
   vno3-nk = (import ./data.nix).hosts."vno3-nk.jakst.vpn".publicKey;
   fra1-c = (import ./data.nix).hosts."fra1-c.jakst.vpn".publicKey;
-  mtworx = (import ./data.nix).hosts."mtworx.jakst.vpn".publicKey;
   vno1-gdrx = (import ./data.nix).hosts."vno1-gdrx.jakst.vpn".publicKey;
   vno2-desk2 = (import ./data.nix).hosts."vno2-desk2.jakst.vpn".publicKey;
   macworx = (import ./data.nix).hosts."macworx.jakst.vpn".publicKey;
 
   systems = [
     fra1-c
-    mtworx
     fwminex
     vno3-nk
     vno1-gdrx
@@ -36,15 +34,6 @@ let
     );
 in
 { }
-// mk ([ mtworx ] ++ motiejus) [
-  "secrets/motiejus_work_passwd_hash.age"
-  "secrets/root_work_passwd_hash.age"
-
-  "secrets/mtworx/syncthing/key.pem.age"
-  "secrets/mtworx/syncthing/cert.pem.age"
-  "secrets/mtworx/kolide-launcher.age"
-  "secrets/mtworx/s1-site-token.age"
-]
 // mk ([ vno3-nk ] ++ motiejus) [
   "secrets/vno3-nk/syncthing/key.pem.age"
   "secrets/vno3-nk/syncthing/cert.pem.age"

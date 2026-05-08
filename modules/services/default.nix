@@ -20,7 +20,6 @@
     ./ping_exporter
     ./postfix
     ./printing
-    ./sentinelone
     ./ssh8022
     ./syncthing
     ./syncthing-relay

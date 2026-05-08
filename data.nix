@@ -116,10 +116,6 @@ rec {
       jakstIP = "100.89.176.13";
       vno1IP = "192.168.189.10";
     };
-    "mtworx.jakst.vpn" = rec {
-      extraHostNames = [ "mtworx" ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK/2oa3/NDV7GQNAKEQdJ+LZMwK0TUr1wChJMkZM1I3b";
-    };
     "macworx.jakst.vpn" = rec {
       extraHostNames = [ "macworx" ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICNSxpWerx0lz6sozvUD909WY1C+/SKdhlVbBhOq9Ls3";

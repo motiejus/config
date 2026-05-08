@@ -2,7 +2,7 @@
 
 ## Rationale
 
-`hosts/mtworx/configuration.nix` currently runs dnsmasq as a full DHCP server
+`hosts/vno1-gdrx/configuration.nix` currently runs dnsmasq as a full DHCP server
 on an isolated bridge (`br0`, `10.14.143.0/24`) with NAT to WiFi. The IP
 `10.14.143.1` is hardcoded in 14+ places: dnsmasq config, iPXE embedded menu,
 NFS exports, firewall rules, and NAT config.
@@ -179,7 +179,7 @@ If you want to restrict to a specific interface, use
 
 ## Files to modify
 
-All changes are in `hosts/mtworx/configuration.nix`:
+All changes are in `hosts/vno1-gdrx/configuration.nix`:
 
 | Lines | What | Change |
 |-------|------|--------|
@@ -196,7 +196,7 @@ All changes are in `hosts/mtworx/configuration.nix`:
 
 1. **Build the NixOS configuration:**
    ```
-   nix build .#nixosConfigurations.mtworx.config.system.build.toplevel
+   nix build .#nixosConfigurations.vno1-gdrx.config.system.build.toplevel
    ```
    This validates the Nix expression evaluates without errors.
 

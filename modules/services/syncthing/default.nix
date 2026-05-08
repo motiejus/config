@@ -8,7 +8,6 @@ let
 
   devices = {
     "fwminex".id = "GKSUKZE-AOBQOWY-CNLZ2ZI-WNKATYE-MV4Y452-J3VCJ5C-EAANXRX-2P6EHA6";
-    "mtworx".id = "C72YA2S-PE5IGDZ-DCNFV7Y-I72BGZM-5L2OO7Y-4K5OTGZ-NILAS2V-BGSAUQW";
     "mxp1".id = "2HBV27D-PK5DKQG-EQE4AV7-ASADXHJ-ER7GAZK-Z6C2NZP-64DLTKI-5OPUZAT";
     "vxp10".id = "CNAGBWH-3EAJ3XR-Z6K2DTW-P42O4SD-7JVCOEL-KIM7BKW-2WA7XS3-733NIQF";
     "rzj-744P2PE".id = "UW6ISH2-NW6X6AW-BJR76TV-TV3BIGZ-PA5QH2M-YEF567T-IWMHKD5-P3XHHAH";
@@ -27,7 +26,6 @@ let
       devices = [
         "vno1-gdrx"
         "vno3-nk"
-        "mtworx"
       ];
       id = "ahz8ohSh";
       label = "Zemelapiai";
@@ -54,7 +52,6 @@ let
         "vno1-gdrx"
         "mxp1"
         "fwminex"
-        "mtworx"
         "macworx"
       ];
       id = "f6fma-unkxq";
@@ -81,7 +78,6 @@ let
         "vno2-desk2"
         "vno1-gdrx"
         "fwminex"
-        "mtworx"
         "v-kfire"
         "a-kfire"
         "vxp10"
@@ -94,7 +90,6 @@ let
         "mxp1"
         "vno1-gdrx"
         "fwminex"
-        "mtworx"
       ];
       id = "pixel_xl_dtm3-photos";
       label = "M-Camera";
@@ -116,7 +111,6 @@ let
       devices = [
         "vno1-gdrx"
         "fwminex"
-        "mtworx"
         "mxp1"
       ];
       id = "tg94v-cqcwr";
@@ -126,7 +120,6 @@ let
       devices = [
         "vno1-gdrx"
         "mxp1"
-        "mtworx"
         "fwminex"
       ];
       id = "byzmw-f6zhg";
@@ -136,7 +129,6 @@ let
       devices = [
         "vno1-gdrx"
         "fwminex"
-        "mtworx"
       ];
       id = "2kq7n-jqzxj";
       label = "stud-cache";
@@ -148,7 +140,6 @@ let
         "rzj-744P2PE"
         "mxp1"
         "mxp1"
-        "mtworx"
       ];
       id = "evgn9-ahngz";
       label = "M-R";
@@ -170,14 +161,6 @@ let
       ];
       id = "7z7ao-3hbxi";
       label = "www-vno1-gdrx";
-    };
-    www-mtworx = {
-      devices = [
-        "mtworx"
-        "fwminex"
-      ];
-      id = "7z9sw-aaaa";
-      label = "www-mtworx";
     };
     www-mxp1 = {
       devices = [ "mxp1" ];
@@ -214,7 +197,6 @@ in
               vno1-gdrx
               vno3-nk
               fwminex
-              mtworx
               macworx
               mxp1
               vxp10
@@ -230,7 +212,6 @@ in
             inherit (devices)
               vno2-desk2
               vxp10
-              mtworx
               fwminex
               v-kfire
               a-kfire
@@ -245,7 +226,6 @@ in
               vno3-nk
               vno1-gdrx
               fwminex
-              mtworx
               ;
           })
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
@@ -253,7 +233,6 @@ in
               vno1-gdrx
               vno3-nk
               fwminex
-              mtworx
               macworx
               mxp1
               vxp10
@@ -265,22 +244,6 @@ in
               a-kfire
               ;
           })
-          // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
-            inherit (devices)
-              mtworx
-              macworx
-              vno2-desk2
-              vno1-gdrx
-              vno3-nk
-              fwminex
-              vno1-vinc
-              rzj-744P2PE
-              mxp1
-              vxp10
-              a-kfire
-              v-kfire
-              ;
-          })
           // { };
         folders =
           with folders;
@@ -288,7 +251,6 @@ in
           // (lib.optionalAttrs (config.networking.hostName == "fwminex") {
             "/var/www/dl/tel" = www-mxp1;
             "/var/www/dl/vno1-gdrx" = www-vno1-gdrx;
-            "/var/www/dl/mtworx" = www-mtworx;
             "${cfg.dataDir}/annex2/Books" = Books;
             "${cfg.dataDir}/annex2/Maildir" = Maildir;
             "${cfg.dataDir}/annex2/M-Active" = M-Active;
@@ -305,17 +267,6 @@ in
           })
           // (lib.optionalAttrs (config.networking.hostName == "vno3-nk") {
             "/data/vno3-shared/Zemelapiai" = Zemelapiai;
-          })
-          // (lib.optionalAttrs (config.networking.hostName == "mtworx") {
-            "${cfg.dataDir}/M-Active" = M-Active;
-            "${cfg.dataDir}/M-Camera" = M-Camera;
-            "${cfg.dataDir}/M-R" = M-R;
-            "${cfg.dataDir}/Zemelapiai" = Zemelapiai;
-            "${cfg.dataDir}/Vaikai" = Vaikai;
-            "${cfg.dataDir}/Video" = video-shared;
-            "${cfg.dataDir}/music" = Music;
-            "${cfg.dataDir}/www" = www-mtworx;
-            "${cfg.dataDir}/stud-cache" = stud-cache;
           })
           // (lib.optionalAttrs (config.networking.hostName == "vno1-gdrx") {
             "${cfg.dataDir}/Books" = Books;

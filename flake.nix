@@ -38,11 +38,6 @@
       };
     };
 
-    kolide-launcher = {
-      url = "github:/kolide/nix-agent/main";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -83,7 +78,6 @@
       nix-index-database,
       nur,
       zig,
-      kolide-launcher,
       nix-darwin,
       ...
     }@inputs:
@@ -120,7 +114,6 @@
             nicer = super.callPackage ./pkgs/nicer.nix { };
             go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
             claudes = super.callPackage ./pkgs/claudes.nix { };
-            sentinelone = super.callPackage ./pkgs/sentinelone { };
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
             mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 
@@ -144,8 +137,6 @@
             # NixOS netboot rescue image
             # Note: Update URL and hash manually from https://nixos.org/download
             mrescue-nixos = super.callPackage ./pkgs/mrescue-nixos.nix { };
-
-            vanta-agent = super.callPackage ./pkgs/vanta-agent.nix { };
           }
           // {
             pkgs-unstable = import nixpkgs-unstable {
@@ -175,40 +166,6 @@
             ./hosts/vm/configuration.nix
             home-manager.nixosModules.home-manager
           ];
-          specialArgs = {
-            inherit myData;
-          }
-          // inputs;
-        };
-
-        mtworx = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            { nixpkgs.overlays = baseOverlays; }
-            ./hosts/mtworx/configuration.nix
-            home-manager.nixosModules.home-manager
-            nixos-hardware.nixosModules.lenovo-thinkpad-x1-11th-gen
-            nix-index-database.nixosModules.nix-index
-            agenix.nixosModules.default
-            kolide-launcher.nixosModules.kolide-launcher
-          ];
-
-          specialArgs = {
-            inherit myData;
-          }
-          // inputs;
-        };
-
-        hpmine = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [
-            { nixpkgs.overlays = baseOverlays; }
-            ./hosts/hpmine/configuration.nix
-            home-manager.nixosModules.home-manager
-            nix-index-database.nixosModules.nix-index
-            agenix.nixosModules.default
-          ];
-
           specialArgs = {
             inherit myData;
           }
@@ -318,28 +275,6 @@
             system = {
               sshUser = "motiejus";
               path = self.nixosConfigurations.fwminex.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
-              user = "root";
-            };
-          };
-        };
-
-        mtworx = {
-          hostname = "mtworx.jakst.vpn";
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.mtworx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.mtworx;
-              user = "root";
-            };
-          };
-        };
-
-        hpmine = {
-          hostname = "hpmine.jakst.vpn";
-          profiles = {
-            system = {
-              sshUser = "motiejus";
-              path = self.nixosConfigurations.hpmine.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.hpmine;
               user = "root";
             };
           };
@@ -469,7 +404,6 @@
             mrescue-alpine
             mrescue-debian-xfce
             mrescue-nixos
-            sentinelone
             ;
         };
       }

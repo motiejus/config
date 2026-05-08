@@ -56,7 +56,7 @@ qemu-system-x86_64 \
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no \
     -device e1000,netdev=net0 \
     -boot order=n \
-    -bios $(nix build .#nixosConfigurations.mtworx.pkgs.OVMF.fd --no-link --print-out-paths)/FV/OVMF.fd
+    -bios $(nix build .#nixosConfigurations.vno1-gdrx.pkgs.OVMF.fd --no-link --print-out-paths)/FV/OVMF.fd
 ```
 
 bios:

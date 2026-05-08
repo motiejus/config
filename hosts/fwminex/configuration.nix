@@ -316,7 +316,6 @@ in
             "fra1-c.jakst.vpn"
             "vno3-nk.jakst.vpn"
             "fwminex.jakst.vpn"
-            "mtworx.jakst.vpn"
             "vno1-gdrx.jakst.vpn"
             "vno2-desk2.jakst.vpn"
           ];
@@ -540,10 +539,6 @@ in
             {
               derivationTarget = ".#vno3-nk";
               pingTarget = "vno3-nk.jakst.vpn";
-            }
-            {
-              derivationTarget = ".#mtworx";
-              pingTarget = "mtworx.jakst.vpn";
             }
             {
               derivationTarget = ".#vno1-gdrx";
