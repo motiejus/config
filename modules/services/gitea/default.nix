@@ -109,8 +109,17 @@
             Alt-Svc "h3=\":443\"; ma=86400"
           }
 
-          reverse_proxy @direct_gitea http://127.0.0.1:${toString myData.ports.gitea}
-          reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND}
+          handle @direct_gitea {
+            reverse_proxy http://127.0.0.1:${toString myData.ports.gitea} {
+              header_up X-Real-IP {remote_host}
+            }
+          }
+
+          handle {
+            reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND} {
+              header_up X-Real-IP {remote_host}
+            }
+          }
         '';
       };
     };
