@@ -25,7 +25,7 @@
     };
 
     # bots
-    #systemd.services.gitea.serviceConfig.CPUQuota = "50%";
+    systemd.services.gitea.serviceConfig.CPUQuota = "200%";
 
     services = {
       gitea = {
@@ -81,8 +81,6 @@
 
       caddy = {
         virtualHosts."git.jakstys.lt".extraConfig = ''
-          @trusted remote_ip 127.0.0.0/8 192.168.0.0/16 100.100.0.0/16
-
           route /static/assets/* {
             uri strip_prefix /static
             file_server * {
@@ -101,19 +99,7 @@
             Alt-Svc "h3=\":443\"; ma=86400"
           }
 
-          #reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
-
-          handle @trusted {
-            reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
-          }
-
-          handle {
-            reverse_proxy 127.0.0.1:${toString myData.ports.gitea} {
-              transport http {
-                max_conns_per_host 1
-              }
-            }
-          }
+          reverse_proxy 127.0.0.1:${toString myData.ports.gitea}
         '';
       };
     };
