@@ -95,6 +95,10 @@
             }
           }
 
+          @direct_gitea {
+            header_regexp User-Agent (?i)(curl|wget|git|elinks)
+          }
+
           header {
             Strict-Transport-Security "max-age=15768000"
 
@@ -105,6 +109,7 @@
             Alt-Svc "h3=\":443\"; ma=86400"
           }
 
+          reverse_proxy @direct_gitea http://127.0.0.1:${toString myData.ports.gitea}
           reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND}
         '';
       };
