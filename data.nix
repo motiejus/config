@@ -39,6 +39,7 @@ rec {
       weather = 9011;
       # non-configurable in caddy as of 2023-09-06
       caddy = 2019;
+      anubis = 9003;
     };
   };
 

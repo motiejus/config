@@ -32,7 +32,12 @@
 
     services = {
       anubis = {
-        instances.gitea.settings.TARGET = "http://127.0.0.1:${toString myData.ports.gitea}";
+        instances.gitea.settings = {
+          TARGET = "http://127.0.0.1:${toString myData.ports.gitea}";
+          # TODO https://github.com/prometheus/prometheus/pull/18091
+          METRICS_BIND = "127.0.0.1:${toString myData.ports.exporters.anubis}";
+          METRICS_BIND_NETWORK = "tcp";
+        };
       };
       gitea = {
         enable = true;
