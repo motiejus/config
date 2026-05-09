@@ -108,10 +108,10 @@
               }
             }
 
-            # TODO /api/healtz
-            @direct_gitea {
-              header_regexp User-Agent (?i)(curl|wget|git|elinks)
-            }
+            @direct_gitea <<CEL
+                path('/api/healthz') ||
+                header_regexp('User-Agent', '(?i)(curl|wget|git|elinks)')
+              CEL
 
             handle @direct_gitea {
               reverse_proxy http://127.0.0.1:${toString myData.ports.gitea}
