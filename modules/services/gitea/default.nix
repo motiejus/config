@@ -27,9 +27,6 @@
       groups.gitea.gid = myData.uidgid.gitea;
     };
 
-    # bots
-    systemd.services.gitea.serviceConfig.CPUQuota = "200%";
-
     services = {
       anubis = {
         instances.gitea.settings = {
@@ -115,9 +112,7 @@
           }
 
           handle @direct_gitea {
-            reverse_proxy http://127.0.0.1:${toString myData.ports.gitea} {
-              header_up X-Real-IP {remote_host}
-            }
+            reverse_proxy http://127.0.0.1:${toString myData.ports.gitea}
           }
 
           handle {
