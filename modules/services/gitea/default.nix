@@ -108,6 +108,7 @@
               }
             }
 
+            # TODO /api/healtz
             @direct_gitea {
               header_regexp User-Agent (?i)(curl|wget|git|elinks)
             }
