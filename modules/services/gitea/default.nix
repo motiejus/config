@@ -89,18 +89,6 @@
 
       caddy = {
         virtualHosts."git.jakstys.lt".extraConfig = ''
-          route /static/assets/* {
-            uri strip_prefix /static
-            file_server * {
-              root ${pkgs.compressDrvWeb pkgs.gitea.data { }}/public
-              precompressed zstd br gzip
-            }
-          }
-
-          @direct_gitea {
-            header_regexp User-Agent (?i)(curl|wget|git|elinks)
-          }
-
           header {
             Strict-Transport-Security "max-age=15768000"
 
@@ -111,13 +99,27 @@
             Alt-Svc "h3=\":443\"; ma=86400"
           }
 
-          handle @direct_gitea {
-            reverse_proxy http://127.0.0.1:${toString myData.ports.gitea}
-          }
+          route {
+            handle /static/assets/* {
+              uri strip_prefix /static
+              file_server * {
+                root ${pkgs.compressDrvWeb pkgs.gitea.data { }}/public
+                precompressed zstd br gzip
+              }
+            }
 
-          handle {
-            reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND} {
-              header_up X-Real-IP {remote_host}
+            @direct_gitea {
+              header_regexp User-Agent (?i)(curl|wget|git|elinks)
+            }
+
+            handle @direct_gitea {
+              reverse_proxy http://127.0.0.1:${toString myData.ports.gitea}
+            }
+
+            handle {
+              reverse_proxy unix/${config.services.anubis.instances.gitea.settings.BIND} {
+                header_up X-Real-IP {remote_host}
+              }
             }
           }
         '';
