@@ -110,7 +110,7 @@
 
             @direct_gitea <<CEL
                 path('/api/healthz') ||
-                header_regexp('User-Agent', '(?i)(curl|wget|git|elinks)')
+                header_regexp('User-Agent', '(?i)(curl|wget|git|elinks|uptimerobot)')
               CEL
 
             handle @direct_gitea {
