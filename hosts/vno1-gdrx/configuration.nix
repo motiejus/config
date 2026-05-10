@@ -13,7 +13,7 @@ in
   imports = [
     ../../modules
     ../../modules/profiles/workstation
-    ../../modules/profiles/autorandr
+    #../../modules/profiles/autorandr
     ../../modules/profiles/physical
     ../../modules/profiles/btrfs
   ];
