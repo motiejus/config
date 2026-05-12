@@ -6,7 +6,6 @@
     ffmpeg
     pandoc
     imagemagick
-    ghostscript
     poppler-utils
     magic-wormhole
     age-plugin-yubikey

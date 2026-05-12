@@ -30,6 +30,7 @@
     tesseract
     oath-toolkit
     nixpkgs-review
+    git-spice
     git-filter-repo
     pkgs.pkgs-unstable.claude-code
 
