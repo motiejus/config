@@ -306,6 +306,10 @@ in
           job_name = "vno1-vinc.jakst.vpn";
           static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
         }
+        {
+          job_name = "windows";
+          static_configs = [ { targets = [ "vno1-vj-win.jakst.vpn:9182" ]; } ];
+        }
       ]
       ++
         map
