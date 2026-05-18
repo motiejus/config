@@ -82,8 +82,6 @@ in
     syncthing-macos
     pkgs-unstable.colima
     pkgs-unstable.docker-client
-    # TODO(26.05): switch to pkgs.xquartz
-    pkgs-unstable.xquartz
     pkgs.xscreensaver-mac
   ];
 
