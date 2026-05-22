@@ -19,6 +19,7 @@
     zbar
     ninja
     shfmt
+    cmake
     tokei
     bloaty
     skopeo

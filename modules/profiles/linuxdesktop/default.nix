@@ -16,10 +16,6 @@ let
     name = "brightness";
     text = builtins.readFile ./brightness;
   };
-  open = pkgs.writeShellApplication {
-    name = "open";
-    text = ''exec ${pkgs.xdg-utils}/bin/xdg-open "$@"'';
-  };
 in
 {
   options.mj.profiles.desktop = with types; {
@@ -162,7 +158,6 @@ in
 
     environment.systemPackages = with pkgs; [
       # packages defined here
-      open
       nicer
       brightness
 
@@ -174,12 +169,10 @@ in
       imv # image viewer
       gimp
       qemu
-      zlib
       xclip
       pdftk
       scrot
       dillo
-      cmake
       typst
       sioyek
       cowsay
