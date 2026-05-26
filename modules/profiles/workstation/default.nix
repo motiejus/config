@@ -56,6 +56,7 @@ in
         esptool
         claudes
         neomutt
+        freecad
         chromium
         binutils
         openscad
