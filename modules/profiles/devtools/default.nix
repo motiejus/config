@@ -13,6 +13,7 @@
     pkgs-unstable.delve
     pkgs-unstable.go-tools
     pkgs.zigpkgs."0.16.0"
+    fq
     uv
     cloc
     josm
