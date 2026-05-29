@@ -25,6 +25,7 @@
     bloaty
     skopeo
     inferno
+    binwalk
     undocker
     graphviz
     loccount
