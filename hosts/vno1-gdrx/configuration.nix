@@ -50,7 +50,43 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  systemd.services.nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
+  systemd.timers.timelapse-vno1 = {
+    timerConfig.OnCalendar = "*-*-* 09..20:0/1:00";
+    wantedBy = [ "timers.target" ];
+  };
+
+  systemd.services = {
+    nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
+
+    timelapse-vno1 =
+      let
+        startScript = pkgs.writeShellApplication {
+          name = "timelapse-vno1";
+          runtimeInputs = with pkgs; [ ffmpeg-headless ];
+          text = ''
+            set -x
+            NOW=$(date +%F_%T)
+            DATE=''${NOW%_*}
+            find /var/lib/timelapse-vno1/ -type d -name "202.*" -mtime -14 -exec rm -fr \;
+            mkdir -p /var/lib/timelapse-vno1/"''${DATE}"
+            exec ffmpeg -hide_banner -y \
+              -i /dev/video0 \
+              -vframes 1 \
+              "/var/lib/timelapse-vno1/''${DATE}/''${NOW}.jpg"
+          '';
+        };
+      in
+      {
+        serviceConfig = {
+          ExecStart = lib.getExe startScript;
+          StateDirectory = "timelapse-vno1";
+          User = "motiejus";
+          Type = "simple";
+          RuntimeMaxSec = "55s";
+          ProtectSystem = true;
+        };
+      };
+  };
 
   mj = {
     profiles.desktop.enableUserServices = true;
