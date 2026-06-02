@@ -35,6 +35,7 @@
     nixpkgs-review
     git-spice
     git-filter-repo
+    kaitai-struct-compiler
     pkgs.pkgs-unstable.claude-code
 
     (
