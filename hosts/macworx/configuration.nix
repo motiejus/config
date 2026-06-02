@@ -21,6 +21,17 @@ in
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
+
+  nix.distributedBuilds = true;
+  nix.buildMachines = [
+    {
+      hostName = "fwminex";
+      sshUser = "motiejus";
+      system = "x86_64-linux";
+      protocol = "ssh-ng";
+      maxJobs = 8;
+    }
+  ];
   system = {
     stateVersion = 6;
   };
