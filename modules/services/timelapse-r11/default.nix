@@ -78,8 +78,14 @@ in
         RestrictSUIDSGID = true;
         RestrictNamespaces = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged"
+        ];
         SystemCallArchitectures = "native";
         PrivateUsers = true;
         PrivateDevices = true;
