@@ -44,6 +44,10 @@ in
   config = lib.mkIf cfg.enable {
     mj.base.unitstatus.units = [ "timelapse-r11" ];
 
+    users.groups.timelapse-r11 = {
+      members = [ "motiejus" ];
+    };
+
     systemd.timers.timelapse-r11 = {
       timerConfig.OnCalendar = cfg.onCalendar;
       wantedBy = [ "timers.target" ];
@@ -58,9 +62,30 @@ in
         LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
         RuntimeDirectory = "timelapse-r11";
         StateDirectory = "timelapse-r11";
+        StateDirectoryMode = "0750";
         DynamicUser = true;
+        Group = "timelapse-r11";
         Type = "simple";
         RuntimeMaxSec = "55s";
+
+        # From/instead of DynamicUser=true
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectKernelLogs = true;
+        ProtectControlGroups = true;
+        ProtectClock = true;
+        ProtectHostname = true;
+        RestrictSUIDSGID = true;
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+        SystemCallFilter = [ "@system-service" "~@privileged" ];
+        SystemCallArchitectures = "native";
+        PrivateUsers = true;
+        PrivateDevices = true;
+        MemoryDenyWriteExecute = true;
+        LockPersonality = true;
+        CapabilityBoundingSet = "";
       };
     };
 
