@@ -15,7 +15,7 @@
     pkgs.zigpkgs."0.16.0"
     fq
     uv
-    fio
+    (fio.override { withLibnbd = false; })
     cloc
     josm
     zbar
