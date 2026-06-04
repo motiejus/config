@@ -44,6 +44,11 @@ in
   config = lib.mkIf cfg.enable {
     mj.base.unitstatus.units = [ "timelapse-r11" ];
 
+    users.users.timelapse-r11 = {
+      isSystemUser = true;
+      group = "timelapse-r11";
+    };
+
     users.groups.timelapse-r11 = {
       members = [ "motiejus" ];
     };
