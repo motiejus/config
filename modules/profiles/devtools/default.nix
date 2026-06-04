@@ -15,6 +15,7 @@
     pkgs.zigpkgs."0.16.0"
     fq
     uv
+    fio
     cloc
     josm
     zbar
@@ -24,6 +25,7 @@
     tokei
     bloaty
     skopeo
+    gnuplot
     inferno
     binwalk
     undocker
