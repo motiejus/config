@@ -26,7 +26,8 @@ in
   nix.buildMachines = [
     {
       hostName = "fwminex";
-      sshUser = "motiejus";
+      sshUser = "nixremote";
+      sshKey = "/etc/nix/nixbld_ed25519";
       system = "x86_64-linux";
       protocol = "ssh-ng";
       maxJobs = 8;

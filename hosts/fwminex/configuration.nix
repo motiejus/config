@@ -333,6 +333,16 @@ in
 
   };
 
+  users.users.nixremote = {
+    isNormalUser = true;
+    home = "/home/nixremote";
+    openssh.authorizedKeys.keys = [
+      myData.bot_pubkeys.nixbld_macworx
+    ];
+  };
+
+  nix.settings.trusted-users = [ "nixremote" ];
+
   mj = {
     stateVersion = "24.05";
     timeZone = "UTC";
