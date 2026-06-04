@@ -68,12 +68,16 @@ in
         RuntimeDirectory = "timelapse-r11";
         StateDirectory = "timelapse-r11";
         StateDirectoryMode = "0750";
-        DynamicUser = true;
+        User = "timelapse-r11";
         Group = "timelapse-r11";
         Type = "simple";
         RuntimeMaxSec = "55s";
 
-        # From/instead of DynamicUser=true
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RemoveIPC = true;
+        NoNewPrivileges = true;
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectKernelLogs = true;
