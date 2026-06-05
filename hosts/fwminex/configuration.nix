@@ -465,7 +465,7 @@ in
               repo = "${vno3-nk}:${this}-var_lib_lesser";
               paths = [
                 "prometheus2"
-                "private/timelapse-r11"
+                "timelapse-r11"
               ];
               backup_at = "*-*-* 02:01:00 UTC";
               compression = "none";
