@@ -42,13 +42,6 @@ in
       };
     };
 
-    systemd.slices."docker-low" = {
-      sliceConfig = {
-        CPUWeight = 1;
-        IOWeight = 1;
-      };
-    };
-
     programs = {
       firefox = {
         enable = true;
@@ -71,7 +64,6 @@ in
       "adbusers"
       "networkmanager"
       "wireshark"
-      "docker"
     ];
 
     services = lib.mkIf cfg.enableUserServices {
@@ -138,19 +130,6 @@ in
     #  enableWifi = true;
     #};
     #location.provider = "geoclue2";
-
-    virtualisation.docker = {
-      enable = true;
-      # https://github.com/docker/buildx/issues/1459
-      #daemon.settings.dns = [ "100.100.100.100" ];
-      daemon.settings = {
-        storage-driver = "btrfs";
-        registry-mirrors = [ "https://mirror.gcr.io" ];
-
-        exec-opts = [ "native.cgroupdriver=systemd" ];
-        cgroup-parent = "docker-low.slice";
-      };
-    };
 
     fonts.packages = with pkgs; [
       xkcd-font
