@@ -28,6 +28,7 @@
     gnuplot
     inferno
     binwalk
+    jupyter
     undocker
     graphviz
     loccount
