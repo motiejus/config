@@ -57,6 +57,7 @@ in
         claudes
         neomutt
         freecad
+        jupyter
         chromium
         binutils
         openscad
