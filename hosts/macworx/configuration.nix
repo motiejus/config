@@ -15,6 +15,7 @@ in
     ../../modules/profiles/basedesktop
     ../../modules/profiles/terminal
     ../../modules/profiles/devtools
+    ../../modules/profiles/work
     ../../modules/services/ssh8022/client.nix
     ../../modules/services/tailscale-ssh
   ];
