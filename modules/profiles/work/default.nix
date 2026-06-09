@@ -20,8 +20,6 @@
     kubectl-node-shell
   ];
 
-  programs._1password.enable = true;
-
   home-manager.users.${config.mj.username} = {
     home.sessionVariables = {
       GOFLAGS = "-tags=big,integration,cluster_integration";
