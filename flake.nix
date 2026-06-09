@@ -112,7 +112,6 @@
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
             nicer = super.callPackage ./pkgs/nicer.nix { };
-            go-raceless = super.callPackage ./pkgs/go-raceless { inherit (nicer) ; };
             claudes = super.callPackage ./pkgs/claudes.nix { };
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
             mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
