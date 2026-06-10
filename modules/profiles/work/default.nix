@@ -11,10 +11,11 @@
     kubectx
     terraform
     github-cli
-    pkgs.pkgs-unstable.claude-code
     docker-compose
     gcloud-wrapped
     kubectl-node-shell
+    ssm-session-manager-plugin
+    pkgs.pkgs-unstable.claude-code
   ];
 
   home-manager.users.${config.mj.username} = {
