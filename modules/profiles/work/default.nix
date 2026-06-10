@@ -1,14 +1,11 @@
 { config, pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
-    #swc
-    turbo
-    nodejs
-    typescript
-    #concurrently
     bats
     unzip
     rclone
+    nodejs
+    awscli2
     mysql80
     kubectl
     kubectx
