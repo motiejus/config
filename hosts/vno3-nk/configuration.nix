@@ -198,7 +198,7 @@ in
   environment = {
     enableDebugInfo = true;
     systemPackages = with pkgs; [
-      vno3-nk
+      yt-dlp
       intel-gpu-tools
     ];
   };
