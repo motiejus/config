@@ -198,6 +198,7 @@ in
   environment = {
     enableDebugInfo = true;
     systemPackages = with pkgs; [
+      vno3-nk
       intel-gpu-tools
     ];
   };
