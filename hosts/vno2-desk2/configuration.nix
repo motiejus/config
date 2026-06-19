@@ -63,7 +63,20 @@ in
     password = "";
   };
 
-  services.displayManager.autoLogin.user = lib.mkForce "irena";
+  services = {
+    displayManager.autoLogin.user = lib.mkForce "irena";
+
+    nsd = {
+      enable = true;
+      interfaces = [
+        "0.0.0.0"
+        "::"
+      ];
+      zones = {
+        "jakstys.lt.".data = myData.jakstysLTZone;
+      };
+    };
+  };
 
   home-manager.users.irena = {
     home = {
@@ -145,17 +158,6 @@ in
         enable = true;
         verboseLogs = true;
         acceptDNS = true;
-      };
-
-      nsd = {
-        enable = true;
-        interfaces = [
-          "0.0.0.0"
-          "::"
-        ];
-        zones = {
-          "jakstys.lt.".data = myData.jakstysLTZone;
-        };
       };
 
       deployerbot.follower = {
