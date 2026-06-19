@@ -28,7 +28,6 @@
     gnuplot
     inferno
     binwalk
-    jupyter
     undocker
     graphviz
     loccount
@@ -56,6 +55,7 @@
           numpy
           pyyaml
           plotly
+          jupyter
           ipython
           pymodbus
           matplotlib
