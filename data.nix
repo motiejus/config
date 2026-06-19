@@ -178,6 +178,7 @@ rec {
       photos                           A     ${hosts."fwminex.jakst.vpn".jakstIP}
       ns1                     86400    A     ${vno1}
       ns2                     86400    A     ${fra1c}
+      ns3                      3600    A     ${vno2}
       vpn                      3600    A     ${fra1c}
       rita                         HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       rita                             A     ${vno1}
