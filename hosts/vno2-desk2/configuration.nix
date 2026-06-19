@@ -147,6 +147,17 @@ in
         acceptDNS = true;
       };
 
+      nsd = {
+        enable = true;
+        interfaces = [
+          "0.0.0.0"
+          "::"
+        ];
+        zones = {
+          "jakstys.lt.".data = myData.jakstysLTZone;
+        };
+      };
+
       deployerbot.follower = {
         enable = true;
         uidgid = myData.uidgid.updaterbot-deployee;
