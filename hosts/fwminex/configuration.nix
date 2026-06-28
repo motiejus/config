@@ -593,6 +593,7 @@ in
     systemPackages =
       with pkgs;
       [
+        stagit
         yt-dlp
         tpm2-tools
         amdgpu_top
