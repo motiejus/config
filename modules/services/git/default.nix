@@ -36,7 +36,7 @@ let
       ln -sf log.html index.html
 
       stagit-index "${cfg.repoDir}"/*/*.git \
-        > "${cfg.wwwDir}/index.html"
+        > "${cfg.wwwDir}/$orgname/index.html"
 
       cp -f ${styleCSS} "${cfg.wwwDir}/style.css"
       mkdir -p "${cfg.wwwDir}/$orgname"
@@ -124,6 +124,8 @@ in
       }
 
       route {
+        redir / /motiejus/ 302
+
         @git_clone path_regexp \.git/
         handle @git_clone {
           root * ${cfg.repoDir}
