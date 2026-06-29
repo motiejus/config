@@ -72,6 +72,8 @@ let
         echo "Created $repopath"
       fi
 
+      git config -f "$repopath/config" core.sharedRepository 0644
+
       if [ -n "''${2:-}" ]; then
         printf '%s\n' "$2" > "$repopath/description"
       fi
