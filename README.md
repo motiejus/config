@@ -27,7 +27,14 @@ Wipe stagit cache:
 Install hook and regenerate all repos:
 
     for r in /var/lib/git/motiejus/*.git; do sudo -u git git-new-repo "motiejus/$(basename "$r" .git)"; done
-    for r in /var/lib/git/motiejus/*.git; do (cd "$r" && sudo -u git hooks/post-receive); done
+
+Trigger stagit regeneration for specific repos:
+
+    printf '%s\n' motiejus/config motiejus/stagit | sudo -u git tee -a /var/www/git.jakstys.lt/.dirty/queue
+
+Trigger regeneration for all repos:
+
+    for r in /var/lib/git/motiejus/*.git; do printf 'motiejus/%s\n' "$(basename "$r" .git)"; done | sudo -u git tee -a /var/www/git.jakstys.lt/.dirty/queue
 
 Encoding host-only secrets
 --------------------------
