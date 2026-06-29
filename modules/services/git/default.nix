@@ -9,14 +9,17 @@ let
   cfg = config.mj.services.git;
   cacheDir = "${cfg.wwwDir}/.cache";
 
-  stagitAssets = "${pkgs.stagit.src}";
+  stagit = pkgs.stagit.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./raw-link.patch ];
+  });
+  stagitAssets = "${stagit.src}";
 
   postReceiveHook = pkgs.writeShellApplication {
     name = "post-receive";
-    runtimeInputs = with pkgs; [
-      coreutils
-      findutils
-      git
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.git
       stagit
     ];
     text = ''
@@ -36,6 +39,10 @@ let
       stagit -c "$cachefile" "$repo"
 
       ln -sf log.html index.html
+
+      rm -rf "$outdir/raw"
+      mkdir -p "$outdir/raw"
+      git -C "$repo" archive HEAD | tar -C "$outdir/raw" -x
 
       for f in style.css favicon.png logo.png; do
         cp -f "${stagitAssets}/$f" "$outdir/$f"
