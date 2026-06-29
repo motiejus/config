@@ -117,6 +117,7 @@ in
       shells = [ pkgs.bash ];
 
       systemPackages = with pkgs; [
+        gnutar
         watch
       ];
     };
