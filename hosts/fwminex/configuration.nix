@@ -362,10 +362,10 @@ in
     };
 
     services = {
-      gitea.enable = true;
+      gitea.enable = false;
 
       git = {
-        enable = false;
+        enable = true;
         repoDir = "/var/lib/git";
         wwwDir = "/var/www/git.jakstys.lt";
         sshKeys = with myData; [
