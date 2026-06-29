@@ -15,6 +15,7 @@ let
     name = "post-receive";
     runtimeInputs = with pkgs; [
       coreutils
+      findutils
       git
       stagit
     ];
@@ -34,19 +35,15 @@ let
       cd "$outdir"
       stagit -c "$cachefile" "$repo"
 
-      if [ -f "$outdir/file/README.md.html" ]; then
-        ln -sf file/README.md.html index.html
-      elif [ -f "$outdir/file/README.html" ]; then
-        ln -sf file/README.html index.html
-      else
-        ln -sf log.html index.html
-      fi
+      ln -sf log.html index.html
 
       for f in style.css favicon.png logo.png; do
         cp -f "${stagitAssets}/$f" "$outdir/$f"
       done
 
-      stagit-index "${cfg.repoDir}"/*/*.git \
+      for r in "${cfg.repoDir}"/*/*.git; do
+        printf '%s %s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
+      done | sort -rn | cut -d' ' -f2- | xargs stagit-index \
         > "${cfg.wwwDir}/$orgname/index.html"
 
       for f in style.css favicon.png logo.png; do
