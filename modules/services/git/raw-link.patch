@@ -1,3 +1,16 @@
+diff --git a/stagit-index.c b/stagit-index.c
+index 6402296bd1c0..c5cd9e4d16e8 100644
+--- a/stagit-index.c
++++ b/stagit-index.c
+@@ -151,7 +151,7 @@ writelog(FILE *fp)
+ 
+ 	fputs("<tr><td><a href=\"", fp);
+ 	percentencode(fp, stripped_name, strlen(stripped_name));
+-	fputs("/log.html\">", fp);
++	fputs("/\">", fp);
+ 	xmlencode(fp, stripped_name, strlen(stripped_name));
+ 	fputs("</a></td><td>", fp);
+ 	xmlencode(fp, description, strlen(description));
 diff --git a/stagit.c b/stagit.c
 index 409714b728ef..5e8d8489748d 100644
 --- a/stagit.c

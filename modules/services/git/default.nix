@@ -38,7 +38,13 @@ let
       cd "$outdir"
       stagit -c "$cachefile" "$repo"
 
-      ln -sf log.html index.html
+      if [ -f "$outdir/file/README.md.html" ]; then
+        ln -sf file/README.md.html index.html
+      elif [ -f "$outdir/file/README.html" ]; then
+        ln -sf file/README.html index.html
+      else
+        ln -sf log.html index.html
+      fi
 
       rm -rf "$outdir/raw"
       mkdir -p "$outdir/raw"
