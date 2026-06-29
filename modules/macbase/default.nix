@@ -118,6 +118,7 @@ in
 
       systemPackages = with pkgs; [
         gnutar
+        (writeShellScriptBin "gtar" ''exec ${gnutar}/bin/tar "$@"'')
         watch
       ];
     };
