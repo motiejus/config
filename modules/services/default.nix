@@ -6,6 +6,7 @@
     ./btrfssnapshot
     ./deployerbot
     ./frigate
+    ./git
     ./gitea
     ./grafana
     ./hass

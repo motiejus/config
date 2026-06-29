@@ -363,6 +363,18 @@ in
 
     services = {
       gitea.enable = true;
+
+      git = {
+        enable = false;
+        repoDir = "/var/lib/git";
+        wwwDir = "/var/www/git.jakstys.lt";
+        sshKeys = with myData; [
+          people_pubkeys.motiejus
+          people_pubkeys.motiejus_work
+          people_pubkeys.motiejus_macworx
+          hosts."fwminex.jakst.vpn".publicKey
+        ];
+      };
       hass.enable = true;
       syncthing-relay.enable = true;
 

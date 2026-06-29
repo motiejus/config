@@ -13,6 +13,13 @@ Other:
     $ nix eval .#nixosConfigurations.fwminex.config.services.nsd
     $ nix why-depends .#nixosConfigurations.vno1-gdrx.config.system.build.toplevel .#legacyPackages.x86_64-linux.mbedtls_2
 
+git
+-------
+
+Create a new repo:
+
+    ssh fwminex sudo -u git git-new-repo motiejus/newrepo "Short description"
+
 Encoding host-only secrets
 --------------------------
 
