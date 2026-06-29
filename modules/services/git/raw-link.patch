@@ -12,7 +12,7 @@ index 6402296bd1c0..c5cd9e4d16e8 100644
  	fputs("</a></td><td>", fp);
  	xmlencode(fp, description, strlen(description));
 diff --git a/stagit.c b/stagit.c
-index 409714b728ef..5e8d8489748d 100644
+index 409714b728ef..cbaa4744a5c4 100644
 --- a/stagit.c
 +++ b/stagit.c
 @@ -947,7 +947,7 @@ writeatom(FILE *fp, int all)
@@ -44,3 +44,38 @@ index 409714b728ef..5e8d8489748d 100644
  
  			fputs("<tr><td>", fp);
  			fputs(filemode(git_tree_entry_filemode(entry)), fp);
+@@ -1400,6 +1402,34 @@ main(int argc, char *argv[])
+ 	checkfileerror(fp, "refs.html", 'w');
+ 	fclose(fp);
+ 
++	/* index page: README if available */
++	if (readme) {
++		char readmeref[PATH_MAX];
++		git_object *readmeobj = NULL;
++
++		snprintf(readmeref, sizeof(readmeref), "HEAD:%s", readme);
++		if (!git_revparse_single(&readmeobj, repo, readmeref)) {
++			fp = efopen("index.html", "w");
++			relpath = "";
++			writeheader(fp, readme);
++			fputs("<p> ", fp);
++			xmlencode(fp, readme, strlen(readme));
++			fprintf(fp, " (%zuB) - <a href=\"raw/",
++			    git_blob_rawsize((git_blob *)readmeobj));
++			percentencode(fp, readme, strlen(readme));
++			fputs("\">Raw</a>", fp);
++			fputs("</p><hr/>", fp);
++			if (git_blob_is_binary((git_blob *)readmeobj))
++				fputs("<p>Binary file.</p>\n", fp);
++			else
++				writeblobhtml(fp, (git_blob *)readmeobj);
++			writefooter(fp);
++			checkfileerror(fp, "index.html", 'w');
++			fclose(fp);
++			git_object_free(readmeobj);
++		}
++	}
++
+ 	/* Atom feed */
+ 	fp = efopen("atom.xml", "w");
+ 	writeatom(fp, 1);
