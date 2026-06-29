@@ -9,7 +9,7 @@ let
   cfg = config.mj.services.git;
   cacheDir = "${cfg.wwwDir}/.cache";
 
-  styleCSS = "${pkgs.stagit.src}/style.css";
+  stagitAssets = "${pkgs.stagit.src}";
 
   postReceiveHook = pkgs.writeShellApplication {
     name = "post-receive";
@@ -33,14 +33,25 @@ let
 
       cd "$outdir"
       stagit -c "$cachefile" "$repo"
-      ln -sf log.html index.html
+
+      if [ -f "$outdir/file/README.md.html" ]; then
+        ln -sf file/README.md.html index.html
+      elif [ -f "$outdir/file/README.html" ]; then
+        ln -sf file/README.html index.html
+      else
+        ln -sf log.html index.html
+      fi
+
+      for f in style.css favicon.png logo.png; do
+        cp -f "${stagitAssets}/$f" "$outdir/$f"
+      done
 
       stagit-index "${cfg.repoDir}"/*/*.git \
         > "${cfg.wwwDir}/$orgname/index.html"
 
-      cp -f ${styleCSS} "${cfg.wwwDir}/style.css"
-      mkdir -p "${cfg.wwwDir}/$orgname"
-      cp -f ${styleCSS} "${cfg.wwwDir}/$orgname/style.css"
+      for f in style.css favicon.png logo.png; do
+        cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/$orgname/$f"
+      done
     '';
   };
 
