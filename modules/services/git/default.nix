@@ -58,21 +58,17 @@ let
 
       repopath="${cfg.repoDir}/$1.git"
 
-      if [ -d "$repopath" ]; then
-        echo "Repository already exists: $repopath" >&2
-        exit 1
+      if [ ! -d "$repopath" ]; then
+        mkdir -p "$(dirname "$repopath")"
+        git init --bare "$repopath"
+        echo "Created $repopath"
       fi
-
-      mkdir -p "$(dirname "$repopath")"
-      git init --bare "$repopath"
 
       if [ -n "''${2:-}" ]; then
         printf '%s\n' "$2" > "$repopath/description"
       fi
 
       ln -sf ${postReceiveHook}/bin/post-receive "$repopath/hooks/post-receive"
-
-      echo "Created $repopath"
     '';
   };
 in
