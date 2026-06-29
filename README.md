@@ -18,7 +18,12 @@ git
 
 Create a new repo:
 
-    ssh fwminex sudo -u git git-new-repo motiejus/newrepo "Short description"
+    ssh fwminex 'sudo -u git git-new-repo motiejus/newrepo "Short description"'
+
+Install hook and regenerate all repos:
+
+    for r in /var/lib/git/motiejus/*.git; do sudo -u git git-new-repo "motiejus/$(basename "$r" .git)"; done
+    for r in /var/lib/git/motiejus/*.git; do (cd "$r" && sudo -u git hooks/post-receive); done
 
 Encoding host-only secrets
 --------------------------
