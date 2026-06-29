@@ -13,7 +13,7 @@ let
     src = builtins.fetchGit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
       ref = "master";
-      rev = "6d75d6e2dc96e6df2e71ef4894295d01a7e235f2";
+      rev = "bd7f58c9853d08e124e836d0c2e83c048a4f52eb";
     };
   };
   stagitAssets = "${pkgs.stagit.src}";
