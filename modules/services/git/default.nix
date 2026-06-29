@@ -108,6 +108,7 @@ in
       group = "git";
       isSystemUser = true;
       createHome = true;
+      homeMode = "755";
       uid = myData.uidgid.gitea;
       openssh.authorizedKeys.keys = cfg.sshKeys;
     };
