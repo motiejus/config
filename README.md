@@ -25,6 +25,11 @@ Install hook and regenerate all repos:
     for r in /var/lib/git/motiejus/*.git; do sudo -u git git-new-repo "motiejus/$(basename "$r" .git)"; done
     for r in /var/lib/git/motiejus/*.git; do (cd "$r" && sudo -u git hooks/post-receive); done
 
+Wipe stagit cache and regenerate all repos from scratch:
+
+    sudo rm -rf /var/www/git.jakstys.lt/.cache /var/www/git.jakstys.lt/motiejus/*/commit /var/www/git.jakstys.lt/motiejus/*/blob /var/www/git.jakstys.lt/motiejus/*/tree /var/www/git.jakstys.lt/motiejus/*/raw
+    for r in /var/lib/git/motiejus/*.git; do (cd "$r" && sudo -u git hooks/post-receive); done
+
 Encoding host-only secrets
 --------------------------
 
