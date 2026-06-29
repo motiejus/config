@@ -490,6 +490,7 @@ in
                 repo = "${host}:${this}-var_lib";
                 paths = [
                   "hass"
+                  "git"
                   "gitea"
                   "caddy"
                   "grafana"

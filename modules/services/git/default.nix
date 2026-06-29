@@ -76,7 +76,7 @@ let
         printf '%s\n' "$2" > "$repopath/description"
       fi
 
-      ln -sf ${postReceiveHook}/bin/post-receive "$repopath/hooks/post-receive"
+      ln -sf "${cfg.repoDir}/.post-receive-hook" "$repopath/hooks/post-receive"
     '';
   };
 in
@@ -118,6 +118,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.wwwDir} 0755 git git -"
+      "L+ ${cfg.repoDir}/.post-receive-hook - - - - ${postReceiveHook}/bin/post-receive"
     ];
 
     environment.systemPackages = [ newRepo ];
