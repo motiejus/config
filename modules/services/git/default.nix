@@ -7,7 +7,7 @@
 }:
 let
   cfg = config.mj.services.git;
-  cacheDir = "/var/lib/git/.stagit-cache";
+  cacheDir = "${cfg.wwwDir}/.cache";
 
   styleCSS = "${pkgs.stagit.src}/style.css";
 
@@ -110,7 +110,6 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.wwwDir} 0755 git git -"
-      "d ${cacheDir} 0755 git git -"
     ];
 
     environment.systemPackages = [ newRepo ];
