@@ -14,7 +14,7 @@ let
     src = builtins.fetchGit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
       ref = "master";
-      rev = "54d688765453529364644ed90f37543eb71a65f4";
+      rev = "49d11c305c5e9f6e17e29df325d4f897564a9ba5";
     };
   };
   stagitAssets = "${pkgs.stagit.src}";
@@ -91,6 +91,18 @@ let
         for f in style.css favicon.png logo.png; do
           cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/''${orgname}/$f"
         done
+      done
+
+      tmpidx=$(mktemp "${cfg.wwwDir}/index.html.XXXXXX")
+      for r in "${cfg.repoDir}"/*/*.git "${cfg.repoDir}"/*.git; do
+        [ -d "$r" ] || continue
+        printf '%s %s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
+      done | sort -rn | cut -d' ' -f2- | xargs -r stagit-index -b "${cfg.repoDir}" > "$tmpidx"
+      chmod 644 "$tmpidx"
+      mv "$tmpidx" "${cfg.wwwDir}/index.html"
+
+      for f in style.css favicon.png logo.png; do
+        cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/$f"
       done
 
       rm -f "${dirtyDir}/queue.work"
@@ -205,8 +217,6 @@ in
       }
 
       route {
-        redir / /motiejus/ 302
-
         @git_clone path_regexp \.git/
         handle @git_clone {
           root * ${cfg.repoDir}
