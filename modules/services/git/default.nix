@@ -13,7 +13,7 @@ let
     src = builtins.fetchGit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
       ref = "master";
-      rev = "876f7aacc1c9c7e158b0e693a06d20b8f9ba71ab";
+      rev = "f585119c69ccd46611432fe9657300dfe1b5999b";
     };
     buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
   });
@@ -64,7 +64,7 @@ let
 
         outdir="${cfg.wwwDir}/$reponame"
         mkdir -p "$outdir"
-        (cd "$outdir" && stagit -j ${toString cfg.threads} "$repo") || continue
+        (cd "$outdir" && stagit -j "$(nproc)" "$repo") || continue
 
         if [ ! -f "$outdir/index.html" ]; then
           ln -sf log.html "$outdir/index.html"
@@ -140,11 +140,6 @@ in
     enable = lib.mkEnableOption "git web hosting with stagit";
     repoDir = lib.mkOption { type = str; };
     wwwDir = lib.mkOption { type = str; };
-    threads = lib.mkOption {
-      type = int;
-      default = 0;
-      description = "Number of threads for stagit blob/tree generation (0 = auto-detect).";
-    };
     sshKeys = lib.mkOption {
       type = listOf str;
       default = [ ];
