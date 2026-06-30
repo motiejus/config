@@ -85,6 +85,7 @@ let
           [ -d "$r" ] || continue
           printf '%s %s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
         done | sort -rn | cut -d' ' -f2- | xargs -r stagit-index > "$tmpidx"
+        chmod 644 "$tmpidx"
         mv "$tmpidx" "${cfg.wwwDir}/''${orgname}/index.html"
 
         for f in style.css favicon.png logo.png; do
