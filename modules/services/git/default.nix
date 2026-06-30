@@ -9,13 +9,14 @@ let
   cfg = config.mj.services.git;
   dirtyDir = "${cfg.wwwDir}/.dirty";
 
-  stagit = pkgs.stagit.overrideAttrs {
+  stagit = pkgs.stagit.overrideAttrs (old: {
     src = builtins.fetchGit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
       ref = "master";
       rev = "31ccf503bbde6ebbcf9717e17948736e4a2055aa";
     };
-  };
+    buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
+  });
   stagitAssets = "${pkgs.stagit.src}";
 
   postReceiveHook = pkgs.writeShellApplication {
