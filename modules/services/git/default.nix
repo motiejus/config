@@ -10,10 +10,10 @@ let
   dirtyDir = "${cfg.wwwDir}/.dirty";
 
   stagit = pkgs.stagit.overrideAttrs (old: {
-    src = builtins.fetchGit {
+    src = pkgs.fetchgit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
-      ref = "master";
       rev = "2cafa94a1c94742d55d77f8855daec129d3faa61";
+      hash = "sha256-PEl6FAWLuVr8MToGhsTKYQhB2fAdrB5Gavhsrftprt8=";
     };
     buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
   });
