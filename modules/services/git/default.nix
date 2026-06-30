@@ -13,7 +13,7 @@ let
     src = builtins.fetchGit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
       ref = "master";
-      rev = "6c3843dd55f2cc5302a74d9657ec47b23f30930f";
+      rev = "31ccf503bbde6ebbcf9717e17948736e4a2055aa";
     };
   };
   stagitAssets = "${pkgs.stagit.src}";
@@ -61,10 +61,9 @@ let
         repo="${cfg.repoDir}/''${reponame}.git"
         [ -d "$repo" ] || continue
 
-        echo "[$reponame] generating" >&2
         outdir="${cfg.wwwDir}/$reponame"
         mkdir -p "$outdir"
-        (cd "$outdir" && stagit -j ${toString cfg.threads} "$repo") 2>&1 | sed "s/^/[$reponame] /" >&2 || { echo "[$reponame] failed" >&2; continue; }
+        (cd "$outdir" && stagit -j ${toString cfg.threads} "$repo") || continue
 
         if [ ! -f "$outdir/index.html" ]; then
           ln -sf log.html "$outdir/index.html"
@@ -73,11 +72,9 @@ let
         for f in style.css favicon.png logo.png; do
           cp -f "${stagitAssets}/$f" "$outdir/$f"
         done
-        echo "[$reponame] done" >&2
       done
 
       for orgname in "''${!orgs[@]}"; do
-        echo "[index:$orgname] generating" >&2
         mkdir -p "${cfg.wwwDir}/$orgname"
         tmpidx=$(mktemp "${cfg.wwwDir}/''${orgname}/index.html.XXXXXX")
         for r in "${cfg.repoDir}/''${orgname}"/*.git; do
@@ -90,10 +87,8 @@ let
         for f in style.css favicon.png logo.png; do
           cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/''${orgname}/$f"
         done
-        echo "[index:$orgname] done" >&2
       done
 
-      echo "[index:root] generating" >&2
       tmpidx=$(mktemp "${cfg.wwwDir}/index.html.XXXXXX")
       for r in "${cfg.repoDir}"/*/*.git "${cfg.repoDir}"/*.git; do
         [ -d "$r" ] || continue
@@ -105,8 +100,6 @@ let
       for f in style.css favicon.png logo.png; do
         cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/$f"
       done
-      echo "[index:root] done" >&2
-
       rm -f "${dirtyDir}/queue.work"
     '';
   };
