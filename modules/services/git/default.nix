@@ -168,26 +168,28 @@ in
       AcceptEnv GIT_PROTOCOL
     '';
 
-    systemd.tmpfiles.rules = [
-      "d ${cfg.wwwDir} 0755 git git -"
-      "d ${dirtyDir} 0755 git git -"
-      "L+ ${cfg.repoDir}/.post-receive-hook - - - - ${postReceiveHook}/bin/post-receive"
-    ];
+    systemd = {
+      tmpfiles.rules = [
+        "d ${cfg.wwwDir} 0755 git git -"
+        "d ${dirtyDir} 0755 git git -"
+        "L+ ${cfg.repoDir}/.post-receive-hook - - - - ${postReceiveHook}/bin/post-receive"
+      ];
 
-    systemd.services.stagit-regen = {
-      description = "Regenerate stagit HTML pages";
-      serviceConfig = {
-        Type = "oneshot";
-        User = "git";
-        Group = "git";
-        ExecStart = "${regenScript}/bin/stagit-regen";
+      services.stagit-regen = {
+        description = "Regenerate stagit HTML pages";
+        serviceConfig = {
+          Type = "oneshot";
+          User = "git";
+          Group = "git";
+          ExecStart = "${regenScript}/bin/stagit-regen";
+        };
       };
-    };
 
-    systemd.paths.stagit-regen = {
-      description = "Watch for stagit regeneration triggers";
-      pathConfig.PathExists = "${dirtyDir}/queue";
-      wantedBy = [ "multi-user.target" ];
+      paths.stagit-regen = {
+        description = "Watch for stagit regeneration triggers";
+        pathConfig.PathExists = "${dirtyDir}/queue";
+        wantedBy = [ "multi-user.target" ];
+      };
     };
 
     environment.systemPackages = [ newRepo ];

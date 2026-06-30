@@ -91,7 +91,7 @@ in
   nixpkgs.hostPlatform = "x86_64-linux";
 
   systemd = {
-    tmpfiles.rules = [ "d /var/www 0755 motiejus users -" ];
+    tmpfiles.rules = [ "d /var/www 0755 root root -" ];
 
     services = {
       weather-exporter = {
