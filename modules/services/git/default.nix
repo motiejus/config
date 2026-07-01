@@ -9,14 +9,6 @@ let
   cfg = config.mj.services.git;
   dirtyDir = "${cfg.wwwDir}/.dirty";
 
-  stagit = pkgs.stagit.overrideAttrs (old: {
-    src = pkgs.fetchgit {
-      url = "https://git.jakstys.lt/motiejus/stagit.git";
-      rev = "f38c700759bea816e3f3c2abf561d4352c60e7c6";
-      hash = "sha256-ccVl0XkzrrdLI5QJ8+yZz4IojOvXYO3HKpqDsQ0qJZk=";
-    };
-    buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
-  });
   stagitAssets = "${pkgs.stagit.src}";
 
   postReceiveHook = pkgs.writeShellApplication {
@@ -42,7 +34,7 @@ let
       pkgs.coreutils
       pkgs.findutils
       pkgs.git
-      stagit
+      pkgs.stagit
     ];
     text = ''
       if [ -f "${dirtyDir}/queue.work" ]; then

@@ -111,6 +111,7 @@
             xscreensaver-mac = super.callPackage ./pkgs/xscreensaver-mac.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
+            stagit = super.callPackage ./pkgs/stagit.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
             claudes = super.callPackage ./pkgs/claudes.nix { };
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
