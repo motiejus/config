@@ -12,8 +12,8 @@ let
   stagit = pkgs.stagit.overrideAttrs (old: {
     src = pkgs.fetchgit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
-      rev = "621ad51dc6d08cb469872221725e22989d3d49f7";
-      hash = "sha256-OepngIw6EQxozW/zMX6+IHhZAgv2Mrp1gw1RbMbENzc=";
+      rev = "f38c700759bea816e3f3c2abf561d4352c60e7c6";
+      hash = "sha256-ccVl0XkzrrdLI5QJ8+yZz4IojOvXYO3HKpqDsQ0qJZk=";
     };
     buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
   });
@@ -64,11 +64,7 @@ let
 
         outdir="${cfg.wwwDir}/$reponame"
         mkdir -p "$outdir"
-        (cd "$outdir" && stagit -j "$(nproc)" "$repo") || continue
-
-        if [ ! -f "$outdir/index.html" ]; then
-          ln -sf log.html "$outdir/index.html"
-        fi
+        (cd "${cfg.repoDir}" && stagit -C "$outdir" -j "$(nproc)" -u "${cfg.baseUrl}/$reponame/" "''${reponame}.git") || continue
 
         for f in style.css favicon.png logo.png; do
           cp -f "${stagitAssets}/$f" "$outdir/$f"
@@ -140,6 +136,11 @@ in
     enable = lib.mkEnableOption "git web hosting with stagit";
     repoDir = lib.mkOption { type = str; };
     wwwDir = lib.mkOption { type = str; };
+    baseUrl = lib.mkOption {
+      type = str;
+      example = "https://git.jakstys.lt";
+      description = "Base URL for the git web UI, used to derive clone URLs.";
+    };
     sshKeys = lib.mkOption {
       type = listOf str;
       default = [ ];
