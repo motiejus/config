@@ -8,12 +8,12 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "stagit";
-  version = "2.0";
+  version = "2.0-unstable";
 
   src = fetchgit {
     url = "https://git.jakstys.lt/motiejus/stagit.git";
-    rev = finalAttrs.version;
-    hash = "sha256-ccVl0XkzrrdLI5QJ8+yZz4IojOvXYO3HKpqDsQ0qJZk=";
+    rev = "3823da1db67032e263ab4fc6052664d21338bbc3";
+    hash = "sha256-d9O0vpWxMXEL1AajA3AWfndxqjKJXEuh1KSu37bG3mA=";
   };
 
   makeFlags = [ "PREFIX=$(out)" ];

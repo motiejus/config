@@ -23,6 +23,7 @@
     shfmt
     cmake
     tokei
+    stagit
     bloaty
     skopeo
     gnuplot
