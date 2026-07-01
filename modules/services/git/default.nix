@@ -12,8 +12,8 @@ let
   stagit = pkgs.stagit.overrideAttrs (old: {
     src = pkgs.fetchgit {
       url = "https://git.jakstys.lt/motiejus/stagit.git";
-      rev = "2cafa94a1c94742d55d77f8855daec129d3faa61";
-      hash = "sha256-PEl6FAWLuVr8MToGhsTKYQhB2fAdrB5Gavhsrftprt8=";
+      rev = "621ad51dc6d08cb469872221725e22989d3d49f7";
+      hash = "sha256-OepngIw6EQxozW/zMX6+IHhZAgv2Mrp1gw1RbMbENzc=";
     };
     buildInputs = old.buildInputs ++ [ pkgs.sqlite ];
   });
