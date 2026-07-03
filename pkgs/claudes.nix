@@ -3,8 +3,20 @@
   pkgs,
   ...
 }:
+let
+  # Fonts for headless-chromium screenshot/pixel tests (e.g. stagit-ng).
+  # DOM/text tests work without it; this only silences HarfBuzz tofu.
+  fontsConf = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
+in
 writeShellApplication {
   name = "claudes";
+  # nodejs + chromium pinned from the flake (reproducible, not from the
+  # user's imperative ~/.nix-profile). /nix/store is already ro-bound, so
+  # no extra bwrap binds are needed — these just land on PATH inside.
+  runtimeInputs = [
+    pkgs.nodejs
+    pkgs.chromium
+  ];
   text = ''
     mkdir -p /tmp/claude-1001 && \
     ${pkgs.bubblewrap}/bin/bwrap --proc /proc \
@@ -12,6 +24,7 @@ writeShellApplication {
       --tmpfs /tmp \
       --tmpfs "$HOME" \
       --setenv CLAUDE_CODE_MAX_OUTPUT_TOKENS 100000 \
+      --setenv FONTCONFIG_FILE ${fontsConf} \
       --symlink "$(readlink -f /run/current-system)" /run/current-system \
       --symlink "$(readlink -f /etc/hosts)" /etc/hosts \
       --symlink "$(readlink -f /etc/static)" /etc/static \
