@@ -7,89 +7,40 @@
 }:
 let
   cfg = config.mj.services.git;
-  dirtyDir = "${cfg.wwwDir}/.dirty";
 
-  stagitAssets = "${pkgs.stagit.src}";
+  # stagit-ng is a client-side (wasm) repo browser: the vhost serves its
+  # static frontend at the root (the shipped index.html defaults derive
+  # site title and clone urls from the request origin), the bare
+  # repositories under *.git/ (dumb HTTP), and a repositories.txt that
+  # drives the repository index page. The only per-repo server-side work
+  # is `git update-server-info` plus regenerating repositories.txt on
+  # pushes and repo creation.
+
+  repolistGen = pkgs.writeShellApplication {
+    name = "git-repolist-gen";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+    ];
+    text = ''
+      tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
+      (cd "${cfg.repoDir}" && find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort) > "$tmp"
+      chmod 644 "$tmp"
+      mv "$tmp" "${cfg.repoDir}/repositories.txt"
+    '';
+  };
 
   postReceiveHook = pkgs.writeShellApplication {
     name = "post-receive";
     runtimeInputs = [
-      pkgs.coreutils
       pkgs.git
     ];
     text = ''
-      repo="$(pwd)"
-      reponame="$(realpath --relative-to="${cfg.repoDir}" "$repo")"
-      reponame="''${reponame%.git}"
-
+      # single pack per repo: keeps stagit-ng's oid lookups single-shot
+      # (gc also packs refs, which keeps packed-refs current)
+      git gc --quiet || true
       git update-server-info
-
-      printf '%s\n' "$reponame" >> "${dirtyDir}/queue"
-    '';
-  };
-
-  regenScript = pkgs.writeShellApplication {
-    name = "stagit-regen";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.findutils
-      pkgs.git
-      pkgs.stagit
-    ];
-    text = ''
-      if [ -f "${dirtyDir}/queue.work" ]; then
-        cat "${dirtyDir}/queue.work" >> "${dirtyDir}/queue" 2>/dev/null || true
-      fi
-      mv "${dirtyDir}/queue" "${dirtyDir}/queue.work" 2>/dev/null || exit 0
-
-      declare -A repos
-      declare -A orgs
-
-      while IFS= read -r reponame; do
-        repos["$reponame"]=1
-        orgs["''${reponame%%/*}"]=1
-      done < "${dirtyDir}/queue.work"
-
-      for reponame in "''${!repos[@]}"; do
-        repo="${cfg.repoDir}/''${reponame}.git"
-        [ -d "$repo" ] || continue
-
-        outdir="${cfg.wwwDir}/$reponame"
-        mkdir -p "$outdir"
-        (cd "${cfg.repoDir}" && stagit -C "$outdir" -j "$(nproc)" -u "${cfg.baseUrl}/$reponame/" "''${reponame}.git") || continue
-
-        for f in style.css favicon.png logo.png; do
-          cp -f "${stagitAssets}/$f" "$outdir/$f"
-        done
-      done
-
-      for orgname in "''${!orgs[@]}"; do
-        mkdir -p "${cfg.wwwDir}/$orgname"
-        tmpidx=$(mktemp "${cfg.wwwDir}/''${orgname}/index.html.XXXXXX")
-        for r in "${cfg.repoDir}/''${orgname}"/*.git; do
-          [ -d "$r" ] || continue
-          printf '%s %s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
-        done | sort -rn | cut -d' ' -f2- | xargs -r stagit-index > "$tmpidx"
-        chmod 644 "$tmpidx"
-        mv "$tmpidx" "${cfg.wwwDir}/''${orgname}/index.html"
-
-        for f in style.css favicon.png logo.png; do
-          cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/''${orgname}/$f"
-        done
-      done
-
-      tmpidx=$(mktemp "${cfg.wwwDir}/index.html.XXXXXX")
-      for r in "${cfg.repoDir}"/*/*.git "${cfg.repoDir}"/*.git; do
-        [ -d "$r" ] || continue
-        printf '%s %s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
-      done | sort -rn | cut -d' ' -f2- | xargs -r stagit-index -b "${cfg.repoDir}" > "$tmpidx"
-      chmod 644 "$tmpidx"
-      mv "$tmpidx" "${cfg.wwwDir}/index.html"
-
-      for f in style.css favicon.png logo.png; do
-        cp -f "${stagitAssets}/$f" "${cfg.wwwDir}/$f"
-      done
-      rm -f "${dirtyDir}/queue.work"
+      ${repolistGen}/bin/git-repolist-gen
     '';
   };
 
@@ -120,19 +71,15 @@ let
       fi
 
       ln -sf "${cfg.repoDir}/.post-receive-hook" "$repopath/hooks/post-receive"
+      git -C "$repopath" update-server-info
+      ${repolistGen}/bin/git-repolist-gen
     '';
   };
 in
 {
   options.mj.services.git = with lib.types; {
-    enable = lib.mkEnableOption "git web hosting with stagit";
+    enable = lib.mkEnableOption "git web hosting with stagit-ng";
     repoDir = lib.mkOption { type = str; };
-    wwwDir = lib.mkOption { type = str; };
-    baseUrl = lib.mkOption {
-      type = str;
-      example = "https://git.jakstys.lt";
-      description = "Base URL for the git web UI, used to derive clone URLs.";
-    };
     sshKeys = lib.mkOption {
       type = listOf str;
       default = [ ];
@@ -165,49 +112,37 @@ in
       AcceptEnv GIT_PROTOCOL
     '';
 
-    systemd = {
-      tmpfiles.rules = [
-        "d ${cfg.wwwDir} 0755 git git -"
-        "d ${dirtyDir} 0755 git git -"
-        "L+ ${cfg.repoDir}/.post-receive-hook - - - - ${postReceiveHook}/bin/post-receive"
-      ];
+    # repositories.txt is regenerated by the post-receive hook and by
+    # git-new-repo. For a first deploy with pre-existing repos, seed it once
+    # (alongside the one-time `git update-server-info` pass) with
+    # `sudo -u git git-repolist-gen`.
+    systemd.tmpfiles.rules = [
+      "L+ ${cfg.repoDir}/.post-receive-hook - - - - ${postReceiveHook}/bin/post-receive"
+    ];
 
-      services.stagit-regen = {
-        description = "Regenerate stagit HTML pages";
-        serviceConfig = {
-          Type = "oneshot";
-          User = "git";
-          Group = "git";
-          ExecStart = "${regenScript}/bin/stagit-regen";
-        };
-      };
-
-      paths.stagit-regen = {
-        description = "Watch for stagit regeneration triggers";
-        pathConfig.PathExists = "${dirtyDir}/queue";
-        wantedBy = [ "multi-user.target" ];
-      };
-    };
-
-    environment.systemPackages = [ newRepo ];
+    environment.systemPackages = [
+      newRepo
+      repolistGen # exposed for the one-time bootstrap above
+    ];
 
     services.caddy.virtualHosts."git.jakstys.lt".extraConfig = ''
       header {
         Strict-Transport-Security "max-age=15768000"
-        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'"
+        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Alt-Svc "h3=\":443\"; ma=86400"
       }
 
       route {
-        @git_clone path_regexp \.git/
-        handle @git_clone {
+        # Bare repos (dumb HTTP) and the repo list both live in repoDir.
+        @repo path_regexp (\.git/|^/repositories\.txt$)
+        handle @repo {
           root * ${cfg.repoDir}
           file_server
         }
         handle {
-          root * ${cfg.wwwDir}
+          root * ${pkgs.stagit-ng}/www
           file_server
         }
       }

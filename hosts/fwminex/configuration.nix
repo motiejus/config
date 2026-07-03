@@ -367,8 +367,6 @@ in
       git = {
         enable = true;
         repoDir = "/var/lib/git";
-        wwwDir = "/var/www/git.jakstys.lt";
-        baseUrl = "https://git.jakstys.lt";
         sshKeys = with myData; [
           people_pubkeys.motiejus
           people_pubkeys.motiejus_work
