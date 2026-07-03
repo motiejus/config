@@ -16,25 +16,18 @@ Other:
 git
 -------
 
-Create a new repo:
+Repos live in `/var/lib/git/<org>/<name>.git`, browsed with stagit-ng at
+<https://git.jakstys.lt>. Create-on-push (path must be two-level `<org>/<name>`):
 
-    ssh fwminex 'sudo -u git git-new-repo motiejus/newrepo "Short description"'
+    git remote add h git@git.jakstys.lt:motiejus/newrepo.git && git push h master
 
-Wipe stagit cache:
+Set description/owner with push options (persisted, shown on the index):
 
-    sudo rm -rf /var/www/git.jakstys.lt/{.cache,motiejus/*/{commit,blob,tree,raw}}
+    git push -o description="Short description" -o owner="motiejus" h master
 
-Install hook and regenerate all repos:
+Rebuild `repositories.txt`: `sudo -u git git-repolist-gen`
 
-    for r in /var/lib/git/motiejus/*.git; do sudo -u git git-new-repo "motiejus/$(basename "$r" .git)"; done
-
-Trigger stagit regeneration for specific repos:
-
-    printf '%s\n' motiejus/config motiejus/stagit | sudo -u git tee -a /var/www/git.jakstys.lt/.dirty/queue
-
-Trigger regeneration for all repos:
-
-    for r in /var/lib/git/motiejus/*.git; do printf 'motiejus/%s\n' "$(basename "$r" .git)"; done | sudo -u git tee -a /var/www/git.jakstys.lt/.dirty/queue
+Reinstall hooks + regen all: `for r in /var/lib/git/motiejus/*.git; do sudo -u git git-new-repo "motiejus/$(basename "$r" .git)"; done`
 
 Encoding host-only secrets
 --------------------------

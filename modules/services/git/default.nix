@@ -52,6 +52,28 @@ let
       # (gc also packs refs, which keeps packed-refs current)
       git gc --quiet || true
       git update-server-info
+
+      # Persist metadata from push options: git push -o description=... -o owner=...
+      count="''${GIT_PUSH_OPTION_COUNT:-0}"
+      i=0
+      while [ "$i" -lt "$count" ]; do
+        name="GIT_PUSH_OPTION_$i"
+        opt="''${!name}"
+        # Strip tabs so a value cannot inject extra columns into the
+        # tab-separated repositories.txt (git already forbids newlines here).
+        case "$opt" in
+        description=*)
+          v="''${opt#description=}"
+          printf '%s\n' "''${v//$'\t'/}" > description
+          ;;
+        owner=*)
+          v="''${opt#owner=}"
+          printf '%s\n' "''${v//$'\t'/}" > owner
+          ;;
+        esac
+        i=$((i + 1))
+      done
+
       ${repolistGen}/bin/git-repolist-gen
     '';
   };
@@ -77,6 +99,8 @@ let
       fi
 
       git config -f "$repopath/config" core.sharedRepository 0644
+      # allow `git push -o description=... -o owner=...` (parsed by the hook)
+      git config -f "$repopath/config" receive.advertisePushOptions true
 
       if [ -n "''${2:-}" ]; then
         printf '%s\n' "$2" > "$repopath/description"
@@ -85,6 +109,51 @@ let
       ln -sf "${cfg.repoDir}/.post-receive-hook" "$repopath/hooks/post-receive"
       git -C "$repopath" update-server-info
       ${repolistGen}/bin/git-repolist-gen
+    '';
+  };
+
+  gitShellWrapper = pkgs.writeShellApplication {
+    name = "git-shell-wrapper";
+    runtimeInputs = with pkgs; [
+      coreutils
+      git
+      newRepo
+    ];
+    text = ''
+      # sshd invokes the login shell as: git-shell-wrapper -c "<git command>"
+      # Anything else (e.g. an interactive login) is handed to git-shell,
+      # which refuses it.
+      if [ "$#" -ne 2 ] || [ "$1" != "-c" ]; then
+        exec ${pkgs.git}/bin/git-shell "$@"
+      fi
+
+      # Create-on-push: git-receive-pack against a missing repo would fail, so
+      # create it first (org/name.git under repoDir, with hook + perms). git
+      # sends the path single-quoted, e.g. git-receive-pack 'motiejus/foo.git'.
+      case "$2" in
+      "git-receive-pack "*)
+        path="''${2#git-receive-pack }" # 'motiejus/foo.git'
+        path="''${path#\'}"             # motiejus/foo.git'
+        path="''${path%\'}"             # motiejus/foo.git
+        rel="''${path%.git}"
+        # Reject traversal and absolute paths: git-new-repo would otherwise
+        # init a bare repo outside repoDir, and an absolute path here would
+        # not match what git-shell resolves for the actual receive-pack.
+        case "$rel" in
+        *..* | /*)
+          echo "invalid repo path: $path" >&2
+          exit 1
+          ;;
+        */*) git-new-repo "$rel" >&2 ;;
+        *)
+          echo "repo path must be org/name(.git): $path" >&2
+          exit 1
+          ;;
+        esac
+        ;;
+      esac
+
+      exec ${pkgs.git}/bin/git-shell "$@"
     '';
   };
 in
@@ -109,7 +178,7 @@ in
     users.users.git = {
       description = "Git";
       home = cfg.repoDir;
-      shell = "${pkgs.git}/bin/git-shell";
+      shell = "${gitShellWrapper}/bin/git-shell-wrapper";
       group = "git";
       isSystemUser = true;
       createHome = true;
