@@ -6,7 +6,7 @@
   fetchgit,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation ({
   pname = "stagit";
   version = "2.0-unstable";
 
