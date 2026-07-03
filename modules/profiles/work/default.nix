@@ -25,7 +25,7 @@
       BUILDKIT_COLORS = "run=123,20,245:error=yellow:cancel=blue:warning=white";
       CLAUDE_CODE_USE_VERTEX = "1";
       CLOUD_ML_REGION = "global";
-      ANTHROPIC_VERTEX_PROJECT_ID = "chronosphere-rc-b";
+      ANTHROPIC_VERTEX_PROJECT_ID = "chronosphere-claude-code";
     };
     programs = {
       git.settings = {
