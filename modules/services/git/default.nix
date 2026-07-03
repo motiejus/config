@@ -78,7 +78,7 @@ let
       # (dumb-HTTP clients would otherwise fetch deleted packs). Concurrent
       # pushes are fine: gc's own gc.pid lock makes the loser skip, and the
       # trailing update-server-info still runs.
-      setsid -f sh -c 'git gc --quiet; git update-server-info' >/dev/null 2>&1 </dev/null
+      setsid -f ${pkgs.runtimeShell} -c 'git gc --quiet; git update-server-info' >/dev/null 2>&1 </dev/null
     '';
   };
 
