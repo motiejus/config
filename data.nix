@@ -2,7 +2,7 @@ rec {
   uidgid = {
     motiejus = 1000;
 
-    gitea = 20000;
+    git = 20000;
     updaterbot-deployer = 501;
     updaterbot-deployee = 502;
 
@@ -18,7 +18,6 @@ rec {
 
   ports = {
     grafana = 3000;
-    gitea = 3001;
     immich-server = 3002;
     immich-machine-learning = 3003; # as of writing, hardcoded in the immich module
 
@@ -39,7 +38,6 @@ rec {
       weather = 9011;
       # non-configurable in caddy as of 2023-09-06
       caddy = 2019;
-      anubis = 9003;
     };
   };
 

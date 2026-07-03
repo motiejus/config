@@ -21,9 +21,9 @@ Repos live in `/var/lib/git/<org>/<name>.git`, browsed with stagit-ng at
 
     git remote add h git@git.jakstys.lt:motiejus/newrepo.git && git push h master
 
-Set description/owner with push options (persisted, shown on the index):
+Set description with a push option (persisted, shown on the index):
 
-    git push -o description="Short description" -o owner="motiejus" h master
+    git push -o description="Short description" h master
 
 Rebuild `repositories.txt`: `sudo -u git git-repolist-gen`
 

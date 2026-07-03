@@ -7,7 +7,6 @@
     ./deployerbot
     ./frigate
     ./git
-    ./gitea
     ./grafana
     ./hass
     ./headscale

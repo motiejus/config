@@ -297,12 +297,6 @@ in
           static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.weather}" ]; } ];
         }
         {
-          job_name = "anubis-gitea";
-          # TODO https://github.com/prometheus/prometheus/pull/18091
-          #static_configs = [ { targets = [ "unix:/${config.services.anubis.instances.gitea.settings.METRICS_BIND}" ]; } ];
-          static_configs = [ { targets = [ "127.0.0.1:${toString myData.ports.exporters.anubis}" ]; } ];
-        }
-        {
           job_name = "vno1-vinc.jakst.vpn";
           static_configs = [ { targets = [ "vno1-vinc.jakst.vpn:9100" ]; } ];
         }
@@ -362,8 +356,6 @@ in
     };
 
     services = {
-      gitea.enable = false;
-
       git = {
         enable = true;
         repoDir = "/var/lib/git";
@@ -490,7 +482,6 @@ in
                 paths = [
                   "hass"
                   "git"
-                  "gitea"
                   "caddy"
                   "grafana"
                   "bitwarden_rs"
@@ -503,7 +494,6 @@ in
                   "immich/profile"
                   "postgresql"
                 ];
-                patterns = [ "- gitea/data/repo-archive/" ];
                 backup_at = "*-*-* 01:00:01 UTC";
               }
               {

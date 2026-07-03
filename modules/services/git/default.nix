@@ -24,18 +24,17 @@ let
       pkgs.git
     ];
     # repositories.txt drives stagit-ng's index page. Each line is
-    # tab-separated: "<path>.git \t <HEAD commit epoch> \t <owner> \t
-    # <description>", sorted newest-first — so the index renders from one
-    # fetch with no per-repo work on the client.
+    # tab-separated: "<path>.git \t <HEAD commit epoch> \t <description>",
+    # sorted newest-first — so the index renders from one fetch with no
+    # per-repo work on the client.
     text = ''
       tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
       cd "${cfg.repoDir}"
       find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | while read -r p; do
         epoch=$(git -C "$p" log -1 --format=%ct 2>/dev/null || true)
-        owner=$(head -1 "$p/owner" 2>/dev/null || true)
         desc=$(head -1 "$p/description" 2>/dev/null || true)
         case "$desc" in "Unnamed repository"*) desc="" ;; esac
-        printf '%s\t%s\t%s\t%s\n' "$p" "''${epoch:-0}" "$owner" "$desc"
+        printf '%s\t%s\t%s\n' "$p" "''${epoch:-0}" "$desc"
       done | sort -t"$(printf '\t')" -k2,2 -rn > "$tmp"
       chmod 644 "$tmp"
       mv "$tmp" "${cfg.repoDir}/repositories.txt"
@@ -46,14 +45,14 @@ let
     name = "post-receive";
     runtimeInputs = [
       pkgs.git
+      pkgs.util-linux # setsid
     ];
     text = ''
-      # single pack per repo: keeps stagit-ng's oid lookups single-shot
-      # (gc also packs refs, which keeps packed-refs current)
-      git gc --quiet || true
+      # Fast path first, so the push returns and the new commits are
+      # immediately visible to stagit-ng; gc runs detached below.
       git update-server-info
 
-      # Persist metadata from push options: git push -o description=... -o owner=...
+      # Persist metadata from push options: git push -o description=...
       count="''${GIT_PUSH_OPTION_COUNT:-0}"
       i=0
       while [ "$i" -lt "$count" ]; do
@@ -66,15 +65,20 @@ let
           v="''${opt#description=}"
           printf '%s\n' "''${v//$'\t'/}" > description
           ;;
-        owner=*)
-          v="''${opt#owner=}"
-          printf '%s\n' "''${v//$'\t'/}" > owner
-          ;;
         esac
         i=$((i + 1))
       done
 
       ${repolistGen}/bin/git-repolist-gen
+
+      # single pack per repo: keeps stagit-ng's oid lookups single-shot
+      # (gc also packs refs, which keeps packed-refs current). gc can take
+      # a while, so it runs detached from the push; update-server-info must
+      # run again afterwards because repacking rewrites objects/info/packs
+      # (dumb-HTTP clients would otherwise fetch deleted packs). Concurrent
+      # pushes are fine: gc's own gc.pid lock makes the loser skip, and the
+      # trailing update-server-info still runs.
+      setsid -f sh -c 'git gc --quiet; git update-server-info' >/dev/null 2>&1 </dev/null
     '';
   };
 
@@ -99,7 +103,7 @@ let
       fi
 
       git config -f "$repopath/config" core.sharedRepository 0644
-      # allow `git push -o description=... -o owner=...` (parsed by the hook)
+      # allow `git push -o description=...` (parsed by the hook)
       git config -f "$repopath/config" receive.advertisePushOptions true
 
       if [ -n "''${2:-}" ]; then
@@ -168,13 +172,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = !config.mj.services.gitea.enable;
-        message = "git and gitea cannot be enabled simultaneously (both define the git user)";
-      }
-    ];
-
     users.users.git = {
       description = "Git";
       home = cfg.repoDir;
@@ -183,11 +180,11 @@ in
       isSystemUser = true;
       createHome = true;
       homeMode = "755";
-      uid = myData.uidgid.gitea;
+      uid = myData.uidgid.git;
       openssh.authorizedKeys.keys = cfg.sshKeys;
     };
 
-    users.groups.git.gid = myData.uidgid.gitea;
+    users.groups.git.gid = myData.uidgid.git;
 
     services.openssh.extraConfig = ''
       AcceptEnv GIT_PROTOCOL
