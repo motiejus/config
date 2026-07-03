@@ -21,10 +21,22 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.findutils
+      pkgs.git
     ];
+    # repositories.txt drives stagit-ng's index page. Each line is
+    # tab-separated: "<path>.git \t <HEAD commit epoch> \t <owner> \t
+    # <description>", sorted newest-first — so the index renders from one
+    # fetch with no per-repo work on the client.
     text = ''
       tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
-      (cd "${cfg.repoDir}" && find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort) > "$tmp"
+      cd "${cfg.repoDir}"
+      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | while read -r p; do
+        epoch=$(git -C "$p" log -1 --format=%ct 2>/dev/null || true)
+        owner=$(head -1 "$p/owner" 2>/dev/null || true)
+        desc=$(head -1 "$p/description" 2>/dev/null || true)
+        case "$desc" in "Unnamed repository"*) desc="" ;; esac
+        printf '%s\t%s\t%s\t%s\n' "$p" "''${epoch:-0}" "$owner" "$desc"
+      done | sort -t"$(printf '\t')" -k2,2 -rn > "$tmp"
       chmod 644 "$tmp"
       mv "$tmp" "${cfg.repoDir}/repositories.txt"
     '';
