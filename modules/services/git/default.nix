@@ -214,6 +214,10 @@ in
         # read-only data, GET/HEAD only. Preflight is needed because a
         # cross-origin Range GET is never a "simple" request, and
         # Content-Range must be exposed for the client to learn file sizes.
+        # No Cache-Control here: repo-data cache policy is client-owned
+        # (stagit-ng.js force-caches content-addressed pack/object files
+        # and revalidates the mutable rest; repo files have real mtimes,
+        # so Caddy's ETags make those revalidations cheap 304s).
         @repo path_regexp (\.git/|^/repositories\.txt$)
         @repo_preflight {
           method OPTIONS
@@ -237,9 +241,18 @@ in
           file_server
         }
         handle {
+          # no-cache: browsers store the frontend but revalidate on every
+          # use; unchanged files are cheap 304s, deploys show on the next
+          # load. The 304s exist only because of the content-hash .etag
+          # sidecars generated in pkgs/stagit-ng.nix: caddy sends no
+          # validators at all for nix-store files (epoch mtimes fail its
+          # usefulModTime check), so plain no-cache would re-download
+          # full bodies every load.
+          header Cache-Control "no-cache"
           root * ${pkgs.stagit-ng}/www
           file_server {
             precompressed zstd br gzip
+            etag_file_extensions .etag
           }
         }
       }
