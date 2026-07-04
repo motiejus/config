@@ -238,7 +238,9 @@ in
         }
         handle {
           root * ${pkgs.stagit-ng}/www
-          file_server
+          file_server {
+            precompressed zstd br gzip
+          }
         }
       }
     '';

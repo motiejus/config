@@ -2,17 +2,20 @@
   lib,
   stdenvNoCC,
   fetchgit,
+  compressDrvWeb,
   pkgs-unstable,
 }:
 
-stdenvNoCC.mkDerivation {
+# Static assets get precompressed .gz/.br/.zst siblings (the wasm is the
+# big one); caddy serves them via file_server's `precompressed`.
+compressDrvWeb (stdenvNoCC.mkDerivation {
   pname = "stagit-ng";
   version = "0-unstable-2026-07-04";
 
   src = fetchgit {
     url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-    rev = "6b6e72bc47e36e4c1982d8283a1c2208e8784673";
-    hash = "sha256-Ep4PfM+tIzxmubeoAdXoWVqenrQHr6PRHiDV6Ay5vk8=";
+    rev = "afb83f5dcaea919e6ae4a5d6245409ea7a8081e8";
+    hash = "sha256-0ygR6FmwzAMn7fFekeBLCyBHQSlM3d53AuENzbDFzQQ=";
   };
 
   # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
@@ -37,4 +40,4 @@ stdenvNoCC.mkDerivation {
     license = lib.licenses.mit;
     platforms = lib.platforms.all;
   };
-}
+}) { extraFormats = [ "wasm" ]; }
