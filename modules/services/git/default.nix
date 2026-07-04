@@ -206,7 +206,9 @@ in
     services.caddy.virtualHosts."git.jakstys.lt".extraConfig = ''
       header {
         Strict-Transport-Security "max-age=15768000"
-        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'"
+        # connect-src https: (not 'self'): stagit-ng's standalone form can
+        # browse remote repositories from this origin too.
+        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src https:"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Alt-Svc "h3=\":443\"; ma=86400"
@@ -214,8 +216,30 @@ in
 
       route {
         # Bare repos (dumb HTTP) and the repo list both live in repoDir.
+        # The CORS headers let stagit-ng frontends hosted elsewhere (e.g.
+        # standalone mode on localhost) browse these repos: public
+        # read-only data, GET/HEAD only. Preflight is needed because a
+        # cross-origin Range GET is never a "simple" request, and
+        # Content-Range must be exposed for the client to learn file sizes.
         @repo path_regexp (\.git/|^/repositories\.txt$)
+        @repo_preflight {
+          method OPTIONS
+          path_regexp (\.git/|^/repositories\.txt$)
+        }
+        handle @repo_preflight {
+          header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+            Access-Control-Allow-Headers "Range"
+            Access-Control-Max-Age "86400"
+          }
+          respond 204
+        }
         handle @repo {
+          header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Expose-Headers "Content-Range"
+          }
           root * ${cfg.repoDir}
           file_server
         }
