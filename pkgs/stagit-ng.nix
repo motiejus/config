@@ -14,8 +14,8 @@ compressDrvWeb (stdenvNoCC.mkDerivation {
 
   src = fetchgit {
     url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-    rev = "afb83f5dcaea919e6ae4a5d6245409ea7a8081e8";
-    hash = "sha256-0ygR6FmwzAMn7fFekeBLCyBHQSlM3d53AuENzbDFzQQ=";
+    rev = "0aa63aad2f46845b2c52c9c42090635433e74720";
+    hash = "sha256-Jr1Efqlf1znm61uNPjQ/+DS7hjFNLueuuDFqwzKt94o=";
   };
 
   # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
