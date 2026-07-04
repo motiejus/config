@@ -12,30 +12,24 @@ let
   # static frontend at the root (the shipped index.html defaults derive
   # site title and clone urls from the request origin), the bare
   # repositories under *.git/ (dumb HTTP), and a repositories.txt that
-  # drives the repository index page. The only per-repo server-side work
-  # is `git update-server-info` plus regenerating repositories.txt on
-  # pushes and repo creation.
+  # lists them (paths only; the client fetches per-repo details). The
+  # only server-side work is `git update-server-info` on push plus
+  # regenerating repositories.txt on repo creation.
 
   repolistGen = pkgs.writeShellApplication {
     name = "git-repolist-gen";
     runtimeInputs = [
       pkgs.coreutils
       pkgs.findutils
-      pkgs.git
     ];
-    # repositories.txt drives stagit-ng's index page. Each line is
-    # tab-separated: "<path>.git \t <HEAD commit epoch> \t <description>",
-    # sorted newest-first — so the index renders from one fetch with no
-    # per-repo work on the client.
+    # repositories.txt drives stagit-ng's index page: one repo path per
+    # line, nothing else — the client fetches each repo's description and
+    # last-commit date itself. Only needs regenerating when a repo is
+    # created or removed.
     text = ''
       tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
       cd "${cfg.repoDir}"
-      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | while read -r p; do
-        epoch=$(git -C "$p" log -1 --format=%ct 2>/dev/null || true)
-        desc=$(head -1 "$p/description" 2>/dev/null || true)
-        case "$desc" in "Unnamed repository"*) desc="" ;; esac
-        printf '%s\t%s\t%s\n' "$p" "''${epoch:-0}" "$desc"
-      done | sort -t"$(printf '\t')" -k2,2 -rn > "$tmp"
+      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort > "$tmp"
       chmod 644 "$tmp"
       mv "$tmp" "${cfg.repoDir}/repositories.txt"
     '';
@@ -53,23 +47,22 @@ let
       git update-server-info
 
       # Persist metadata from push options: git push -o description=...
+      # (the description file is read per-repo by the stagit-ng client)
       count="''${GIT_PUSH_OPTION_COUNT:-0}"
       i=0
       while [ "$i" -lt "$count" ]; do
         name="GIT_PUSH_OPTION_$i"
         opt="''${!name}"
-        # Strip tabs so a value cannot inject extra columns into the
-        # tab-separated repositories.txt (git already forbids newlines here).
         case "$opt" in
         description=*)
-          v="''${opt#description=}"
-          printf '%s\n' "''${v//$'\t'/}" > description
+          printf '%s\n' "''${opt#description=}" > description
           ;;
         esac
         i=$((i + 1))
       done
 
-      ${repolistGen}/bin/git-repolist-gen
+      # repositories.txt only lists paths, so pushes don't touch it;
+      # git-new-repo regenerates it when a repo is created.
 
       # single pack per repo: keeps stagit-ng's oid lookups single-shot
       # (gc also packs refs, which keeps packed-refs current). gc can take
