@@ -205,9 +205,16 @@ in
     services.caddy.virtualHosts."git.jakstys.lt".extraConfig = ''
       header {
         Strict-Transport-Security "max-age=15768000"
-        # connect-src https: (not 'self'): stagit-ng's standalone form can
-        # browse remote repositories from this origin too.
-        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src https:"
+        # script-src 'self' (no 'unsafe-inline') stops injected repo markup
+        # from executing and, since blob: documents inherit this policy,
+        # neutralises a malicious in-repo SVG opened as a top-level document.
+        # 'wasm-unsafe-eval' instantiates the wasm; 'unsafe-hashes' + the
+        # sha256 whitelist only the logo's fixed onerror handler.
+        # img-src: blob: shows in-repo images (incl. inline SVG, safe in
+        # <img>), https: shows remote README images (their fetch is an
+        # accepted tracking vector). connect-src https: (not 'self') lets
+        # stagit-ng's standalone form browse remote repositories from here.
+        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self' blob: data: https:; script-src 'self' 'wasm-unsafe-eval' 'unsafe-hashes' 'sha256-2v15HA+jcUVSuZj1qG3oTd5Ic+VBbl+6+8wh+TEIxBI='; connect-src https:; base-uri 'none'"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Alt-Svc "h3=\":443\"; ma=86400"
