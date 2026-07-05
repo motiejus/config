@@ -21,15 +21,20 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.findutils
+      pkgs.git
     ];
     # repositories.txt drives stagit-ng's index page: one repo path per
     # line, nothing else — the client fetches each repo's description and
-    # last-commit date itself. Only needs regenerating when a repo is
-    # created or removed.
+    # last-commit date itself, and renders rows in list order (it never
+    # reorders under the reader), so newest-first is decided here: sort by
+    # HEAD's committer date, the same value the client shows. Regenerated
+    # on repo creation and on every push (a push changes the order).
     text = ''
       tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
       cd "${cfg.repoDir}"
-      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort > "$tmp"
+      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort | while read -r r; do
+        printf '%s\t%s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
+      done | sort -rns -k1,1 | cut -f2- > "$tmp"
       chmod 644 "$tmp"
       mv "$tmp" "${cfg.repoDir}/repositories.txt"
     '';
@@ -61,8 +66,9 @@ let
         i=$((i + 1))
       done
 
-      # repositories.txt only lists paths, so pushes don't touch it;
-      # git-new-repo regenerates it when a repo is created.
+      # repositories.txt is ordered by last commit date, so a push can
+      # reorder it (cheap: one `git log -1` per repo).
+      ${repolistGen}/bin/git-repolist-gen
 
       # single pack per repo: keeps stagit-ng's oid lookups single-shot
       # (gc also packs refs, which keeps packed-refs current). gc can take
