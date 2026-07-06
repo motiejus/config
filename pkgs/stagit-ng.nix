@@ -16,8 +16,12 @@ let
 
     src = fetchgit {
       url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "9bdef91a2aa7a292a0cbeb55e1dbfa4396c94549";
-      hash = "sha256-jVhiKM+PnmFo2Ono0AFlEie2O5jfr5ZGX3MODJgZ7dA=";
+      rev = "a02b9415b6635e6657e95377278e047d64df42e7a09c4620258a19c4bd338ccf";
+      # The repo is in sha256 object format; fetchgit's `git init` defaults
+      # to sha1 and then rejects the sha256 pack ("pack is corrupted").
+      # nixpkgs has no object-format knob, so set git's via preFetch.
+      preFetch = "export GIT_DEFAULT_HASH=sha256";
+      hash = "sha256-B1NYlr/lGoHEmbnmf8D5t8PhwSDXSMG9zajU6i8uo2Y=";
     };
 
     # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
