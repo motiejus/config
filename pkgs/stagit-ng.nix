@@ -16,8 +16,8 @@ let
 
     src = fetchgit {
       url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "3ac67e93e7a59a5387800044c3182a1a4afacc21";
-      hash = "sha256-Bqze2DbBdHpxRmSSuOq8bxFzu3jBGSkIrw7acxZU2Fo=";
+      rev = "6352203de7dabfa8f5212da2a36212d6c8999730";
+      hash = "sha256-Vl1HTgVuEL1r3EyLngbHtBwaauZJmzRYo+UO1puh8n4=";
     };
 
     # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
