@@ -15,7 +15,7 @@
       pkgs.pkgs-unstable.vimPlugins.vim-go
       pkgs.pkgs-unstable.vimPlugins.zig-vim
     ];
-    extraLuaConfig =
+    initLua =
       builtins.readFile
         (pkgs.replaceVars ./dev.lua {
           inherit (pkgs) ripgrep;

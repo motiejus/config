@@ -75,7 +75,7 @@ in
         joplin-desktop
         sweethome3d.application
         #diffoscope # broken on 2025-09-28, not used much
-        wineWowPackages.full
+        wineWow64Packages.full
         openorienteering-mapper
 
         (texlive.combine {

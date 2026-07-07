@@ -42,11 +42,8 @@ in
       enable = true;
       port = myData.ports.immich-server;
 
-      # Database configuration for NixOS 25.11
       database = {
         enable = true;
-        enableVectorChord = true; # New vector search backend (recommended)
-        enableVectors = false; # Disable deprecated pgvecto-rs
       };
 
       # N.B. as of 24.11 default redis socket has permissions incompatible

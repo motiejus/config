@@ -91,6 +91,7 @@ in
   "secrets/fwminex/syncthing/cert.pem.age"
   "secrets/fwminex/up.jakstys.lt.env.age"
   "secrets/fwminex/borgbackup-password.age"
+  "secrets/fwminex/grafana-secret-key.age"
 ]
 // mk (
   [

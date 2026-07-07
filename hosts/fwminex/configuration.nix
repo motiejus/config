@@ -29,6 +29,7 @@ in
     synapse-macaroon-secret-key.file = ../../secrets/synapse/macaroon_secret_key.age;
     syncthing-key.file = ../../secrets/fwminex/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
+    grafana-secret-key.file = ../../secrets/fwminex/grafana-secret-key.age;
     frigate.file = ../../secrets/frigate.age;
     timelapse.file = ../../secrets/timelapse.age;
     plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
@@ -427,6 +428,7 @@ in
       grafana = {
         enable = true;
         port = myData.ports.grafana;
+        secretKeyPath = config.age.secrets.grafana-secret-key.path;
       };
 
       tailscale = {

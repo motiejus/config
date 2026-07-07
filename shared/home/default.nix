@@ -19,7 +19,9 @@ in
       vimAlias = true;
       vimdiffAlias = true;
       defaultEditor = true;
-      plugins = [ pkgs.vimPlugins.fugitive ];
+      withRuby = false;
+      withPython3 = false;
+      plugins = [ pkgs.vimPlugins.vim-fugitive ];
       extraConfig = builtins.readFile ./vimrc;
     };
 

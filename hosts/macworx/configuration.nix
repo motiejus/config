@@ -92,8 +92,8 @@ in
     autoraise
     tailscale
     syncthing-macos
-    pkgs-unstable.colima
-    pkgs-unstable.docker-client
+    colima
+    docker-client
     pkgs.xscreensaver-mac
   ];
 

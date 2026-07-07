@@ -92,6 +92,7 @@ in
 
       firefox = {
         enable = true;
+        configPath = ".mozilla/firefox";
         languagePacks = [
           "lt"
           "ru"
@@ -189,8 +190,8 @@ in
       kdePackages.kiriki
 
       extremetuxracer
-      superTux
-      superTuxKart
+      supertux
+      supertuxkart
       # frozen-bubble # broken in 25.11 (perl SDL tests segfault)
       neverball
       pingus
