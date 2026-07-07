@@ -15,13 +15,16 @@ let
     version = "0-unstable-2026-07-04";
 
     src = fetchgit {
+      # TODO: flatten to https://git.jakstys.lt/stagit-ng.git once the flat
+      # namespace is deployed — this owner-qualified form then only works
+      # via the temporary @oldclone redirect and blocks its removal.
       url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "a02b9415b6635e6657e95377278e047d64df42e7a09c4620258a19c4bd338ccf";
+      rev = "ed72fe68ccab7f608435f833a576be571c00672cba4beb425e982a7b5067a04d";
       # The repo is in sha256 object format; fetchgit's `git init` defaults
       # to sha1 and then rejects the sha256 pack ("pack is corrupted").
       # nixpkgs has no object-format knob, so set git's via preFetch.
       preFetch = "export GIT_DEFAULT_HASH=sha256";
-      hash = "sha256-B1NYlr/lGoHEmbnmf8D5t8PhwSDXSMG9zajU6i8uo2Y=";
+      hash = "sha256-w5TPnoDnf7ti3GoFcdXz716lxOuUbtaDBnp3PVegG5Q=";
     };
 
     # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
@@ -36,13 +39,18 @@ let
     buildPhase = ''
       runHook preBuild
       export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
+      # stagit-ng is path-routed with no build-time switch; the git vhost
+      # provides the SPA fallback app routes need by importing the routing
+      # contract, deploy/Caddyfile.snippet — shipped here straight from the
+      # source tree (build.zig only builds; it does not install deploy/).
       zig build --release=fast -p $out
+      cp -r deploy $out/deploy
       runHook postBuild
     '';
 
     meta = {
       description = "Client-side git repository browser (wasm) over dumb HTTP";
-      homepage = "https://git.jakstys.lt/#motiejus/stagit-ng.git";
+      homepage = "https://git.jakstys.lt/stagit-ng";
       license = lib.licenses.mit;
       platforms = lib.platforms.all;
     };

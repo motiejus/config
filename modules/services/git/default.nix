@@ -9,12 +9,12 @@ let
   cfg = config.mj.services.git;
 
   # stagit-ng is a client-side (wasm) repo browser: the vhost serves its
-  # static frontend at the root (the shipped index.html defaults derive
-  # site title and clone urls from the request origin), the bare
-  # repositories under *.git/ (dumb HTTP), and a repositories.txt that
-  # lists them (paths only; the client fetches per-repo details). The
-  # only server-side work is `git update-server-info` on push plus
-  # regenerating repositories.txt on repo creation.
+  # static frontend (assets under /_/, index.html as the SPA shell for
+  # every app route — the client reads the route from the location, in
+  # path-routing mode), the bare repositories under *.git/ (dumb HTTP),
+  # and a repositories.txt that lists them (paths only; the client fetches
+  # per-repo details). The only server-side work is `git update-server-info`
+  # on push plus regenerating repositories.txt on repo creation.
 
   repolistGen = pkgs.writeShellApplication {
     name = "git-repolist-gen";
@@ -32,7 +32,7 @@ let
     text = ''
       tmp=$(mktemp "${cfg.repoDir}/.repositories.txt.XXXXXX")
       cd "${cfg.repoDir}"
-      find . -mindepth 1 -maxdepth 2 -name '*.git' -type d | sed 's|^\./||' | sort | while read -r r; do
+      find . -mindepth 1 -maxdepth 1 -name '*.git' -type d | sed 's|^\./||' | sort | while read -r r; do
         printf '%s\t%s\n' "$(git -C "$r" log -1 --format=%ct 2>/dev/null || echo 0)" "$r"
       done | sort -rns -k1,1 | cut -f2- > "$tmp"
       chmod 644 "$tmp"
@@ -103,14 +103,22 @@ let
     ];
     text = ''
       if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-        echo "Usage: git-new-repo <org/name> [description]" >&2
+        echo "Usage: git-new-repo <name> [description]" >&2
         exit 1
       fi
+
+      # Flat namespace: repos are name.git directly under repoDir. Reject a
+      # path separator or traversal so a repo cannot be created elsewhere.
+      case "$1" in
+      "" | */* | *..*)
+        echo "invalid repo name: '$1' (flat name, no '/')" >&2
+        exit 1
+        ;;
+      esac
 
       repopath="${cfg.repoDir}/$1.git"
 
       if [ ! -d "$repopath" ]; then
-        mkdir -p "$(dirname "$repopath")"
         git init --bare "$repopath"
         echo "Created $repopath"
       fi
@@ -157,27 +165,24 @@ let
       esac
 
       # Create-on-push: git-receive-pack against a missing repo would fail, so
-      # create it first (org/name.git under repoDir, with hook + perms). git
-      # sends the path single-quoted, e.g. git-receive-pack 'motiejus/foo.git'.
+      # create it first (name.git under repoDir, with hook + perms). git
+      # sends the path single-quoted, e.g. git-receive-pack 'foo.git'.
       case "$2" in
       "git-receive-pack "*)
-        path="''${2#git-receive-pack }" # 'motiejus/foo.git'
-        path="''${path#\'}"             # motiejus/foo.git'
-        path="''${path%\'}"             # motiejus/foo.git
+        path="''${2#git-receive-pack }" # 'foo.git'
+        path="''${path#\'}"             # foo.git'
+        path="''${path%\'}"             # foo.git
         rel="''${path%.git}"
-        # Reject traversal and absolute paths: git-new-repo would otherwise
-        # init a bare repo outside repoDir, and an absolute path here would
-        # not match what git-shell resolves for the actual receive-pack.
+        # Flat namespace: a bare repo name only. Reject a path separator
+        # (owner prefix, traversal, or an absolute path — */* covers them
+        # all, a glob * also matches the empty string) — git-new-repo would
+        # otherwise init a bare repo outside repoDir.
         case "$rel" in
-        *..* | /*)
-          echo "invalid repo path: $path" >&2
+        "" | */* | *..*)
+          echo "invalid repo path: $path (flat name, no '/')" >&2
           exit 1
           ;;
-        */*) git-new-repo "$rel" >&2 ;;
-        *)
-          echo "repo path must be org/name(.git): $path" >&2
-          exit 1
-          ;;
+        *) git-new-repo "$rel" >&2 ;;
         esac
         ;;
       esac
@@ -230,71 +235,57 @@ in
     ];
 
     services.caddy.virtualHosts."git.jakstys.lt".extraConfig = ''
+      # Transport-level headers only: the app's security headers (CSP,
+      # nosniff, X-Frame-Options) come from the imported Caddyfile.snippet
+      # below — they are stagit-ng's policy (the CSP whitelists the app's
+      # own wasm/logo), and duplicating a CSP here would enforce the
+      # intersection of the two.
       header {
         Strict-Transport-Security "max-age=15768000"
-        # script-src 'self' (no 'unsafe-inline') stops injected repo markup
-        # from executing and, since blob: documents inherit this policy,
-        # neutralises a malicious in-repo SVG opened as a top-level document.
-        # 'wasm-unsafe-eval' instantiates the wasm; 'unsafe-hashes' + the
-        # sha256 whitelist only the logo's fixed onerror handler.
-        # img-src: blob: shows in-repo images (incl. inline SVG, safe in
-        # <img>), https: shows remote README images (their fetch is an
-        # accepted tracking vector). connect-src https: (not 'self') lets
-        # stagit-ng's standalone form browse remote repositories from here.
-        Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self' blob: data: https:; script-src 'self' 'wasm-unsafe-eval' 'unsafe-hashes' 'sha256-2v15HA+jcUVSuZj1qG3oTd5Ic+VBbl+6+8wh+TEIxBI='; connect-src https:; base-uri 'none'"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
         Alt-Svc "h3=\":443\"; ma=86400"
       }
 
+      # stagit-ng is path-routed: the browser URL is the route itself, read
+      # from location.pathname; app routes fall back to the SPA shell. The
+      # whole routing contract (assets under /_/, the closed git-data set +
+      # CORS, the SPA fallback) is stagit-ng's deploy/Caddyfile.snippet,
+      # imported below with this vhost's two roots — the same snippet the
+      # repo's integration suite validates, so this config cannot drift from
+      # it. (Requires pkgs.stagit-ng built from a rev that ships deploy/.)
+      #
+      # The deployment-specific migration shims go before the import: route{}
+      # preserves source order, so they run ahead of the snippet's catch-all
+      # SPA fallback. They cannot steal the snippet's real traffic: @oldclone
+      # needs two path segments before the data file (flat data paths have
+      # one; in principle it also matches /_/x.git/HEAD, but no such asset
+      # exists), and @undocker is one exact browse path.
       route {
-        # Bare repos (dumb HTTP) and the repo list both live in repoDir.
-        # The CORS headers let stagit-ng frontends hosted elsewhere (e.g.
-        # standalone mode on localhost) browse these repos: public
-        # read-only data, GET/HEAD only. Preflight is needed because a
-        # cross-origin Range GET is never a "simple" request, and
-        # Content-Range must be exposed for the client to learn file sizes.
-        # No Cache-Control here: repo-data cache policy is client-owned
-        # (stagit-ng.js force-caches content-addressed pack/object files
-        # and revalidates the mutable rest; repo files have real mtimes,
-        # so Caddy's ETags make those revalidations cheap 304s).
-        @repo path_regexp (\.git/|^/repositories\.txt$)
-        @repo_preflight {
-          method OPTIONS
-          path_regexp (\.git/|^/repositories\.txt$)
+        # Migration shim: old owner-qualified clone URLs (/owner/repo.git/…)
+        # still pinned out in the wild — e.g. nixpkgs' undocker ref,
+        # https://git.jakstys.lt/motiejus/undocker.git — redirect to the flat
+        # data path so `git clone`/fetchgit keep working until those refs are
+        # updated. `git` follows the redirect on the initial info/refs and
+        # re-homes to the flat base; the query MUST be preserved, since git
+        # derives the new base by stripping the request suffix (path AND
+        # ?service=…) and rejects a redirect whose suffix differs. Scoped to
+        # the git-data file set so it never rewrites an app route. REMOVE once
+        # no stale refs remain.
+        @oldclone path_regexp oldclone ^/[^/]+/([^/]+\.git/(HEAD|info/refs|packed-refs|description|objects/.*))$
+        handle @oldclone {
+          redir * /{re.oldclone.1}?{query} 302
         }
-        handle @repo_preflight {
-          header {
-            Access-Control-Allow-Origin "*"
-            Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
-            Access-Control-Allow-Headers "Range"
-            Access-Control-Max-Age "86400"
-          }
-          respond 204
-        }
-        handle @repo {
-          header {
-            Access-Control-Allow-Origin "*"
-            Access-Control-Expose-Headers "Content-Range"
-          }
-          root * ${cfg.repoDir}
-          file_server
-        }
-        handle {
-          # no-cache: browsers store the frontend but revalidate on every
-          # use; unchanged files are cheap 304s, deploys show on the next
-          # load. The 304s exist only because of the content-hash .etag
-          # sidecars generated in pkgs/stagit-ng.nix: caddy sends no
-          # validators at all for nix-store files (epoch mtimes fail its
-          # usefulModTime check), so plain no-cache would re-download
-          # full bodies every load.
-          header Cache-Control "no-cache"
-          root * ${pkgs.stagit-ng}/www
-          file_server {
-            precompressed zstd br gzip
-            etag_file_extensions .etag
-          }
-        }
+
+        # Migration shim (browse link): the one owner-qualified app URL still
+        # pinned in the wild — nixpkgs' undocker homepage/meta,
+        # https://git.jakstys.lt/motiejus/undocker — redirects to its flat
+        # route. Exact path only (the clone/data paths are handled above).
+        # REMOVE once that ref is updated. Both the bare and trailing-slash
+        # forms, exact — not a prefix glob, which would also catch
+        # /motiejus/undocker.git/… (handled above) and /motiejus/undockerX.
+        @undocker path /motiejus/undocker /motiejus/undocker/
+        redir @undocker /undocker 302
+
+        import ${pkgs.stagit-ng}/deploy/Caddyfile.snippet ${pkgs.stagit-ng}/www ${cfg.repoDir}
       }
     '';
   };
