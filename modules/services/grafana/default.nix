@@ -10,6 +10,7 @@ in
   options.mj.services.grafana = with lib.types; {
     enable = lib.mkEnableOption "enable grafana";
     port = lib.mkOption { type = port; };
+    secretKeyPath = lib.mkOption { type = path; };
   };
 
   config = lib.mkIf cfg.enable {
@@ -32,6 +33,7 @@ in
         };
       };
       settings = {
+        security.secret_key = "$__file{${cfg.secretKeyPath}}";
         paths.logs = "/var/log/grafana";
         smtp = {
           enabled = true;

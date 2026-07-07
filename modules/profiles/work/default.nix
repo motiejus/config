@@ -6,7 +6,7 @@
     rclone
     nodejs
     awscli2
-    mysql80
+    mysql84
     kubectl
     kubectx
     terraform

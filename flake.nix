@@ -2,14 +2,14 @@
   description = "motiejus/config";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "github:nix-community/flake-compat";
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nur.url = "github:nix-community/NUR";
 
-    home-manager.url = "github:nix-community/home-manager/release-25.11";
+    home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix = {
@@ -39,7 +39,7 @@
     };
 
     nix-darwin = {
-      url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
+      url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -88,15 +88,6 @@
         nur.overlays.default
         zig.overlays.default
 
-        #(_self: super: { deploy-rs-pkg = super.deploy-rs; })
-        deploy-rs.overlays.default
-        #(_self: super: {
-        #  deploy-rs = {
-        #    deploy-rs = super.deploy-rs-pkg;
-        #    inherit (super.deploy-rs) lib;
-        #  };
-        #  deploy-rs-pkg = null;
-        #})
         (
           _: super:
           rec {
@@ -274,7 +265,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.fwminex.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fwminex;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fwminex;
               user = "root";
             };
           };
@@ -285,7 +276,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.vno1-gdrx.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno1-gdrx;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno1-gdrx;
               user = "root";
             };
           };
@@ -296,7 +287,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.vno3-nk.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno3-nk;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno3-nk;
               user = "root";
             };
           };
@@ -307,7 +298,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.fra1-c.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.fra1-c;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.fra1-c;
               user = "root";
             };
           };
@@ -318,7 +309,7 @@
           profiles = {
             system = {
               sshUser = "motiejus";
-              path = self.nixosConfigurations.vno2-desk2.pkgs.deploy-rs.lib.activate.nixos self.nixosConfigurations.vno2-desk2;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.vno2-desk2;
               user = "root";
             };
           };
@@ -348,7 +339,7 @@
             hooks = {
               statix.enable = true;
               deadnix.enable = true;
-              nixfmt-rfc-style.enable = true;
+              nixfmt.enable = true;
             };
           };
         }
@@ -373,18 +364,12 @@
             agenix.packages.${system}.agenix
           ]
           ++ [
-            (
-              if pkgs.stdenv.isDarwin then
-                # deploy-rs overlay doesn't build on darwin; use nixpkgs version
-                (import nixpkgs { inherit system; }).deploy-rs
-              else
-                pkgs.deploy-rs.deploy-rs
-            )
+            pkgs.deploy-rs
           ];
           shellHook = (self.checks.${system}.pre-commit-check or { }).shellHook or "";
         };
 
-        formatter = pkgs.nixfmt-rfc-style;
+        formatter = pkgs.nixfmt;
       }
     )
 

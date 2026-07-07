@@ -84,7 +84,7 @@
               nix flake check --all-systems --accept-flake-config
 
               EXITCODE=0
-              ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
+              ${pkgs.deploy-rs}/bin/deploy \
                 --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
                 --ssh-user=deployerbot-follower \
                 --confirm-timeout 60 \
@@ -101,7 +101,7 @@
               # Optional deployments
               ${lib.concatMapStringsSep "\n" (t: ''
                 if ${pkgs.inetutils}/bin/ping -c 1 ${t.pingTarget}; then
-                  ${pkgs.deploy-rs.deploy-rs}/bin/deploy \
+                  ${pkgs.deploy-rs}/bin/deploy \
                     --ssh-opts="-i ''${CREDENTIALS_DIRECTORY}/ssh-key" \
                     --ssh-user=deployerbot-follower \
                     --confirm-timeout 60 \

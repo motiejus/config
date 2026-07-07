@@ -31,6 +31,9 @@ in
   ];
 
   config = {
+    # https://github.com/NixOS/nixpkgs/issues/536370
+    nixpkgs.config.permittedInsecurePackages = [ "pnpm-10.29.2" ];
+
     boot = {
       kernelModules = [ "kvm-intel" ];
     };
@@ -54,14 +57,13 @@ in
 
       wireshark = {
         enable = true;
-        package = pkgs.wireshark-qt;
+        package = pkgs.wireshark;
       };
     };
 
     mj.services.printing.enable = true;
 
     mj.base.users.user.extraGroups = [
-      "adbusers"
       "networkmanager"
       "wireshark"
     ];
@@ -114,7 +116,6 @@ in
     };
 
     programs = {
-      adb.enable = true;
       slock.enable = true;
       nm-applet.enable = true;
       command-not-found.enable = false;
@@ -140,6 +141,7 @@ in
       nicer
       brightness
 
+      android-tools
       f3 # flight-flash-fraud
       gdb
       ntp
@@ -214,7 +216,7 @@ in
       aspellDicts.lt
       libreoffice-qt
       graphicsmagick
-      signal-desktop
+      signal-desktop # https://github.com/NixOS/nixpkgs/issues/536370
       gnome-calendar
       element-desktop
       netsurf-browser
@@ -227,10 +229,10 @@ in
       samsung-unified-linux-driver
 
       xdotool
-      xorg.xev
-      xorg.xeyes
-      xorg.lndir
-      xorg.xinit
+      xev
+      xeyes
+      lndir
+      xinit
 
     ];
 
@@ -268,6 +270,7 @@ in
           firefox = {
             enable = true;
             package = pkgs.firefox-bin;
+            configPath = ".mozilla/firefox";
             policies.DisableAppUpdate = true;
             profiles = {
               xdefault = {
@@ -323,7 +326,7 @@ in
           screen-locker = {
             enable = lib.mkDefault true;
             xautolock.enable = false;
-            lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xorg.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
+            lockCmd = ''${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/sleep 0.2; ${pkgs.xset}/bin/xset dpms force off; /run/wrappers/bin/slock"'';
           };
         };
 
@@ -360,6 +363,7 @@ in
             gtk-application-prefer-dark-theme = true;
             gtk-decoration-layout = "icon:minimize,maximize,close";
           };
+          gtk4.theme = null;
           gtk4.extraConfig = {
             gtk-application-prefer-dark-theme = true;
             gtk-decoration-layout = "icon:minimize,maximize,close";
