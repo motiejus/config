@@ -90,8 +90,7 @@ in
             ;
         })
       ]
-      # TODO 26.05
-      ++ (with pkgs.pkgs-unstable.llvmPackages_22; [
+      ++ (with pkgs.llvmPackages_22; [
         clang
         lld.dev
         llvm.dev

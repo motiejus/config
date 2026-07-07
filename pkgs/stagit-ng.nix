@@ -1,10 +1,10 @@
 {
   lib,
+  zig_0_16,
   stdenvNoCC,
   fetchgit,
   compressDrvWeb,
   runCommand,
-  pkgs-unstable,
 }:
 
 let
@@ -27,11 +27,7 @@ let
       hash = "sha256-w5TPnoDnf7ti3GoFcdXz716lxOuUbtaDBnp3PVegG5Q=";
     };
 
-    # TODO: nixos-25.11 only ships zig 0.15; stagit-ng needs 0.16, so pull it
-    # from pkgs-unstable. nixpkgs got zig_0_16 (the default `zig`) on
-    # 2026-04-14, so once this config is on nixos-26.05+, replace this with
-    # the stable `zig` and drop the pkgs-unstable dependency.
-    nativeBuildInputs = [ pkgs-unstable.zig_0_16 ];
+    nativeBuildInputs = [ zig_0_16 ];
 
     dontConfigure = true;
     dontInstall = true;

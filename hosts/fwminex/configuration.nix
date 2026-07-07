@@ -594,32 +594,15 @@ in
 
   environment = {
     enableDebugInfo = true;
-    systemPackages =
-      with pkgs;
-      [
-        stagit
-        yt-dlp
-        tpm2-tools
-        amdgpu_top
-        graphicsmagick
-        ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
-        age-plugin-yubikey
-
-        # wip zig0 stuff
-        tinycc
-        valgrind
-      ]
-      ++ (with llvmPackages_20; [
-        clang
-        lld.dev
-        llvm.dev
-        clang-tools
-        libllvm.dev
-        libclang.dev
-        llvm-manpages
-        clang-manpages
-        compiler-rt.dev
-      ]);
+    systemPackages = with pkgs; [
+      stagit
+      yt-dlp
+      tpm2-tools
+      amdgpu_top
+      graphicsmagick
+      ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
+      age-plugin-yubikey
+    ];
   };
 
   networking = {
