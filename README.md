@@ -19,7 +19,7 @@ git
 Repos live in `/var/lib/git/<org>/<name>.git`, browsed with stagit-ng at
 <https://git.jakstys.lt>. Create-on-push (path must be two-level `<org>/<name>`):
 
-    git remote add h git@git.jakstys.lt:motiejus/newrepo.git && git push h master
+    git remote add h git@git.jakstys.lt:newrepo.git && git push h master
 
 Set description with a push option (persisted, shown on the index):
 
