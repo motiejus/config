@@ -557,7 +557,7 @@ in
         main = {
           enable = true;
           uidgid = myData.uidgid.updaterbot-deployer;
-          repo = "git@git.jakstys.lt:config";
+          repo = "git@git.jakstys.lt:config.git";
           deployDerivations = [
             ".#fwminex"
             ".#fra1-c"
