@@ -46,6 +46,9 @@ in
     };
 
     programs = {
+      # System-wide Firefox for other users on this host. motiejus's own
+      # Firefox is managed per-profile in home-manager below (and shadows this
+      # one on PATH); each carries its own languagePacks.
       firefox = {
         enable = true;
         package = pkgs.firefox-bin;
@@ -271,6 +274,10 @@ in
             enable = true;
             package = pkgs.firefox-bin;
             configPath = ".mozilla/firefox";
+            languagePacks = [
+              "en-US"
+              "lt"
+            ];
             policies.DisableAppUpdate = true;
             profiles = {
               xdefault = {
@@ -376,27 +383,32 @@ in
           };
         };
 
+        # GTK4/libadwaita apps (gnome-calendar, ...) ignore the GTK theme and
+        # the prefer-dark hint above; they only honour the freedesktop
+        # color-scheme portal, which xdg-desktop-portal-gtk feeds from this
+        # dconf key. Nothing on this awesome session sets it otherwise.
+        dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
+
+        # Qt apps (okular, wireshark, libreoffice-qt) follow the KDE platform
+        # theme, which reads the color scheme + widget style from kdeglobals
+        # below.
+        qt = {
+          enable = true;
+          platformTheme.name = "kde";
+          style.name = "Breeze";
+        };
+
+        # kdeglobals feeds the Qt color scheme, icon theme and widget style.
+        # The rest of a Plasma session (plasmashell/kwin/ksplash/kscreenlocker)
+        # does not run here -- this host is awesome + slock -- so those kconfig
+        # files were dead and have been dropped. ArcDark was also never
+        # installed; BreezeDark ships with breeze and is a real dark scheme.
         mj.plasma.kconfig = {
           kdeglobals = {
-            General.ColorScheme = "ArcDark";
+            General.ColorScheme = "BreezeDark";
             Icons.Theme = "Papirus-Dark";
             KDE.widgetStyle = "Breeze";
           };
-          plasmarc.Theme.name = "Arc-Dark";
-          kscreenlockerrc.Greeter = {
-            Theme = "com.github.varlesh.arc-dark";
-          };
-          ksplashrc.KSplash = {
-            Engine = "KSplashQML";
-            Theme = "com.github.varlesh.arc-dark";
-          };
-          kwinrc."org.kde.kdecoration2" = {
-            library = "org.kde.kwin.aurorae";
-            theme = "__aurorae__svg__Arc-Dark";
-          };
-          kcminputrc.Mouse.cursorTheme = "Breeze_Snow";
-          # don't mess with GTK settings
-          kded5rc."Module-gtkconfig".autoload = false;
         };
       };
   };
