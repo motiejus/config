@@ -282,6 +282,12 @@ in
                   "browser.contentblocking.category" = "strict";
                   "browser.urlbar.showSearchSuggestionsFirst" = false;
                   "layout.css.prefers-color-scheme.content-override" = 0;
+                  # Firefox 152 resolves the chrome color scheme to light on
+                  # this session (no color-scheme preference from the desktop),
+                  # regardless of the GTK theme. Force dark. Verified 2026-07-10:
+                  # this single pref flips the chrome dark; a dark GTK theme
+                  # alone does not.
+                  "ui.systemUsesDarkTheme" = 1;
                   "signon.management.page.breach-alerts.enabled" = false;
                   "signon.rememberSignons" = false;
 
