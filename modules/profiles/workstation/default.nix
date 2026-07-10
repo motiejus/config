@@ -44,6 +44,7 @@ in
       with pkgs;
       [
         rr
+        gcc
         wrk2
         pdal
         gdal

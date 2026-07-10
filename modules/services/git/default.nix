@@ -260,20 +260,26 @@ in
       # one; in principle it also matches /_/x.git/HEAD, but no such asset
       # exists), and @undocker is one exact browse path.
       route {
-        # Migration shim: old owner-qualified clone URLs (/owner/repo.git/…)
+        # Migration shim: old owner-qualified data URLs (/owner/repo.git/…)
         # still pinned out in the wild — e.g. nixpkgs' undocker ref,
-        # https://git.jakstys.lt/motiejus/undocker.git — redirect to the flat
-        # data path so `git clone`/fetchgit keep working until those refs are
-        # updated. `git` follows the redirect on the initial info/refs and
-        # re-homes to the flat base; the query MUST be preserved, since git
-        # derives the new base by stripping the request suffix (path AND
-        # ?service=…) and rejects a redirect whose suffix differs. Scoped to
-        # the git-data file set so it never rewrites an app route. REMOVE once
-        # no stale refs remain.
+        # https://git.jakstys.lt/motiejus/undocker.git — internally REWRITTEN
+        # to the flat data path (not redirected), so `git clone`/fetchgit AND
+        # cross-origin stagit-ng browsing both keep working until those refs
+        # are updated. A redirect breaks cross-origin browsing: the WASM
+        # client fetches repo data with Range, so the browser sends a CORS
+        # preflight, and a preflight that receives a 3xx is a hard error
+        # ("Redirect is not allowed for a preflight request") — which is why
+        # the owner-qualified https://git.jakstys.lt/motiejus/stagit-ng.git
+        # failed to load standalone. The rewrite serves the flat file in
+        # place: the imported snippet's @data handler adds the CORS headers
+        # and answers the preflight, with no redirect for the browser to
+        # choke on. `git` likewise just sees a 200 and keeps its
+        # owner-qualified base, every data suffix rewritten the same way (the
+        # query — e.g. ?service=git-upload-pack — is preserved by rewrite).
+        # Scoped to the git-data file set so it never touches an app route.
+        # REMOVE once no stale refs remain.
         @oldclone path_regexp oldclone ^/[^/]+/([^/]+\.git/(HEAD|info/refs|packed-refs|description|objects/.*))$
-        handle @oldclone {
-          redir * /{re.oldclone.1}?{query} 302
-        }
+        rewrite @oldclone /{re.oldclone.1}
 
         # Migration shim (browse link): the one owner-qualified app URL still
         # pinned in the wild — nixpkgs' undocker homepage/meta,
