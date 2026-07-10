@@ -75,6 +75,7 @@ in
             entr
             pigz
             zstd
+            socat
             unrar
             wdiff
             sshfs
