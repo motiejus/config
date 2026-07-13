@@ -54,8 +54,9 @@ in
         tracy
         mbpoll # modbus poll
         kicad
-        esptool
+        codexs
         claudes
+        esptool
         neomutt
         freecad
         chromium

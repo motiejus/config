@@ -40,6 +40,7 @@
     git-filter-repo
     kaitai-struct-compiler
     pkgs.pkgs-unstable.claude-code
+    pkgs.pkgs-unstable.codex
 
     (
       let
