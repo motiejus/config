@@ -39,6 +39,7 @@
     shfmt
     cmake
     tokei
+    caddy
     stagit
     bloaty
     skopeo

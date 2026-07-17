@@ -1,0 +1,67 @@
+{
+  "layers": {
+    "earth": {
+      "minzoom": 4,
+      "maxzoom": 13,
+      "source": "work/lithuania-boundary.raw.geojson",
+      "simplify_below": 13,
+      "simplify_level": 0.00005,
+      "simplify_algorithm": "visvalingam"
+    },
+    "landcover": {
+      "minzoom": 7,
+      "maxzoom": 13,
+      "simplify_below": 12,
+      "simplify_level": 0.00015,
+      "simplify_algorithm": "visvalingam"
+    },
+    "landuse": {
+      "minzoom": 9,
+      "maxzoom": 13,
+      "simplify_below": 12,
+      "simplify_level": 0.0001,
+      "simplify_algorithm": "visvalingam"
+    },
+    "water": {
+      "minzoom": 6,
+      "maxzoom": 13,
+      "simplify_below": 12,
+      "simplify_level": 0.0001,
+      "simplify_algorithm": "visvalingam"
+    },
+    "roads": {
+      "minzoom": 4,
+      "maxzoom": 13,
+      "simplify_below": 12,
+      "simplify_level": 0.0001
+    },
+    "boundaries": {
+      "minzoom": 4,
+      "maxzoom": 13,
+      "simplify_below": 12,
+      "simplify_level": 0.0001
+    },
+    "places": {
+      "minzoom": 4,
+      "maxzoom": 13
+    }
+  },
+  "settings": {
+    "minzoom": 4,
+    "maxzoom": 13,
+    "basezoom": 13,
+    "include_ids": false,
+    "combine_below": 13,
+    "name": "Mapgames Lithuania basemap",
+    "version": "1.0.0",
+    "description": "Lean Lithuania basemap generated only from OpenStreetMap data",
+    "compress": "gzip",
+    "filemetadata": {
+      "tilejson": "3.0.0",
+      "scheme": "xyz",
+      "type": "baselayer",
+      "format": "pbf",
+      "attribution": "© OpenStreetMap contributors, ODbL 1.0"
+    }
+  }
+}

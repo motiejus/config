@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    >
+    <title>Lithuania cafe walking-time map</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="assets/leaflet.css">
+    <script src="assets/leaflet.js"></script>
+    <script src="assets/protomaps-leaflet.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: rgba(255, 253, 248, .96);
+        --ink: #2e211c;
+        --one: #d8902f;
+        --two: #71362b;
+      }
+      html, body, #map { height: 100%; margin: 0; }
+      body { color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+      .leaflet-container { background: #b7d8e5; }
+      .map-panel {
+        width: min(22rem, calc(100vw - 4rem));
+        padding: .75rem .9rem;
+        border: 1px solid rgba(62, 42, 31, .16);
+        border-radius: .55rem;
+        background: var(--paper);
+        box-shadow: 0 2px 9px rgba(40, 24, 15, .25);
+      }
+      .map-panel h1 { margin: 0 0 .2rem; font-size: 1.05rem; }
+      .map-panel p { margin: .25rem 0; }
+      .map-panel fieldset {
+        margin: .65rem 0 0;
+        padding: .45rem .6rem .55rem;
+        border: 1px solid rgba(62, 42, 31, .2);
+        border-radius: .4rem;
+      }
+      .map-panel legend { padding: 0 .25rem; font-weight: 650; }
+      .choice-row { display: flex; flex-wrap: wrap; gap: .35rem .8rem; }
+      .choice-row label { cursor: pointer; white-space: nowrap; }
+      .choice-row input { margin: 0 .25rem 0 0; vertical-align: -.08rem; }
+      .swatch {
+        display: inline-block;
+        width: .85rem;
+        height: .85rem;
+        margin-right: .3rem;
+        border: 1px solid rgba(46, 33, 28, .65);
+        vertical-align: -.1rem;
+      }
+      .swatch.one { background: rgba(216, 144, 47, .34); }
+      .swatch.two { background: rgba(113, 54, 43, .58); }
+      .status { min-height: 1.4em; color: #705d52; font-size: .86rem; }
+      .source-note { color: #705d52; font-size: .78rem; }
+      .cafe-popup { min-width: 14rem; max-width: 20rem; }
+      .cafe-popup h2 { margin: 0 0 .35rem; font-size: 1rem; }
+      .cafe-popup p { margin: .25rem 0; }
+      .cafe-popup dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: .16rem .55rem;
+        margin: .45rem 0;
+      }
+      .cafe-popup dt { color: #705d52; font-weight: 600; }
+      .cafe-popup dd { margin: 0; overflow-wrap: anywhere; }
+      .cafe-popup details { margin-top: .45rem; }
+      .cafe-popup details dl { font-size: .78rem; }
+      .cafe-popup a { color: #814621; }
+      @media (max-width: 640px) {
+        .leaflet-top.leaflet-right { left: .6rem; right: .6rem; }
+        .leaflet-top.leaflet-right .leaflet-control { float: none; margin-left: 0; }
+        .map-panel { width: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" aria-label="Lithuania cafe walking-time map"></div>
+    <script>
+      const lithuaniaBounds = L.latLngBounds([[53.75, 20.35], [56.60, 27.10]]);
+      const map = L.map("map", {
+        preferCanvas: true,
+        zoomControl: true,
+        minZoom: 6,
+        maxZoom: 18,
+        maxBounds: lithuaniaBounds.pad(.08),
+        maxBoundsViscosity: .8
+      });
+      map.createPane("coverageOne").style.zIndex = 410;
+      map.createPane("coverageTwo").style.zIndex = 420;
+      map.createPane("cafes").style.zIndex = 430;
+
+      protomapsL.leafletLayer({
+        url: "lithuania.pmtiles",
+        flavor: "light",
+        lang: "lt",
+        minZoom: 4,
+        maxZoom: 18,
+        maxDataZoom: 13,
+        bounds: lithuaniaBounds,
+        noWrap: true,
+        attribution: '<a href="https://protomaps.com">Protomaps</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      function fetchJson(url) {
+        return fetch(url).then(response => {
+          if (!response.ok) {
+            throw new Error(`${url}: HTTP ${response.status}`);
+          }
+          return response.json();
+        });
+      }
+
+      function appendDefinition(list, term, value, href) {
+        if (value === undefined || value === null || value === "") return;
+        const dt = document.createElement("dt");
+        dt.textContent = term;
+        const dd = document.createElement("dd");
+        if (href) {
+          const link = document.createElement("a");
+          link.href = href;
+          link.textContent = String(value);
+          link.rel = "noopener noreferrer";
+          link.target = "_blank";
+          dd.append(link);
+        } else {
+          dd.textContent = String(value);
+        }
+        list.append(dt, dd);
+      }
+
+      function safeWebUrl(value) {
+        if (!value) return null;
+        try {
+          const candidate = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+          return ["http:", "https:"].includes(candidate.protocol) ? candidate.href : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function cafePopup(feature) {
+        const properties = feature.properties || {};
+        const root = document.createElement("article");
+        root.className = "cafe-popup";
+        const title = document.createElement("h2");
+        title.textContent = properties.name || properties.brand || "Unnamed cafe or coffee shop";
+        root.append(title);
+
+        const category = properties.amenity === "cafe" ? "Cafe" : "Coffee shop";
+        const address = [
+          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
+          properties["addr:city"],
+          properties["addr:postcode"]
+        ].filter(Boolean).join(", ");
+        const details = document.createElement("dl");
+        appendDefinition(details, "Type", category);
+        appendDefinition(details, "Address", address);
+        appendDefinition(details, "Cuisine", properties.cuisine?.replaceAll(";", ", "));
+        appendDefinition(details, "Hours", properties.opening_hours);
+        appendDefinition(details, "Brand", properties.brand);
+        appendDefinition(details, "Operator", properties.operator);
+        appendDefinition(details, "Phone", properties.phone || properties["contact:phone"]);
+        const website = properties.website || properties["contact:website"];
+        appendDefinition(details, "Website", website, safeWebUrl(website));
+        appendDefinition(details, "Wheelchair", properties.wheelchair);
+        appendDefinition(details, "Internet", properties.internet_access || properties.wifi);
+        appendDefinition(details, "Outdoor seating", properties.outdoor_seating);
+        appendDefinition(details, "Takeaway", properties.takeaway);
+        appendDefinition(details, "Delivery", properties.delivery);
+        appendDefinition(details, "Description", properties.description);
+        root.append(details);
+
+        if (properties.osm_url) {
+          const osmLink = document.createElement("a");
+          osmLink.href = properties.osm_url;
+          osmLink.textContent = "Open this object in OpenStreetMap";
+          osmLink.rel = "noopener noreferrer";
+          osmLink.target = "_blank";
+          root.append(osmLink);
+        }
+
+        const allTags = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = "All available OSM tags";
+        const tagList = document.createElement("dl");
+        Object.entries(properties)
+          .filter(([key]) => !["osm_url", "routing_status", "source_geometry"].includes(key))
+          .sort(([left], [right]) => left.localeCompare(right))
+          .forEach(([key, value]) => appendDefinition(tagList, key, value));
+        allTags.append(summary, tagList);
+        root.append(allTags);
+        return root;
+      }
+
+      const panel = L.control({ position: "topright" });
+      panel.onAdd = () => {
+        const element = L.DomUtil.create("section", "map-panel");
+        element.innerHTML = `
+          <h1>Walk to coffee in Lithuania</h1>
+          <p id="summary-text">Loading generated data…</p>
+          <fieldset>
+            <legend>Walking time</legend>
+            <div class="choice-row" id="time-choices"></div>
+          </fieldset>
+          <fieldset>
+            <legend>Coverage</legend>
+            <div class="choice-row">
+              <label><input id="show-one" type="checkbox" checked><span class="swatch one"></span>At least 1</label>
+              <label><input id="show-two" type="checkbox" checked><span class="swatch two"></span>At least 2</label>
+            </div>
+          </fieldset>
+          <p class="status" id="coverage-status" aria-live="polite"></p>
+          <p class="source-note">The vector basemap, cafes, and routing output are bundled from one OSM snapshot. Display polygons are gently smoothed; raw Valhalla contours are also included.</p>
+        `;
+        L.DomEvent.disableClickPropagation(element);
+        L.DomEvent.disableScrollPropagation(element);
+        return element;
+      };
+      panel.addTo(map);
+
+      const coverageCache = new Map();
+      const activeCoverage = new Map();
+      let metadata;
+      let selectedMinutes = 10;
+      let refreshSequence = 0;
+
+      function coverageStyle(minimumCafes) {
+        return minimumCafes === 1
+          ? { pane: "coverageOne", color: "#b86d1c", weight: 1, fillColor: "#d8902f", fillOpacity: .30 }
+          : { pane: "coverageTwo", color: "#55271f", weight: 1, fillColor: "#71362b", fillOpacity: .52 };
+      }
+
+      function loadCoverage(minutes, minimumCafes) {
+        const key = `${minutes}-${minimumCafes}`;
+        if (!coverageCache.has(key)) {
+          const file = metadata.coverage_files.find(item =>
+            item.minutes === minutes && item.minimum_cafes === minimumCafes
+          );
+          coverageCache.set(key, fetchJson(file.display).then(data =>
+            L.geoJSON(data, { style: coverageStyle(minimumCafes) })
+          ));
+        }
+        return coverageCache.get(key);
+      }
+
+      async function refreshCoverage() {
+        const sequence = ++refreshSequence;
+        const requested = [1, 2].filter(count => document.getElementById(`show-${count === 1 ? "one" : "two"}`).checked);
+        document.getElementById("coverage-status").textContent = requested.length ? "Loading coverage…" : "No coverage layers selected.";
+        try {
+          const layers = await Promise.all(requested.map(async count => [count, await loadCoverage(selectedMinutes, count)]));
+          if (sequence !== refreshSequence) return;
+          activeCoverage.forEach(layer => map.removeLayer(layer));
+          activeCoverage.clear();
+          layers.forEach(([count, layer]) => {
+            layer.addTo(map);
+            activeCoverage.set(count, layer);
+          });
+          document.getElementById("coverage-status").textContent = requested.length
+            ? `${selectedMinutes}-minute coverage; ${requested.map(count => `≥${count}`).join(" and ")} selected.`
+            : "No coverage layers selected.";
+        } catch (error) {
+          document.getElementById("coverage-status").textContent = `Could not load coverage: ${error}`;
+        }
+      }
+
+      Promise.all([
+        fetchJson("metadata.json"),
+        fetchJson("lithuania.geojson"),
+        fetchJson("cafes.geojson")
+      ]).then(([loadedMetadata, boundary, cafes]) => {
+        metadata = loadedMetadata;
+        const boundaryLayer = L.geoJSON(boundary, {
+          interactive: false,
+          style: { color: "#654d3e", weight: 1.1, fill: false, opacity: .7 }
+        }).addTo(map);
+        map.fitBounds(boundaryLayer.getBounds(), { padding: [8, 8] });
+
+        const cafeLayer = L.geoJSON(cafes, {
+          pane: "cafes",
+          pointToLayer: (_feature, latlng) => L.circleMarker(latlng, {
+            pane: "cafes",
+            radius: 3,
+            color: "#392013",
+            weight: 1,
+            fillColor: "#fff7e8",
+            fillOpacity: .95
+          }),
+          onEachFeature: (feature, layer) => layer.bindPopup(() => cafePopup(feature), { maxWidth: 340 })
+        }).addTo(map);
+        L.control.layers({}, { "Cafes and coffee shops": cafeLayer }).addTo(map);
+
+        document.getElementById("summary-text").textContent =
+          `${metadata.routed_cafe_count.toLocaleString()} cafes and coffee shops routed from OpenStreetMap data.`;
+        const timeChoices = document.getElementById("time-choices");
+        metadata.contours_minutes.forEach(minutes => {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "minutes";
+          input.value = minutes;
+          input.checked = minutes === selectedMinutes;
+          input.addEventListener("change", () => {
+            selectedMinutes = Number(input.value);
+            refreshCoverage();
+          });
+          label.append(input, `${minutes} min`);
+          timeChoices.append(label);
+        });
+        document.getElementById("show-one").addEventListener("change", refreshCoverage);
+        document.getElementById("show-two").addEventListener("change", refreshCoverage);
+        refreshCoverage();
+      }).catch(error => {
+        document.getElementById("summary-text").textContent = `Could not load generated data: ${error}`;
+        map.setView([55.2, 23.8], 7);
+      });
+    </script>
+  </body>
+</html>

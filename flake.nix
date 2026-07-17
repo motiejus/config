@@ -102,6 +102,7 @@
             xscreensaver-mac = super.callPackage ./pkgs/xscreensaver-mac.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
+            mapgames = super.callPackage ./pkgs/mapgames { };
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
             inherit (super.callPackage ./pkgs/agent-sandboxes.nix { }) claudes codexs;
@@ -373,6 +374,7 @@
       {
         packages.x86_64-linux = {
           inherit (pkgs)
+            mapgames
             weather
             gamja
             chronoctl
