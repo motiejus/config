@@ -6,6 +6,22 @@
 {
   home-manager.users.${config.mj.username} = {
     imports = [ ../../../shared/home/dev.nix ];
+
+    # The remote-control daemon only launches Codex from this fixed standalone
+    # installer path. Keep that path declarative and route it to the Nixpkgs
+    # binary. The standalone updater would bypass Nix, so leave its supervised
+    # process alive without running the mutable install.sh updater.
+    home.file.".codex/packages/standalone/current/codex".source =
+      pkgs.writeShellScript "codex-standalone" ''
+        if [ "$#" -eq 3 ] \
+          && [ "$1" = app-server ] \
+          && [ "$2" = daemon ] \
+          && [ "$3" = pid-update-loop ]; then
+          exec ${pkgs.coreutils}/bin/tail -f /dev/null
+        fi
+
+        exec ${pkgs.lib.getExe pkgs.pkgs-unstable.codex} "$@"
+      '';
   };
   environment.systemPackages = with pkgs; [
     universal-ctags
