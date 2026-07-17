@@ -7,6 +7,7 @@ way_keys = {
   "aeroway",
   "amenity",
   "boundary",
+  "building",
   "highway",
   "landuse",
   "leisure",
@@ -218,5 +219,10 @@ function way_function()
       set_names()
       MinZoom(minzoom_by_area(14, 9))
     end
+  end
+
+  if is_closed and Find("building") ~= "" and Find("building") ~= "no" then
+    Layer("buildings", true)
+    if Area() > 10000 then MinZoom(13) else MinZoom(14) end
   end
 end

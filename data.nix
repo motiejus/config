@@ -106,6 +106,7 @@ rec {
         "jakstys.lt"
         "git.jakstys.lt"
         "dl.jakstys.lt"
+        "maps.jakstys.lt"
         "up.jakstys.lt"
         "irc.jakstys.lt"
         "www.jakstys.lt"
@@ -166,7 +167,7 @@ rec {
     ''
       $ORIGIN jakstys.lt.
       $TTL 3600
-      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026031700 86400 86400 86400 86400)
+      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026071700 86400 86400 86400 86400)
       @                       86400    NS     ns1.jakstys.lt.
       @                       86400    NS     ns2.jakstys.lt.
       @                             HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
@@ -187,6 +188,8 @@ rec {
       auth                             A     ${vno1}
       dl                           HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       dl                               A     ${vno1}
+      maps                         HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
+      maps                             A     ${vno1}
       up                           HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       up                               A     ${vno1}
       fra1-c                           A     ${fra1c}

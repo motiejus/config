@@ -484,7 +484,7 @@ def main() -> None:
             "basemap": {
                 "file": "lithuania.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
-                "max_data_zoom": 13,
+                "max_data_zoom": 14,
                 "min_data_zoom": 4,
                 "renderer": "protomaps-leaflet",
                 "renderer_version": args.renderer_version,

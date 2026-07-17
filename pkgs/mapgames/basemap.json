@@ -2,56 +2,60 @@
   "layers": {
     "earth": {
       "minzoom": 4,
-      "maxzoom": 13,
+      "maxzoom": 14,
       "source": "work/lithuania-boundary.raw.geojson",
-      "simplify_below": 13,
+      "simplify_below": 14,
       "simplify_level": 0.00005,
       "simplify_algorithm": "visvalingam"
     },
     "landcover": {
       "minzoom": 7,
-      "maxzoom": 13,
-      "simplify_below": 12,
+      "maxzoom": 14,
+      "simplify_below": 13,
       "simplify_level": 0.00015,
       "simplify_algorithm": "visvalingam"
     },
     "landuse": {
       "minzoom": 9,
-      "maxzoom": 13,
-      "simplify_below": 12,
+      "maxzoom": 14,
+      "simplify_below": 13,
       "simplify_level": 0.0001,
       "simplify_algorithm": "visvalingam"
     },
     "water": {
       "minzoom": 6,
-      "maxzoom": 13,
-      "simplify_below": 12,
+      "maxzoom": 14,
+      "simplify_below": 13,
       "simplify_level": 0.0001,
       "simplify_algorithm": "visvalingam"
     },
     "roads": {
       "minzoom": 4,
-      "maxzoom": 13,
-      "simplify_below": 12,
+      "maxzoom": 14,
+      "simplify_below": 13,
       "simplify_level": 0.0001
+    },
+    "buildings": {
+      "minzoom": 13,
+      "maxzoom": 14
     },
     "boundaries": {
       "minzoom": 4,
-      "maxzoom": 13,
-      "simplify_below": 12,
+      "maxzoom": 14,
+      "simplify_below": 13,
       "simplify_level": 0.0001
     },
     "places": {
       "minzoom": 4,
-      "maxzoom": 13
+      "maxzoom": 14
     }
   },
   "settings": {
     "minzoom": 4,
-    "maxzoom": 13,
-    "basezoom": 13,
+    "maxzoom": 14,
+    "basezoom": 14,
     "include_ids": false,
-    "combine_below": 13,
+    "combine_below": 14,
     "name": "Mapgames Lithuania basemap",
     "version": "1.0.0",
     "description": "Lean Lithuania basemap generated only from OpenStreetMap data",
