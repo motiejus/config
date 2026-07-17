@@ -17,6 +17,8 @@ from valhalla import Actor, get_config
 
 CONTOUR_MINUTES = (5, 10, 20)
 LITHUANIA_ISO_CODE = "LT"
+COVERAGE_MIN_ZOOM = 6
+COVERAGE_MAX_ZOOM = 12
 
 
 @contextmanager
@@ -53,6 +55,40 @@ def write_json(path: Path, value: object) -> None:
         json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def coverage_tile_config(minutes: int, output: Path) -> dict:
+    layers = {}
+    for minimum_cafes, layer_name in ((1, "coverage_one"), (2, "coverage_two")):
+        layers[layer_name] = {
+            "minzoom": COVERAGE_MIN_ZOOM,
+            "maxzoom": COVERAGE_MAX_ZOOM,
+            "source": str(output / f"coverage-{minutes}-{minimum_cafes}.geojson"),
+            "simplify_below": COVERAGE_MAX_ZOOM,
+            "simplify_level": 0.00001,
+            "simplify_algorithm": "visvalingam",
+        }
+    return {
+        "layers": layers,
+        "settings": {
+            "minzoom": COVERAGE_MIN_ZOOM,
+            "maxzoom": COVERAGE_MAX_ZOOM,
+            "basezoom": COVERAGE_MAX_ZOOM,
+            "include_ids": False,
+            "combine_below": COVERAGE_MAX_ZOOM,
+            "name": f"Mapgames {minutes}-minute cafe coverage",
+            "version": "1.0.0",
+            "description": "Tiled walking-time coverage generated with Valhalla",
+            "compress": "gzip",
+            "filemetadata": {
+                "tilejson": "3.0.0",
+                "scheme": "xyz",
+                "type": "overlay",
+                "format": "pbf",
+                "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+            },
+        },
+    }
 
 
 def polygonal_part(geometry):
@@ -158,8 +194,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--concurrency", type=int, required=True)
     parser.add_argument("--basemap-config", type=Path, required=True)
     parser.add_argument("--basemap-process", type=Path, required=True)
+    parser.add_argument("--coverage-process", type=Path, required=True)
     parser.add_argument("--tilemaker-version", required=True)
-    parser.add_argument("--renderer-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
     parser.add_argument("--osm-source-url", required=True)
     parser.add_argument("--smoothing-meters", type=float, required=True)
@@ -477,6 +513,40 @@ def main() -> None:
                     }
                 )
 
+    coverage_tiles = []
+    coverage_bbox = ",".join(str(coordinate) for coordinate in country_bbox)
+    for minutes in CONTOUR_MINUTES:
+        config_path = work / f"coverage-{minutes}.json"
+        write_json(config_path, coverage_tile_config(minutes, output))
+        tile_name = f"coverage-{minutes}.pmtiles"
+        run(
+            f"build {minutes}-minute coverage PMTiles",
+            [
+                "tilemaker",
+                "--quiet",
+                "--bbox",
+                coverage_bbox,
+                "--output",
+                output / tile_name,
+                "--config",
+                config_path,
+                "--process",
+                args.coverage_process,
+                "--threads",
+                args.concurrency,
+            ],
+        )
+        coverage_tiles.append(
+            {
+                "file": tile_name,
+                "format": "PMTiles v3 with Mapbox Vector Tiles",
+                "layers": {"1": "coverage_one", "2": "coverage_two"},
+                "max_data_zoom": COVERAGE_MAX_ZOOM,
+                "min_data_zoom": COVERAGE_MIN_ZOOM,
+                "minutes": minutes,
+            }
+        )
+
     write_json(
         output / "metadata.json",
         {
@@ -486,13 +556,12 @@ def main() -> None:
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "max_data_zoom": 14,
                 "min_data_zoom": 4,
-                "renderer": "protomaps-leaflet",
-                "renderer_version": args.renderer_version,
                 "tilemaker_version": args.tilemaker_version,
             },
             "cafe_count": len(prepared),
             "contours_minutes": list(CONTOUR_MINUTES),
             "coverage_files": coverage_files,
+            "coverage_tiles": coverage_tiles,
             "generated_at_osm_timestamp": osm_timestamp,
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
             "osm_source": args.osm_source_url,

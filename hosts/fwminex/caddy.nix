@@ -120,15 +120,19 @@
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         header {
           Strict-Transport-Security "max-age=15768000"
-          Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+          Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'"
           X-Content-Type-Options "nosniff"
           X-Frame-Options "DENY"
           Referrer-Policy "no-referrer"
+          Cache-Control "no-cache"
           Alt-Svc "h3=\":443\"; ma=86400"
         }
 
         root * ${pkgs.mapgames}
-        file_server
+        file_server {
+          precompressed zstd br gzip
+          etag_file_extensions .etag
+        }
       '';
       "m.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
