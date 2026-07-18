@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <sstream>
@@ -70,12 +71,18 @@ struct DestinationInterval {
   uint32_t lookup_id;
 };
 
+// Accumulation maps are keyed by the canonical edge id min(edge_id,
+// opposing_edge_id); the stored geometry keeps the string-canonical
+// orientation `canonical_line()` picks, and `key` carries that string so
+// consumers can re-merge dual-digitized edges (distinct graph edges with
+// identical rounded geometry) exactly as the string-keyed maps merged them.
 struct DestinationEdge {
+  std::string key;
   Line line;
   std::vector<DestinationInterval> intervals;
 };
 
-using DestinationEdges = std::map<std::string, DestinationEdge>;
+using DestinationEdges = std::map<uint64_t, DestinationEdge>;
 
 struct CoverageEdge {
   Line line;
@@ -263,34 +270,6 @@ std::string validation_request_json(const Request &request) {
       << json_string(request.costing)
       << R"(,"contours":[{"time":1}],"generalize":0,"polygons":false,"reverse":true,"show_locations":false})";
   return out.str();
-}
-
-double reverse_edge_traversal_seconds(const Edge &edge,
-                                      valhalla::baldr::GraphReader &reader,
-                                      const valhalla::sif::cost_ptr_t &costing,
-                                      std::map<uint64_t, double> &cache) {
-  if (const auto cached = cache.find(edge.id); cached != cache.end()) {
-    return cached->second;
-  }
-  valhalla::baldr::graph_tile_ptr opposing_tile;
-  const valhalla::baldr::GraphId opposing_id = reader.GetOpposingEdgeId(
-      valhalla::baldr::GraphId(edge.id), opposing_tile);
-  if (!opposing_id.is_valid() || opposing_tile == nullptr) {
-    throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
-                             " has no opposing edge");
-  }
-  const auto *opposing_edge = opposing_tile->directededge(opposing_id);
-  const double seconds =
-      costing->EdgeCost(opposing_edge, opposing_id, opposing_tile).secs;
-  if (!(seconds > 0) || !std::isfinite(seconds)) {
-    throw std::runtime_error(
-        "expansion edge " + std::to_string(edge.id) +
-        " has invalid traversal seconds " + std::to_string(seconds) +
-        " for opposing length " + std::to_string(opposing_edge->length()) +
-        " and use " + std::to_string(static_cast<int>(opposing_edge->use())));
-  }
-  cache.emplace(edge.id, seconds);
-  return seconds;
 }
 
 bool same_point(const Point &left, const Point &right) {
@@ -605,7 +584,11 @@ struct CanonicalLine {
   bool reversed;
 };
 
-CanonicalLine canonical_line(const Line &line) {
+// The 1e-7 rounding and consecutive-duplicate dedup of canonical_line(),
+// split out so the per-directed-edge cache can normalize an incoming line
+// without rebuilding the canonical key strings. Returns {} when fewer than
+// two distinct rounded points remain (degenerate edge).
+Line rounded_line(const Line &line) {
   Line normalized;
   normalized.reserve(line.size());
   for (const auto &point : line) {
@@ -620,6 +603,10 @@ CanonicalLine canonical_line(const Line &line) {
   if (normalized.size() < 2) {
     return {};
   }
+  return normalized;
+}
+
+CanonicalLine canonical_from_normalized(Line normalized) {
   std::string forward;
   std::string reverse;
   for (const auto &point : normalized) {
@@ -635,17 +622,154 @@ CanonicalLine canonical_line(const Line &line) {
   return {std::move(forward), std::move(normalized), false};
 }
 
-bool add_destination_interval(DestinationEdges &destination, const Line &line,
-                              Interval interval, uint32_t lookup_id) {
-  CanonicalLine canonical = canonical_line(line);
-  if (canonical.line.empty()) {
+CanonicalLine canonical_line(const Line &line) {
+  Line normalized = rounded_line(line);
+  if (normalized.empty()) {
+    return {};
+  }
+  return canonical_from_normalized(std::move(normalized));
+}
+
+// String-canonical identity of one undirected edge pair, computed by
+// canonical_line() once per pair per worker and shared by both directed
+// edges' cache entries.
+struct CanonicalGeometry {
+  std::string key;
+  Line line;
+};
+
+// Per-directed-edge cache (map key: directed edge id). `opposing` is filled
+// on first touch of any edge, origin edges included (cheap, needed for the
+// canonical map key). `reverse_secs` is lazily filled on the first non-origin
+// use only — origin edges have no traversal seconds — with validation at fill
+// time; the std::optional makes reading an unset value unrepresentable.
+// `reversed` is a property of this directed edge, not of the pair: both
+// directed edges of a pair arrive (requests use "skip_opposites":false) with
+// opposite line orientations and therefore opposite fraction frames.
+struct EdgeCacheEntry {
+  uint64_t opposing = 0;
+  uint64_t canonical_id = 0;
+  bool reversed = false;
+  std::shared_ptr<const CanonicalGeometry> canonical; // nullptr => degenerate
+  std::optional<double> reverse_secs;
+};
+
+using EdgeCache = std::map<uint64_t, EdgeCacheEntry>;
+
+bool lines_equal(const Line &left, const Line &right) {
+  return left.size() == right.size() &&
+         std::equal(left.begin(), left.end(), right.begin(), same_point);
+}
+
+// Derive whether `normalized` runs opposite to the pair's cached canonical
+// geometry, and assert geometry consistency on this re-insert: the incoming
+// line must equal the canonical line or its exact reverse. Endpoint
+// comparison would suffice when the endpoints differ; the full comparison
+// decides closed loops by the first differing point pair (matching
+// canonical_line()'s full-string comparison) and doubles as the equality
+// assert. A true palindrome compares equal forward, so it gets
+// reversed=false — the same direction-independent ambiguity today's
+// canonical_line() has.
+bool derive_reversed(const Line &normalized, const Line &canonical,
+                     uint64_t edge_id) {
+  if (lines_equal(normalized, canonical)) {
     return false;
   }
-  if (canonical.reversed) {
+  const Line reversed(canonical.rbegin(), canonical.rend());
+  if (lines_equal(normalized, reversed)) {
+    return true;
+  }
+  throw std::runtime_error("expansion edge " + std::to_string(edge_id) +
+                           " geometry disagrees with its opposing edge");
+}
+
+EdgeCacheEntry &edge_cache_entry(const Edge &edge,
+                                 valhalla::baldr::GraphReader &reader,
+                                 EdgeCache &cache) {
+  if (const auto cached = cache.find(edge.id); cached != cache.end()) {
+    return cached->second;
+  }
+  valhalla::baldr::graph_tile_ptr opposing_tile;
+  const valhalla::baldr::GraphId opposing_id = reader.GetOpposingEdgeId(
+      valhalla::baldr::GraphId(edge.id), opposing_tile);
+  if (!opposing_id.is_valid() || opposing_tile == nullptr) {
+    throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
+                             " has no opposing edge");
+  }
+  // A hierarchy shortcut's geometry spans several base edges, which would
+  // break the 1:1 mapping between min(edge_id, opposing_id) and one
+  // canonical polyline; shortcuts travel in pairs, so checking the opposing
+  // directed edge (whose tile is already open) covers this edge too.
+  if (opposing_tile->directededge(opposing_id)->is_shortcut()) {
+    throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
+                             " opposes hierarchy shortcut edge " +
+                             std::to_string(opposing_id.value));
+  }
+  EdgeCacheEntry entry;
+  entry.opposing = opposing_id.value;
+  entry.canonical_id = std::min<uint64_t>(edge.id, opposing_id.value);
+  Line normalized = rounded_line(edge.line);
+  if (const auto opposite = cache.find(entry.opposing);
+      opposite != cache.end()) {
+    entry.canonical = opposite->second.canonical;
+    if (entry.canonical == nullptr) {
+      if (!normalized.empty()) {
+        throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
+                                 " geometry disagrees with its opposing edge");
+      }
+    } else {
+      entry.reversed =
+          derive_reversed(normalized, entry.canonical->line, edge.id);
+    }
+  } else if (!normalized.empty()) {
+    CanonicalLine canonical = canonical_from_normalized(std::move(normalized));
+    entry.reversed = canonical.reversed;
+    entry.canonical = std::make_shared<const CanonicalGeometry>(
+        CanonicalGeometry{std::move(canonical.key), std::move(canonical.line)});
+  }
+  return cache.emplace(edge.id, std::move(entry)).first->second;
+}
+
+double reverse_edge_traversal_seconds(const Edge &edge, EdgeCacheEntry &entry,
+                                      valhalla::baldr::GraphReader &reader,
+                                      const valhalla::sif::cost_ptr_t &costing) {
+  if (entry.reverse_secs) {
+    return *entry.reverse_secs;
+  }
+  const valhalla::baldr::GraphId opposing_id(entry.opposing);
+  const valhalla::baldr::graph_tile_ptr opposing_tile =
+      reader.GetGraphTile(opposing_id);
+  if (opposing_tile == nullptr) {
+    throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
+                             " has no opposing edge");
+  }
+  const auto *opposing_edge = opposing_tile->directededge(opposing_id);
+  const double seconds =
+      costing->EdgeCost(opposing_edge, opposing_id, opposing_tile).secs;
+  if (!(seconds > 0) || !std::isfinite(seconds)) {
+    throw std::runtime_error(
+        "expansion edge " + std::to_string(edge.id) +
+        " has invalid traversal seconds " + std::to_string(seconds) +
+        " for opposing length " + std::to_string(opposing_edge->length()) +
+        " and use " + std::to_string(static_cast<int>(opposing_edge->use())));
+  }
+  entry.reverse_secs = seconds;
+  return seconds;
+}
+
+bool add_destination_interval(DestinationEdges &destination,
+                              const EdgeCacheEntry &cache_entry,
+                              Interval interval, uint32_t lookup_id) {
+  if (cache_entry.canonical == nullptr) {
+    return false;
+  }
+  if (cache_entry.reversed) {
     interval = {1.0 - interval.end, 1.0 - interval.start};
   }
   auto [entry, inserted] = destination.try_emplace(
-      std::move(canonical.key), DestinationEdge{std::move(canonical.line), {}});
+      cache_entry.canonical_id,
+      DestinationEdge{cache_entry.canonical->key, cache_entry.canonical->line,
+                      {}});
   static_cast<void>(inserted);
   entry->second.intervals.push_back({interval, lookup_id});
   return true;
@@ -690,8 +814,8 @@ std::vector<Interval> merge_intervals(std::vector<Interval> intervals) {
 DestinationLines destination_lines(const DestinationEdges &edges,
                                    const Bounds &bounds) {
   DestinationLines result;
-  for (const auto &[key, edge] : edges) {
-    static_cast<void>(key);
+  for (const auto &[canonical_id, edge] : edges) {
+    static_cast<void>(canonical_id);
     const LineMeasure measure = measure_line(edge.line);
     for (const DestinationInterval &destination : edge.intervals) {
       const Line reachable =
@@ -714,21 +838,36 @@ DestinationLines destination_lines(const DestinationEdges &edges,
   return result;
 }
 
+// Geometry-string pre-merge ("step 0"): group the uint64-keyed destination
+// edges by their canonical geometry string so distinct graph edges with
+// identical rounded geometry (dual digitization) concatenate their interval
+// lists per band, exactly as the string-keyed maps merged them before the
+// uint64 refactor. merge_coverage_bands() then re-runs merge_intervals() on
+// each concatenation (it sorts, so member order does not matter).
 void add_coverage_band(CoverageEdges &coverage,
                        const DestinationEdges &destinations,
                        size_t minute_index, size_t minute_count) {
-  for (const auto &[key, destination] : destinations) {
-    std::vector<Interval> intervals;
-    intervals.reserve(destination.intervals.size());
-    for (const DestinationInterval &item : destination.intervals) {
-      intervals.push_back(item.interval);
-    }
+  for (const auto &[canonical_id, destination] : destinations) {
+    static_cast<void>(canonical_id);
     auto [entry, inserted] = coverage.try_emplace(
-        key, CoverageEdge{destination.line,
-                          std::vector<std::vector<Interval>>(minute_count)});
+        destination.key,
+        CoverageEdge{destination.line,
+                     std::vector<std::vector<Interval>>(minute_count)});
     static_cast<void>(inserted);
-    entry->second.intervals[minute_index] =
-        merge_intervals(std::move(intervals));
+    std::vector<Interval> &band = entry->second.intervals[minute_index];
+    band.reserve(band.size() + destination.intervals.size());
+    for (const DestinationInterval &item : destination.intervals) {
+      band.push_back(item.interval);
+    }
+  }
+}
+
+void merge_coverage_bands(CoverageEdges &coverage) {
+  for (auto &[key, edge] : coverage) {
+    static_cast<void>(key);
+    for (std::vector<Interval> &band : edge.intervals) {
+      band = merge_intervals(std::move(band));
+    }
   }
 }
 
@@ -1011,7 +1150,7 @@ int main(int argc, char **argv) {
         valhalla::baldr::GraphReader graph_reader(config.get_child("mjolnir"));
         valhalla::tyr::actor_t actor(config, graph_reader, true);
         valhalla::sif::cost_ptr_t costing;
-        std::map<uint64_t, double> traversal_seconds_cache;
+        EdgeCache edge_cache;
         while (!failed.load(std::memory_order_acquire)) {
           const size_t request_index = next_request.fetch_add(1);
           if (request_index >= requests.size()) {
@@ -1036,12 +1175,13 @@ int main(int argc, char **argv) {
             std::vector<bool> destination_found(minutes.size(), false);
             for (const auto &[edge_id, edge] : edges) {
               static_cast<void>(edge_id);
+              EdgeCacheEntry &cache_entry =
+                  edge_cache_entry(edge, graph_reader, edge_cache);
               const double traversal_seconds =
                   edge.pred_id == kInvalidGraphId
                       ? 0.0
-                      : reverse_edge_traversal_seconds(edge, graph_reader,
-                                                       costing,
-                                                       traversal_seconds_cache);
+                      : reverse_edge_traversal_seconds(edge, cache_entry,
+                                                       graph_reader, costing);
               for (size_t minute_index = 0; minute_index < minutes.size();
                    ++minute_index) {
                 const std::optional<Interval> interval = reachable_interval(
@@ -1050,7 +1190,7 @@ int main(int argc, char **argv) {
                 if (interval) {
                   const bool added = add_destination_interval(
                       worker_destinations[worker_index][minute_index],
-                      edge.line, *interval, request.lookup_id);
+                      cache_entry, *interval, request.lookup_id);
                   if (added && !destination_found[minute_index] &&
                       interval_intersects_bounds(edge.line, *interval,
                                                  bounds)) {
@@ -1112,11 +1252,18 @@ int main(int argc, char **argv) {
           destinations_by_minute[minute_index];
       for (size_t worker_index = 0; worker_index < worker_count;
            ++worker_index) {
-        for (const auto &[key, source_edge] :
+        for (const auto &[canonical_id, source_edge] :
              worker_destinations[worker_index][minute_index]) {
           auto [destination, inserted] = destination_edges.try_emplace(
-              key, DestinationEdge{source_edge.line, {}});
-          static_cast<void>(inserted);
+              canonical_id,
+              DestinationEdge{source_edge.key, source_edge.line, {}});
+          if (!inserted && destination->second.key != source_edge.key) {
+            // Geometry must be bitwise-independent of which direction each
+            // worker saw first; the canonical key string encodes it exactly.
+            throw std::runtime_error(
+                "canonical edge " + std::to_string(canonical_id) +
+                " has inconsistent geometry across workers");
+          }
           destination->second.intervals.insert(
               destination->second.intervals.end(),
               source_edge.intervals.begin(), source_edge.intervals.end());
@@ -1131,6 +1278,7 @@ int main(int argc, char **argv) {
       add_coverage_band(coverage_edges, destinations_by_minute[minute_index],
                         minute_index, minutes.size());
     }
+    merge_coverage_bands(coverage_edges);
 
     std::exception_ptr output_error;
     std::mutex output_error_mutex;
