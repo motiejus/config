@@ -22,6 +22,10 @@ from valhalla import get_config
 TILE_MIN_ZOOM = 6
 DESTINATION_MIN_ZOOM = 12
 TILE_MAX_ZOOM = 14
+# Place dots are displayed only in overzoomed street-level views. Encoding
+# the same point set below the archive's maximum zoom only duplicates data;
+# one canonical z14 tile pyramid supplies every displayed zoom.
+PLACE_TILE_MIN_ZOOM = TILE_MAX_ZOOM
 # Raw network minzoom (docs/lowzoom-fastpath.md section 2.3): z6-10 serve
 # the coarsen.py encoder-grid skeleton; the raw reachable routing edges
 # serve the inspection zooms z11-14 only. The value doubles as the anchor
@@ -340,7 +344,7 @@ def places_tile_config(work: Path) -> dict:
     return {
         "layers": {
             "places": {
-                "minzoom": 9,
+                "minzoom": PLACE_TILE_MIN_ZOOM,
                 "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / "places.geojson"),
                 "source_columns": list(PLACE_SOURCE_COLUMNS),
@@ -350,6 +354,7 @@ def places_tile_config(work: Path) -> dict:
         "settings": common_tile_settings(
             "Mapgames service destinations",
             "Cafes, restaurants, hospitals, supermarkets, and fuel stations",
+            PLACE_TILE_MIN_ZOOM,
         ),
     }
 
@@ -884,7 +889,7 @@ def main() -> None:
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "places",
                 "max_data_zoom": TILE_MAX_ZOOM,
-                "min_data_zoom": 9,
+                "min_data_zoom": PLACE_TILE_MIN_ZOOM,
             },
             "routed_counts": routed_counts,
             "routing_failure_policy": "fail_build_on_any_unroutable_destination",

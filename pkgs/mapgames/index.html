@@ -870,10 +870,10 @@
       const lithuaniaBounds = [[20.35, 53.75], [27.10, 56.60]];
       const inspectZoom = 12;
       // Individual destinations are useful at street scale, but become a
-      // noisy point cloud over whole cities. Although the archive supports
-      // lower zooms, delay the visual dots until a user can distinguish
-      // nearby streets and aim at a specific destination.
-      const placeDisplayMinZoom = 14;
+      // noisy point cloud over whole cities. Delay the visual dots until a
+      // user can distinguish nearby streets and aim at a specific
+      // destination; MapLibre overzooms the canonical z14 source tiles.
+      const placeDisplayMinZoom = 16;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
@@ -2036,6 +2036,22 @@
             byService.get(properties.service).set(placeId, destination);
           });
         });
+        // The clicked origin can be a POI several metres off its snapped
+        // routing edge. In that case the road-corridor point test misses the
+        // POI itself and used to report "not found" directly beneath its
+        // selected-place card. Count only the nearest hit-tested dot for its
+        // own active service: additional dots in the padded click box remain
+        // ordinary nearby context and cannot create extra passes.
+        const primaryMarker = markerFeatures[0];
+        const primaryService = primaryMarker?.properties.service;
+        if (primaryMarker && byService.has(primaryService)) {
+          const placeIndex = Number(primaryMarker.properties.place_index);
+          const destination = placeCatalog[placeIndex];
+          if (!destination) {
+            throw new Error(`Destination dot references unknown place index ${placeIndex}`);
+          }
+          byService.get(primaryService).set(placeIndex, destination);
+        }
         document.getElementById("location-coordinates").textContent =
           t("coordsLine", `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)}`);
         renderClickedPlaces(markerFeatures.map(feature => ({
