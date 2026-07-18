@@ -267,6 +267,10 @@ let
   };
 
   compressed = compressDrvWeb www {
+    # Never add "pmtiles" here (or serve pmtiles pre-encoded): pmtiles.js
+    # issues HTTP Range requests that must address identity bytes. A .br/.gz
+    # sidecar would let the web server satisfy ranges over encoded bytes,
+    # which decodes to silent tile corruption.
     extraFormats = [
       "geojson"
       "pbf"

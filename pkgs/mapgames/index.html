@@ -100,6 +100,12 @@
         border-color: var(--service-color);
       }
       .preset-choices button:disabled { cursor: default; opacity: .55; }
+      /* Pills inside unchecked cards must not look half-active. */
+      .service-card[data-enabled="false"] .preset-choices button[aria-pressed="true"] {
+        color: inherit;
+        background: white;
+        border-color: var(--border);
+      }
       .band-choices { display: flex; flex-wrap: wrap; gap: .45rem; font-size: .82rem; }
       .band-choices label, .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
       .band-swatch {
@@ -495,7 +501,11 @@
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
-      delete baseLayers.find(layer => layer.id === "buildings").filter;
+      // Unfiltered buildings render at all data zooms; guard so a vendored
+      // style without the layer degrades instead of killing the page.
+      const buildingsLayer = baseLayers.find(layer => layer.id === "buildings");
+      if (buildingsLayer) delete buildingsLayer.filter;
+      else console.warn("vendored basemap style has no buildings layer; skipping filter removal");
       const mapStyle = {
         version: 8,
         glyphs: `${new URL("assets/fonts/", location.href).href}{fontstack}/{range}.pbf`,
@@ -547,6 +557,10 @@
       const destinationSourceIds = new Set();
       const failedDestinationSources = new Set();
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+      // Let mobile users test their own location; inspection stays click-driven.
+      map.addControl(new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true }
+      }), "top-left");
       map.on("error", event => {
         if (destinationSourceIds.has(event.sourceId)) {
           failedDestinationSources.add(event.sourceId);
@@ -1419,6 +1433,11 @@
           scheduleViewHash();
         });
         map.on("click", event => inspectLocation(event.lngLat));
+        // Destination dots are clickable; make them read that way.
+        placeLayerIds.forEach(layerId => {
+          map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
+        });
         map.on("moveend", scheduleViewHash);
         window.addEventListener("hashchange", () => {
           // replaceState never fires hashchange, but stay safe against

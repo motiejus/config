@@ -1,6 +1,6 @@
 -- A deliberately small Protomaps-compatible schema for this demo. Every
--- feature comes from the Lithuania PBF. The earth polygon is extracted from
--- its ISO3166-1=LT boundary before tilemaker runs.
+-- feature comes from the Lithuania PBF. The earth polygon is the configured
+-- coverage bbox rectangle that generate.py writes before tilemaker runs.
 
 node_keys = { "place" }
 way_keys = {
