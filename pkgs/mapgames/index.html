@@ -44,7 +44,7 @@
       }
       .panel-title-row { display: flex; align-items: start; gap: .7rem; }
       .panel-title-row h1 { flex: 1; }
-      .panel-toggle, .panel-done, .mobile-map-actions { display: none; }
+      .panel-toggle, .panel-done { display: none; }
       /* Small, discoverable-but-quiet language switch in the title row. */
       .lang-toggle {
         flex: 0 0 auto;
@@ -81,19 +81,6 @@
         cursor: pointer;
       }
       .quick-actions button:hover { background: #eef4fb; }
-      .panel-inspect {
-        display: flex;
-        width: 100%;
-        min-height: 2.4rem;
-        align-items: center;
-        justify-content: center;
-        margin-top: .55rem;
-        border: 1px solid var(--border);
-        border-radius: .4rem;
-        background: #ffffff;
-        font-weight: 700;
-        cursor: pointer;
-      }
       .service-list { display: grid; gap: .45rem; }
       .service-card {
         --service-color: #765;
@@ -131,6 +118,8 @@
       }
       .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
       .view-switcher { display: flex; gap: .3rem; margin: .55rem 0 .45rem; }
+      /* An author display beats the UA [hidden] rule; restate it. */
+      .view-switcher[hidden] { display: none; }
       .view-switcher button {
         flex: 1;
         min-height: 2.2rem;
@@ -183,7 +172,6 @@
         border-top: 1px solid var(--border);
       }
       .status { min-height: 1.2em; color: #374861; font-size: .88rem; }
-      .source-note { color: var(--muted); font-size: .77rem; }
       dialog {
         box-sizing: border-box;
         width: min(42rem, calc(100vw - 2rem));
@@ -335,7 +323,6 @@
         .quick-actions button,
         .view-switcher button,
         .preset-choices button,
-        .panel-inspect,
         .route-link,
         .more-destinations > summary { min-height: 2.75rem; }
         .route-link { display: inline-flex; align-items: center; }
@@ -350,10 +337,6 @@
         .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 3rem; }
       }
       @media (max-width: 640px), (max-height: 520px) and (max-width: 950px) {
-        :root {
-          --mobile-panel-height: 5.5rem;
-          --mobile-map-center-y: 45vh;
-        }
         .map-panel {
           display: flex;
           flex-direction: column;
@@ -403,8 +386,6 @@
         .map-panel[data-collapsed="true"] { max-height: none; }
         .map-panel[data-collapsed="false"] .panel-selection-summary { display: none; }
         .map-panel[data-collapsed="false"] .panel-content { margin-top: .25rem; }
-        .map-panel[data-collapsed="false"] ~ .mobile-map-actions,
-        .map-panel[data-collapsed="false"] ~ .map-crosshair { display: none; }
         .map-panel > .panel-content > #summary-text { margin-top: .15rem; }
         .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
         .quick-actions button,
@@ -414,7 +395,6 @@
           min-height: 2.75rem;
           padding: .48rem .62rem;
         }
-        .panel-inspect { display: none; }
         .quick-actions button { border-radius: .45rem; }
         .preset-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
         .preset-choices button { width: 100%; }
@@ -437,54 +417,6 @@
           font-weight: 700;
           cursor: pointer;
         }
-        .mobile-map-actions {
-          position: absolute;
-          z-index: 2;
-          right: .75rem;
-          bottom: calc(var(--mobile-panel-height) + .9rem + env(safe-area-inset-bottom));
-          display: block;
-        }
-        .inspect-center {
-          display: inline-flex;
-          min-height: 3rem;
-          align-items: center;
-          padding: .55rem .8rem;
-          border: 1px solid rgb(58 73 96 / 30%);
-          border-radius: 999px;
-          color: var(--ink);
-          background: rgb(255 255 255 / 96%);
-          box-shadow: 0 1px 7px rgb(20 30 48 / 22%);
-          font-weight: 700;
-          cursor: pointer;
-        }
-        .map-crosshair {
-          position: absolute;
-          z-index: 1;
-          top: var(--mobile-map-center-y);
-          left: 50%;
-          display: block;
-          width: 1.3rem;
-          height: 1.3rem;
-          border: 2px solid white;
-          border-radius: 50%;
-          background: rgb(23 32 51 / 22%);
-          box-shadow: 0 0 0 1px rgb(23 32 51 / 75%);
-          pointer-events: none;
-          transform: translate(-50%, -50%);
-        }
-        .map-crosshair::before,
-        .map-crosshair::after {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          display: block;
-          content: "";
-          background: white;
-          box-shadow: 0 0 0 1px rgb(23 32 51 / 55%);
-          transform: translate(-50%, -50%);
-        }
-        .map-crosshair::before { width: 1.75rem; height: 1px; }
-        .map-crosshair::after { width: 1px; height: 1.75rem; }
         dialog {
           width: 100%;
           max-width: none;
@@ -569,15 +501,9 @@
           <label class="map-detail"><input id="show-places" type="checkbox" checked> <span id="show-places-label">Priartinus rodyti vietas</span></label>
         </div>
         <p class="status" id="map-status" aria-live="polite">Įkeliamas žemėlapis…</p>
-        <button class="panel-inspect" id="panel-inspect" type="button">Patikrinti žemėlapio centrą</button>
         <button class="panel-done" id="panel-done" type="button">Rodyti žemėlapį</button>
-        <p class="source-note" id="source-note">Kiekvienas rodinys perpiešia tą patį bendrą pasiekiamumo tinklą: vienos paslaugos trukmės zonas arba visą pasirinkimą iš karto. Spustelėkite vietą arba patikrinkite žemėlapio centrą — bus patikrinta kiekviena pasirinkta sąlyga ir parodyti maršrutai iki konkrečių vietų. Aprėptis braižoma tiesiai iš Valhalla pasiekiamų maršruto atkarpų, todėl kliūtys lieka tuščios, išskyrus vietas, kur jas galima kirsti. Maršrutai ir vietos egzistuoja tik OpenStreetMap Lietuvos iškarpoje, todėl pasiekiamumas prie valstybės sienos gali būti nuvertintas — paslaugos už sienos nerodomos.</p>
       </div>
     </section>
-    <div class="mobile-map-actions">
-      <button class="inspect-center" id="inspect-center" type="button">Patikrinti centrą</button>
-    </div>
-    <div class="map-crosshair" aria-hidden="true"></div>
 
     <dialog id="location-dialog" aria-labelledby="location-dialog-title">
       <div class="dialog-header">
@@ -751,10 +677,7 @@
           modeIntersect: "Tenkina visas",
           modeScore: "Kiek tenkina",
           showPlaces: "Priartinus rodyti vietas",
-          inspectMapCenter: "Patikrinti žemėlapio centrą",
-          inspectCenter: "Patikrinti centrą",
           viewMap: "Rodyti žemėlapį",
-          sourceNote: "Kiekvienas rodinys perpiešia tą patį bendrą pasiekiamumo tinklą: vienos paslaugos trukmės zonas arba visą pasirinkimą iš karto. Spustelėkite vietą arba patikrinkite žemėlapio centrą — bus patikrinta kiekviena pasirinkta sąlyga ir parodyti maršrutai iki konkrečių vietų. Aprėptis braižoma tiesiai iš Valhalla pasiekiamų maršruto atkarpų, todėl kliūtys lieka tuščios, išskyrus vietas, kur jas galima kirsti. Maršrutai ir vietos egzistuoja tik OpenStreetMap Lietuvos iškarpoje, todėl pasiekiamumas prie valstybės sienos gali būti nuvertintas — paslaugos už sienos nerodomos.",
           dialogTitle: "Pasiekiamumas iš šios vietos",
           closeDialog: "Užverti",
           langToggle: "EN",
@@ -774,8 +697,8 @@
           chipBands: "Trukmės zonos",
           chipAll: count => `Visos ${count}`,
           chipScore: "Kiek tenkina",
-          legendBandsTitle: (label, mode) =>
-            `${label} · minutės ${mode === "walk" ? "pėsčiomis" : "automobiliu"}`,
+          legendBandsTitle: (label, preset) =>
+            `${label} · iki ${preset.minutes} min ${preset.mode === "walk" ? "pėsčiomis" : "automobiliu"}`,
           legendMinutes: minutes => `${minutes} min`,
           legendSelectedTitle: "Pasirinktos sąlygos",
           legendMeetsAll: count => `Tenkina visas ${count}`,
@@ -783,7 +706,6 @@
           legendScoreTitle: count => `Kiek iš ${count} sąlygų tenkinama`,
           legendScoreItem: (index, count) => `${index} iš ${count}`,
           hintBandsLocked: "Trukmės zonoms pasirinkite tik vieną paslaugą",
-          hintSingleBands: "Viena sąlyga visada rodoma trukmės zonomis; palyginimui įjunkite dar vieną paslaugą",
           zoomingIn: "Artinama, kad būtų įkeltos konkrečios vietos…",
           coordsLine: coordinates => `${coordinates} · tiksliu patikrinimu galima dalytis šio puslapio nuoroda`,
           loadingDetails: "Įkeliama vietų informacija…",
@@ -840,10 +762,7 @@
           modeIntersect: "Meets all",
           modeScore: "How many",
           showPlaces: "Show destinations when zoomed in",
-          inspectMapCenter: "Inspect map center",
-          inspectCenter: "Inspect center",
           viewMap: "View map",
-          sourceNote: "Every view restyles one unified access network: time bands for a single service, or the whole selection tested at once. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.",
           dialogTitle: "Access from this location",
           closeDialog: "Close",
           langToggle: "LT",
@@ -861,8 +780,8 @@
           chipBands: "Time bands",
           chipAll: count => `All ${count}`,
           chipScore: "How many",
-          legendBandsTitle: (label, mode) =>
-            `${label} · minutes by ${mode === "walk" ? "walking" : "driving"}`,
+          legendBandsTitle: (label, preset) =>
+            `${label} · within ${preset.minutes} min ${preset.mode === "walk" ? "walking" : "driving"}`,
           legendMinutes: minutes => `${minutes} min`,
           legendSelectedTitle: "Selected requirements",
           legendMeetsAll: count => `Meets all ${count}`,
@@ -870,7 +789,6 @@
           legendScoreTitle: count => `How many of ${count} requirements are met`,
           legendScoreItem: (index, count) => `${index} of ${count}`,
           hintBandsLocked: "Pick one service to see its time bands",
-          hintSingleBands: "A single requirement is shown as its time bands; select another service to compare",
           zoomingIn: "Zooming in to load concrete destinations…",
           coordsLine: coordinates => `${coordinates} · exact test is shareable in this page’s URL`,
           loadingDetails: "Loading destination details…",
@@ -1003,18 +921,6 @@
       let locationMarker;
       let placeCatalogPromise;
 
-      function updateMobileLayout() {
-        if (!mobileMedia.matches) return;
-        const panelRect = mapPanel.getBoundingClientRect();
-        const panelHeight = panelRect.height;
-        const visibleMapHeight = Math.max(0, panelRect.top);
-        document.documentElement.style.setProperty("--mobile-panel-height", `${panelHeight}px`);
-        document.documentElement.style.setProperty(
-          "--mobile-map-center-y",
-          `${visibleMapHeight / 2}px`
-        );
-      }
-
       // Desktop collapse preference; session-scoped on purpose — a shared
       // link should always open with the full panel explaining itself, so
       // the hash stays out of it.
@@ -1042,7 +948,6 @@
             // Non-persistent sessions just lose the collapse preference.
           }
         }
-        requestAnimationFrame(updateMobileLayout);
       }
 
       function syncMobileMode() {
@@ -1062,9 +967,7 @@
         }
       }
 
-      new ResizeObserver(updateMobileLayout).observe(mapPanel);
       mobileMedia.addEventListener("change", syncMobileMode);
-      window.addEventListener("resize", updateMobileLayout);
       // Apply the initial collapse state before the map loads so a restored
       // desktop "collapsed" choice never flashes the full panel.
       syncMobileMode();
@@ -1255,10 +1158,7 @@
           button.textContent = t(modeTexts[button.dataset.mode]);
         });
         document.getElementById("show-places-label").textContent = t("showPlaces");
-        document.getElementById("panel-inspect").textContent = t("inspectMapCenter");
         document.getElementById("panel-done").textContent = t("viewMap");
-        document.getElementById("source-note").textContent = t("sourceNote");
-        document.getElementById("inspect-center").textContent = t("inspectCenter");
         document.getElementById("location-dialog-title").textContent = t("dialogTitle");
         document.getElementById("dialog-close").setAttribute("aria-label", t("closeDialog"));
         if (!metadata && !persistentMapError) {
@@ -1330,16 +1230,6 @@
         if (!inspectionOrigin && !document.getElementById("location-dialog").open) {
           updateViewHash();
         }
-      }
-
-      function inspectionCenter() {
-        if (!mobileMedia.matches) return map.getCenter();
-        const mapRect = map.getContainer().getBoundingClientRect();
-        const visibleHeight = Math.max(
-          0,
-          mapPanel.getBoundingClientRect().top - mapRect.top
-        );
-        return map.unproject([mapRect.width / 2, visibleHeight / 2]);
       }
 
       function inspectionOffset() {
@@ -1567,24 +1457,38 @@
         return minutes.map(value => ({ minutes: value, color: ramp[value] }));
       }
 
+      // Bands drawn for a selection: only the ramp bands within the chosen
+      // preset, so switching 10 vs 20 min visibly changes the map — the
+      // selected threshold is always the outermost drawn band, and the
+      // largest preset shows the full nested ramp.
+      function drawnBands(selection) {
+        return bandColors(selection)
+          .filter(band => band.minutes <= selection.preset.minutes);
+      }
+
       function styleBandsView(selections) {
         // Bands is only effective with exactly one selection (§3.2).
         const focus = selections[0];
-        const bands = bandColors(focus);
-        // The layer filter excludes absent-key features, but data-driven
-        // paint is re-evaluated in the worker against unfiltered tile
-        // features during restyles — guard the null (§1.1) or it logs
+        const bands = drawnBands(focus);
+        const fullRamp = bandColors(focus);
+        // The layer filter excludes out-of-selection features, but
+        // data-driven paint is re-evaluated in the worker against unfiltered
+        // tile features during restyles — guard the null (§1.1) or it logs
         // type warnings.
         const bandValue = ["coalesce", ["get", focus.key], -1];
         const color = ["match", bandValue];
         bands.forEach(band => color.push(band.minutes, band.color));
         color.push("rgba(0,0,0,0)");
         // §3.3: de-emphasize the outermost (near-always-true) band of a
-        // drive requirement; only when inner bands exist to contrast with.
-        const opacity = focus.preset.mode === "drive" && bands.length > 1
-          ? ["match", bandValue, bands[bands.length - 1].minutes, 0.5, 0.9]
+        // drive requirement — only when it is the ramp's own largest band
+        // and inner bands exist to contrast with; a tighter preset's
+        // outermost band is the user's threshold and keeps full weight.
+        const outermost = bands[bands.length - 1];
+        const opacity = focus.preset.mode === "drive" && bands.length > 1 &&
+          outermost.minutes === fullRamp[fullRamp.length - 1].minutes
+          ? ["match", bandValue, outermost.minutes, 0.5, 0.9]
           : 0.9;
-        map.setFilter("access-bands", ["has", focus.key]);
+        map.setFilter("access-bands", reachableTest(focus));
         map.setPaintProperty("access-bands", "line-color", color);
         map.setPaintProperty("access-bands", "line-opacity", opacity);
         map.setPaintProperty("access-bands", "line-width", corridorLineWidth(focus.preset.mode));
@@ -1621,20 +1525,17 @@
       }
 
       function refreshViewSwitcher(mode, selectionCount) {
+        // §3.2: a single requirement always renders as bands, so the
+        // switcher would be three dead buttons — hide the row entirely and
+        // let the legend name the view. The stored viewMode preference is
+        // untouched, so a second selection restores the previous choice.
+        document.getElementById("view-switcher").hidden = selectionCount === 1;
         document.querySelectorAll("#view-switcher button").forEach(button => {
           // §3.2: bands with two or more selections is the multi-service
           // band compositing this rework removes — disabled, with a hint.
-          // Conversely, a single requirement always renders as bands, so
-          // intersect/score carry a hint explaining the coercion at |R|=1.
           const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
           button.disabled = bandsLocked;
-          if (bandsLocked) {
-            button.title = t("hintBandsLocked");
-          } else if (button.dataset.mode !== "bands" && selectionCount === 1) {
-            button.title = t("hintSingleBands");
-          } else {
-            button.title = "";
-          }
+          button.title = bandsLocked ? t("hintBandsLocked") : "";
           button.setAttribute("aria-checked", String(button.dataset.mode === mode));
         });
       }
@@ -1662,8 +1563,8 @@
         row.className = "legend-row";
         if (mode === "bands") {
           const focus = selections[0];
-          title.textContent = t("legendBandsTitle", serviceLabel(focus.service), focus.preset.mode);
-          bandColors(focus).forEach(band => row.append(legendItem(
+          title.textContent = t("legendBandsTitle", serviceLabel(focus.service), focus.preset);
+          drawnBands(focus).forEach(band => row.append(legendItem(
             band.color, t("legendMinutes", band.minutes), band.minutes === focus.preset.minutes
           )));
         } else if (mode === "intersect") {
@@ -1710,7 +1611,7 @@
           return;
         }
         if (mode === "bands") {
-          const colors = bandColors(selections[0]).map(band => band.color);
+          const colors = drawnBands(selections[0]).map(band => band.color);
           summary.append(summaryChip(t("chipBands"), `linear-gradient(90deg, ${colors.join(", ")})`));
         } else if (mode === "intersect") {
           summary.append(summaryChip(t("chipAll", selections.length), intersectInk));
@@ -1718,8 +1619,13 @@
           summary.append(summaryChip(t("chipScore"),
             `linear-gradient(90deg, ${scoreRamp(selections.length).join(", ")})`));
         }
+        // With a single bands selection the travel mode and threshold ARE
+        // the map, so surface them on the chip itself; multi-selection
+        // chips keep the preset in the tooltip to stay glanceable.
         selections.forEach(selection => summary.append(summaryChip(
-          serviceLabel(selection.service),
+          mode === "bands"
+            ? `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
+            : serviceLabel(selection.service),
           serviceStyles[selection.service.id].color,
           `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
         )));
@@ -2239,19 +2145,13 @@
           document.getElementById("panel-toggle").focus();
         });
         document.getElementById("show-places").addEventListener("change", refreshMap);
-        document.getElementById("panel-inspect").addEventListener("click", () =>
-          inspectLocation(inspectionCenter())
-        );
         document.getElementById("panel-toggle").addEventListener("click", () =>
           setPanelCollapsed(mapPanel.dataset.collapsed !== "true")
         );
         document.getElementById("panel-done").addEventListener("click", () => {
           setPanelCollapsed(true);
-          document.getElementById("inspect-center").focus();
+          document.getElementById("panel-toggle").focus();
         });
-        document.getElementById("inspect-center").addEventListener("click", () =>
-          inspectLocation(inspectionCenter())
-        );
         document.getElementById("dialog-close").addEventListener("click", () =>
           document.getElementById("location-dialog").close()
         );
