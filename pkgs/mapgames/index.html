@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="lt">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,7 +8,7 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'"
     >
-    <title>Everyday access map</title>
+    <title>Kasdienio pasiekiamumo žemėlapis</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="assets/maplibre-gl.css">
     <script src="assets/maplibre-gl-csp.js"></script>
@@ -45,6 +45,19 @@
       .panel-title-row { display: flex; align-items: start; gap: .7rem; }
       .panel-title-row h1 { flex: 1; }
       .panel-toggle, .panel-done, .mobile-map-actions { display: none; }
+      /* Small, discoverable-but-quiet language switch in the title row. */
+      .lang-toggle {
+        flex: 0 0 auto;
+        padding: .22rem .5rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--muted);
+        font-size: .78rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .lang-toggle:hover { background: #eef4fb; }
       .panel-content { min-height: 0; }
       /* Collapsed-mobile chip row; a button so tapping it expands the panel. */
       .panel-selection-summary {
@@ -285,6 +298,7 @@
         .more-destinations > summary { min-height: 2.75rem; }
         .route-link { display: inline-flex; align-items: center; }
         .service-heading, .map-detail { min-height: 2.75rem; }
+        .lang-toggle { min-width: 2.75rem; min-height: 2.75rem; }
         .service-heading input,
         .map-detail input { width: 1.4rem; height: 1.4rem; }
         .dialog-close,
@@ -477,10 +491,11 @@
     </style>
   </head>
   <body>
-    <div id="map" aria-label="Everyday-service access map"></div>
-    <section class="map-panel" aria-label="Access requirements" data-collapsed="true">
+    <div id="map" aria-label="Kasdienių paslaugų pasiekiamumo žemėlapis"></div>
+    <section class="map-panel" aria-label="Pasiekiamumo sąlygos" data-collapsed="true">
       <div class="panel-title-row">
-        <h1>Everyday access</h1>
+        <h1 id="app-title">Kasdienis pasiekiamumas</h1>
+        <button class="lang-toggle" id="lang-toggle" type="button" lang="en" aria-label="Switch to English">EN</button>
         <button
           class="panel-toggle"
           id="panel-toggle"
@@ -488,47 +503,47 @@
           aria-controls="panel-content"
           aria-expanded="false"
         >
-          <span id="panel-toggle-label">Filters</span>
+          <span id="panel-toggle-label">Filtrai</span>
           <span class="panel-toggle-icon" aria-hidden="true">▲</span>
         </button>
       </div>
-      <button class="panel-selection-summary" id="panel-selection-summary" type="button" aria-label="Expand filters" aria-live="polite">Loading filters…</button>
+      <button class="panel-selection-summary" id="panel-selection-summary" type="button" aria-label="Išskleisti filtrus" aria-live="polite">Įkeliami filtrai…</button>
       <div class="panel-content" id="panel-content">
-        <p id="summary-text">Loading generated data…</p>
-        <div class="quick-actions" role="group" aria-label="Quick views">
-          <button type="button" data-view="coffee">Coffee &amp; food only</button>
-          <button type="button" data-view="everyday">Everyday walk</button>
-          <button type="button" data-view="all">All services</button>
-          <button type="button" data-view="clear">Clear</button>
+        <p id="summary-text">Įkeliami sugeneruoti duomenys…</p>
+        <div class="quick-actions" id="quick-actions" role="group" aria-label="Greitos peržiūros">
+          <button type="button" data-view="coffee">Tik kava ir maistas</button>
+          <button type="button" data-view="everyday">Kasdienybė pėsčiomis</button>
+          <button type="button" data-view="all">Visos paslaugos</button>
+          <button type="button" data-view="clear">Išvalyti</button>
         </div>
-        <div class="view-switcher" id="view-switcher" role="radiogroup" aria-label="Map view mode">
-          <button type="button" role="radio" data-mode="bands" aria-checked="false">Time bands</button>
-          <button type="button" role="radio" data-mode="intersect" aria-checked="false">Meets all</button>
-          <button type="button" role="radio" data-mode="score" aria-checked="false">How many</button>
+        <div class="view-switcher" id="view-switcher" role="radiogroup" aria-label="Žemėlapio rodinys">
+          <button type="button" role="radio" data-mode="bands" aria-checked="false">Trukmės zonos</button>
+          <button type="button" role="radio" data-mode="intersect" aria-checked="false">Tenkina visas</button>
+          <button type="button" role="radio" data-mode="score" aria-checked="false">Kiek tenkina</button>
         </div>
         <div class="access-legend" id="access-legend" hidden></div>
         <div class="service-list" id="service-list"></div>
         <div class="map-options">
-          <label class="map-detail"><input id="show-places" type="checkbox" checked> Show destinations when zoomed in</label>
+          <label class="map-detail"><input id="show-places" type="checkbox" checked> <span id="show-places-label">Priartinus rodyti vietas</span></label>
         </div>
-        <p class="status" id="map-status" aria-live="polite">Loading map…</p>
-        <button class="panel-inspect" id="panel-inspect" type="button">Inspect map center</button>
-        <button class="panel-done" id="panel-done" type="button">View map</button>
-        <p class="source-note">Every view restyles one unified access network: time bands for a single service, or the whole selection tested at once. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.</p>
+        <p class="status" id="map-status" aria-live="polite">Įkeliamas žemėlapis…</p>
+        <button class="panel-inspect" id="panel-inspect" type="button">Patikrinti žemėlapio centrą</button>
+        <button class="panel-done" id="panel-done" type="button">Rodyti žemėlapį</button>
+        <p class="source-note" id="source-note">Kiekvienas rodinys perpiešia tą patį bendrą pasiekiamumo tinklą: vienos paslaugos trukmės zonas arba visą pasirinkimą iš karto. Spustelėkite vietą arba patikrinkite žemėlapio centrą — bus patikrinta kiekviena pasirinkta sąlyga ir parodyti maršrutai iki konkrečių vietų. Aprėptis braižoma tiesiai iš Valhalla pasiekiamų maršruto atkarpų, todėl kliūtys lieka tuščios, išskyrus vietas, kur jas galima kirsti. Maršrutai ir vietos egzistuoja tik OpenStreetMap Lietuvos iškarpoje, todėl pasiekiamumas prie valstybės sienos gali būti nuvertintas — paslaugos už sienos nerodomos.</p>
       </div>
     </section>
     <div class="mobile-map-actions">
-      <button class="inspect-center" id="inspect-center" type="button">Inspect center</button>
+      <button class="inspect-center" id="inspect-center" type="button">Patikrinti centrą</button>
     </div>
     <div class="map-crosshair" aria-hidden="true"></div>
 
     <dialog id="location-dialog" aria-labelledby="location-dialog-title">
       <div class="dialog-header">
         <div>
-          <h2 id="location-dialog-title">Access from this location</h2>
+          <h2 id="location-dialog-title">Pasiekiamumas iš šios vietos</h2>
           <p id="location-coordinates"></p>
         </div>
-        <button class="dialog-close" id="dialog-close" type="button" aria-label="Close">×</button>
+        <button class="dialog-close" id="dialog-close" type="button" aria-label="Užverti">×</button>
       </div>
       <div id="clicked-place"></div>
       <p class="intersection-summary" id="intersection-summary" aria-live="polite"></p>
@@ -590,14 +605,267 @@
         return Array.from({ length: count }, (_, index) =>
           viridisColor(light - (count === 1 ? 0 : index / (count - 1)) * (light - dark)));
       }
-      const kindLabels = {
-        cafe: "Cafe",
-        restaurant: "Restaurant",
-        coffee_shop: "Coffee shop",
-        hospital: "Hospital",
-        supermarket: "Supermarket",
-        fuel: "Fuel station"
+      // ---- i18n ----------------------------------------------------------
+      // UI language: Lithuanian by default, English via the toggle or
+      // #lang=en. The generated data (metadata.json labels, place kinds)
+      // stays English/neutral; Lithuanian display strings live here, keyed
+      // by service id and place kind.
+      const languages = ["lt", "en"];
+      let lang = "lt";
+
+      // Standard Lithuanian three-form rule: final digit 1 outside 11 takes
+      // the singular, final digits 2-9 outside 11-19 take the paucal,
+      // everything else (0, 10-19, round tens...) takes the genitive plural.
+      function pluralForm(count, forms) {
+        if (lang !== "lt") return forms[count === 1 ? 0 : forms.length - 1];
+        const tens = Math.abs(count) % 100;
+        const units = tens % 10;
+        if (units === 1 && tens !== 11) return forms[0];
+        if (units >= 2 && units <= 9 && (tens < 11 || tens > 19)) return forms[1];
+        return forms[2];
+      }
+
+      function uiLocale() {
+        return lang === "lt" ? "lt-LT" : "en-US";
+      }
+
+      function formatCount(value) {
+        return value.toLocaleString(uiLocale());
+      }
+
+      function formatKm(meters) {
+        return (meters / 1000).toLocaleString(uiLocale(), {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1
+        });
+      }
+
+      const serviceStringsLt = {
+        coffee: { label: "Kava ir maistas", description: "Kavinės ir restoranai" },
+        hospital: { label: "Ligoninė", description: "Ligoninės, pasiekiamos automobiliu" },
+        supermarket: { label: "Prekybos centras", description: "Didieji prekybos centrai" },
+        fuel: { label: "Degalinė", description: "Degalinės, pasiekiamos automobiliu" }
       };
+
+      function serviceLabel(service) {
+        if (lang === "lt") return serviceStringsLt[service.id]?.label ?? service.label;
+        return service.label;
+      }
+
+      function serviceDescription(service) {
+        if (lang === "lt") return serviceStringsLt[service.id]?.description ?? service.description;
+        return service.description;
+      }
+
+      const kindLabelTables = {
+        lt: {
+          cafe: "Kavinė",
+          restaurant: "Restoranas",
+          coffee_shop: "Kavinė",
+          hospital: "Ligoninė",
+          supermarket: "Prekybos centras",
+          fuel: "Degalinė"
+        },
+        en: {
+          cafe: "Cafe",
+          restaurant: "Restaurant",
+          coffee_shop: "Coffee shop",
+          hospital: "Hospital",
+          supermarket: "Supermarket",
+          fuel: "Fuel station"
+        }
+      };
+
+      function kindLabel(kind) {
+        return kindLabelTables[lang][kind] || kind;
+      }
+
+      function presetLabel(preset) {
+        const mode = preset.mode === "walk"
+          ? (lang === "lt" ? "pėsčiomis" : "walk")
+          : (lang === "lt" ? "automobiliu" : "drive");
+        return `${preset.minutes} min ${mode}`;
+      }
+
+      const STR = {
+        lt: {
+          docTitle: "Kasdienio pasiekiamumo žemėlapis",
+          appTitle: "Kasdienis pasiekiamumas",
+          mapAria: "Kasdienių paslaugų pasiekiamumo žemėlapis",
+          panelAria: "Pasiekiamumo sąlygos",
+          filters: "Filtrai",
+          closePanel: "Užverti",
+          expandFilters: "Išskleisti filtrus",
+          loadingFilters: "Įkeliami filtrai…",
+          loadingData: "Įkeliami sugeneruoti duomenys…",
+          loadingMap: "Įkeliamas žemėlapis…",
+          quickViews: "Greitos peržiūros",
+          qvCoffee: "Tik kava ir maistas",
+          qvEveryday: "Kasdienybė pėsčiomis",
+          qvAll: "Visos paslaugos",
+          qvClear: "Išvalyti",
+          viewModeAria: "Žemėlapio rodinys",
+          modeBands: "Trukmės zonos",
+          modeIntersect: "Tenkina visas",
+          modeScore: "Kiek tenkina",
+          showPlaces: "Priartinus rodyti vietas",
+          inspectMapCenter: "Patikrinti žemėlapio centrą",
+          inspectCenter: "Patikrinti centrą",
+          viewMap: "Rodyti žemėlapį",
+          sourceNote: "Kiekvienas rodinys perpiešia tą patį bendrą pasiekiamumo tinklą: vienos paslaugos trukmės zonas arba visą pasirinkimą iš karto. Spustelėkite vietą arba patikrinkite žemėlapio centrą — bus patikrinta kiekviena pasirinkta sąlyga ir parodyti maršrutai iki konkrečių vietų. Aprėptis braižoma tiesiai iš Valhalla pasiekiamų maršruto atkarpų, todėl kliūtys lieka tuščios, išskyrus vietas, kur jas galima kirsti. Maršrutai ir vietos egzistuoja tik OpenStreetMap Lietuvos iškarpoje, todėl pasiekiamumas prie valstybės sienos gali būti nuvertintas — paslaugos už sienos nerodomos.",
+          dialogTitle: "Pasiekiamumas iš šios vietos",
+          closeDialog: "Užverti",
+          langToggle: "EN",
+          langToggleAria: "Switch to English",
+          mapDataError: message => `Žemėlapio duomenų klaida: ${message}`,
+          errorSummary: "Žemėlapio duomenų klaida · atverkite filtrus",
+          summaryLoaded: total => `${formatCount(total)} paslaugų ${pluralForm(total, ["vieta", "vietos", "vietų"])} su maršrutais iš vienos OpenStreetMap iškarpos.`,
+          couldNotLoad: error => `Nepavyko įkelti sugeneruotų duomenų: ${error}`,
+          placesCount: count => `${formatCount(count)} ${pluralForm(count, ["vieta", "vietos", "vietų"])}`,
+          travelTimeAria: label => `${label} · kelionės laikas`,
+          statusSelected: count =>
+            `${pluralForm(count, ["Pasirinkta", "Pasirinktos", "Pasirinkta"])} ${count} ` +
+            `${pluralForm(count, ["sąlyga", "sąlygos", "sąlygų"])} · spustelėkite vietą žemėlapyje ir patikrinkite ` +
+            `${count === 1 ? "ją" : "jas visas"}.`,
+          statusNone: "Nepasirinkta jokių sąlygų.",
+          summaryNone: "Nepasirinkta jokių sąlygų",
+          chipBands: "Trukmės zonos",
+          chipAll: count => `Visos ${count}`,
+          chipScore: "Kiek tenkina",
+          legendBandsTitle: (label, mode) =>
+            `${label} · minutės ${mode === "walk" ? "pėsčiomis" : "automobiliu"}`,
+          legendMinutes: minutes => `${minutes} min`,
+          legendSelectedTitle: "Pasirinktos sąlygos",
+          legendMeetsAll: count => `Tenkina visas ${count}`,
+          legendMeetsSome: "Tenkina dalį",
+          legendScoreTitle: count => `Kiek iš ${count} sąlygų tenkinama`,
+          legendScoreItem: (index, count) => `${index} iš ${count}`,
+          hintBandsLocked: "Trukmės zonoms pasirinkite tik vieną paslaugą",
+          hintSingleBands: "Viena sąlyga visada rodoma trukmės zonomis; palyginimui įjunkite dar vieną paslaugą",
+          zoomingIn: "Artinama, kad įsikeltų konkrečios vietos…",
+          coordsLine: coordinates => `${coordinates} · tiksliu patikrinimu galima dalytis šio puslapio nuoroda`,
+          loadingDetails: "Įkeliama vietų informacija…",
+          selectedPlaces: count => count === 1 ? "Pasirinkta vieta" : "Pasirinktos vietos",
+          unnamed: "Be pavadinimo",
+          unnamedKind: label => `${label} be pavadinimo`,
+          genericDestination: "Vieta",
+          destinationMeta: (label, km) => `${label} · ${km} km tiesia linija`,
+          liveRoute: "Maršrutas",
+          pillAvailable: "Pasiekiama",
+          pillNotFound: "Nerasta",
+          resultSummary: (count, preset) =>
+            `${formatCount(count)} ${pluralForm(count, ["vieta", "vietos", "vietų"])} per ${preset}. ` +
+            "Rikiuojama pagal atstumą tiesia linija.",
+          resultNone: (label, preset) => `Sąlyga „${label} · ${preset}“ šioje vietoje netenkinama.`,
+          showMore: count => `Rodyti dar ${count} ${pluralForm(count, ["vietą", "vietas", "vietų"])}`,
+          meetsAllSelected: count => pluralForm(count, [
+            count === 1 ? "Tenkina pasirinktą sąlygą." : `Tenkina visas ${count} pasirinktą sąlygą.`,
+            `Tenkina visas ${count} pasirinktas sąlygas.`,
+            `Tenkina visas ${count} pasirinktų sąlygų.`
+          ]),
+          meetsSomeSelected: (passed, count) => `Tenkina ${passed} iš ${count} pasirinktų sąlygų.`,
+          selectToInspect: "Pasirinkite bent vieną sąlygą, kad patikrintumėte šią vietą.",
+          cannotEvaluate: "Nepavyko įvertinti pasirinktų sąlygų.",
+          lookupFailed: "Nepavyko įkelti vietų duomenų. Išvada apie pasiekiamumą nedaroma.",
+          lookupUnavailable: "nepavyko pasiekti vietų paieškos duomenų",
+          errOutsideBounds: "bendrinama vieta yra už žemėlapio aprėpties ribų",
+          errInvalidRequirement: item => `netinkama nuorodos sąlyga: ${item}`,
+          errInvalidMode: mode => `netinkamas nuorodos rodinys: ${mode}`,
+          errInvalidLang: value => `netinkama nuorodos kalba: ${value}`,
+          zoomIn: "Priartinti",
+          zoomOut: "Atitolinti",
+          geolocate: "Rodyti mano vietą",
+          toggleAttribution: "Rodyti duomenų šaltinius"
+        },
+        en: {
+          docTitle: "Everyday access map",
+          appTitle: "Everyday access",
+          mapAria: "Everyday-service access map",
+          panelAria: "Access requirements",
+          filters: "Filters",
+          closePanel: "Close",
+          expandFilters: "Expand filters",
+          loadingFilters: "Loading filters…",
+          loadingData: "Loading generated data…",
+          loadingMap: "Loading map…",
+          quickViews: "Quick views",
+          qvCoffee: "Coffee & food only",
+          qvEveryday: "Everyday walk",
+          qvAll: "All services",
+          qvClear: "Clear",
+          viewModeAria: "Map view mode",
+          modeBands: "Time bands",
+          modeIntersect: "Meets all",
+          modeScore: "How many",
+          showPlaces: "Show destinations when zoomed in",
+          inspectMapCenter: "Inspect map center",
+          inspectCenter: "Inspect center",
+          viewMap: "View map",
+          sourceNote: "Every view restyles one unified access network: time bands for a single service, or the whole selection tested at once. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.",
+          dialogTitle: "Access from this location",
+          closeDialog: "Close",
+          langToggle: "LT",
+          langToggleAria: "Perjungti į lietuvių kalbą",
+          mapDataError: message => `Map data error: ${message}`,
+          errorSummary: "Map data error · open filters for details",
+          summaryLoaded: total => `${formatCount(total)} routed service ${pluralForm(total, ["destination", "destinations"])} from one OpenStreetMap snapshot.`,
+          couldNotLoad: error => `Could not load generated data: ${error}`,
+          placesCount: count => `${formatCount(count)} ${pluralForm(count, ["place", "places"])}`,
+          travelTimeAria: label => `${label} travel time`,
+          statusSelected: count =>
+            `${count} ${pluralForm(count, ["requirement", "requirements"])} selected · tap or click the map to test every one.`,
+          statusNone: "No requirements selected.",
+          summaryNone: "No requirements selected",
+          chipBands: "Time bands",
+          chipAll: count => `All ${count}`,
+          chipScore: "How many",
+          legendBandsTitle: (label, mode) =>
+            `${label} · minutes by ${mode === "walk" ? "walking" : "driving"}`,
+          legendMinutes: minutes => `${minutes} min`,
+          legendSelectedTitle: "Selected requirements",
+          legendMeetsAll: count => `Meets all ${count}`,
+          legendMeetsSome: "Meets some",
+          legendScoreTitle: count => `How many of ${count} requirements are met`,
+          legendScoreItem: (index, count) => `${index} of ${count}`,
+          hintBandsLocked: "Pick one service to see its time bands",
+          hintSingleBands: "A single requirement is shown as its time bands; select another service to compare",
+          zoomingIn: "Zooming in to load concrete destinations…",
+          coordsLine: coordinates => `${coordinates} · exact test is shareable in this page’s URL`,
+          loadingDetails: "Loading destination details…",
+          selectedPlaces: count => count === 1 ? "Selected place" : "Selected places",
+          unnamed: "Unnamed",
+          unnamedKind: label => `Unnamed ${label.toLowerCase()}`,
+          genericDestination: "Destination",
+          destinationMeta: (label, km) => `${label} · ${km} km straight-line`,
+          liveRoute: "Live route",
+          pillAvailable: "Available",
+          pillNotFound: "Not found",
+          resultSummary: (count, preset) =>
+            `${formatCount(count)} ${pluralForm(count, ["option", "options"])} within ${preset}. Closest by straight-line distance.`,
+          resultNone: (label, preset) => `No ${label.toLowerCase()} matched ${preset} at this point.`,
+          showMore: count => `Show ${count} more`,
+          meetsAllSelected: count => `Meets all ${count} selected ${pluralForm(count, ["requirement", "requirements"])}.`,
+          meetsSomeSelected: (passed, count) => `Meets ${passed} of ${count} selected requirements.`,
+          selectToInspect: "Select at least one requirement to inspect this location.",
+          cannotEvaluate: "Could not evaluate the selected requirements.",
+          lookupFailed: "Destination lookup data failed to load. No availability conclusion was made.",
+          lookupUnavailable: "destination lookup data is unavailable",
+          errOutsideBounds: "shared location is outside the coverage bounds",
+          errInvalidRequirement: item => `invalid shared requirement: ${item}`,
+          errInvalidMode: mode => `invalid shared view mode: ${mode}`,
+          errInvalidLang: value => `invalid shared language: ${value}`,
+          zoomIn: "Zoom in",
+          zoomOut: "Zoom out",
+          geolocate: "Find my location",
+          toggleAttribution: "Toggle attribution"
+        }
+      };
+
+      function t(key, ...args) {
+        const entry = STR[lang][key];
+        return typeof entry === "function" ? entry(...args) : entry;
+      }
+      // ---- end i18n ------------------------------------------------------
       const lithuaniaBounds = [[20.35, 53.75], [27.10, 56.60]];
       const inspectZoom = 12;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
@@ -621,7 +889,15 @@
         },
         layers: baseLayers
       };
+      // The raw message is stored language-free so a later language toggle
+      // re-renders the banner; renderMapError formats it on every call.
       let persistentMapError = "";
+
+      function renderMapError() {
+        if (!persistentMapError) return;
+        document.getElementById("map-status").textContent = t("mapDataError", persistentMapError);
+        document.getElementById("panel-selection-summary").textContent = t("errorSummary");
+      }
 
       function reportMapError(error) {
         let message = error instanceof Error ? error.message : String(error ?? "Unknown error");
@@ -631,10 +907,8 @@
         } catch (_error) {
           // Ordinary errors are already readable.
         }
-        persistentMapError = `Map data error: ${message.replaceAll(/\s+/g, " ").trim()}`;
-        document.getElementById("map-status").textContent = persistentMapError;
-        document.getElementById("panel-selection-summary").textContent =
-          "Map data error · open filters for details";
+        persistentMapError = message.replaceAll(/\s+/g, " ").trim();
+        renderMapError();
       }
 
       window.addEventListener("error", event => reportMapError(event.error ?? event.message));
@@ -703,7 +977,7 @@
         mapPanel.dataset.collapsed = String(collapsed);
         const toggle = document.getElementById("panel-toggle");
         toggle.setAttribute("aria-expanded", String(!collapsed));
-        document.getElementById("panel-toggle-label").textContent = collapsed ? "Filters" : "Close";
+        document.getElementById("panel-toggle-label").textContent = collapsed ? t("filters") : t("closePanel");
         requestAnimationFrame(updateMobileLayout);
       }
 
@@ -788,9 +1062,15 @@
         return mode ? `&mode=${mode}` : "";
       }
 
+      // Mirrors the mode= style: omitted whenever it adds nothing — the
+      // default language stays out of the URL, so old links stay clean.
+      function langParam() {
+        return lang === "lt" ? "" : `&lang=${lang}`;
+      }
+
       function inspectionHash(lngLat) {
         return `#at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}` +
-          `&requirements=${requirementsParam()}${effectiveModeParam()}`;
+          `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}`;
       }
 
       let lastWrittenHash = "";
@@ -822,7 +1102,7 @@
         writeHash(
           `#requirements=${requirementsParam()}` +
           `&view=${center.lng.toFixed(5)},${center.lat.toFixed(5)},${map.getZoom().toFixed(2)}` +
-          effectiveModeParam()
+          effectiveModeParam() + langParam()
         );
       }
 
@@ -840,7 +1120,7 @@
             candidate.mode === mode && candidate.minutes === minutes
           );
           if (!service || !preset || extra.length) {
-            throw new Error(`invalid shared requirement: ${item}`);
+            throw new Error(t("errInvalidRequirement", item));
           }
           return { service, preset };
         });
@@ -863,9 +1143,124 @@
       function parseSharedViewMode(parameters) {
         const shared = parameters.get("mode");
         if (shared !== null && !viewModes.includes(shared)) {
-          throw new Error(`invalid shared view mode: ${shared}`);
+          throw new Error(t("errInvalidMode", shared));
         }
         return shared;
+      }
+
+      // Shared-link language: same strict validate-then-apply contract as
+      // mode=. Absent means the default (Lithuanian).
+      function parseSharedLang(parameters) {
+        const shared = parameters.get("lang");
+        if (shared !== null && !languages.includes(shared)) {
+          throw new Error(t("errInvalidLang", shared));
+        }
+        return shared;
+      }
+
+      // Every string the DOM holds statically; rerun on language change.
+      // The document ships with the Lithuanian defaults, so the initial
+      // applyLanguage("lt") is a no-op by design.
+      function applyStaticStrings() {
+        document.documentElement.lang = lang;
+        document.title = t("docTitle");
+        document.getElementById("map").setAttribute("aria-label", t("mapAria"));
+        mapPanel.setAttribute("aria-label", t("panelAria"));
+        document.getElementById("app-title").textContent = t("appTitle");
+        const langToggle = document.getElementById("lang-toggle");
+        langToggle.textContent = t("langToggle");
+        langToggle.setAttribute("aria-label", t("langToggleAria"));
+        langToggle.setAttribute("lang", lang === "lt" ? "en" : "lt");
+        document.getElementById("panel-toggle-label").textContent =
+          mapPanel.dataset.collapsed === "true" ? t("filters") : t("closePanel");
+        const selectionSummary = document.getElementById("panel-selection-summary");
+        selectionSummary.setAttribute("aria-label", t("expandFilters"));
+        document.getElementById("quick-actions").setAttribute("aria-label", t("quickViews"));
+        const quickViewTexts = { coffee: "qvCoffee", everyday: "qvEveryday", all: "qvAll", clear: "qvClear" };
+        document.querySelectorAll("#quick-actions button").forEach(button => {
+          button.textContent = t(quickViewTexts[button.dataset.view]);
+        });
+        document.getElementById("view-switcher").setAttribute("aria-label", t("viewModeAria"));
+        const modeTexts = { bands: "modeBands", intersect: "modeIntersect", score: "modeScore" };
+        document.querySelectorAll("#view-switcher button").forEach(button => {
+          button.textContent = t(modeTexts[button.dataset.mode]);
+        });
+        document.getElementById("show-places-label").textContent = t("showPlaces");
+        document.getElementById("panel-inspect").textContent = t("inspectMapCenter");
+        document.getElementById("panel-done").textContent = t("viewMap");
+        document.getElementById("source-note").textContent = t("sourceNote");
+        document.getElementById("inspect-center").textContent = t("inspectCenter");
+        document.getElementById("location-dialog-title").textContent = t("dialogTitle");
+        document.getElementById("dialog-close").setAttribute("aria-label", t("closeDialog"));
+        if (!metadata && !persistentMapError) {
+          selectionSummary.textContent = t("loadingFilters");
+          document.getElementById("summary-text").textContent = t("loadingData");
+          document.getElementById("map-status").textContent = t("loadingMap");
+        }
+        localizeMapControls();
+      }
+
+      // MapLibre's stock control buttons carry English tooltips; restate
+      // them from the string table (there is no public setLocale to do it).
+      function localizeMapControls() {
+        [
+          [".maplibregl-ctrl-zoom-in", "zoomIn"],
+          [".maplibregl-ctrl-zoom-out", "zoomOut"],
+          [".maplibregl-ctrl-geolocate", "geolocate"],
+          [".maplibregl-ctrl-attrib-button", "toggleAttribution"]
+        ].forEach(([selector, key]) => {
+          const control = document.querySelector(selector);
+          if (!control) return;
+          control.title = t(key);
+          control.setAttribute("aria-label", t(key));
+        });
+      }
+
+      function renderSummaryText() {
+        const totalPlaces = metadata.services.reduce((sum, service) => sum + service.place_count, 0);
+        document.getElementById("summary-text").textContent = t("summaryLoaded", totalPlaces);
+      }
+
+      function updateServiceCardTexts() {
+        metadata.services.forEach(service => {
+          const card = document.querySelector(`[data-service="${service.id}"]`);
+          card.querySelector(".service-heading strong").textContent = serviceLabel(service);
+          card.querySelector(".service-count").textContent = t("placesCount", service.place_count);
+          card.querySelector(".service-description").textContent = serviceDescription(service);
+          card.querySelector(".preset-choices")
+            .setAttribute("aria-label", t("travelTimeAria", serviceLabel(service)));
+          card.querySelectorAll("button[data-role='preset']").forEach(button => {
+            const [mode, minutes] = button.dataset.preset.split(":");
+            button.textContent = presetLabel({ mode, minutes: Number(minutes) });
+          });
+        });
+      }
+
+      // Language application without a map re-render (for the hash path,
+      // where refreshMap follows anyway).
+      function applyLanguage(next) {
+        if (next === lang) return;
+        lang = next;
+        applyStaticStrings();
+        if (metadata) {
+          updateServiceCardTexts();
+          renderSummaryText();
+        }
+        renderMapError();
+      }
+
+      // The toggle: re-render everything live and put lang= in the URL.
+      // refreshMap re-renders the legend/status/switcher, and re-runs the
+      // open inspection (whose own hash write carries the language); the
+      // view-hash write below covers the no-inspection case immediately.
+      function setLanguage(next) {
+        if (next === lang) return;
+        applyLanguage(next);
+        if (!metadata) return;
+        refreshMap();
+        if (!inspectionOrigin && !document.getElementById("location-dialog").open) {
+          updateViewHash();
+        }
       }
 
       function inspectionCenter() {
@@ -915,28 +1310,28 @@
           enabled.checked = service.id === "coffee";
           enabled.dataset.role = "enabled";
           const title = document.createElement("strong");
-          title.textContent = service.label;
+          title.textContent = serviceLabel(service);
           const count = document.createElement("span");
           count.className = "service-count";
-          count.textContent = `${service.place_count.toLocaleString()} places`;
+          count.textContent = t("placesCount", service.place_count);
           heading.append(enabled, title, count);
 
           const description = document.createElement("p");
           description.className = "service-description";
-          description.textContent = service.description;
+          description.textContent = serviceDescription(service);
 
           const controls = document.createElement("div");
           controls.className = "service-controls";
           const presets = document.createElement("div");
           presets.className = "preset-choices";
           presets.setAttribute("role", "group");
-          presets.setAttribute("aria-label", `${service.label} travel time`);
+          presets.setAttribute("aria-label", t("travelTimeAria", serviceLabel(service)));
           service.presets.forEach(preset => {
             const button = document.createElement("button");
             button.type = "button";
             button.dataset.role = "preset";
             button.dataset.preset = `${preset.mode}:${preset.minutes}`;
-            button.textContent = preset.label;
+            button.textContent = presetLabel(preset);
             button.setAttribute(
               "aria-pressed",
               String(button.dataset.preset === `${defaultPreset.mode}:${defaultPreset.minutes}`)
@@ -1165,9 +1560,9 @@
           const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
           button.disabled = bandsLocked;
           if (bandsLocked) {
-            button.title = "Pick one service to see its time bands";
+            button.title = t("hintBandsLocked");
           } else if (button.dataset.mode !== "bands" && selectionCount === 1) {
-            button.title = "A single requirement is shown as its time bands; select another service to compare";
+            button.title = t("hintSingleBands");
           } else {
             button.title = "";
           }
@@ -1198,19 +1593,18 @@
         row.className = "legend-row";
         if (mode === "bands") {
           const focus = selections[0];
-          title.textContent =
-            `${focus.service.label} · minutes by ${focus.preset.mode === "walk" ? "walking" : "driving"}`;
+          title.textContent = t("legendBandsTitle", serviceLabel(focus.service), focus.preset.mode);
           bandColors(focus).forEach(band => row.append(legendItem(
-            band.color, `${band.minutes} min`, band.minutes === focus.preset.minutes
+            band.color, t("legendMinutes", band.minutes), band.minutes === focus.preset.minutes
           )));
         } else if (mode === "intersect") {
-          title.textContent = "Selected requirements";
-          row.append(legendItem(intersectInk, `Meets all ${selections.length}`));
-          row.append(legendItem(contextGray, "Meets some"));
+          title.textContent = t("legendSelectedTitle");
+          row.append(legendItem(intersectInk, t("legendMeetsAll", selections.length)));
+          row.append(legendItem(contextGray, t("legendMeetsSome")));
         } else {
-          title.textContent = `How many of ${selections.length} requirements are met`;
+          title.textContent = t("legendScoreTitle", selections.length);
           scoreRamp(selections.length).forEach((color, index) =>
-            row.append(legendItem(color, `${index + 1} of ${selections.length}`)));
+            row.append(legendItem(color, t("legendScoreItem", index + 1, selections.length))));
         }
         legend.append(title, row);
       }
@@ -1233,33 +1627,32 @@
         const mode = effectiveViewMode(selections.length);
         const summary = document.getElementById("panel-selection-summary");
         if (persistentMapError) {
-          document.getElementById("map-status").textContent = persistentMapError;
-          summary.textContent = "Map data error · open filters for details";
+          renderMapError();
           return;
         }
         document.getElementById("map-status").textContent = selections.length
-          ? `${selections.length} ${selections.length === 1 ? "requirement" : "requirements"} selected · tap or click the map to test every one.`
-          : "No requirements selected.";
+          ? t("statusSelected", selections.length)
+          : t("statusNone");
         // Collapsed-mobile legend (§3.4): a mode chip plus one mini-swatch
         // chip per active requirement; tapping the row expands the panel.
         summary.replaceChildren();
         if (!mode) {
-          summary.textContent = "No requirements selected";
+          summary.textContent = t("summaryNone");
           return;
         }
         if (mode === "bands") {
           const colors = bandColors(selections[0]).map(band => band.color);
-          summary.append(summaryChip("Time bands", `linear-gradient(90deg, ${colors.join(", ")})`));
+          summary.append(summaryChip(t("chipBands"), `linear-gradient(90deg, ${colors.join(", ")})`));
         } else if (mode === "intersect") {
-          summary.append(summaryChip(`All ${selections.length}`, intersectInk));
+          summary.append(summaryChip(t("chipAll", selections.length), intersectInk));
         } else {
-          summary.append(summaryChip("How many",
+          summary.append(summaryChip(t("chipScore"),
             `linear-gradient(90deg, ${scoreRamp(selections.length).join(", ")})`));
         }
         selections.forEach(selection => summary.append(summaryChip(
-          selection.service.label,
+          serviceLabel(selection.service),
           serviceStyles[selection.service.id].color,
-          `${selection.service.label} · ${selection.preset.label}`
+          `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
         )));
       }
 
@@ -1338,11 +1731,12 @@
         destinations.forEach(destination => {
           const item = document.createElement("li");
           const label = document.createElement("span");
-          label.textContent = destination.name || destination.brand || `Unnamed ${kindLabels[destination.kind]?.toLowerCase() || "destination"}`;
+          label.textContent = destination.name || destination.brand ||
+            t("unnamedKind", kindLabelTables[lang][destination.kind] || t("genericDestination"));
           const meta = document.createElement("span");
           meta.className = "destination-kind";
           const distance = haversineMeters(origin, destination);
-          meta.textContent = `${kindLabels[destination.kind] || destination.kind} · ${(distance / 1000).toFixed(1)} km straight-line`;
+          meta.textContent = t("destinationMeta", kindLabel(destination.kind), formatKm(distance));
           const text = document.createElement("span");
           text.append(label, document.createElement("br"), meta);
           const link = document.createElement("a");
@@ -1350,7 +1744,7 @@
           link.href = valhallaRouteUrl(origin, destination, mode);
           link.target = "_blank";
           link.rel = "noopener noreferrer";
-          link.textContent = "Live route";
+          link.textContent = t("liveRoute");
           item.append(text, link);
           list.append(item);
         });
@@ -1413,7 +1807,7 @@
         const card = document.createElement("section");
         card.className = "clicked-place";
         const title = document.createElement("h3");
-        title.textContent = features.length === 1 ? "Selected place" : "Selected places";
+        title.textContent = t("selectedPlaces", features.length);
         card.append(title);
         const chips = document.createElement("div");
         chips.className = "place-chips";
@@ -1422,7 +1816,7 @@
           const chip = document.createElement("span");
           chip.className = "place-chip";
           chip.style.setProperty("--service-color", serviceStyles[properties.service]?.color || "#64748b");
-          chip.textContent = `${properties.name || properties.brand || "Unnamed"} · ${kindLabels[properties.kind] || properties.kind}`;
+          chip.textContent = `${properties.name || properties.brand || t("unnamed")} · ${kindLabel(properties.kind)}`;
           chips.append(chip);
         }
         card.append(chips);
@@ -1474,7 +1868,7 @@
           });
         });
         document.getElementById("location-coordinates").textContent =
-          `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
+          t("coordsLine", `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)}`);
         renderClickedPlaces(markerFeatures.map(feature => ({
           ...feature,
           properties: {
@@ -1499,14 +1893,14 @@
           row.className = "status-row";
           const pill = document.createElement("span");
           pill.className = "status-pill";
-          pill.textContent = pass ? "Available" : "Not found";
+          pill.textContent = pass ? t("pillAvailable") : t("pillNotFound");
           const heading = document.createElement("h3");
-          heading.textContent = service.label;
+          heading.textContent = serviceLabel(service);
           row.append(pill, heading);
           const summary = document.createElement("p");
           summary.textContent = destinations.length
-            ? `${destinations.length.toLocaleString()} ${destinations.length === 1 ? "option" : "options"} within ${preset.label}. Closest by straight-line distance.`
-            : `No ${service.label.toLowerCase()} matched ${preset.label} at this point.`;
+            ? t("resultSummary", destinations.length, presetLabel(preset))
+            : t("resultNone", serviceLabel(service), presetLabel(preset));
           card.append(row, summary);
           if (destinations.length) {
             const first = destinations.slice(0, 3);
@@ -1515,7 +1909,7 @@
               const details = document.createElement("details");
               details.className = "more-destinations";
               const detailsSummary = document.createElement("summary");
-              detailsSummary.textContent = `Show ${destinations.length - first.length} more`;
+              detailsSummary.textContent = t("showMore", destinations.length - first.length);
               details.append(detailsSummary);
               details.addEventListener("toggle", () => {
                 if (!details.open || details.dataset.loaded) return;
@@ -1531,9 +1925,9 @@
         const intersection = document.getElementById("intersection-summary");
         intersection.textContent = requirements.length
           ? passed === requirements.length
-            ? `Meets all ${requirements.length} selected requirements.`
-            : `Meets ${passed} of ${requirements.length} selected requirements.`
-          : "Select at least one requirement to inspect this location.";
+            ? t("meetsAllSelected", requirements.length)
+            : t("meetsSomeSelected", passed, requirements.length)
+          : t("selectToInspect");
         results.setAttribute("aria-busy", "false");
         const dialog = document.getElementById("location-dialog");
         if (!dialog.open) dialog.showModal();
@@ -1546,7 +1940,7 @@
           false
         );
         if (map.getZoom() < inspectZoom) {
-          document.getElementById("map-status").textContent = "Zooming in to load concrete destinations…";
+          document.getElementById("map-status").textContent = t("zoomingIn");
           map.easeTo({
             center: lngLat,
             zoom: inspectZoom,
@@ -1599,7 +1993,7 @@
 
       function renderInspectionError(lngLat, updateHash) {
         if (!persistentMapError) {
-          reportMapError(new Error("destination lookup data is unavailable"));
+          reportMapError(new Error(t("lookupUnavailable")));
         }
         if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
         locationMarker.setLngLat(lngLat).addTo(map);
@@ -1607,14 +2001,12 @@
           updateInspectionHash(lngLat);
         }
         document.getElementById("location-coordinates").textContent =
-          `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
+          t("coordsLine", `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}`);
         document.getElementById("clicked-place").replaceChildren();
-        document.getElementById("intersection-summary").textContent =
-          "Could not evaluate the selected requirements.";
+        document.getElementById("intersection-summary").textContent = t("cannotEvaluate");
         const message = document.createElement("p");
         message.className = "status";
-        message.textContent =
-          "Destination lookup data failed to load. No availability conclusion was made.";
+        message.textContent = t("lookupFailed");
         const results = document.getElementById("location-results");
         results.replaceChildren(message);
         results.setAttribute("aria-busy", "false");
@@ -1636,8 +2028,8 @@
           updateInspectionHash(lngLat);
         }
         document.getElementById("location-coordinates").textContent =
-          `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
-        document.getElementById("intersection-summary").textContent = "Loading destination details…";
+          t("coordsLine", `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}`);
+        document.getElementById("intersection-summary").textContent = t("loadingDetails");
         const results = document.getElementById("location-results");
         results.replaceChildren();
         results.setAttribute("aria-busy", "true");
@@ -1667,17 +2059,19 @@
           if (!Number.isFinite(lngLat.lng) || !Number.isFinite(lngLat.lat) ||
               lngLat.lng < minLon || lngLat.lng > maxLon ||
               lngLat.lat < minLat || lngLat.lat > maxLat) {
-            reportMapError(new Error("shared location is outside the coverage bounds"));
+            reportMapError(new Error(t("errOutsideBounds")));
             return;
           }
           try {
-            // Validate the mode before applying the requirements
-            // (applySharedRequirements itself validates fully before
-            // mutating), so a bad hash applies nothing at all.
+            // Validate the mode and language before applying the
+            // requirements (applySharedRequirements itself validates fully
+            // before mutating), so a bad hash applies nothing at all.
             const sharedMode = parseSharedViewMode(parameters);
+            const sharedLang = parseSharedLang(parameters);
             const sharedRequirements = parameters.get("requirements");
             if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
             if (sharedMode !== null) viewMode = sharedMode;
+            applyLanguage(sharedLang ?? "lt");
           } catch (error) {
             reportMapError(error);
             return;
@@ -1694,13 +2088,16 @@
           });
           return;
         }
-        // View-only hash: restore requirements, view mode, and camera; no
-        // inspect dialog. Same validate-then-apply order as the at= path.
+        // View-only hash: restore requirements, view mode, language, and
+        // camera; no inspect dialog. Same validate-then-apply order as the
+        // at= path.
         try {
           const sharedMode = parseSharedViewMode(parameters);
+          const sharedLang = parseSharedLang(parameters);
           const sharedRequirements = parameters.get("requirements");
           if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
           if (sharedMode !== null) viewMode = sharedMode;
+          applyLanguage(sharedLang ?? "lt");
         } catch (error) {
           reportMapError(error);
           return;
@@ -1740,9 +2137,11 @@
         map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
         map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 8, duration: 0 });
 
-        const totalPlaces = metadata.services.reduce((sum, service) => sum + service.place_count, 0);
-        document.getElementById("summary-text").textContent =
-          `${totalPlaces.toLocaleString()} routed service destinations from one OpenStreetMap snapshot.`;
+        renderSummaryText();
+        localizeMapControls();
+        document.getElementById("lang-toggle").addEventListener("click", () =>
+          setLanguage(lang === "lt" ? "en" : "lt")
+        );
         document.querySelectorAll("[data-view]").forEach(button =>
           button.addEventListener("click", () => applyQuickView(button.dataset.view))
         );
@@ -1800,8 +2199,11 @@
         if (mobileMedia.matches) collapseCompactAttribution();
         refreshMap();
         applyLocationHash();
+        // A hashless load gets its canonical hash immediately (no debounce),
+        // so the URL reflects the default state from first paint.
+        if (location.hash.length <= 1) updateViewHash();
       }).catch(error => {
-        document.getElementById("summary-text").textContent = `Could not load generated data: ${error}`;
+        document.getElementById("summary-text").textContent = t("couldNotLoad", error);
         reportMapError(error);
         console.error(error);
       });
