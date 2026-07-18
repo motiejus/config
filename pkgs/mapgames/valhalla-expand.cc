@@ -1560,7 +1560,12 @@ void slice_group(const Line &line, const std::vector<MergePiece> &pieces,
 
 // §1.3 step 7: group pieces by serialized attribute map, one Feature per
 // group, MultiLineString members in canonical-key order, features in
-// serialized-attribute-map order.
+// serialized-attribute-map order. Each feature additionally carries `g` =
+// its index in emission order (0..N-1 in file order) — the group id of the
+// low-zoom fast-path (docs/lowzoom-fastpath.md §2.2/§5 L1): the single
+// source of truth that coarsen.py carries through and that the planned L3
+// metadata `groups` list is derived from. `g` is a per-build index; it must
+// never be persisted client-side across deploys (risk R-L5).
 void write_network_collection(const std::filesystem::path &path,
                               const NetworkPieces &pieces,
                               const std::vector<MergeRequirement> &requirements,
@@ -1576,13 +1581,23 @@ void write_network_collection(const std::filesystem::path &path,
   output << "{\"type\":\"FeatureCollection\",\"bbox\":" << bbox_json(bounds)
          << ",\"features\":[";
   bool first = true;
+  size_t group_index = 0;
   for (const auto &[attributes, grouped_lines] : groups) {
     if (!first) {
       output << ',';
     }
     first = false;
-    output << "{\"type\":\"Feature\",\"properties\":" << attributes
-           << ",\"geometry\":";
+    // Splice "g" into the serialized attribute map: {...attrs...,"g":N}.
+    // Empty attribute maps are skipped at segmentation time, so the map
+    // always has at least one key; assert rather than special-case.
+    if (attributes.size() < 3 || attributes.back() != '}') {
+      throw std::runtime_error("unexpected empty attribute map for group " +
+                               std::to_string(group_index));
+    }
+    output << "{\"type\":\"Feature\",\"properties\":"
+           << attributes.substr(0, attributes.size() - 1) << ",\"g\":"
+           << group_index << "},\"geometry\":";
+    ++group_index;
     write_multiline(output, grouped_lines);
     output << '}';
   }
