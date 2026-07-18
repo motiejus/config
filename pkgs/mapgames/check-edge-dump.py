@@ -1,21 +1,29 @@
 #!/usr/bin/env python3
-"""Gate checker for the edge-interval dump (unified-access-layer step 3).
+"""Independent checker for the edge-interval dump (unified-access-layer).
 
-Re-derives coverage-<route_key>.geojson from edges-<route_key>.tsv alone —
+Re-derives legacy-format coverage GeoJSON from edges-<route_key>.tsv alone —
 running the single-service degenerate case of the docs/unified-access-layer.md
 section 1.3 segmentation, including the mandatory step-0 geometry-string
-pre-merge of dual-digitized edges — and byte-compares the result against the
-pipeline's own coverage output. This is deliberately independent code: it
-shares no functions with valhalla-expand.cc, only its normative constants
-(1e-12 tolerances, 1e-7 rounding, 0.01 m minimum length) and output format.
+pre-merge of dual-digitized edges — enforcing the dump invariants on the way
+(canonical geometry orientation, dual-digitization geometry consistency, band
+nesting). This is deliberately independent code: it shares no functions with
+valhalla-expand.cc, only its normative constants (1e-12 tolerances, 1e-7
+rounding, 0.01 m minimum length) and output format.
+
+The pipeline stopped writing coverage-<route_key>.geojson at step 7 of the
+design doc's phasing, so there is no in-tree reference to byte-compare by
+default; the derivation itself is the check. Because the derived bytes are
+pure geometry (no uint64 edge ids, which are stable only within one graph
+build), --write-derived output from two different graph builds of the same
+extract is directly comparable — use it to diff dump content across rebuilds.
 
 usage: check-edge-dump.py --dump edges-coffee-walk.tsv \
-           --coverage coverage-coffee-walk.geojson \
            --bounds 24.95,54.52,25.55,54.92 --minutes 5,10,20 \
-           --service coffee --mode walk
+           --service coffee --mode walk \
+           [--coverage reference.geojson] [--write-derived derived.geojson]
 
-Exits 0 and prints a verdict when the re-derived bytes equal the reference;
-exits 1 otherwise.
+Exits 0 and prints a verdict when the derivation succeeds (and, with
+--coverage, the re-derived bytes equal the reference); exits 1 otherwise.
 """
 
 import argparse
@@ -305,9 +313,10 @@ def premerge_by_geometry(entries, minutes):
 
 
 def derive_coverage(groups, minutes, bounds):
-    """Sections 1.3 steps 1-3 degenerate to one service (coverage_lines()
-    semantics): classify by first containing band, coalesce runs, slice
-    against one shared measure, clip, canonicalize, min/max on collision."""
+    """Sections 1.3 steps 1-3 degenerate to one service (the semantics of the
+    retired coverage_lines() writer): classify by first containing band,
+    coalesce runs, slice against one shared measure, clip, canonicalize,
+    min/max on collision."""
     result = {}
 
     def add_segment(line, cumulative, total, start, end, min_minutes, max_minutes):
@@ -425,7 +434,8 @@ def write_coverage(result, bounds, service, mode):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dump", required=True)
-    parser.add_argument("--coverage", required=True)
+    parser.add_argument("--coverage")
+    parser.add_argument("--write-derived")
     parser.add_argument("--bounds", required=True)
     parser.add_argument("--minutes", required=True)
     parser.add_argument("--service", required=True)
@@ -442,16 +452,24 @@ def main():
     entries = parse_dump(args.dump, minutes)
     groups = premerge_by_geometry(entries, minutes)
     coverage = derive_coverage(groups, minutes, bounds)
+    if not coverage:
+        raise SystemExit(f"{args.dump}: derived coverage is empty")
     derived = write_coverage(coverage, bounds, args.service, args.mode)
+    if args.write_derived:
+        with open(args.write_derived, "wb") as handle:
+            handle.write(derived)
+    summary = (
+        f"{args.dump}: {len(entries)} dump entries -> "
+        f"{len(groups)} merged geometries -> {len(coverage)} pieces "
+        f"({len(derived)} derived bytes)"
+    )
+    if args.coverage is None:
+        print(f"OK: {summary}; dump invariants hold")
+        return 0
     with open(args.coverage, "rb") as handle:
         reference = handle.read()
     if derived == reference:
-        print(
-            f"OK: {args.dump}: {len(entries)} dump entries -> "
-            f"{len(groups)} merged geometries -> {len(coverage)} pieces; "
-            f"re-derived coverage is byte-identical to {args.coverage} "
-            f"({len(reference)} bytes)"
-        )
+        print(f"OK: {summary}; byte-identical to {args.coverage}")
         return 0
     print(
         f"MISMATCH: re-derived coverage ({len(derived)} bytes) differs from "

@@ -87,21 +87,6 @@ struct DestinationEdge {
 
 using DestinationEdges = std::map<uint64_t, DestinationEdge>;
 
-struct CoverageEdge {
-  Line line;
-  std::vector<std::vector<Interval>> intervals;
-};
-
-using CoverageEdges = std::map<std::string, CoverageEdge>;
-
-struct CoverageLine {
-  Line line;
-  int min_minutes;
-  int max_minutes;
-};
-
-using CoverageLines = std::map<std::string, CoverageLine>;
-
 struct Edge {
   uint64_t id;
   uint64_t pred_id;
@@ -840,39 +825,6 @@ DestinationLines destination_lines(const DestinationEdges &edges,
   return result;
 }
 
-// Geometry-string pre-merge ("step 0"): group the uint64-keyed destination
-// edges by their canonical geometry string so distinct graph edges with
-// identical rounded geometry (dual digitization) concatenate their interval
-// lists per band, exactly as the string-keyed maps merged them before the
-// uint64 refactor. merge_coverage_bands() then re-runs merge_intervals() on
-// each concatenation (it sorts, so member order does not matter).
-void add_coverage_band(CoverageEdges &coverage,
-                       const DestinationEdges &destinations,
-                       size_t minute_index, size_t minute_count) {
-  for (const auto &[canonical_id, destination] : destinations) {
-    static_cast<void>(canonical_id);
-    auto [entry, inserted] = coverage.try_emplace(
-        destination.key,
-        CoverageEdge{destination.line,
-                     std::vector<std::vector<Interval>>(minute_count)});
-    static_cast<void>(inserted);
-    std::vector<Interval> &band = entry->second.intervals[minute_index];
-    band.reserve(band.size() + destination.intervals.size());
-    for (const DestinationInterval &item : destination.intervals) {
-      band.push_back(item.interval);
-    }
-  }
-}
-
-void merge_coverage_bands(CoverageEdges &coverage) {
-  for (auto &[key, edge] : coverage) {
-    static_cast<void>(key);
-    for (std::vector<Interval> &band : edge.intervals) {
-      band = merge_intervals(std::move(band));
-    }
-  }
-}
-
 bool contains(const std::vector<Interval> &intervals, double position) {
   return std::any_of(
       intervals.begin(), intervals.end(), [&](const Interval &interval) {
@@ -881,12 +833,12 @@ bool contains(const std::vector<Interval> &intervals, double position) {
 }
 
 // One edge-interval dump entry: the canonical geometry of one uint64
-// canonical edge id plus its per-band merged interval lists. Unlike
-// CoverageEdges this map stays keyed by the uint64 id — the geometry-string
-// pre-merge of dual-digitized edges is deliberately NOT applied here: a
-// dual-digitized group's uint64 representative can differ across routes when
-// a route reaches only one member, so the pre-merge belongs in every dump
-// consumer, never in the dump itself.
+// canonical edge id plus its per-band merged interval lists. This map stays
+// keyed by the uint64 id — the geometry-string pre-merge of dual-digitized
+// edges is deliberately NOT applied here: a dual-digitized group's uint64
+// representative can differ across routes when a route reaches only one
+// member, so the pre-merge belongs in every dump consumer, never in the dump
+// itself.
 struct DumpEdge {
   Line line;
   std::vector<std::vector<Interval>> bands;
@@ -924,8 +876,8 @@ collect_dump_edges(const std::vector<DestinationEdges> &destinations_by_minute,
 
 // Dump consumers re-derive band membership from the intervals alone, so
 // enforce the band-nesting invariant per uint64 entry at dump time with the
-// same midpoint classification coverage_lines() applies to the string-merged
-// coverage edges.
+// same midpoint classification the merge tool's segment_group() applies to
+// the string-merged geometry groups.
 void verify_dump_nesting(const DumpEdges &edges) {
   for (const auto &[canonical_id, edge] : edges) {
     std::vector<double> endpoints;
@@ -1025,97 +977,6 @@ void write_edge_dump(const std::filesystem::path &path, const DumpEdges &edges,
   }
 }
 
-void add_coverage_segment(CoverageLines &coverage, const Line &line,
-                          const LineMeasure &measure, double start, double end,
-                          int min_minutes, int max_minutes,
-                          const Bounds &bounds) {
-  const Line segment = slice_line(line, measure, start, end);
-  for (const Line &clipped : clip_line(segment, bounds)) {
-    CanonicalLine canonical = canonical_line(clipped);
-    if (canonical.line.empty()) {
-      continue;
-    }
-    auto [entry, inserted] = coverage.try_emplace(
-        std::move(canonical.key),
-        CoverageLine{std::move(canonical.line), min_minutes, max_minutes});
-    if (!inserted) {
-      entry->second.min_minutes =
-          std::min(entry->second.min_minutes, min_minutes);
-      entry->second.max_minutes =
-          std::max(entry->second.max_minutes, max_minutes);
-    }
-  }
-}
-
-CoverageLines coverage_lines(const CoverageEdges &edges,
-                             const std::vector<int> &minutes,
-                             const Bounds &bounds) {
-  CoverageLines result;
-  for (const auto &[key, edge] : edges) {
-    static_cast<void>(key);
-    const LineMeasure measure = measure_line(edge.line);
-    std::vector<double> endpoints;
-    for (const auto &band : edge.intervals) {
-      for (const Interval &interval : band) {
-        endpoints.push_back(interval.start);
-        endpoints.push_back(interval.end);
-      }
-    }
-    std::sort(endpoints.begin(), endpoints.end());
-    endpoints.erase(std::unique(endpoints.begin(), endpoints.end(),
-                                [](double left, double right) {
-                                  return std::abs(left - right) <= 1e-12;
-                                }),
-                    endpoints.end());
-
-    std::optional<size_t> pending_minute;
-    double pending_start = 0;
-    double pending_end = 0;
-    const auto flush_pending = [&]() {
-      if (pending_minute) {
-        add_coverage_segment(result, edge.line, measure, pending_start,
-                             pending_end, minutes[*pending_minute],
-                             minutes.back(), bounds);
-        pending_minute.reset();
-      }
-    };
-
-    for (size_t endpoint_index = 1; endpoint_index < endpoints.size();
-         ++endpoint_index) {
-      const double start = endpoints[endpoint_index - 1];
-      const double end = endpoints[endpoint_index];
-      if (end - start <= 1e-12) {
-        continue;
-      }
-      const double midpoint = (start + end) / 2.0;
-      std::optional<size_t> first_minute;
-      for (size_t minute_index = 0; minute_index < minutes.size();
-           ++minute_index) {
-        const bool present = contains(edge.intervals[minute_index], midpoint);
-        if (present && !first_minute) {
-          first_minute = minute_index;
-        } else if (!present && first_minute) {
-          throw std::runtime_error(
-              "reachable edge intervals are not nested by minute threshold");
-        }
-      }
-      if (first_minute == pending_minute && pending_minute &&
-          std::abs(pending_end - start) <= 1e-12) {
-        pending_end = end;
-      } else {
-        flush_pending();
-        if (first_minute) {
-          pending_minute = first_minute;
-          pending_start = start;
-          pending_end = end;
-        }
-      }
-    }
-    flush_pending();
-  }
-  return result;
-}
-
 void write_line(std::ostream &output, const Line &line) {
   output << '[' << std::setprecision(15);
   for (size_t index = 0; index < line.size(); ++index) {
@@ -1189,41 +1050,6 @@ void write_destination_collection(const std::filesystem::path &path,
     output << "{\"type\":\"Feature\",\"properties\":{\"minutes\":" << minutes
            << ",\"mode\":" << json_string(mode)
            << ",\"lookup_ids\":" << json_string(lookup_ids)
-           << ",\"service\":" << json_string(service) << "},\"geometry\":";
-    write_multiline(output, grouped_lines);
-    output << '}';
-  }
-  output << "]}\n";
-  if (!output) {
-    throw std::runtime_error("could not write output: " + path.string());
-  }
-}
-
-void write_coverage_collection(const std::filesystem::path &path,
-                               const CoverageLines &lines, const Bounds &bounds,
-                               const std::string &service,
-                               const std::string &mode) {
-  std::ofstream output(path, std::ios::binary);
-  if (!output) {
-    throw std::runtime_error("could not open output: " + path.string());
-  }
-  std::map<std::pair<int, int>, Lines> groups;
-  for (const auto &[key, coverage_line] : lines) {
-    groups[{coverage_line.min_minutes, coverage_line.max_minutes}].emplace(
-        key, coverage_line.line);
-  }
-  output << "{\"type\":\"FeatureCollection\",\"bbox\":" << bbox_json(bounds)
-         << ",\"features\":[";
-  bool first = true;
-  for (const auto &[minute_range, grouped_lines] : groups) {
-    if (!first) {
-      output << ',';
-    }
-    first = false;
-    output << "{\"type\":\"Feature\",\"properties\":{"
-           << "\"direction\":\"to_destination\",\"min_minutes\":"
-           << minute_range.first << ",\"max_minutes\":" << minute_range.second
-           << ",\"mode\":" << json_string(mode)
            << ",\"service\":" << json_string(service) << "},\"geometry\":";
     write_multiline(output, grouped_lines);
     output << '}';
@@ -1874,7 +1700,7 @@ int merge_network_main(const std::vector<std::string> &args) {
 
 void usage(const char *argv0) {
   std::cerr << "usage: " << argv0
-            << " CONFIG REQUESTS_TSV DESTINATIONS_DIR COVERAGE_DIR THREADS"
+            << " CONFIG REQUESTS_TSV OUT_DIR THREADS"
                " MINUTES BOUNDS ROUTE_KEY SERVICE MODE\n"
             << "       " << argv0
             << " --merge-network OUT BOUNDS DUMP... [--debug-segments FILE]\n";
@@ -1891,7 +1717,7 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
-  if (argc != 11) {
+  if (argc != 10) {
     usage(argv[0]);
     return 2;
   }
@@ -1899,14 +1725,15 @@ int main(int argc, char **argv) {
   try {
     const std::string config_path = argv[1];
     const std::filesystem::path requests_path = argv[2];
-    const std::filesystem::path destinations_dir = argv[3];
-    const std::filesystem::path coverage_dir = argv[4];
-    const size_t requested_threads = std::stoul(argv[5]);
-    const std::vector<int> minutes = parse_minutes(argv[6]);
-    const Bounds bounds = parse_bounds(argv[7]);
-    const std::string route_key = argv[8];
-    const std::string service = argv[9];
-    const std::string mode = argv[10];
+    // Destination GeoJSON and the edge-interval dump both land here (the
+    // caller's work directory; neither artifact is published).
+    const std::filesystem::path out_dir = argv[3];
+    const size_t requested_threads = std::stoul(argv[4]);
+    const std::vector<int> minutes = parse_minutes(argv[5]);
+    const Bounds bounds = parse_bounds(argv[6]);
+    const std::string route_key = argv[7];
+    const std::string service = argv[8];
+    const std::string mode = argv[9];
     if (requested_threads == 0) {
       throw std::runtime_error("threads must be positive");
     }
@@ -1941,8 +1768,7 @@ int main(int argc, char **argv) {
     mjolnir.put("max_cache_size", max_cache_size);
     std::cerr << "[mapgames] native expansion GraphReader cache cap: "
               << max_cache_size << " bytes per worker\n";
-    std::filesystem::create_directories(destinations_dir);
-    std::filesystem::create_directories(coverage_dir);
+    std::filesystem::create_directories(out_dir);
 
     std::vector<std::vector<DestinationEdges>> worker_destinations(
         worker_count, std::vector<DestinationEdges>(minutes.size()));
@@ -2080,14 +1906,6 @@ int main(int argc, char **argv) {
       }
     }
 
-    CoverageEdges coverage_edges;
-    for (size_t minute_index = 0; minute_index < minutes.size();
-         ++minute_index) {
-      add_coverage_band(coverage_edges, destinations_by_minute[minute_index],
-                        minute_index, minutes.size());
-    }
-    merge_coverage_bands(coverage_edges);
-
     std::exception_ptr output_error;
     std::mutex output_error_mutex;
     std::vector<std::jthread> output_threads;
@@ -2105,8 +1923,8 @@ int main(int argc, char **argv) {
           }
           const int minute = minutes[minute_index];
           write_destination_collection(
-              destinations_dir / ("destinations-" + route_key + "-" +
-                                  std::to_string(minute) + ".geojson"),
+              out_dir / ("destinations-" + route_key + "-" +
+                         std::to_string(minute) + ".geojson"),
               destinations, service, mode, minute, bounds);
         } catch (...) {
           std::lock_guard<std::mutex> lock(output_error_mutex);
@@ -2123,19 +1941,13 @@ int main(int argc, char **argv) {
       std::rethrow_exception(output_error);
     }
 
-    const CoverageLines coverage =
-        coverage_lines(coverage_edges, minutes, bounds);
-    if (coverage.empty()) {
-      throw std::runtime_error("coverage is empty after bbox clipping");
-    }
-    write_coverage_collection(coverage_dir /
-                                  ("coverage-" + route_key + ".geojson"),
-                              coverage, bounds, service, mode);
     const DumpEdges dump =
         collect_dump_edges(destinations_by_minute, minutes.size());
+    if (dump.empty()) {
+      throw std::runtime_error("edge-interval dump is empty");
+    }
     verify_dump_nesting(dump);
-    write_edge_dump(coverage_dir / ("edges-" + route_key + ".tsv"), dump,
-                    minutes);
+    write_edge_dump(out_dir / ("edges-" + route_key + ".tsv"), dump, minutes);
     const auto output_finished = std::chrono::steady_clock::now();
     std::cerr << "[mapgames] native parallel routing+line extraction: "
               << std::chrono::duration<double>(routing_finished -

@@ -153,12 +153,6 @@ let
 
     passthru = {
       inherit bbox lithuaniaPbf;
-      accessServices = [
-        "coffee"
-        "hospital"
-        "supermarket"
-        "fuel"
-      ];
     };
 
     meta = {
@@ -252,7 +246,7 @@ let
 
     passthru = {
       inherit data;
-      inherit (data) lithuaniaPbf accessServices;
+      inherit (data) lithuaniaPbf;
     };
 
     meta = {

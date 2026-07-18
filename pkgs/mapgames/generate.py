@@ -31,7 +31,6 @@ SERVICE_SPECS = (
         "description": "Cafes, coffee shops, and restaurants",
         "query": ("amenity=cafe", "amenity=restaurant", "shop=coffee"),
         "routes": (("walk", (5, 10, 20)),),
-        "count_bands": False,
     },
     {
         "id": "hospital",
@@ -39,7 +38,6 @@ SERVICE_SPECS = (
         "description": "Hospitals reachable by car",
         "query": ("amenity=hospital", "healthcare=hospital"),
         "routes": (("drive", (20, 30)),),
-        "count_bands": False,
     },
     {
         "id": "supermarket",
@@ -47,7 +45,6 @@ SERVICE_SPECS = (
         "description": "Full-size supermarkets",
         "query": ("shop=supermarket",),
         "routes": (("walk", (10, 20)), ("drive", (10,))),
-        "count_bands": False,
     },
     {
         "id": "fuel",
@@ -55,7 +52,6 @@ SERVICE_SPECS = (
         "description": "Fuel stations reachable by car",
         "query": ("amenity=fuel",),
         "routes": (("drive", (10, 20)),),
-        "count_bands": False,
     },
 )
 
@@ -64,7 +60,6 @@ ROUTE_SPECS = tuple(
         "service": service["id"],
         "mode": mode,
         "minutes": minutes,
-        "count_bands": service["count_bands"],
     }
     for service in SERVICE_SPECS
     for mode, minutes in service["routes"]
@@ -199,16 +194,8 @@ def place_kind(service: str, properties: dict) -> str:
     return service
 
 
-def coverage_layer_name() -> str:
-    return "coverage"
-
-
 def destination_layer_name(minutes: int) -> str:
     return f"destinations_{minutes}"
-
-
-def coverage_filename(route: dict) -> str:
-    return f"coverage-{route_key(route)}.geojson"
 
 
 def destinations_filename(route: dict, minutes: int) -> str:
@@ -236,29 +223,6 @@ def common_tile_settings(name: str, description: str, minzoom: int = COVERAGE_MI
     }
 
 
-def coverage_tile_config(route: dict, work: Path) -> dict:
-    layer = coverage_layer_name()
-    return {
-        "layers": {
-            layer: {
-                "minzoom": COVERAGE_MIN_ZOOM,
-                "maxzoom": COVERAGE_MAX_ZOOM,
-                "source": str(work / coverage_filename(route)),
-                "source_columns": ["max_minutes", "min_minutes", "mode", "service"],
-                # Only country-scale tiles are generalized. Street-scale tiles and
-                # the exported GeoJSON retain the reachable routing edges.
-                "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
-                "simplify_level": 0.00001,
-                "simplify_algorithm": "visvalingam",
-            }
-        },
-        "settings": common_tile_settings(
-            f"Mapgames {route_key(route)} access",
-            "Deduplicated reverse Valhalla expansion edges",
-        ),
-    }
-
-
 def edge_dump_filename(route: dict) -> str:
     return f"edges-{route_key(route)}.tsv"
 
@@ -271,8 +235,8 @@ def network_tile_config(work: Path) -> dict:
                 "maxzoom": COVERAGE_MAX_ZOOM,
                 "source": str(work / "network.geojson"),
                 "source_columns": sorted(REQUIREMENT_KEYS),
-                # Only country-scale tiles are generalized, as for the
-                # per-route access tiles above.
+                # Only country-scale tiles are generalized. Street-scale
+                # tiles retain the reachable routing edges.
                 "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
                 "simplify_level": 0.00001,
                 "simplify_algorithm": "visvalingam",
@@ -575,8 +539,6 @@ def main() -> None:
     routed_counts = {}
     coverage_bbox = ",".join(str(coordinate) for coordinate in country_bbox)
     for route in ROUTE_SPECS:
-        if route["count_bands"]:
-            raise RuntimeError("native reachable-line generation does not support count bands")
         key = route_key(route)
         entries = prepared[route["service"]]
         requests_path = work / f"expansion-{key}.tsv"
@@ -587,9 +549,9 @@ def main() -> None:
                 args.expansion_helper,
                 config_path,
                 requests_path,
-                work,
-                # Coverage GeoJSON is a tilemaker input only; keep it out of
-                # the published output directory.
+                # Destination GeoJSON and the edge-interval dump are tilemaker
+                # and merge-tool inputs only; keep them out of the published
+                # output directory.
                 work,
                 args.concurrency,
                 ",".join(str(minutes) for minutes in route["minutes"]),
@@ -651,29 +613,8 @@ def main() -> None:
         ],
     )
 
-    access_tiles = []
     for route in ROUTE_SPECS:
         key = route_key(route)
-        config_path = work / f"access-{key}.json"
-        write_json(config_path, coverage_tile_config(route, work))
-        tile_name = f"access-{key}.pmtiles"
-        run(
-            f"build {key} access PMTiles",
-            [
-                "tilemaker",
-                "--quiet",
-                "--bbox",
-                coverage_bbox,
-                "--output",
-                output / tile_name,
-                "--config",
-                config_path,
-                "--process",
-                args.coverage_process,
-                "--threads",
-                args.concurrency,
-            ],
-        )
         destination_config_path = work / f"destination-lookup-{key}.json"
         write_json(destination_config_path, destination_tile_config(route, work))
         destination_tile_name = f"destinations-{key}.pmtiles"
@@ -693,24 +634,6 @@ def main() -> None:
                 "--threads",
                 args.concurrency,
             ],
-        )
-        coverage_layers = {}
-        destination_layers = {}
-        for minutes in route["minutes"]:
-            coverage_layers[str(minutes)] = coverage_layer_name()
-            destination_layers[str(minutes)] = destination_layer_name(minutes)
-        access_tiles.append(
-            {
-                "coverage_layers": coverage_layers,
-                "destination_file": destination_tile_name,
-                "destination_layers": destination_layers,
-                "file": tile_name,
-                "format": "PMTiles v3 with Mapbox Vector Tiles",
-                "max_data_zoom": COVERAGE_MAX_ZOOM,
-                "min_data_zoom": COVERAGE_MIN_ZOOM,
-                "mode": route["mode"],
-                "service": route["service"],
-            }
         )
 
     places_config = work / "places.json"
@@ -746,7 +669,6 @@ def main() -> None:
         ]
         service_metadata.append(
             {
-                "count_bands": service["count_bands"],
                 "description": service["description"],
                 "id": service["id"],
                 "label": service["label"],
@@ -759,10 +681,6 @@ def main() -> None:
     write_json(
         output / "metadata.json",
         {
-            # access_network/destination_tiles are what the reworked front end
-            # (design doc section 3) will read; access_tiles is what the
-            # currently deployed front end reads. Both stay until the step-7
-            # legacy removal (section 7 of the design doc).
             "access_network": {
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
@@ -779,7 +697,6 @@ def main() -> None:
                     for key, route in zip(REQUIREMENT_KEYS, ROUTE_SPECS, strict=True)
                 ],
             },
-            "access_tiles": access_tiles,
             "destination_tiles": [
                 {
                     "file": f"destinations-{route_key(route)}.pmtiles",
