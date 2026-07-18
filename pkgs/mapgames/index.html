@@ -1239,10 +1239,17 @@
           inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
           return;
         }
-        if ([...requiredDestinationSources].some(source => failedDestinationSources.has(source))) {
-          renderInspectionError(lngLat, updateHash);
-          return;
-        }
+        // A transient tile error must not poison every later inspection of
+        // this service: clear the failure marks and retry with a forced
+        // refetch (errored tiles would otherwise be served stale from the
+        // tile cache and silently yield "no data"). The post-idle check
+        // below still fails this inspection if a source errors again during
+        // the attempt, so verdicts stay fail-closed.
+        requiredDestinationSources.forEach(sourceId => {
+          if (!failedDestinationSources.delete(sourceId)) return;
+          const source = map.getSource(sourceId);
+          if (source?.setUrl) source.setUrl(source.url);
+        });
         setLayerVisibility(destinationLayerIds, true);
         map.once("idle", () => {
           if (sequence !== inspectSequence) return;
