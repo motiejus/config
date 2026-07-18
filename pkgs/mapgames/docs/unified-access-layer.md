@@ -17,7 +17,7 @@ Terminology used throughout, tied to current code:
   generate.py: `coffee/walk`, `hospital/drive`, `supermarket/walk`,
   `supermarket/drive`, `fuel/drive`.
 - **band** — one minute threshold of a requirement (`SERVICE_SPECS[...]["routes"]`):
-  coffee_walk {5,10,20}, hospital_drive {20,30,60}, supermarket_walk {10,20},
+  coffee_walk {5,10,20}, hospital_drive {15,30,45,60}, supermarket_walk {10,20},
   supermarket_drive {10}, fuel_drive {10,20}.
 - **piece** — a sub-segment of a canonical edge produced by the segmentation
   algorithm (§1.3); the feature unit of the new layer.
@@ -137,7 +137,7 @@ merged geometry, not per uint64 key.
    `write_destination_collection()`); one Feature per group, MultiLineString
    members in canonical-key order, features in serialized-attribute-map order.
 
-Distinct attribute maps are bounded by ∏(bands+1) = 4·4·3·2·3 = 288, so the
+Distinct attribute maps are bounded by ∏(bands+1) = 4·5·3·2·3 = 360, so the
 GeoJSON stays MultiLineString-grouped and small in feature count; tilemaker
 splits per tile regardless.
 
@@ -468,14 +468,17 @@ Replace `serviceStyles` base hues with the Okabe-Ito subset (committed):
 coffee `#E69F00`, hospital `#D55E00`, supermarket `#009E73`, fuel `#0072B2`.
 Marker (`circle-stroke-color`) variants: darken the same hue.
 
-- Band ramps: 3 lightness steps of the service hue at constant hue/chroma,
-  darkest = smallest minutes. Indicative hexes (validate with the dataviz
-  contrast validator before landing; treat as placeholders):
+- Band ramps: lightness steps of the service hue at constant hue/chroma,
+  evenly spaced in L, darkest = smallest minutes. Indicative hexes (validate
+  with the dataviz contrast validator before landing; treat as placeholders):
   coffee 5/10/20 → `#8A5F00 / #C08600 / #E69F00`;
-  hospital 20/30/60 → `#9E4600 / #D55E00 / #FF843E` (60 is the next
-  constant-hue/chroma lightness step above 30, OKLCH L 0.50/0.62/0.74 at
-  C 0.17 h 48 (the 20-band is gamut-limited to C 0.135); as the outermost
-  near-universal drive band it also gets the de-emphasis below);
+  hospital 15/30/45/60 → `#B95200 / #D55E00 / #E97125 / #FF843E`
+  (construction: the surviving 30/60 bands keep their hexes, which pins
+  OKLCH L 0.62/0.74 at h 48; even minute spacing → even L spacing, ΔL 0.06
+  per 15 min, so 15/45 interpolate-extrapolate to L 0.56/0.68; C 0.17 where
+  the sRGB gamut allows — the 15-band is gamut-limited to C 0.152, and the
+  retired 20-band's `#9E4600` (L 0.50, C 0.135) leaves with its band; 60 as
+  the outermost near-universal drive band also gets the de-emphasis below);
   supermarket 10/20 → `#00664A / #009E73` (drive-10 single band `#009E73`);
   fuel 10/20 → `#004E7A / #0072B2`.
 - Intersection: ink `#172033` — outside every service hue, maximal contrast on
@@ -525,8 +528,9 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
 ## 4. Size / performance analysis (informational — not decision-driving)
 
 Measured on the pre-unified pipeline with hospital_drive at [20,30] (the
-analysis basis for this design; the hospital 60-band added 2026-07-18 is
-measured at the end of this section):
+analysis basis for this design; the hospital 60-band and the subsequent
+[15,30,45,60] re-banding, both added 2026-07-18, are measured at the end of
+this section):
 
 **Vilnius** (`bbox 24.95,54.52,25.55,54.92`, scratchpad `vilnius/generated/`):
 
@@ -604,6 +608,23 @@ Vilnius: raising the contour cap from
 1800 s to 3600 s changed the 30-band intervals of exactly 1 edge of 182k
 (an isochrone boundary-settlement artifact; nesting still holds — the 60
 band covers it).
+
+**Re-banding to [15,30,45,60] (2026-07-18, measured at c12; K = 2 clamp in
+both columns).** Replacing the 20 band with 15 and adding 45 costs little:
+the 45 band rides the same 3600 s Dijkstra the 60 band already pays for, and
+15 only tightens the innermost threshold. Hospital-drive route phase:
+Vilnius 71 s → 91 s; full Lithuania 269 s → 303 s. Expansion-helper peak
+RSS on the lt-full hospital phase: 12.1 → 16.3 GiB at K = 2 (the per-worker
+per-minute interval maps scale with band count ×4/3 on top of the
+band-independent floor) — still comfortable on the 27 GB build machine, and
+the `EXPENSIVE_ROUTE_MAX_WORKERS = 2` clamp is unchanged. Merge (lt-full):
+21.2 s / 2.57 GiB peak. `access.pmtiles`: Vilnius 86.6 → 85.6 MB, lt-full
+819 → 810 MB (both ≈ −1.2%: the 15 band relabels fewer edges than 20
+reached, outweighing the new 45 attribute); `network.geojson` lt-full
+125.4 MB (1344032 output pieces vs 1339340). Gates green on Vilnius and
+full Lithuania: tile `hospital_drive` values exactly {15,30,45,60},
+check-edge-dump nesting clean, check-network-segments exact,
+merge byte-deterministic across reruns.
 
 ---
 
@@ -929,7 +950,7 @@ the parallel-worktree policy, but 6 cannot gate before 5's metadata is real.
   *Resolution:* narrower-mode rule (§3.1); revisit only if step 6 screenshots
   show drive-only selections looking anemic.
 - **R8 (low) — attribute growth with future services.** Keys scale linearly
-  with `ROUTE_SPECS`; 288 attribute-map combinations today, growing
+  with `ROUTE_SPECS`; 360 attribute-map combinations today, growing
   multiplicatively.
   *Resolution:* acceptable; combos only affect GeoJSON feature grouping, not
   tile size (tilemaker regroups per tile). Note in code where

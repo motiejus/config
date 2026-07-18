@@ -15,10 +15,11 @@
   tilemaker,
   valhalla,
   # null means "use $NIX_BUILD_CORES at build time". Helper RAM scales with
-  # concurrency; the country-scale hospital-60 expansion phase peaked at
-  # ~23 GiB at 12 workers, so generate.py clamps that phase to
-  # EXPENSIVE_ROUTE_MAX_WORKERS (2 -> ~12 GiB measured); everything else
-  # measured fine at 12 on a 27 GB machine.
+  # concurrency; the country-scale hospital expansion phase (>= 60-minute
+  # band) peaked at ~23 GiB at 12 workers, so generate.py clamps that phase
+  # to EXPENSIVE_ROUTE_MAX_WORKERS (2 -> ~12 GiB at 3 hospital bands,
+  # ~16 GiB at the current 4); everything else measured fine at 12 on a
+  # 27 GB machine.
   concurrency ? null,
   # Full Lithuania PBF extent. Data build measured ~8 min at concurrency 12;
   # output is ~5 GB. Deploy size is accepted (UX/correctness > size).

@@ -46,7 +46,7 @@ SERVICE_SPECS = (
         "label": "Hospital",
         "description": "Hospitals reachable by car",
         "query": ("amenity=hospital", "healthcare=hospital"),
-        "routes": (("drive", (20, 30, 60)),),
+        "routes": (("drive", (15, 30, 45, 60)),),
     },
     {
         "id": "supermarket",
@@ -110,9 +110,11 @@ del _route, _requirement_key, _key
 # K=2, 16.6 at K=6, 23.4 at K=12). Unclamped $NIX_BUILD_CORES on a
 # many-core build host would OOM; K=2 holds the phase at ~12 GiB for
 # +107 s of wall time (155 s -> 262 s), and lower K buys almost nothing
-# against the ~9.8 GiB floor. Only the expansion helper is clamped, and
-# only for routes with a >= 60-minute band; tilemaker and every other
-# route keep full concurrency.
+# against the ~9.8 GiB floor. With the [15,30,45,60] re-banding the K=2
+# peak measured 16.3 GiB (interval maps scale with band count); the clamp
+# still clears the 27 GB build machine. Only the expansion helper is
+# clamped, and only for routes with a >= 60-minute band; tilemaker and
+# every other route keep full concurrency.
 EXPENSIVE_ROUTE_MINUTES = 60
 EXPENSIVE_ROUTE_MAX_WORKERS = 2
 
