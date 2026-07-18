@@ -2425,6 +2425,12 @@
         let hoverPoint;
         let hoverScheduled = false;
         map.on("mousemove", event => {
+          // Keep the stock grab cursor and skip per-frame hit-tests while
+          // drag-panning.
+          if (event.originalEvent.buttons) {
+            map.getCanvas().style.cursor = "";
+            return;
+          }
           hoverPoint = event.point;
           if (hoverScheduled) return;
           hoverScheduled = true;
