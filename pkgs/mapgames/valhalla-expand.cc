@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -21,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1232,15 +1234,648 @@ void write_coverage_collection(const std::filesystem::path &path,
   }
 }
 
+// ---------------------------------------------------------------------------
+// Merge tool (docs/unified-access-layer.md §1.3/§2.1, phasing step 4):
+// consumes the per-route edge-interval dumps and writes one edge-attributed
+// network.geojson. Single-threaded k-way merge over the numerically-sorted
+// dumps on the input side; whole-network resident by design (§2.1) — the
+// geometry-string groups, the output canonical-string map, and the
+// attribute-map feature grouping all live in RAM before the first byte is
+// written. The step-4 gate measures peak RSS against the 8 GB spill
+// threshold.
+
+// One requirement = one dump = one attribute key {service}_{mode}, derived
+// from the dump filename edges-<service>-<mode>.tsv. `minutes` is the
+// ascending union of band labels seen in the dump (per-edge lines omit empty
+// bands; classification treats a missing band as empty and the nesting abort
+// catches inconsistent data).
+struct MergeRequirement {
+  std::string key;
+  std::filesystem::path dump_path;
+  std::vector<int> minutes;
+};
+
+// Per canonical-geometry-string group (§1.3 step 0): the per-requirement,
+// per-band-minute concatenated (then merged) interval lists of every dump
+// entry sharing this geometry.
+struct MergeGroup {
+  Line line;
+  std::vector<std::map<int, std::vector<Interval>>> requirements;
+};
+
+using MergeGroups = std::map<std::string, MergeGroup>;
+
+// A classified, coalesced, not-yet-sliced piece (§1.3 steps 2-3). attr is
+// indexed like the requirement list; -1 = requirement absent (unreachable).
+struct MergePiece {
+  double start;
+  double end;
+  std::vector<int> attr;
+};
+
+struct MergeDumpRecord {
+  uint64_t id;
+  std::string geometry_text;
+  Line line;
+  std::vector<std::pair<int, std::vector<Interval>>> bands;
+};
+
+double parse_double(const char *&cursor, const std::string &context) {
+  char *end = nullptr;
+  const double value = std::strtod(cursor, &end);
+  if (end == cursor) {
+    throw std::runtime_error("bad number in " + context);
+  }
+  cursor = end;
+  return value;
+}
+
+class DumpReader {
+public:
+  explicit DumpReader(const std::filesystem::path &path)
+      : path_(path.string()), file_(path) {
+    if (!file_) {
+      throw std::runtime_error("could not open dump: " + path_);
+    }
+  }
+
+  // Parses the next record, enforcing the ascending numeric uint64 key order
+  // the dump format guarantees (the k-way merge comparator relies on it).
+  bool next(MergeDumpRecord &record) {
+    std::string line;
+    if (!std::getline(file_, line)) {
+      if (!file_.eof()) {
+        throw std::runtime_error("could not read dump: " + path_);
+      }
+      return false;
+    }
+    ++line_number_;
+    const std::string context = path_ + ":" + std::to_string(line_number_);
+    const auto fields = split(line, '\t');
+    if (fields.size() != 3) {
+      throw std::runtime_error(context + ": expected 3 TSV fields");
+    }
+    if (fields[0].empty() ||
+        fields[0].find_first_not_of("0123456789") != std::string::npos) {
+      throw std::runtime_error(context + ": bad uint64 key");
+    }
+    record.id = std::stoull(fields[0]);
+    if (have_previous_ && record.id <= previous_id_) {
+      throw std::runtime_error(context +
+                               ": dump keys not in ascending uint64 order");
+    }
+    previous_id_ = record.id;
+    have_previous_ = true;
+    record.geometry_text = fields[1];
+    record.line.clear();
+    const char *cursor = fields[1].c_str();
+    while (true) {
+      const double lon = parse_double(cursor, context);
+      if (*cursor != ',') {
+        throw std::runtime_error(context + ": bad geometry");
+      }
+      ++cursor;
+      const double lat = parse_double(cursor, context);
+      record.line.push_back({lon, lat});
+      if (*cursor == '\0') {
+        break;
+      }
+      if (*cursor != ';') {
+        throw std::runtime_error(context + ": bad geometry");
+      }
+      ++cursor;
+    }
+    if (record.line.size() < 2) {
+      throw std::runtime_error(context + ": degenerate geometry");
+    }
+    record.bands.clear();
+    for (const std::string &band_text : split(fields[2], '|')) {
+      const size_t colon = band_text.find(':');
+      if (colon == std::string::npos) {
+        throw std::runtime_error(context + ": bad band");
+      }
+      const int minute = std::stoi(band_text.substr(0, colon));
+      if (minute <= 0 ||
+          (!record.bands.empty() && minute <= record.bands.back().first)) {
+        throw std::runtime_error(context +
+                                 ": band minutes not ascending and positive");
+      }
+      std::vector<Interval> intervals;
+      cursor = band_text.c_str() + colon + 1;
+      while (true) {
+        Interval interval{};
+        interval.start = parse_double(cursor, context);
+        if (*cursor != '-') {
+          throw std::runtime_error(context + ": bad interval");
+        }
+        ++cursor;
+        interval.end = parse_double(cursor, context);
+        intervals.push_back(interval);
+        if (*cursor == '\0') {
+          break;
+        }
+        if (*cursor != ',') {
+          throw std::runtime_error(context + ": bad interval list");
+        }
+        ++cursor;
+      }
+      record.bands.emplace_back(minute, std::move(intervals));
+    }
+    if (record.bands.empty()) {
+      throw std::runtime_error(context + ": entry with no bands");
+    }
+    return true;
+  }
+
+private:
+  std::string path_;
+  std::ifstream file_;
+  size_t line_number_ = 0;
+  uint64_t previous_id_ = 0;
+  bool have_previous_ = false;
+};
+
+std::string requirement_key_from_dump(const std::filesystem::path &path) {
+  const std::string name = path.filename().string();
+  const std::string prefix = "edges-";
+  const std::string suffix = ".tsv";
+  if (name.size() <= prefix.size() + suffix.size() ||
+      name.compare(0, prefix.size(), prefix) != 0 ||
+      name.compare(name.size() - suffix.size(), suffix.size(), suffix) != 0) {
+    throw std::runtime_error("dump filename must be edges-<route_key>.tsv: " +
+                             name);
+  }
+  std::string key =
+      name.substr(prefix.size(), name.size() - prefix.size() - suffix.size());
+  std::replace(key.begin(), key.end(), '-', '_');
+  return key;
+}
+
+// §1.3 step 0: k-way merge the dumps by ascending uint64 key (asserting
+// identical geometry text when the same key appears in several dumps), then
+// group every entry by its canonical geometry string — a dual-digitized
+// group's uint64 representative can differ per route, so the string is the
+// only cross-route join key — concatenating the per-band interval lists.
+MergeGroups load_merge_groups(std::vector<MergeRequirement> &requirements) {
+  MergeGroups groups;
+  std::vector<DumpReader> readers;
+  readers.reserve(requirements.size());
+  for (const MergeRequirement &requirement : requirements) {
+    readers.emplace_back(requirement.dump_path);
+  }
+  std::vector<std::set<int>> minute_sets(requirements.size());
+  std::vector<MergeDumpRecord> heads(requirements.size());
+  std::vector<bool> live(requirements.size(), false);
+  for (size_t index = 0; index < readers.size(); ++index) {
+    live[index] = readers[index].next(heads[index]);
+  }
+  uint64_t current_id = 0;
+  std::string current_geometry;
+  bool have_current = false;
+  while (true) {
+    size_t best = requirements.size();
+    for (size_t index = 0; index < readers.size(); ++index) {
+      if (live[index] &&
+          (best == requirements.size() || heads[index].id < heads[best].id)) {
+        best = index;
+      }
+    }
+    if (best == requirements.size()) {
+      break;
+    }
+    MergeDumpRecord &record = heads[best];
+    // Same key in several dumps must carry identical geometry (§2.1);
+    // equal-id records are adjacent in the k-way merge order.
+    if (have_current && record.id == current_id &&
+        record.geometry_text != current_geometry) {
+      throw std::runtime_error("canonical edge " + std::to_string(record.id) +
+                               " has inconsistent geometry across dumps");
+    }
+    std::string forward;
+    for (const Point &point : record.line) {
+      forward += point_key(point) + ";";
+    }
+    {
+      std::string reverse;
+      for (auto point = record.line.rbegin(); point != record.line.rend();
+           ++point) {
+        reverse += point_key(*point) + ";";
+      }
+      if (reverse < forward) {
+        throw std::runtime_error(
+            "dump geometry is not in canonical orientation for edge " +
+            std::to_string(record.id));
+      }
+    }
+    auto [group, inserted] = groups.try_emplace(
+        std::move(forward),
+        MergeGroup{record.line, std::vector<std::map<int, std::vector<Interval>>>(
+                                    requirements.size())});
+    if (!inserted && !lines_equal(group->second.line, record.line)) {
+      throw std::runtime_error("dump entries with equal canonical keys "
+                               "disagree on geometry");
+    }
+    std::map<int, std::vector<Interval>> &bands =
+        group->second.requirements[best];
+    for (auto &[minute, intervals] : record.bands) {
+      minute_sets[best].insert(minute);
+      std::vector<Interval> &band = bands[minute];
+      band.insert(band.end(), intervals.begin(), intervals.end());
+    }
+    current_id = record.id;
+    current_geometry = std::move(record.geometry_text);
+    have_current = true;
+    live[best] = readers[best].next(record);
+  }
+  for (size_t index = 0; index < requirements.size(); ++index) {
+    requirements[index].minutes.assign(minute_sets[index].begin(),
+                                       minute_sets[index].end());
+    if (requirements[index].minutes.empty()) {
+      throw std::runtime_error("dump has no bands: " +
+                               requirements[index].dump_path.string());
+    }
+  }
+  for (auto &[key, group] : groups) {
+    static_cast<void>(key);
+    for (std::map<int, std::vector<Interval>> &bands : group.requirements) {
+      for (auto &[minute, band] : bands) {
+        static_cast<void>(minute);
+        band = merge_intervals(std::move(band));
+      }
+    }
+  }
+  return groups;
+}
+
+// §1.3 steps 1-3 for one geometry group: endpoint union across every
+// requirement's bands, 1e-12 first-wins dedup, midpoint classification with
+// the nesting abort, and coalescing of adjacent pieces with equal attribute
+// maps.
+std::vector<MergePiece>
+segment_group(const MergeGroup &group,
+              const std::vector<MergeRequirement> &requirements) {
+  std::vector<double> endpoints;
+  for (const std::map<int, std::vector<Interval>> &bands : group.requirements) {
+    for (const auto &[minute, band] : bands) {
+      static_cast<void>(minute);
+      for (const Interval &interval : band) {
+        endpoints.push_back(interval.start);
+        endpoints.push_back(interval.end);
+      }
+    }
+  }
+  std::sort(endpoints.begin(), endpoints.end());
+  endpoints.erase(std::unique(endpoints.begin(), endpoints.end(),
+                              [](double left, double right) {
+                                return std::abs(left - right) <= 1e-12;
+                              }),
+                  endpoints.end());
+
+  std::vector<MergePiece> pieces;
+  std::optional<MergePiece> pending;
+  const auto flush = [&]() {
+    if (pending) {
+      pieces.push_back(std::move(*pending));
+      pending.reset();
+    }
+  };
+  for (size_t endpoint_index = 1; endpoint_index < endpoints.size();
+       ++endpoint_index) {
+    const double start = endpoints[endpoint_index - 1];
+    const double end = endpoints[endpoint_index];
+    if (end - start <= 1e-12) {
+      continue;
+    }
+    const double midpoint = (start + end) / 2.0;
+    std::vector<int> attr(requirements.size(), -1);
+    bool any = false;
+    for (size_t requirement_index = 0; requirement_index < requirements.size();
+         ++requirement_index) {
+      const std::map<int, std::vector<Interval>> &bands =
+          group.requirements[requirement_index];
+      bool found = false;
+      for (const int minute : requirements[requirement_index].minutes) {
+        const auto band = bands.find(minute);
+        const bool present =
+            band != bands.end() && contains(band->second, midpoint);
+        if (present && !found) {
+          found = true;
+          attr[requirement_index] = minute;
+        } else if (!present && found) {
+          throw std::runtime_error(
+              "reachable edge intervals are not nested by minute threshold");
+        }
+      }
+      any = any || found;
+    }
+    if (!any) {
+      flush();
+      continue;
+    }
+    if (pending && pending->attr == attr &&
+        std::abs(pending->end - start) <= 1e-12) {
+      pending->end = end;
+    } else {
+      flush();
+      pending = MergePiece{start, end, std::move(attr)};
+    }
+  }
+  flush();
+  return pieces;
+}
+
+// Serialized attribute map: JSON object with keys in requirement-list order.
+// The requirement list is sorted by key at startup, so this is sorted-keys
+// JSON — the deterministic grouping key of §1.3 step 7 (and the reason merge
+// output cannot depend on dump argument order).
+std::string attribute_json(const std::vector<int> &attr,
+                           const std::vector<MergeRequirement> &requirements) {
+  std::ostringstream out;
+  out << '{';
+  bool first = true;
+  for (size_t index = 0; index < requirements.size(); ++index) {
+    if (attr[index] < 0) {
+      continue;
+    }
+    if (!first) {
+      out << ',';
+    }
+    first = false;
+    out << json_string(requirements[index].key) << ':' << attr[index];
+  }
+  out << '}';
+  return out.str();
+}
+
+struct NetworkPiece {
+  Line line;
+  std::vector<int> attr;
+};
+
+using NetworkPieces = std::map<std::string, NetworkPiece>;
+
+// §1.3 steps 4-6 for one group: slice the coalesced pieces against one
+// shared LineMeasure, computing each boundary Point once and sharing it as
+// the last point of piece k and the first point of piece k+1 (naive
+// independent slice_line() calls per piece would regress the shared-junction
+// guarantee into hairline gaps at z14+overzoom); clip; canonicalize; insert
+// with per-key attribute minimum on residual canonical-string collision.
+void slice_group(const Line &line, const std::vector<MergePiece> &pieces,
+                 const Bounds &bounds, NetworkPieces &out) {
+  const LineMeasure measure = measure_line(line);
+  if (measure.total <= 0.01) {
+    return;
+  }
+  const auto point_at = [&](double distance) -> Point {
+    size_t segment =
+        std::upper_bound(measure.cumulative.begin(), measure.cumulative.end(),
+                         distance) -
+        measure.cumulative.begin();
+    if (segment == 0) {
+      segment = 1;
+    }
+    if (segment >= measure.cumulative.size()) {
+      segment = measure.cumulative.size() - 1;
+    }
+    const double segment_start = measure.cumulative[segment - 1];
+    const double length = measure.cumulative[segment] - segment_start;
+    if (length <= 0) {
+      return line[segment - 1];
+    }
+    return interpolate(line[segment - 1], line[segment],
+                       (distance - segment_start) / length);
+  };
+  const auto add_piece = [&](const Line &sliced, const std::vector<int> &attr) {
+    for (const Line &clipped : clip_line(sliced, bounds)) {
+      CanonicalLine canonical = canonical_line(clipped);
+      if (canonical.line.empty()) {
+        continue;
+      }
+      auto [entry, inserted] =
+          out.try_emplace(std::move(canonical.key),
+                          NetworkPiece{std::move(canonical.line), attr});
+      if (!inserted) {
+        std::vector<int> &existing = entry->second.attr;
+        for (size_t index = 0; index < existing.size(); ++index) {
+          if (attr[index] < 0) {
+            continue;
+          }
+          if (existing[index] < 0) {
+            existing[index] = attr[index];
+          } else {
+            existing[index] = std::min(existing[index], attr[index]);
+          }
+        }
+      }
+    }
+  };
+  size_t run_start = 0;
+  while (run_start < pieces.size()) {
+    size_t run_end = run_start;
+    while (run_end + 1 < pieces.size() &&
+           pieces[run_end + 1].start == pieces[run_end].end) {
+      ++run_end;
+    }
+    std::vector<double> distances;
+    std::vector<Point> boundaries;
+    distances.reserve(run_end - run_start + 2);
+    boundaries.reserve(run_end - run_start + 2);
+    distances.push_back(pieces[run_start].start * measure.total);
+    boundaries.push_back(point_at(distances.back()));
+    for (size_t index = run_start; index <= run_end; ++index) {
+      distances.push_back(pieces[index].end * measure.total);
+      boundaries.push_back(point_at(distances.back()));
+    }
+    for (size_t index = run_start; index <= run_end; ++index) {
+      if (pieces[index].end - pieces[index].start <= 1e-12) {
+        continue;
+      }
+      const size_t offset = index - run_start;
+      const double start_distance = distances[offset];
+      const double end_distance = distances[offset + 1];
+      Line sliced;
+      sliced.push_back(boundaries[offset]);
+      const size_t first_vertex =
+          std::upper_bound(measure.cumulative.begin(),
+                           measure.cumulative.end(), start_distance) -
+          measure.cumulative.begin();
+      for (size_t vertex = first_vertex;
+           vertex < line.size() && measure.cumulative[vertex] < end_distance;
+           ++vertex) {
+        if (!same_point(sliced.back(), line[vertex])) {
+          sliced.push_back(line[vertex]);
+        }
+      }
+      if (!same_point(sliced.back(), boundaries[offset + 1])) {
+        sliced.push_back(boundaries[offset + 1]);
+      }
+      if (sliced.size() >= 2) {
+        add_piece(sliced, pieces[index].attr);
+      }
+    }
+    run_start = run_end + 1;
+  }
+}
+
+// §1.3 step 7: group pieces by serialized attribute map, one Feature per
+// group, MultiLineString members in canonical-key order, features in
+// serialized-attribute-map order.
+void write_network_collection(const std::filesystem::path &path,
+                              const NetworkPieces &pieces,
+                              const std::vector<MergeRequirement> &requirements,
+                              const Bounds &bounds) {
+  std::ofstream output(path, std::ios::binary);
+  if (!output) {
+    throw std::runtime_error("could not open output: " + path.string());
+  }
+  std::map<std::string, Lines> groups;
+  for (const auto &[key, piece] : pieces) {
+    groups[attribute_json(piece.attr, requirements)].emplace(key, piece.line);
+  }
+  output << "{\"type\":\"FeatureCollection\",\"bbox\":" << bbox_json(bounds)
+         << ",\"features\":[";
+  bool first = true;
+  for (const auto &[attributes, grouped_lines] : groups) {
+    if (!first) {
+      output << ',';
+    }
+    first = false;
+    output << "{\"type\":\"Feature\",\"properties\":" << attributes
+           << ",\"geometry\":";
+    write_multiline(output, grouped_lines);
+    output << '}';
+  }
+  output << "]}\n";
+  if (!output) {
+    throw std::runtime_error("could not write output: " + path.string());
+  }
+}
+
+// --debug-segments: the pre-slicing segmentation table (§7 step 4) — the
+// classified, coalesced pieces in fraction space, keyed by canonical
+// geometry string, fractions as %.17g exact-round-trip doubles. The step-4
+// gate checker re-executes §1.3 steps 0-3 independently and compares this
+// table for exact equality.
+void write_debug_segments(
+    const std::filesystem::path &path,
+    const std::map<std::string, std::vector<MergePiece>> &segments,
+    const std::vector<MergeRequirement> &requirements) {
+  std::ofstream output(path, std::ios::binary);
+  if (!output) {
+    throw std::runtime_error("could not open output: " + path.string());
+  }
+  char buffer[64];
+  for (const auto &[key, pieces] : segments) {
+    for (const MergePiece &piece : pieces) {
+      output << key << '\t';
+      std::snprintf(buffer, sizeof buffer, "%.17g\t%.17g", piece.start,
+                    piece.end);
+      output << buffer << '\t' << attribute_json(piece.attr, requirements)
+             << '\n';
+    }
+  }
+  if (!output) {
+    throw std::runtime_error("could not write output: " + path.string());
+  }
+}
+
+int merge_network_main(const std::vector<std::string> &args) {
+  // args: OUT BOUNDS DUMP... [--debug-segments FILE]
+  if (args.size() < 3) {
+    throw std::runtime_error(
+        "usage: --merge-network OUT BOUNDS DUMP... [--debug-segments FILE]");
+  }
+  const std::filesystem::path out_path = args[0];
+  const Bounds bounds = parse_bounds(args[1]);
+  std::filesystem::path debug_path;
+  std::vector<MergeRequirement> requirements;
+  for (size_t index = 2; index < args.size(); ++index) {
+    if (args[index] == "--debug-segments") {
+      if (index + 1 >= args.size() || !debug_path.empty()) {
+        throw std::runtime_error("--debug-segments requires one FILE");
+      }
+      debug_path = args[index + 1];
+      ++index;
+      continue;
+    }
+    requirements.push_back({requirement_key_from_dump(args[index]),
+                            std::filesystem::path(args[index]),
+                            {}});
+  }
+  if (requirements.empty()) {
+    throw std::runtime_error("no dumps given");
+  }
+  std::sort(requirements.begin(), requirements.end(),
+            [](const MergeRequirement &left, const MergeRequirement &right) {
+              return left.key < right.key;
+            });
+  for (size_t index = 1; index < requirements.size(); ++index) {
+    if (requirements[index].key == requirements[index - 1].key) {
+      throw std::runtime_error("duplicate requirement key: " +
+                               requirements[index].key);
+    }
+  }
+
+  const auto load_started = std::chrono::steady_clock::now();
+  MergeGroups groups = load_merge_groups(requirements);
+  const auto segment_started = std::chrono::steady_clock::now();
+  std::map<std::string, std::vector<MergePiece>> segments;
+  size_t piece_count = 0;
+  for (const auto &[key, group] : groups) {
+    std::vector<MergePiece> pieces = segment_group(group, requirements);
+    if (!pieces.empty()) {
+      piece_count += pieces.size();
+      segments.emplace(key, std::move(pieces));
+    }
+  }
+  if (!debug_path.empty()) {
+    write_debug_segments(debug_path, segments, requirements);
+  }
+  const auto slice_started = std::chrono::steady_clock::now();
+  NetworkPieces network;
+  for (const auto &[key, pieces] : segments) {
+    slice_group(groups.at(key).line, pieces, bounds, network);
+  }
+  if (network.empty()) {
+    throw std::runtime_error("network is empty after bbox clipping");
+  }
+  write_network_collection(out_path, network, requirements, bounds);
+  const auto finished = std::chrono::steady_clock::now();
+  std::cerr << "[mapgames] merge-network: " << groups.size()
+            << " merged geometries, " << piece_count
+            << " fraction-space pieces, " << network.size()
+            << " output pieces\n";
+  std::cerr << "[mapgames] merge-network load+group: "
+            << std::chrono::duration<double>(segment_started - load_started)
+                   .count()
+            << "s, segment: "
+            << std::chrono::duration<double>(slice_started - segment_started)
+                   .count()
+            << "s, slice+write: "
+            << std::chrono::duration<double>(finished - slice_started).count()
+            << "s\n";
+  return 0;
+}
+
 void usage(const char *argv0) {
   std::cerr << "usage: " << argv0
             << " CONFIG REQUESTS_TSV DESTINATIONS_DIR COVERAGE_DIR THREADS"
-               " MINUTES BOUNDS ROUTE_KEY SERVICE MODE\n";
+               " MINUTES BOUNDS ROUTE_KEY SERVICE MODE\n"
+            << "       " << argv0
+            << " --merge-network OUT BOUNDS DUMP... [--debug-segments FILE]\n";
 }
 
 } // namespace
 
 int main(int argc, char **argv) {
+  if (argc >= 2 && std::string(argv[1]) == "--merge-network") {
+    try {
+      return merge_network_main(std::vector<std::string>(argv + 2, argv + argc));
+    } catch (const std::exception &error) {
+      std::cerr << "valhalla-expand: " << error.what() << '\n';
+      return 1;
+    }
+  }
   if (argc != 11) {
     usage(argv[0]);
     return 2;
