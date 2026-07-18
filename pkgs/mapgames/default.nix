@@ -131,7 +131,7 @@ let
         --concurrency ${if concurrency == null then "\"$NIX_BUILD_CORES\"" else toString concurrency} \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
-        --coverage-process ${./coverage.lua} \
+        --geojson-process ${./geojson.lua} \
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
         --expansion-helper ${valhallaExpand}/bin/mapgames-valhalla-expand \

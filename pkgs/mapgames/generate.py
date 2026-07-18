@@ -19,9 +19,9 @@ from shapely.geometry import (
 from valhalla import get_config
 
 
-COVERAGE_MIN_ZOOM = 6
+TILE_MIN_ZOOM = 6
 DESTINATION_MIN_ZOOM = 12
-COVERAGE_MAX_ZOOM = 14
+TILE_MAX_ZOOM = 14
 LOW_ZOOM_GENERALIZATION_BELOW = 11
 
 SERVICE_SPECS = (
@@ -202,13 +202,13 @@ def destinations_filename(route: dict, minutes: int) -> str:
     return f"destinations-{route_key(route)}-{minutes}.geojson"
 
 
-def common_tile_settings(name: str, description: str, minzoom: int = COVERAGE_MIN_ZOOM) -> dict:
+def common_tile_settings(name: str, description: str, minzoom: int = TILE_MIN_ZOOM) -> dict:
     return {
         "minzoom": minzoom,
-        "maxzoom": COVERAGE_MAX_ZOOM,
-        "basezoom": COVERAGE_MAX_ZOOM,
+        "maxzoom": TILE_MAX_ZOOM,
+        "basezoom": TILE_MAX_ZOOM,
         "include_ids": False,
-        "combine_below": COVERAGE_MAX_ZOOM,
+        "combine_below": TILE_MAX_ZOOM,
         "name": name,
         "version": "1.0.0",
         "description": description,
@@ -231,8 +231,8 @@ def network_tile_config(work: Path) -> dict:
     return {
         "layers": {
             "network": {
-                "minzoom": COVERAGE_MIN_ZOOM,
-                "maxzoom": COVERAGE_MAX_ZOOM,
+                "minzoom": TILE_MIN_ZOOM,
+                "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / "network.geojson"),
                 "source_columns": sorted(REQUIREMENT_KEYS),
                 # Only country-scale tiles are generalized. Street-scale
@@ -254,7 +254,7 @@ def destination_tile_config(route: dict, work: Path) -> dict:
         "layers": {
             destination_layer_name(minutes): {
                 "minzoom": DESTINATION_MIN_ZOOM,
-                "maxzoom": COVERAGE_MAX_ZOOM,
+                "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / destinations_filename(route, minutes)),
                 "source_columns": list(DESTINATION_SOURCE_COLUMNS),
             }
@@ -273,7 +273,7 @@ def places_tile_config(output: Path) -> dict:
         "layers": {
             "places": {
                 "minzoom": 9,
-                "maxzoom": COVERAGE_MAX_ZOOM,
+                "maxzoom": TILE_MAX_ZOOM,
                 "source": str(output / "places.geojson"),
                 "source_columns": list(PLACE_SOURCE_COLUMNS),
                 "combine_points": False,
@@ -312,7 +312,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--concurrency", type=int, required=True)
     parser.add_argument("--basemap-config", type=Path, required=True)
     parser.add_argument("--basemap-process", type=Path, required=True)
-    parser.add_argument("--coverage-process", type=Path, required=True)
+    parser.add_argument("--geojson-process", type=Path, required=True)
     parser.add_argument("--tilemaker-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
     parser.add_argument("--expansion-helper", type=Path, required=True)
@@ -537,7 +537,7 @@ def main() -> None:
     )
 
     routed_counts = {}
-    coverage_bbox = ",".join(str(coordinate) for coordinate in country_bbox)
+    bbox_arg = ",".join(str(coordinate) for coordinate in country_bbox)
     for route in ROUTE_SPECS:
         key = route_key(route)
         entries = prepared[route["service"]]
@@ -555,7 +555,7 @@ def main() -> None:
                 work,
                 args.concurrency,
                 ",".join(str(minutes) for minutes in route["minutes"]),
-                coverage_bbox,
+                bbox_arg,
                 key,
                 route["service"],
                 route["mode"],
@@ -581,7 +581,7 @@ def main() -> None:
             # network.geojson is a tilemaker input only (never published);
             # see "network.geojson is NOT published" in the design doc.
             work / "network.geojson",
-            coverage_bbox,
+            bbox_arg,
             *network_dumps,
         ],
     )
@@ -601,13 +601,13 @@ def main() -> None:
             "tilemaker",
             "--quiet",
             "--bbox",
-            coverage_bbox,
+            bbox_arg,
             "--output",
             output / "access.pmtiles",
             "--config",
             network_config_path,
             "--process",
-            args.coverage_process,
+            args.geojson_process,
             "--threads",
             args.concurrency,
         ],
@@ -624,13 +624,13 @@ def main() -> None:
                 "tilemaker",
                 "--quiet",
                 "--bbox",
-                coverage_bbox,
+                bbox_arg,
                 "--output",
                 output / destination_tile_name,
                 "--config",
                 destination_config_path,
                 "--process",
-                args.coverage_process,
+                args.geojson_process,
                 "--threads",
                 args.concurrency,
             ],
@@ -644,13 +644,13 @@ def main() -> None:
             "tilemaker",
             "--quiet",
             "--bbox",
-            coverage_bbox,
+            bbox_arg,
             "--output",
             output / "places.pmtiles",
             "--config",
             places_config,
             "--process",
-            args.coverage_process,
+            args.geojson_process,
             "--threads",
             args.concurrency,
         ],
@@ -685,8 +685,8 @@ def main() -> None:
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "network",
-                "max_data_zoom": COVERAGE_MAX_ZOOM,
-                "min_data_zoom": COVERAGE_MIN_ZOOM,
+                "max_data_zoom": TILE_MAX_ZOOM,
+                "min_data_zoom": TILE_MIN_ZOOM,
                 "requirements": [
                     {
                         "key": key,
@@ -723,7 +723,7 @@ def main() -> None:
                 "low_zoom_generalization_below": LOW_ZOOM_GENERALIZATION_BELOW,
                 "representation": "client_stroked_lines",
                 "source": "valhalla_expansion_edges",
-                "tile_max_zoom": COVERAGE_MAX_ZOOM,
+                "tile_max_zoom": TILE_MAX_ZOOM,
                 "visual_smoothing": False,
             },
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
@@ -732,7 +732,7 @@ def main() -> None:
                 "file": "places.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "places",
-                "max_data_zoom": COVERAGE_MAX_ZOOM,
+                "max_data_zoom": TILE_MAX_ZOOM,
                 "min_data_zoom": 9,
             },
             "routed_counts": routed_counts,

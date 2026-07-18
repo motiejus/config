@@ -511,7 +511,7 @@
         <div class="map-options">
           <label class="map-detail"><input id="show-places" type="checkbox" checked> Show destinations when zoomed in</label>
         </div>
-        <p class="status" id="coverage-status" aria-live="polite">Loading map…</p>
+        <p class="status" id="map-status" aria-live="polite">Loading map…</p>
         <button class="panel-inspect" id="panel-inspect" type="button">Inspect map center</button>
         <button class="panel-done" id="panel-done" type="button">View map</button>
         <p class="source-note">Every view restyles one unified access network: time bands for a single service, or the whole selection tested at once. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.</p>
@@ -632,7 +632,7 @@
           // Ordinary errors are already readable.
         }
         persistentMapError = `Map data error: ${message.replaceAll(/\s+/g, " ").trim()}`;
-        document.getElementById("coverage-status").textContent = persistentMapError;
+        document.getElementById("map-status").textContent = persistentMapError;
         document.getElementById("panel-selection-summary").textContent =
           "Map data error · open filters for details";
       }
@@ -1228,16 +1228,16 @@
         return chip;
       }
 
-      function updateCoverageStatus() {
+      function updateMapStatus() {
         const selections = selectionDetails();
         const mode = effectiveViewMode(selections.length);
         const summary = document.getElementById("panel-selection-summary");
         if (persistentMapError) {
-          document.getElementById("coverage-status").textContent = persistentMapError;
+          document.getElementById("map-status").textContent = persistentMapError;
           summary.textContent = "Map data error · open filters for details";
           return;
         }
-        document.getElementById("coverage-status").textContent = selections.length
+        document.getElementById("map-status").textContent = selections.length
           ? `${selections.length} ${selections.length === 1 ? "requirement" : "requirements"} selected · tap or click the map to test every one.`
           : "No requirements selected.";
         // Collapsed-mobile legend (§3.4): a mode chip plus one mini-swatch
@@ -1283,7 +1283,7 @@
             state.enabled && document.getElementById("show-places").checked
           );
         });
-        updateCoverageStatus();
+        updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
         else scheduleViewHash();
       }
@@ -1546,7 +1546,7 @@
           false
         );
         if (map.getZoom() < inspectZoom) {
-          document.getElementById("coverage-status").textContent = "Zooming in to load concrete destinations…";
+          document.getElementById("map-status").textContent = "Zooming in to load concrete destinations…";
           map.easeTo({
             center: lngLat,
             zoom: inspectZoom,
@@ -1593,7 +1593,7 @@
           }
           inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
           setLayerVisibility(destinationLayerIds, false);
-          updateCoverageStatus();
+          updateMapStatus();
         });
       }
 

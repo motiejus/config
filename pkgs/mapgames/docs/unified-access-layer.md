@@ -2,7 +2,7 @@
 
 Design for replacing mapgames' five per-service coverage overlays with one
 edge-attributed network layer. Scope: `pkgs/mapgames/{valhalla-expand.cc,
-generate.py, index.html, coverage.lua, basemap.json, default.nix}`. The goal
+generate.py, index.html, geojson.lua, basemap.json, default.nix}`. The goal
 (one network, three view modes, Okabe-Ito palette) is committed; this doc
 specifies the mechanism. Priority order, per project owner: UX and correctness
 strictly before output size. Size numbers below are informational; no schema or
@@ -41,14 +41,15 @@ key is the same string with `-` → `_` so MapLibre expressions read naturally.
 Derive both from one helper; do not hand-maintain two lists.)
 
 Value: **integer minutes** — the smallest configured threshold whose merged
-interval set covers the piece. This is exactly today's `min_minutes` semantics
-(the `first_minute` computed in `coverage_lines()`), generalized to all
+interval set covers the piece. This is exactly the legacy `min_minutes`
+semantics (the `first_minute` computed by the retired per-route
+`coverage_lines()` writer), generalized to all
 requirements at once. Integer minutes, not band indices: self-describing,
 stable when a band list changes, directly comparable in expressions
 (`["<=", ["get","coffee_walk"], 10]` ⇔ "reachable within 10 walk minutes",
-because the existing nesting invariant — the
-`"reachable edge intervals are not nested by minute threshold"` check in
-`coverage_lines()` — guarantees a piece in the 5-band is also in 10 and 20).
+because the nesting invariant — the
+`"reachable edge intervals are not nested by minute threshold"` check, now
+enforced at dump time — guarantees a piece in the 5-band is also in 10 and 20).
 
 **Absent key = unreachable** within that requirement's largest threshold.
 MVT has no null; absence is the only representation. Client-side tests MUST
@@ -60,7 +61,7 @@ filters, console warning). Canonical reachability test:
 ["all", ["has", key], ["<=", ["get", key], selectedMinutes]]
 ```
 
-Dropped fields relative to today's coverage features: `max_minutes` (was
+Dropped fields relative to the legacy coverage features: `max_minutes` (was
 constant `minutes.back()` per route — moves to metadata), `mode`, `service`
 (encoded in the key), `direction` (constant `"to_destination"` — moves to
 metadata). No per-feature score attribute: the glimpse score depends on the
@@ -68,12 +69,12 @@ user's selected subset and thresholds, so it is a client-side expression (§3.2)
 
 ### 1.2 Partial edges and slices
 
-`reachable_interval()` already produces per-(request, minute) fractional
+`reachable_interval()` produces per-(request, minute) fractional
 intervals `[start, end] ⊂ [0,1]` along a canonical edge — including the
 origin-edge case where the interval starts mid-edge (`start_fraction =
-1.0 - origin_fraction`). Today those are merged per service
-(`merge_intervals()`) and each service independently slices its own pieces
-(`coverage_lines()` → `slice_line()`), so the same edge ships up to 5 times
+1.0 - origin_fraction`). The retired per-route writer merged those per service
+(`merge_intervals()`) and each service independently sliced its own pieces
+(`coverage_lines()` → `slice_line()`), so the same edge shipped up to 5 times
 with incompatible cut points.
 
 New model: a single segmentation per canonical edge over the **union of all
@@ -85,44 +86,43 @@ splits into pieces such that every piece has one constant attribute map.
 
 Input per canonical edge: for each requirement `r` and band `b`, the merged
 interval list `I[r][b]` (output of `merge_intervals()`, so sorted,
-non-overlapping, gaps > 1e-12). This is the per-band structure
-`CoverageEdge::intervals` holds today for one service; the new structure holds
-it for all requirements.
+non-overlapping, gaps > 1e-12). This is the per-band structure the helper's
+`DumpEdge` holds for one route; the merge tool holds it for all requirements.
 
-**Step 0 — geometry-string pre-merge (dual digitization).** Today's
-string-keyed maps merge distinct graph edges that share identical 1e-7-rounded
-geometry into one `DestinationEdge` *before* `merge_intervals()`. Under uint64
+**Step 0 — geometry-string pre-merge (dual digitization).** The legacy
+string-keyed maps merged distinct graph edges that share identical 1e-7-rounded
+geometry into one entry *before* `merge_intervals()`. Under uint64
 keys (§5.1) such edges arrive as separate entries. Before segmentation, group
 entries by their canonical geometry string (`canonical_line().key`),
 concatenate the per-band interval lists of all members, and re-run
 `merge_intervals()` per band on the concatenation. This pre-merge is mandatory
-in every consumer of uint64-keyed data: the helper's own legacy coverage
-writer (steps 1–3 of §7, for byte-identity), the step-3 checker, and the merge
-tool. Segmentation then proceeds per merged geometry, not per uint64 key.
+in every consumer of uint64-keyed data: the dump writer, the
+check-edge-dump.py checker, and the merge tool. Segmentation then proceeds per
+merged geometry, not per uint64 key.
 
 1. **Endpoints.** `E` = all `start`/`end` values of every interval in every
-   `I[r][b]`. Sort; dedupe with the existing 1e-12 tolerance (same predicate as
-   the `endpoints.erase(std::unique(...))` block in `coverage_lines()`). Do NOT
+   `I[r][b]`. Sort; dedupe with the 1e-12 tolerance (same predicate the retired
+   per-route `coverage_lines()` writer used). Do NOT
    add 0/1: fractions outside all intervals are unreachable by every
    requirement and are simply not emitted, as today.
 2. **Classify.** For each adjacent pair `(s, e)` with `e - s > 1e-12`, take
    `m = (s+e)/2`. For each requirement `r`, find the first band index `i` with
    `contains(I[r][i], m)` (existing `contains()`); attribute value =
-   `minutes_r[i]`; verify nesting for all later bands (keep the existing
+   `minutes_r[i]`; verify nesting for all later bands (keep the
    abort). Result: attribute map `A(s,e)`. If `A` is empty, skip the piece.
 3. **Coalesce.** Merge adjacent pieces with equal attribute maps and
-   `|s_next - e_prev| <= 1e-12` (generalization of the `pending_minute` /
-   `flush_pending` run-length logic in `coverage_lines()` from a single
+   `|s_next - e_prev| <= 1e-12` (generalization of the retired writer's
+   `pending_minute`/`flush_pending` run-length logic from a single
    `min_minutes` to a map).
 4. **Slice.** One `measure_line()` per edge; walk the coalesced breakpoints in
    a single pass, computing each boundary `Point` (via `interpolate()`) **once**
    and sharing it as the last point of piece k and first point of piece k+1.
-   This preserves a guarantee the current code already has — `coverage_lines()`
-   slices all of one edge's pieces against a single shared `LineMeasure`, so
-   junction points within one service are bit-identical today. The shared-point
-   construction is therefore a spec for the new multi-requirement code (the
-   guarantee must now hold across cuts introduced by *different* requirements),
-   not a fix for an existing rendering defect; naive independent `slice_line()`
+   This preserves a guarantee the retired per-route writer had —
+   `coverage_lines()` sliced all of one edge's pieces against a single shared
+   `LineMeasure`, so junction points within one service were bit-identical. The
+   shared-point construction carries that guarantee into the multi-requirement
+   code (it must hold across cuts introduced by *different* requirements);
+   naive independent `slice_line()`
    calls per piece would regress it into hairline gaps/T-joins at z14+overzoom.
 5. **Clip.** `clip_line(piece, bounds)` as today (may re-split a piece).
 6. **Canonicalize + dedupe.** `canonical_line()` (string form) on each clipped
@@ -162,15 +162,16 @@ costing-specific (walk vs drive traversal seconds differ per edge), and the
 program asserts `all requests must use the same costing`. Per-route runs also
 keep step gates byte-diffable.
 
-New flow:
+Flow:
 
-1. **Per-route run** (existing): routes, computes `destinations_by_minute` and
-   `coverage_edges` as today; writes `destinations-<route_key>-<minutes>.geojson`
-   **unchanged** (inspection stays as-is); writes a new **edge-interval dump**
-   instead of `coverage-<route_key>.geojson`.
-2. **Merge run** (new mode of the same binary, e.g.
-   `mapgames-valhalla-expand --merge-network OUT BOUNDS DUMP...`): reads all 5
-   dumps, runs §1.3, writes one `network.geojson`.
+1. **Per-route run**: routes, computes `destinations_by_minute` and the
+   reachable-edge intervals; writes `destinations-<route_key>-<minutes>.geojson`
+   (inspection unchanged) and the **edge-interval dump** (the per-route
+   `coverage-<route_key>.geojson` writer is retired).
+2. **Merge run** (a mode of the same binary,
+   `mapgames-valhalla-expand --merge-network OUT BOUNDS DUMP...
+   [--debug-segments FILE]`): reads all 5 dumps, runs §1.3, writes one
+   `network.geojson`.
 
 **Dump format** — `work/edges-<route_key>.tsv`, one line per canonical edge,
 **sorted by ascending numeric uint64 key** (not lexicographic decimal-string
@@ -208,30 +209,28 @@ measured RSS exceeds 8 GB on the lt-full build. Merge output must not depend
 on dump argument order; generate.py still passes them in `ROUTE_SPECS` order
 for log stability.
 
-Writer changes in valhalla-expand.cc: `write_coverage_collection()`,
-`CoverageLine`/`CoverageLines`, and the per-route `coverage_lines()` band
-labeling die at the end of the phasing (the segmentation core of
-`coverage_lines()` — endpoints/midpoint/`contains()`/run-coalescing — is
-reused, generalized per §1.3). `add_coverage_band()`/`CoverageEdges` become the
-dump writer's input. A new `write_network_collection()` implements §1.3 step 7.
+Writer state in valhalla-expand.cc: the legacy per-route writer
+(`write_coverage_collection()`, `CoverageLine`/`CoverageLines`, the
+`coverage_lines()` band labeling) was deleted at §7 step 7; its segmentation
+core — endpoints/midpoint/`contains()`/run-coalescing — lives on, generalized
+per §1.3. `DumpEdge` feeds the dump writer; `write_network_collection()`
+implements §1.3 step 7.
 
 ### 2.2 generate.py / tilemaker
 
-- New module constant `REQUIREMENT_KEYS = tuple(f"{r['service']}_{r['mode']}"
+- Module constant `REQUIREMENT_KEYS = tuple(f"{r['service']}_{r['mode']}"
   for r in ROUTE_SPECS)`.
-- The per-route tilemaker loop for `access-<route_key>.pmtiles` and its
-  `coverage_tile_config()` are replaced by **one** archive:
+- One archive replaces the legacy per-route tilemaker loop:
 
 ```python
 def network_tile_config(work: Path) -> dict:
     return {
         "layers": {
             "network": {
-                "minzoom": COVERAGE_MIN_ZOOM,      # 6
-                "maxzoom": COVERAGE_MAX_ZOOM,      # 14
+                "minzoom": TILE_MIN_ZOOM,          # 6
+                "maxzoom": TILE_MAX_ZOOM,          # 14
                 "source": str(work / "network.geojson"),
                 "source_columns": sorted(REQUIREMENT_KEYS),
-                # zoom-scaled, visually lossless; see §2.3
                 "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
                 "simplify_level": 0.00001,
                 "simplify_algorithm": "visvalingam",
@@ -243,40 +242,35 @@ def network_tile_config(work: Path) -> dict:
     }
 ```
 
-  Output: `access.pmtiles`, source-layer `network`. `coverage.lua` unchanged
-  (still the mandatory empty process file).
+  Output: `access.pmtiles`, source-layer `network`. `geojson.lua` is the
+  mandatory empty process file, shared with the destination and places
+  archives. (Naming: the file and the `--geojson-process` flag were called
+  `coverage.lua`/`--coverage-process`, and `TILE_MIN_ZOOM`/`TILE_MAX_ZOOM`
+  were `COVERAGE_*_ZOOM`, until the post-step-7 cleanup renamed them after
+  the per-route coverage machinery they were named for was deleted.)
 - Destination lookup configs (`destination_tile_config`) and
-  `destinations-<route_key>.pmtiles` builds: **unchanged**. Places pipeline:
-  unchanged.
-- Attribute values must serialize as JSON integers in `network.geojson` so
+  `destinations-<route_key>.pmtiles` builds: unchanged by the series. Places
+  pipeline: unchanged.
+- Attribute values serialize as JSON integers in `network.geojson` so
   tilemaker types the columns as ints and MapLibre `["get"]` returns numbers.
 
-**Current-tree note (this section is written against the tree as of
-2026-07-18):** the per-route `coverage-<route_key>.geojson` files are already
-*unpublished* — generate.py passes `work` to the helper for both
-`DESTINATIONS_DIR` and `COVERAGE_DIR` ("Coverage GeoJSON is a tilemaker input
-only; keep it out of the published output directory"), `coverage_tile_config()`
-sources from `work/`, and the `coverage_files` metadata key no longer exists.
-
-**What dies:** `access-<route_key>.pmtiles` ×5, the `coverage-<route_key>.geojson`
-work-dir intermediates ×5 (superseded by the edge-interval dumps),
-`coverage_tile_config()`, `coverage_filename()`, the `access_tiles` metadata
-key, and the `count_bands` plumbing (all specs are `False`;
-`route["count_bands"]` raise, `state.one/two_plus`, and the
-`.band-swatch one/two-plus` CSS in index.html are vestigial — delete in the
-front-end step). Per the no-historical-artifacts policy, delete rather than
-deprecate.
+The edge-interval dumps and `network.geojson` are `work/` intermediates
+(tilemaker inputs only, kept out of the published output directory). The
+legacy `access-<route_key>.pmtiles` ×5, `coverage-<route_key>.geojson`
+intermediates ×5, `coverage_tile_config()`, `coverage_filename()`, the
+`access_tiles` metadata key, and the `count_bands` plumbing were all deleted
+at §7 step 7, per the no-historical-artifacts policy.
 
 **`network.geojson` is NOT published.** Decision: it stays a `work/`
-intermediate (tilemaker input only), like the coverage GeoJSONs it replaces.
-Rationale: the tree just deliberately moved coverage GeoJSON out of the
-published output; re-publishing a 150–220 MB raw export (plus the gz/br/zstd
+intermediate (tilemaker input only), like the coverage GeoJSONs it replaced.
+Rationale: coverage GeoJSON was deliberately moved out of the published
+output; re-publishing a 150–220 MB raw export (plus the gz/br/zstd
 sidecars `compressDrvWeb`'s `extraFormats = ["geojson", "pbf"]` would generate
-for it, and the `.etag` sidecar from `writeEtags`) reverses that decision with
-no current consumer — the published access artifact is `access.pmtiles`.
+for it, and the `.etag` sidecar from `writeEtags`) would reverse that decision
+with no current consumer — the published access artifact is `access.pmtiles`.
 Consequently metadata carries no `export` key and the default.nix
-`generated/*.geojson` install glob must NOT match it (it lives in `work/`, not
-`generated/`, so no glob change is needed — verify in §7 step 7).
+`generated/*.geojson` install glob does not match it (it lives in `work/`, not
+`generated/`).
 
 **metadata.json** replaces `access_tiles` with:
 
@@ -576,10 +570,10 @@ canonicalization). GraphReader cache cap bounds per-worker RAM (§5.2).
 
 ### 5.1 uint64 canonical keys for the hot maps
 
-Key all accumulation maps (`DestinationEdges` per worker/minute,
-`CoverageEdges`, the new dump map) by
+Key all accumulation maps (`DestinationEdges` per worker/minute, the
+`DumpEdge` map) by
 `canonical_id = min(edge_id, opposing_edge_id)` (uint64). The uint64 is the
-**map key only** — stored geometry keeps today's string-canonical orientation.
+**map key only** — stored geometry keeps the string-canonical orientation.
 
 - **Stored orientation stays string-canonical.** Deriving orientation from the
   id (e.g. "as seen by the smaller edge_id") would flip the slicing frame for
