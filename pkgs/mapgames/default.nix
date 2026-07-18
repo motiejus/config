@@ -14,11 +14,14 @@
   runCommand,
   tilemaker,
   valhalla,
-  # null means "use $NIX_BUILD_CORES at build time".
+  # null means "use $NIX_BUILD_CORES at build time". Per-worker Valhalla tile
+  # caches mean RAM scales with concurrency (measured fine at 12 on a 27 GB
+  # machine).
   concurrency ? null,
-  # Full Lithuania PBF extent; expect multi-GiB lookup output.
-  # bbox ? "20.618591,53.892206,26.83873,56.45329",
-  bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/production area
+  # Full Lithuania PBF extent. Data build measured ~8 min at concurrency 12;
+  # output is ~5 GB. Deploy size is accepted (UX/correctness > size).
+  bbox ? "20.618591,53.892206,26.83873,56.45329",
+  # bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/iteration area
 }:
 
 assert lib.assertMsg (
