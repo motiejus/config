@@ -289,6 +289,48 @@
         background-size: 1.5rem;
       }
       .maplibregl-ctrl-bottom-right { right: auto; left: .5rem; }
+      /* Desktop: the overlay panel collapses to a compact pill in the same
+         corner — same toggle button and glanceable chip summary as the
+         mobile sheet, so both form factors share one mental model. The
+         query is the exact complement of the mobile layout query below,
+         keeping these rules off the mobile sheet entirely. */
+      @media not ((max-width: 640px) or ((max-height: 520px) and (max-width: 950px))) {
+        .panel-toggle {
+          display: inline-flex;
+          flex: 0 0 auto;
+          align-items: center;
+          gap: .35rem;
+          padding: .22rem .6rem;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          background: #ffffff;
+          color: var(--muted);
+          font-size: .78rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .panel-toggle:hover { background: #eef4fb; }
+        /* Chevron points where the content will go: down to expand the
+           top-anchored panel, up to collapse it (mobile mirrors this). */
+        .panel-toggle-icon {
+          font-size: .7rem;
+          transition: transform .16s ease;
+          transform: rotate(180deg);
+        }
+        .map-panel[data-collapsed="false"] .panel-toggle-icon { transform: none; }
+        .map-panel[data-collapsed="true"] {
+          width: auto;
+          max-width: min(27rem, calc(100vw - 4.5rem));
+        }
+        .map-panel[data-collapsed="true"] .panel-content { display: none; }
+        .map-panel[data-collapsed="true"] .panel-selection-summary {
+          display: block;
+          margin: .45rem 0 0;
+          color: var(--muted);
+          font-size: .82rem;
+        }
+        .map-panel[data-collapsed="true"] .panel-selection-summary:hover { color: var(--ink); }
+      }
       @media (pointer: coarse) {
         .quick-actions button,
         .view-switcher button,
@@ -973,16 +1015,40 @@
         );
       }
 
+      // Desktop collapse preference; session-scoped on purpose — a shared
+      // link should always open with the full panel explaining itself, so
+      // the hash stays out of it.
+      const panelCollapsedKey = "mapgames-panel-collapsed";
+
+      function storedPanelCollapsed() {
+        // sessionStorage can throw in hardened privacy modes; the panel
+        // then simply starts expanded.
+        try {
+          return sessionStorage.getItem(panelCollapsedKey) === "true";
+        } catch (_error) {
+          return false;
+        }
+      }
+
       function setPanelCollapsed(collapsed) {
         mapPanel.dataset.collapsed = String(collapsed);
         const toggle = document.getElementById("panel-toggle");
         toggle.setAttribute("aria-expanded", String(!collapsed));
         document.getElementById("panel-toggle-label").textContent = collapsed ? t("filters") : t("closePanel");
+        if (!mobileMedia.matches) {
+          try {
+            sessionStorage.setItem(panelCollapsedKey, String(collapsed));
+          } catch (_error) {
+            // Non-persistent sessions just lose the collapse preference.
+          }
+        }
         requestAnimationFrame(updateMobileLayout);
       }
 
       function syncMobileMode() {
-        setPanelCollapsed(mobileMedia.matches);
+        // Mobile always starts collapsed (bottom sheet over the map);
+        // desktop restores this session's last choice, expanded by default.
+        setPanelCollapsed(mobileMedia.matches || storedPanelCollapsed());
       }
 
       function collapseCompactAttribution() {
@@ -999,6 +1065,9 @@
       new ResizeObserver(updateMobileLayout).observe(mapPanel);
       mobileMedia.addEventListener("change", syncMobileMode);
       window.addEventListener("resize", updateMobileLayout);
+      // Apply the initial collapse state before the map loads so a restored
+      // desktop "collapsed" choice never flashes the full panel.
+      syncMobileMode();
 
       function fetchJson(url) {
         return fetch(url).then(response => {
@@ -2135,7 +2204,18 @@
         addPlaceLayers();
         const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
         map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
-        map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 8, duration: 0 });
+        // Desktop with the panel open: pad the country fit so central
+        // Lithuania is not hidden under the overlay. Only this initial fit —
+        // collapsing or expanding later never moves the user's camera, and
+        // a view= hash below overrides the fit either way.
+        const panelWidth = mapPanel.getBoundingClientRect().width;
+        const fitPadding =
+          !mobileMedia.matches &&
+          mapPanel.dataset.collapsed === "false" &&
+          map.getContainer().clientWidth - panelWidth >= 480
+            ? { top: 8, right: Math.round(panelWidth) + 16, bottom: 8, left: 8 }
+            : 8;
+        map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: fitPadding, duration: 0 });
 
         renderSummaryText();
         localizeMapControls();
@@ -2151,10 +2231,13 @@
             refreshMap();
           })
         );
-        // Tapping the collapsed chip row opens the panel (§3.4).
-        document.getElementById("panel-selection-summary").addEventListener("click", () =>
-          setPanelCollapsed(false)
-        );
+        // Tapping the collapsed chip row opens the panel (§3.4). Expanding
+        // hides the row itself, so hand focus to the toggle — a keyboard
+        // user keeps a focus point that collapses the panel again.
+        document.getElementById("panel-selection-summary").addEventListener("click", () => {
+          setPanelCollapsed(false);
+          document.getElementById("panel-toggle").focus();
+        });
         document.getElementById("show-places").addEventListener("change", refreshMap);
         document.getElementById("panel-inspect").addEventListener("click", () =>
           inspectLocation(inspectionCenter())
@@ -2172,6 +2255,19 @@
         document.getElementById("dialog-close").addEventListener("click", () =>
           document.getElementById("location-dialog").close()
         );
+        // Light dismiss: clicking the backdrop closes the dialog. On the
+        // mobile bottom sheet the dimmed map above it becomes the big
+        // one-handed close target; Esc and the × button work as before.
+        // The rect check keeps clicks on the dialog's own padding (which
+        // also target the dialog element) from closing it.
+        document.getElementById("location-dialog").addEventListener("click", event => {
+          const dialog = event.currentTarget;
+          if (event.target !== dialog) return;
+          const rect = dialog.getBoundingClientRect();
+          const outside = event.clientX < rect.left || event.clientX > rect.right ||
+            event.clientY < rect.top || event.clientY > rect.bottom;
+          if (outside) dialog.close();
+        });
         document.getElementById("location-dialog").addEventListener("close", () => {
           inspectionOrigin = undefined;
           inspectSequence += 1;
@@ -2195,7 +2291,6 @@
           if (location.hash === lastWrittenHash) return;
           applyLocationHash();
         });
-        syncMobileMode();
         if (mobileMedia.matches) collapseCompactAttribution();
         refreshMap();
         applyLocationHash();
