@@ -14,16 +14,20 @@ Other:
     $ nix why-depends .#nixosConfigurations.vno1-gdrx.config.system.build.toplevel .#legacyPackages.x86_64-linux.mbedtls_2
 
 git
--------
+---
 
 Repos live in `/var/lib/git/<org>/<name>.git`, browsed with stagit-ng at
 <https://git.jakstys.lt>. Create-on-push (path must be two-level `<org>/<name>`):
 
-    git remote add h git@git.jakstys.lt:newrepo.git && git push h master
+    git remote add origin git@git.jakstys.lt:newrepo.git && git push origin master
 
 Set description with a push option (persisted, shown on the index):
 
-    git push -o description="Short description" h master
+    git push -o description="Short description" origin master
+
+Create a sha256 repo:
+
+    GIT_DEFAULT_HASH=sha256 git push origin master
 
 Rebuild `repositories.txt`: `sudo -u git git-repolist-gen`
 

@@ -13,6 +13,7 @@ _: {
     programs.ssh.extraConfig = ''
       Host git.jakstys.lt
         HostName fwminex.jakst.vpn
+        SendEnv GIT_DEFAULT_HASH
     '';
   };
 }
