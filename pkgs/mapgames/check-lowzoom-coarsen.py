@@ -185,7 +185,7 @@ def check_variant_b(lowzoom_features, z67_path, n_drop):
     for index, feature in enumerate(lowzoom_features):
         points = [grid_point(*c) for c in feature["geometry"]["coordinates"]]
         length = sum(
-            math.hypot(b[0] - a[0], b[1] - a[1])
+            math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
             for a, b in zip(points, points[1:])
         )
         if length >= n_drop:

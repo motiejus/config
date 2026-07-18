@@ -190,8 +190,10 @@ def main() -> None:
     emitted_property_maps = set()
     in_pieces = in_points = 0
     total_segments = total_chains = total_points = 0
-    kept_chains = kept_length = 0.0
-    dropped_chains = dropped_length = 0.0
+    kept_chains = 0
+    dropped_chains = 0
+    kept_length = 0.0
+    dropped_length = 0.0
 
     out_main = open(args.output, "w", encoding="utf-8")
     out_z67 = open(args.z67_out, "w", encoding="utf-8") if args.z67_out else None
@@ -315,7 +317,7 @@ def main() -> None:
         total_len = kept_length + dropped_length
         print(
             f"[coarsen] variant B (N_drop={args.n_drop:g}): dropped "
-            f"{int(dropped_chains)} of {int(total)} chains "
+            f"{dropped_chains} of {total} chains "
             f"({100 * dropped_chains / max(total, 1):.1f}%), "
             f"{dropped_length:.0f} of {total_len:.0f} grid-units length "
             f"({100 * dropped_length / max(total_len, 1e-9):.1f}%)",
