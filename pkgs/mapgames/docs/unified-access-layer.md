@@ -251,8 +251,10 @@ def network_tile_config(work: Path) -> dict:
   were `COVERAGE_*_ZOOM`, until the post-step-7 cleanup renamed them after
   the per-route coverage machinery they were named for was deleted.)
 - Destination lookup configs (`destination_tile_config`) and
-  `destinations-<route_key>.pmtiles` builds: unchanged by the series. Places
-  pipeline: unchanged.
+  `destinations-<route_key>.pmtiles` builds remain the source of point-verdict
+  lookup features. In the current tree, the places encoder input is
+  `work/places.geojson` (not published); the browser-facing detail data is the
+  compact, index-addressed `place-catalog.json` described below.
 - Attribute values serialize as JSON integers in `network.geojson` so
   tilemaker types the columns as ints and MapLibre `["get"]` returns numbers.
 
@@ -270,9 +272,17 @@ output; re-publishing a 150–220 MB raw export (plus the gz/br/zstd
 sidecars `compressDrvWeb`'s `extraFormats = ["geojson", "pbf"]` would generate
 for it, and the `.etag` sidecar from `writeEtags`) would reverse that decision
 with no current consumer — the published access artifact is `access.pmtiles`.
-Consequently metadata carries no `export` key and the default.nix
-`generated/*.geojson` install glob does not match it (it lives in `work/`, not
+Consequently metadata carries no `export` key and default.nix publishes only
+the generated JSON/PMTiles artifacts (the GeoJSON lives in `work/`, not
 `generated/`).
+
+The same publication rule now applies to `places.geojson`: it is a tilemaker
+input in `work/`, not a browser API. `places.pmtiles` remains the rendered-dot
+archive. Human-facing place details are projected into
+`place-catalog.json`, an array in global `place_index` order containing only
+name/brand/kind, address, opening-hours, phone, and point-coordinate fields.
+Destination lookup tiles already carry those integer indexes, so the dialog
+does not need the full GeoJSON wrappers or unrelated OSM tags.
 
 **metadata.json** replaces `access_tiles` with:
 
@@ -292,7 +302,13 @@ Consequently metadata carries no `export` key and the default.nix
    "file": "destinations-coffee-walk.pmtiles",
    "layers": {"5": "destinations_5", "10": "destinations_10", "20": "destinations_20"}},
   ...
-]
+],
+"places": {
+  "file": "places.pmtiles",
+  "catalog_file": "place-catalog.json",
+  "layer": "places",
+  "min_data_zoom": 9, "max_data_zoom": 14
+}
 ```
 
 `services` (labels, presets, place_count) is unchanged — the front-end
@@ -302,7 +318,11 @@ requirements model keys off it.
 one derivation (`www` wraps `data` in default.nix) and deploy atomically; the
 front-end consumes only same-build metadata. Destination inspect tiles keep
 their names, layer names (`destination_layer_name()`), and schema
-(`DESTINATION_SOURCE_COLUMNS`), so the inspect path is untouched end to end.
+(`DESTINATION_SOURCE_COLUMNS`), so the geographic verdict path is unchanged.
+The current dialog opens a loading state immediately, fetches
+`metadata.places.catalog_file` only when a rendered marker or passing
+destination needs details, and indexes the returned array with the tile's
+`place_index`/`lookup_ids` values.
 
 ### 2.3 Simplification per zoom (visually lossless only)
 
@@ -554,7 +574,10 @@ membership across the 5 routes: {1 route: 52k, 2: 67k, 3: 35k, 4: 25k, all 5:
 **Full Lithuania** (`lt-full/generated/`): access pmtiles 220.6 + 863.7 +
 428.2 + 188.7 + 788.0 MB = **2.49 GB**; coverage geojson intermediates
 **295 MB** (hospital 932k pieces / 4.19M points, fuel 902k/3.88M);
-destinations pmtiles 2.30 GB; basemap 176 MB; places ~5 MB. Deployed set
+destinations pmtiles 2.30 GB; basemap 176 MB; places PMTiles ~5 MB. The
+current compact `place-catalog.json` is also published (about 0.8 MB
+uncompressed for the 4,398-place snapshot), while `places.geojson` remains a
+build intermediate. Deployed set
 (current tree — coverage geojsons are `work/` intermediates and not
 published): ≈ **4.97 GB** — acceptable under the new budget.
 
@@ -899,8 +922,10 @@ policy.
    determinism.
 6. **Front-end rework (§3).** New source/layers/views/legend/URL state; delete
    old access-source usage, `addCoveragePair`, and the `count_bands`/
-   `one`/`two_plus`/band-swatch vestiges. Inspect flow untouched except
-   `destinationRecords` now reads `metadata.destination_tiles`.
+   `one`/`two_plus`/band-swatch vestiges. `destinationRecords` reads
+   `metadata.destination_tiles`; the later current-tree UX follow-up keeps
+   those verdict tiles but opens the dialog's loading state immediately and
+   resolves human-facing details through `metadata.places.catalog_file`.
    *Gate:* scripted screenshots at fixed viewports for each view × a fixed
    selection set, desktop and mobile widths (collapsed and expanded panel);
    URL hash round-trip (`view` + `requirements` + `at`); inspect dialog
@@ -922,7 +947,8 @@ policy.
    files); `network.geojson` confirmed absent from the published output — it
    is a `work/` intermediate with no compressDrvWeb sidecars (§2.2).
    *Reviewer checks:* nothing references dead filenames (grep the tree);
-   metadata contains no orphan keys; no stray `network.geojson` in `$out`.
+   metadata contains no orphan keys; no stray `network.geojson` or
+   `places.geojson` in `$out`; `place-catalog.json` and its etag are present.
 8. **Zoom-scaled simplification (§2.3).** Last, so visual baselines exist.
    *Gate:* screenshot A/B z6/z8/z10 vs step-7 output — pixel-identical or
    imperceptible (reviewer judges against the "visually lossless" bar);

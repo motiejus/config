@@ -1893,7 +1893,7 @@
           meta.textContent = t("destinationMeta", kindLabel(destination.kind), formatKm(distance));
           // Each destination expands in place to its place-card details —
           // one tap to open, one tap back to the list; the catalog entry
-          // already carries the full place properties.
+          // already carries every human-facing field rendered here.
           const details = document.createElement("details");
           details.className = "destination-details";
           const summary = document.createElement("summary");
