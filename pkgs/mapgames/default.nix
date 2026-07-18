@@ -1,24 +1,28 @@
 {
   lib,
+  stdenv,
   stdenvNoCC,
   fetchurl,
+  boost,
   compressDrvWeb,
   jq,
+  libtiff,
   osmium-tool,
+  pkg-config,
   python3,
+  rapidjson,
   runCommand,
   tilemaker,
   valhalla,
   concurrency ? 4,
-  smoothingMeters ? 12,
-  simplifyMeters ? 5,
+  # Full Lithuania PBF extent; expect multi-GiB lookup output.
+  # bbox ? "20.618591,53.892206,26.83873,56.45329",
+  bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/production area
 }:
 
 assert lib.assertMsg (
   builtins.isInt concurrency && concurrency > 0
 ) "mapgames: concurrency must be a positive integer";
-assert lib.assertMsg (smoothingMeters >= 0) "mapgames: smoothingMeters must not be negative";
-assert lib.assertMsg (simplifyMeters >= 0) "mapgames: simplifyMeters must not be negative";
 
 let
   sourceUrl = "https://dl.jakstys.lt/maps/lithuania-260716.osm.pbf";
@@ -61,6 +65,38 @@ let
   };
 
   python = python3.withPackages (ps: [ ps.shapely ]);
+  valhallaExpand = stdenv.mkDerivation {
+    pname = "mapgames-valhalla-expand";
+    version = "260716";
+
+    dontUnpack = true;
+
+    nativeBuildInputs = [ pkg-config ];
+    buildInputs = [
+      boost
+      libtiff
+      rapidjson
+      valhalla
+    ];
+
+    buildPhase = ''
+      runHook preBuild
+
+      $CXX -std=c++20 -O2 -pthread ${./valhalla-expand.cc} \
+        -o mapgames-valhalla-expand \
+        $(pkg-config --cflags --libs libvalhalla)
+
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+
+      install -Dm755 mapgames-valhalla-expand "$out/bin/mapgames-valhalla-expand"
+
+      runHook postInstall
+    '';
+  };
   writeEtags = ''
     find "$out" -type f ! -name '*.etag' | while read -r file; do
       hash=$(sha256sum "$file")
@@ -78,6 +114,7 @@ let
       python
       tilemaker
       valhalla
+      valhallaExpand
     ];
 
     buildPhase = ''
@@ -86,15 +123,15 @@ let
       export PYTHONPATH="${valhalla}/${python3.sitePackages}"
       python ${./generate.py} \
         --pbf ${lithuaniaPbf} \
+        --bbox ${lib.escapeShellArg bbox} \
         --concurrency ${toString concurrency} \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
         --coverage-process ${./coverage.lua} \
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
+        --expansion-helper ${valhallaExpand}/bin/mapgames-valhalla-expand \
         --osm-source-url ${lib.escapeShellArg sourceUrl} \
-        --smoothing-meters ${toString smoothingMeters} \
-        --simplify-meters ${toString simplifyMeters} \
         --output generated
 
       runHook postBuild
@@ -111,16 +148,17 @@ let
     '';
 
     passthru = {
-      inherit lithuaniaPbf;
-      contourMinutes = [
-        5
-        10
-        20
+      inherit bbox lithuaniaPbf;
+      accessServices = [
+        "coffee"
+        "hospital"
+        "supermarket"
+        "fuel"
       ];
     };
 
     meta = {
-      description = "Lithuania cafe walking-time routing data and vector tiles";
+      description = "Everyday-service reachable networks and vector tiles for a configured Lithuania snapshot region";
       homepage = "https://www.openstreetmap.org/";
       license = with lib.licenses; [
         mit
@@ -210,11 +248,11 @@ let
 
     passthru = {
       inherit data;
-      inherit (data) lithuaniaPbf contourMinutes;
+      inherit (data) lithuaniaPbf accessServices;
     };
 
     meta = {
-      description = "Lithuania cafe walking-time coverage polygons and demo map";
+      description = "Everyday-service reachable networks and interactive map for a configured Lithuania snapshot region";
       homepage = "https://www.openstreetmap.org/";
       license = with lib.licenses; [
         mit

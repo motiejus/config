@@ -9,16 +9,89 @@ import subprocess
 import sys
 import time
 
-from shapely.geometry import GeometryCollection, MultiPolygon, Polygon, mapping, shape
-from shapely.ops import transform, unary_union
+from shapely.geometry import (
+    box,
+    mapping,
+    shape,
+)
 
-from valhalla import Actor, get_config
+from valhalla import get_config
 
 
-CONTOUR_MINUTES = (5, 10, 20)
-LITHUANIA_ISO_CODE = "LT"
 COVERAGE_MIN_ZOOM = 6
-COVERAGE_MAX_ZOOM = 12
+DESTINATION_MIN_ZOOM = 12
+COVERAGE_MAX_ZOOM = 14
+LOW_ZOOM_GENERALIZATION_BELOW = 11
+
+SERVICE_SPECS = (
+    {
+        "id": "coffee",
+        "label": "Coffee & food",
+        "description": "Cafes, coffee shops, and restaurants",
+        "query": ("amenity=cafe", "amenity=restaurant", "shop=coffee"),
+        "routes": (("walk", (5, 10, 20)),),
+        "count_bands": False,
+    },
+    {
+        "id": "hospital",
+        "label": "Hospital",
+        "description": "Hospitals reachable by car",
+        "query": ("amenity=hospital", "healthcare=hospital"),
+        "routes": (("drive", (20, 30)),),
+        "count_bands": False,
+    },
+    {
+        "id": "supermarket",
+        "label": "Supermarket",
+        "description": "Full-size supermarkets",
+        "query": ("shop=supermarket",),
+        "routes": (("walk", (10, 20)), ("drive", (10,))),
+        "count_bands": False,
+    },
+    {
+        "id": "fuel",
+        "label": "Fuel station",
+        "description": "Fuel stations reachable by car",
+        "query": ("amenity=fuel",),
+        "routes": (("drive", (10, 20)),),
+        "count_bands": False,
+    },
+)
+
+ROUTE_SPECS = tuple(
+    {
+        "service": service["id"],
+        "mode": mode,
+        "minutes": minutes,
+        "count_bands": service["count_bands"],
+    }
+    for service in SERVICE_SPECS
+    for mode, minutes in service["routes"]
+)
+
+MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
+CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
+DESTINATION_SOURCE_COLUMNS = (
+    "minutes",
+    "mode",
+    "lookup_ids",
+    "service",
+)
+PLACE_SOURCE_COLUMNS = (
+    "amenity",
+    "brand",
+    "healthcare",
+    "kind",
+    "name",
+    "osm_id",
+    "osm_type",
+    "osm_url",
+    "place_id",
+    "place_index",
+    "service",
+    "shop",
+    "source_geometry",
+)
 
 
 @contextmanager
@@ -57,123 +130,8 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
-def coverage_tile_config(minutes: int, output: Path) -> dict:
-    layers = {}
-    for minimum_cafes, layer_name in ((1, "coverage_one"), (2, "coverage_two")):
-        layers[layer_name] = {
-            "minzoom": COVERAGE_MIN_ZOOM,
-            "maxzoom": COVERAGE_MAX_ZOOM,
-            "source": str(output / f"coverage-{minutes}-{minimum_cafes}.geojson"),
-            "simplify_below": COVERAGE_MAX_ZOOM,
-            "simplify_level": 0.00001,
-            "simplify_algorithm": "visvalingam",
-        }
-    return {
-        "layers": layers,
-        "settings": {
-            "minzoom": COVERAGE_MIN_ZOOM,
-            "maxzoom": COVERAGE_MAX_ZOOM,
-            "basezoom": COVERAGE_MAX_ZOOM,
-            "include_ids": False,
-            "combine_below": COVERAGE_MAX_ZOOM,
-            "name": f"Mapgames {minutes}-minute cafe coverage",
-            "version": "1.0.0",
-            "description": "Tiled walking-time coverage generated with Valhalla",
-            "compress": "gzip",
-            "filemetadata": {
-                "tilejson": "3.0.0",
-                "scheme": "xyz",
-                "type": "overlay",
-                "format": "pbf",
-                "attribution": "© OpenStreetMap contributors, ODbL 1.0",
-            },
-        },
-    }
-
-
-def polygonal_part(geometry):
-    if isinstance(geometry, (Polygon, MultiPolygon)):
-        return geometry
-    if isinstance(geometry, GeometryCollection):
-        polygons = [
-            part
-            for part in geometry.geoms
-            if isinstance(part, (Polygon, MultiPolygon)) and not part.is_empty
-        ]
-        return unary_union(polygons) if polygons else Polygon()
-    return Polygon()
-
-
-def valid_polygon(geometry):
-    geometry = polygonal_part(geometry)
-    if not geometry.is_valid:
-        geometry = polygonal_part(geometry.buffer(0))
-    return geometry
-
-
-def merge_coverage_states(left, right):
-    """Merge (covered >=1 time, covered >=2 times) polygon states."""
-    left_once, left_twice = left
-    right_once, right_twice = right
-    twice = unary_union(
-        [left_twice, right_twice, valid_polygon(left_once.intersection(right_once))]
-    )
-    return valid_polygon(unary_union([left_once, right_once])), valid_polygon(twice)
-
-
-def coverage_at_least_twice(polygons):
-    states = [(polygon, Polygon()) for polygon in polygons if not polygon.is_empty]
-    if not states:
-        return Polygon(), Polygon()
-    while len(states) > 1:
-        next_states = [
-            merge_coverage_states(states[index], states[index + 1])
-            for index in range(0, len(states) - 1, 2)
-        ]
-        if len(states) % 2:
-            next_states.append(states[-1])
-        states = next_states
-    return states[0]
-
-
-def local_metric_transforms(country):
-    center_latitude = (country.bounds[1] + country.bounds[3]) / 2.0
-    longitude_scale = 111_320.0 * math.cos(math.radians(center_latitude))
-    latitude_scale = 110_574.0
-
-    def forward(x, y, z=None):
-        return x * longitude_scale, y * latitude_scale
-
-    def inverse(x, y, z=None):
-        return x / longitude_scale, y / latitude_scale
-
-    return forward, inverse
-
-
-def simplify_in_meters(geometry, meters: float, forward, inverse):
-    if meters <= 0:
-        return geometry
-    projected = transform(forward, geometry)
-    return valid_polygon(transform(inverse, projected.simplify(meters, preserve_topology=True)))
-
-
-def display_geometry(
-    geometry,
-    country,
-    smoothing_meters: float,
-    simplify_meters: float,
-    forward,
-    inverse,
-):
-    geometry = valid_polygon(geometry.intersection(country))
-    projected = transform(forward, geometry)
-    if smoothing_meters > 0:
-        projected = projected.buffer(smoothing_meters, quad_segs=4).buffer(
-            -smoothing_meters, quad_segs=4
-        )
-    if simplify_meters > 0:
-        projected = projected.simplify(simplify_meters, preserve_topology=True)
-    return valid_polygon(transform(inverse, projected).intersection(country))
+def feature_collection(features: list[dict], bbox: list[float]) -> dict:
+    return {"type": "FeatureCollection", "bbox": bbox, "features": features}
 
 
 def decode_osmium_id(feature_id: object):
@@ -188,20 +146,322 @@ def decode_osmium_id(feature_id: object):
     return None, None
 
 
+def services_for_properties(properties: dict) -> list[str]:
+    services = []
+    amenity = properties.get("amenity")
+    shop = properties.get("shop")
+    if amenity in ("cafe", "restaurant") or shop == "coffee":
+        services.append("coffee")
+    if amenity == "hospital" or properties.get("healthcare") == "hospital":
+        services.append("hospital")
+    if shop == "supermarket":
+        services.append("supermarket")
+    if amenity == "fuel":
+        services.append("fuel")
+    return services
+
+
+def place_kind(service: str, properties: dict) -> str:
+    if service == "coffee":
+        if properties.get("amenity") == "restaurant":
+            return "restaurant"
+        if properties.get("amenity") == "cafe":
+            return "cafe"
+        return "coffee_shop"
+    return service
+
+
+def route_key(route: dict) -> str:
+    return f"{route['service']}-{route['mode']}"
+
+
+def coverage_layer_name() -> str:
+    return "coverage"
+
+
+def destination_layer_name(minutes: int) -> str:
+    return f"destinations_{minutes}"
+
+
+def coverage_filename(route: dict) -> str:
+    return f"coverage-{route_key(route)}.geojson"
+
+
+def destinations_filename(route: dict, minutes: int) -> str:
+    return f"destinations-{route_key(route)}-{minutes}.geojson"
+
+
+def common_tile_settings(name: str, description: str, minzoom: int = COVERAGE_MIN_ZOOM) -> dict:
+    return {
+        "minzoom": minzoom,
+        "maxzoom": COVERAGE_MAX_ZOOM,
+        "basezoom": COVERAGE_MAX_ZOOM,
+        "include_ids": False,
+        "combine_below": COVERAGE_MAX_ZOOM,
+        "name": name,
+        "version": "1.0.0",
+        "description": description,
+        "compress": "gzip",
+        "filemetadata": {
+            "tilejson": "3.0.0",
+            "scheme": "xyz",
+            "type": "overlay",
+            "format": "pbf",
+            "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+        },
+    }
+
+
+def coverage_tile_config(route: dict, output: Path) -> dict:
+    layer = coverage_layer_name()
+    return {
+        "layers": {
+            layer: {
+                "minzoom": COVERAGE_MIN_ZOOM,
+                "maxzoom": COVERAGE_MAX_ZOOM,
+                "source": str(output / coverage_filename(route)),
+                "source_columns": ["max_minutes", "min_minutes", "mode", "service"],
+                # Only country-scale tiles are generalized. Street-scale tiles and
+                # the exported GeoJSON retain the reachable routing edges.
+                "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
+                "simplify_level": 0.00001,
+                "simplify_algorithm": "visvalingam",
+            }
+        },
+        "settings": common_tile_settings(
+            f"Mapgames {route_key(route)} access",
+            "Deduplicated reverse Valhalla expansion edges",
+        ),
+    }
+
+
+def destination_tile_config(route: dict, work: Path) -> dict:
+    return {
+        "layers": {
+            destination_layer_name(minutes): {
+                "minzoom": DESTINATION_MIN_ZOOM,
+                "maxzoom": COVERAGE_MAX_ZOOM,
+                "source": str(work / destinations_filename(route, minutes)),
+                "source_columns": list(DESTINATION_SOURCE_COLUMNS),
+            }
+            for minutes in route["minutes"]
+        },
+        "settings": common_tile_settings(
+            f"Mapgames {route_key(route)} destination lookup",
+            "Reachable edge to destination-catalog lookup",
+            DESTINATION_MIN_ZOOM,
+        ),
+    }
+
+
+def places_tile_config(output: Path) -> dict:
+    return {
+        "layers": {
+            "places": {
+                "minzoom": 9,
+                "maxzoom": COVERAGE_MAX_ZOOM,
+                "source": str(output / "places.geojson"),
+                "source_columns": list(PLACE_SOURCE_COLUMNS),
+                "combine_points": False,
+            }
+        },
+        "settings": common_tile_settings(
+            "Mapgames service destinations",
+            "Cafes, restaurants, hospitals, supermarkets, and fuel stations",
+        ),
+    }
+
+
+def parse_bbox(value: str) -> tuple[float, float, float, float]:
+    try:
+        result = tuple(float(part) for part in value.split(","))
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("bbox must contain four numbers") from error
+    if len(result) != 4:
+        raise argparse.ArgumentTypeError("bbox must be min_lon,min_lat,max_lon,max_lat")
+    min_lon, min_lat, max_lon, max_lat = result
+    if not all(math.isfinite(coordinate) for coordinate in result):
+        raise argparse.ArgumentTypeError("bbox coordinates must be finite")
+    if not (-180 <= min_lon <= 180 and -180 <= max_lon <= 180):
+        raise argparse.ArgumentTypeError("bbox longitudes must be between -180 and 180")
+    if not (-90 <= min_lat <= 90 and -90 <= max_lat <= 90):
+        raise argparse.ArgumentTypeError("bbox latitudes must be between -90 and 90")
+    if min_lon >= max_lon or min_lat >= max_lat:
+        raise argparse.ArgumentTypeError("bbox minimums must be below maximums")
+    return result
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pbf", type=Path, required=True)
+    parser.add_argument("--bbox", type=parse_bbox, required=True)
     parser.add_argument("--concurrency", type=int, required=True)
     parser.add_argument("--basemap-config", type=Path, required=True)
     parser.add_argument("--basemap-process", type=Path, required=True)
     parser.add_argument("--coverage-process", type=Path, required=True)
     parser.add_argument("--tilemaker-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
+    parser.add_argument("--expansion-helper", type=Path, required=True)
     parser.add_argument("--osm-source-url", required=True)
-    parser.add_argument("--smoothing-meters", type=float, required=True)
-    parser.add_argument("--simplify-meters", type=float, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
+
+
+def prepare_boundary(args: argparse.Namespace, work: Path, output: Path):
+    boundary_geojson_path = work / "lithuania-boundary.raw.geojson"
+    country = box(*args.bbox)
+    write_json(
+        boundary_geojson_path,
+        feature_collection(
+            [
+                {
+                    "type": "Feature",
+                    "properties": {"name": "Coverage bounds"},
+                    "geometry": mapping(country),
+                }
+            ],
+            list(args.bbox),
+        ),
+    )
+
+    if country.is_empty:
+        raise RuntimeError("coverage boundary is empty")
+    country_bbox = list(country.bounds)
+    write_json(work / "coverage-boundary.geojson", mapping(country))
+    write_json(
+        output / "lithuania.geojson",
+        feature_collection(
+            [
+                {
+                    "type": "Feature",
+                    "properties": {"boundary_type": "bbox", "name": "Coverage bounds"},
+                    "geometry": mapping(country),
+                }
+            ],
+            country_bbox,
+        ),
+    )
+    return country, country_bbox
+
+
+def prepare_places(args: argparse.Namespace, work: Path, country):
+    places_pbf = work / "places.osm.pbf"
+    raw_places_path = work / "places.raw.geojson"
+    filters = [f"nwr/{query}" for service in SERVICE_SPECS for query in service["query"]]
+    run(
+        "filter service destinations",
+        [
+            "osmium",
+            "tags-filter",
+            "--remove-tags",
+            "--output",
+            places_pbf,
+            args.pbf,
+            *filters,
+        ],
+    )
+    run(
+        "export service destinations",
+        [
+            "osmium",
+            "export",
+            "--geometry-types=point,polygon",
+            "--add-unique-id=type_id",
+            "--attributes=version,timestamp",
+            "--show-errors",
+            "--stop-on-error",
+            "--output",
+            raw_places_path,
+            places_pbf,
+        ],
+    )
+
+    source = json.loads(raw_places_path.read_text(encoding="utf-8"))
+    prepared = {service["id"]: [] for service in SERVICE_SPECS}
+    seen_ids = set()
+    for source_feature in source.get("features", []):
+        source_id = str(source_feature.get("id") or "")
+        source_geometry = source_feature.get("geometry")
+        if not source_id or source_geometry is None:
+            continue
+        geometry = shape(source_geometry)
+        if geometry.is_empty:
+            continue
+        point = geometry.representative_point()
+        if not country.covers(point):
+            continue
+        source_properties = dict(source_feature.get("properties") or {})
+        osm_type, osm_id = decode_osmium_id(source_id)
+        for service in services_for_properties(source_properties):
+            place_id = f"{service}:{source_id}"
+            if place_id in seen_ids:
+                continue
+            properties = dict(source_properties)
+            properties.update(
+                {
+                    "kind": place_kind(service, source_properties),
+                    "place_id": place_id,
+                    "service": service,
+                    "source_geometry": source_geometry.get("type"),
+                }
+            )
+            if osm_type is not None:
+                properties.update(
+                    {
+                        "osm_type": osm_type,
+                        "osm_id": osm_id,
+                        "osm_url": f"https://www.openstreetmap.org/{osm_type}/{osm_id}",
+                    }
+                )
+            feature = {
+                "type": "Feature",
+                "id": place_id,
+                "geometry": {"type": "Point", "coordinates": [point.x, point.y]},
+                "properties": properties,
+            }
+            prepared[service].append(
+                ({"lon": point.x, "lat": point.y, "radius": 100}, feature)
+            )
+            seen_ids.add(place_id)
+
+    for service, entries in prepared.items():
+        entries.sort(key=lambda pair: (pair[0]["lon"], pair[0]["lat"], pair[1]["id"]))
+        if not entries:
+            raise RuntimeError(f"coverage region contains no {service} destinations")
+    place_index = 0
+    for service in SERVICE_SPECS:
+        for _location, feature in prepared[service["id"]]:
+            feature["properties"]["place_index"] = place_index
+            place_index += 1
+    return prepared
+
+
+def write_expansion_requests(path: Path, route: dict, entries: list[tuple[dict, dict]]):
+    with path.open("w", encoding="utf-8") as file:
+        for index, (location, place_feature) in enumerate(entries, start=1):
+            request_id = f"{index:06d}"
+            max_minutes = max(route["minutes"])
+            file.write(
+                "\t".join(
+                    [
+                        request_id,
+                        MODE_COSTING[route["mode"]],
+                        f"{location['lon']:.17g}",
+                        f"{location['lat']:.17g}",
+                        str(max_minutes),
+                        json.dumps(
+                            {
+                                "lookup_id": place_feature["properties"]["place_index"],
+                                "place_id": place_feature["properties"]["place_id"],
+                            },
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                            sort_keys=True,
+                        ),
+                    ]
+                )
+                + "\n"
+            )
 
 
 def main() -> None:
@@ -209,10 +469,6 @@ def main() -> None:
     args = parse_args()
     if args.concurrency <= 0:
         raise ValueError("concurrency must be positive")
-    if not math.isfinite(args.smoothing_meters) or args.smoothing_meters < 0:
-        raise ValueError("smoothing-meters must be finite and non-negative")
-    if not math.isfinite(args.simplify_meters) or args.simplify_meters < 0:
-        raise ValueError("simplify-meters must be finite and non-negative")
 
     work = Path.cwd() / "work"
     output = args.output.resolve()
@@ -224,164 +480,52 @@ def main() -> None:
         ["osmium", "fileinfo", "-g", "header.option.osmosis_replication_timestamp", args.pbf],
     )
 
-    boundary_pbf = work / "lithuania-boundary.osm.pbf"
-    boundary_geojson_path = work / "lithuania-boundary.raw.geojson"
-    run(
-        "extract Lithuania boundary",
-        [
-            "osmium",
-            "tags-filter",
-            "--remove-tags",
-            "--output",
-            boundary_pbf,
-            args.pbf,
-            f"r/ISO3166-1={LITHUANIA_ISO_CODE}",
-        ],
-    )
-    run(
-        "export Lithuania boundary",
-        [
-            "osmium",
-            "export",
-            "--geometry-types=polygon",
-            "--add-unique-id=type_id",
-            "--show-errors",
-            "--stop-on-error",
-            "--output",
-            boundary_geojson_path,
-            boundary_pbf,
-        ],
-    )
-    with timed("prepare Lithuania boundary"):
-        boundary_source = json.loads(boundary_geojson_path.read_text(encoding="utf-8"))
-        boundary_features = boundary_source.get("features", [])
-        if len(boundary_features) != 1:
-            raise RuntimeError(
-                f"expected one ISO3166-1={LITHUANIA_ISO_CODE} boundary, got "
-                f"{len(boundary_features)}"
-            )
-        country = valid_polygon(shape(boundary_features[0]["geometry"]))
-        if country.is_empty:
-            raise RuntimeError("Lithuania boundary is empty")
-        forward, inverse = local_metric_transforms(country)
-        country_for_output = simplify_in_meters(country, 10.0, forward, inverse)
-        country_bbox = list(country.bounds)
-        write_json(
-            output / "lithuania.geojson",
-            {
-                "type": "FeatureCollection",
-                "bbox": country_bbox,
-                "features": [
-                    {
-                        "type": "Feature",
-                        "properties": {"ISO3166-1": LITHUANIA_ISO_CODE, "name": "Lietuva"},
-                        "geometry": mapping(country_for_output),
-                    }
-                ],
-            },
-        )
+    with timed("prepare coverage boundary"):
+        country, country_bbox = prepare_boundary(args, work, output)
 
-    run(
-        "build lean Lithuania PMTiles basemap",
-        [
-            "tilemaker",
-            "--input",
-            args.pbf,
-            "--output",
-            output / "lithuania.pmtiles",
-            "--config",
-            args.basemap_config,
-            "--process",
-            args.basemap_process,
-            "--threads",
-            args.concurrency,
-        ],
-    )
+    basemap_command = [
+        "tilemaker",
+        "--input",
+        args.pbf,
+        "--output",
+        output / "lithuania.pmtiles",
+        "--config",
+        args.basemap_config,
+        "--process",
+        args.basemap_process,
+        "--threads",
+        args.concurrency,
+    ]
+    basemap_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
+    run("build lean vector basemap", basemap_command)
 
-    cafe_pbf = work / "cafes.osm.pbf"
-    raw_cafes_path = work / "cafes.raw.geojson"
-    run(
-        "filter cafes and coffee shops",
-        [
-            "osmium",
-            "tags-filter",
-            "--remove-tags",
-            "--output",
-            cafe_pbf,
-            args.pbf,
-            "nwr/amenity=cafe",
-            "nwr/shop=coffee",
-        ],
-    )
-    run(
-        "export cafes and coffee shops",
-        [
-            "osmium",
-            "export",
-            "--geometry-types=point,polygon",
-            "--add-unique-id=type_id",
-            "--attributes=version,timestamp",
-            "--show-errors",
-            "--stop-on-error",
-            "--output",
-            raw_cafes_path,
-            cafe_pbf,
-        ],
-    )
-
-    with timed("prepare cafe locations"):
-        source_cafes = json.loads(raw_cafes_path.read_text(encoding="utf-8"))
-        prepared = []
-        seen_ids = set()
-        for feature in source_cafes.get("features", []):
-            feature_id = str(feature.get("id") or "")
-            if not feature_id or feature_id in seen_ids:
-                continue
-            source_geometry = feature.get("geometry")
-            if source_geometry is None:
-                continue
-            geometry = shape(source_geometry)
-            if geometry.is_empty:
-                continue
-            point = geometry.representative_point()
-            if not country.covers(point):
-                continue
-            osm_type, osm_id = decode_osmium_id(feature_id)
-            properties = dict(feature.get("properties") or {})
-            properties["source_geometry"] = source_geometry.get("type")
-            if osm_type is not None:
-                properties["osm_type"] = osm_type
-                properties["osm_id"] = osm_id
-                properties["osm_url"] = f"https://www.openstreetmap.org/{osm_type}/{osm_id}"
-            prepared.append(
-                (
-                    {"lon": point.x, "lat": point.y, "radius": 100},
-                    {
-                        "type": "Feature",
-                        "id": feature_id,
-                        "geometry": {"type": "Point", "coordinates": [point.x, point.y]},
-                        "properties": properties,
-                    },
-                )
-            )
-            seen_ids.add(feature_id)
-
-        prepared.sort(key=lambda pair: (pair[0]["lon"], pair[0]["lat"], pair[1]["id"]))
-        if not prepared:
-            raise RuntimeError("Lithuania contains no amenity=cafe or shop=coffee features")
+    with timed("prepare service locations"):
+        prepared = prepare_places(args, work, country)
 
     tiles = work / "tiles"
-    tiles.mkdir()
+    tiles.mkdir(exist_ok=True)
     with timed("write Valhalla configuration"):
-        # Keywords keep this compatible with nixpkgs releases that changed the
-        # positional order. Empty tile_extract selects the directory without
-        # requiring a not-yet-created tar archive.
         config = get_config(tile_extract="", tile_dir=tiles)
+        # The pipeline reads only its unpacked graph tiles. Remove optional
+        # /data/valhalla defaults so an unsandboxed build cannot accidentally
+        # consume host traffic, admin, timezone, transit, landmark, or elevation
+        # data and produce a different output for the same derivation.
+        for key in (
+            "tile_extract",
+            "traffic_extract",
+            "admin",
+            "landmarks",
+            "timezone",
+            "transit_dir",
+            "transit_feeds_dir",
+        ):
+            config["mjolnir"].pop(key, None)
+        config.get("additional_data", {}).pop("elevation", None)
         config_path = work / "valhalla.json"
         write_json(config_path, config)
 
     run(
-        "build Lithuania Valhalla routing tiles",
+        "build Valhalla routing tiles",
         [
             "valhalla_build_tiles",
             "--config",
@@ -392,135 +536,60 @@ def main() -> None:
         ],
     )
 
-    with timed("initialize offline Valhalla Actor"):
-        try:
-            actor = Actor(config)
-        except TypeError:
-            actor = Actor(json.dumps(config, separators=(",", ":")))
-
-    contour_polygons = {minutes: [] for minutes in CONTOUR_MINUTES}
-    routing_failures = []
-    with timed("compute per-cafe Lithuania walking isochrones"):
-        for index, (location, cafe_feature) in enumerate(prepared, start=1):
-            try:
-                result = actor.isochrone(
-                    {
-                        "locations": [location],
-                        "costing": "pedestrian",
-                        "contours": [{"time": minutes} for minutes in CONTOUR_MINUTES],
-                        "polygons": True,
-                        "denoise": 0,
-                        "generalize": 0,
-                        # Measure places from which each cafe can be reached.
-                        "reverse": True,
-                    }
-                )
-                found = {}
-                for feature in result.get("features", []):
-                    minutes = int(feature.get("properties", {}).get("contour", -1))
-                    if minutes not in contour_polygons:
-                        continue
-                    geometry = valid_polygon(shape(feature["geometry"]))
-                    if not geometry.is_empty:
-                        found[minutes] = geometry
-                missing = set(CONTOUR_MINUTES) - set(found)
-                if missing:
-                    raise RuntimeError(f"missing contours: {sorted(missing)}")
-                for minutes, geometry in found.items():
-                    contour_polygons[minutes].append(geometry)
-                cafe_feature["properties"]["routing_status"] = "routed"
-            except RuntimeError as error:
-                cafe_feature["properties"]["routing_status"] = "unroutable"
-                routing_failures.append({"id": cafe_feature["id"], "error": str(error)})
-            if index % 100 == 0 or index == len(prepared):
-                print(f"[mapgames] routed {index}/{len(prepared)} locations", flush=True)
-
-    routed_count = len(prepared) - len(routing_failures)
-    if routed_count == 0:
-        raise RuntimeError("Valhalla could not route any cafe locations")
-
-    cafe_features = [feature for _location, feature in prepared]
-    write_json(
-        output / "cafes.geojson",
-        {
-            "type": "FeatureCollection",
-            "bbox": country_bbox,
-            "features": cafe_features,
-        },
-    )
-
-    with timed("build one-cafe and two-cafe coverage polygons"):
-        coverage_files = []
-        for minutes in CONTOUR_MINUTES:
-            once, twice = coverage_at_least_twice(contour_polygons[minutes])
-            once = valid_polygon(once.intersection(country))
-            twice = valid_polygon(twice.intersection(once))
-            if once.is_empty:
-                raise RuntimeError(f"the {minutes}-minute one-cafe coverage is empty")
-
-            displayed_once = display_geometry(
-                once,
-                country_for_output,
-                args.smoothing_meters,
-                args.simplify_meters,
-                forward,
-                inverse,
-            )
-            displayed_twice = display_geometry(
-                twice,
-                country_for_output,
-                args.smoothing_meters,
-                args.simplify_meters,
-                forward,
-                inverse,
-            )
-            displayed_twice = valid_polygon(displayed_twice.intersection(displayed_once))
-
-            for minimum_cafes, raw_geometry, rendered_geometry in (
-                (1, once, displayed_once),
-                (2, twice, displayed_twice),
-            ):
-                properties = {
-                    "minutes": minutes,
-                    "minimum_cafes": minimum_cafes,
-                    "direction": "to_cafe",
-                }
-                raw_name = f"coverage-{minutes}-{minimum_cafes}-raw.geojson"
-                display_name = f"coverage-{minutes}-{minimum_cafes}.geojson"
-                for filename, geometry, display in (
-                    (raw_name, raw_geometry, False),
-                    (display_name, rendered_geometry, True),
-                ):
-                    write_json(
-                        output / filename,
-                        {
-                            "type": "FeatureCollection",
-                            "bbox": country_bbox,
-                            "features": [
-                                {
-                                    "type": "Feature",
-                                    "properties": {**properties, "display_geometry": display},
-                                    "geometry": mapping(geometry),
-                                }
-                            ],
-                        },
-                    )
-                coverage_files.append(
-                    {
-                        **properties,
-                        "raw": raw_name,
-                        "display": display_name,
-                    }
-                )
-
-    coverage_tiles = []
+    routed_counts = {}
+    coverage_files = []
     coverage_bbox = ",".join(str(coordinate) for coordinate in country_bbox)
-    for minutes in CONTOUR_MINUTES:
-        config_path = work / f"coverage-{minutes}.json"
-        write_json(config_path, coverage_tile_config(minutes, output))
-        tile_name = f"coverage-{minutes}.pmtiles"
+    for route in ROUTE_SPECS:
+        if route["count_bands"]:
+            raise RuntimeError("native reachable-line generation does not support count bands")
+        key = route_key(route)
+        entries = prepared[route["service"]]
+        requests_path = work / f"expansion-{key}.tsv"
+        write_expansion_requests(requests_path, route, entries)
         run(
-            f"build {minutes}-minute coverage PMTiles",
+            f"compute {key} native reverse expansion lines",
+            [
+                args.expansion_helper,
+                config_path,
+                requests_path,
+                work,
+                output,
+                args.concurrency,
+                ",".join(str(minutes) for minutes in route["minutes"]),
+                coverage_bbox,
+                key,
+                route["service"],
+                route["mode"],
+            ],
+        )
+        for _location, place_feature in entries:
+            place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
+        routed_counts[key] = len(entries)
+        coverage_files.append(
+            {
+                "direction": "to_destination",
+                "file": coverage_filename(route),
+                "minute_bands": list(route["minutes"]),
+                "mode": route["mode"],
+                "service": route["service"],
+            }
+        )
+
+    place_features = [
+        feature
+        for service in SERVICE_SPECS
+        for _location, feature in prepared[service["id"]]
+    ]
+    write_json(output / "places.geojson", feature_collection(place_features, country_bbox))
+
+    access_tiles = []
+    for route in ROUTE_SPECS:
+        key = route_key(route)
+        config_path = work / f"access-{key}.json"
+        write_json(config_path, coverage_tile_config(route, output))
+        tile_name = f"access-{key}.pmtiles"
+        run(
+            f"build {key} access PMTiles",
             [
                 "tilemaker",
                 "--quiet",
@@ -536,21 +605,92 @@ def main() -> None:
                 args.concurrency,
             ],
         )
-        coverage_tiles.append(
+        destination_config_path = work / f"destination-lookup-{key}.json"
+        write_json(destination_config_path, destination_tile_config(route, work))
+        destination_tile_name = f"destinations-{key}.pmtiles"
+        run(
+            f"build {key} click-lookup PMTiles",
+            [
+                "tilemaker",
+                "--quiet",
+                "--bbox",
+                coverage_bbox,
+                "--output",
+                output / destination_tile_name,
+                "--config",
+                destination_config_path,
+                "--process",
+                args.coverage_process,
+                "--threads",
+                args.concurrency,
+            ],
+        )
+        coverage_layers = {}
+        destination_layers = {}
+        for minutes in route["minutes"]:
+            coverage_layers[str(minutes)] = coverage_layer_name()
+            destination_layers[str(minutes)] = destination_layer_name(minutes)
+        access_tiles.append(
             {
+                "coverage_layers": coverage_layers,
+                "destination_file": destination_tile_name,
+                "destination_layers": destination_layers,
                 "file": tile_name,
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
-                "layers": {"1": "coverage_one", "2": "coverage_two"},
                 "max_data_zoom": COVERAGE_MAX_ZOOM,
                 "min_data_zoom": COVERAGE_MIN_ZOOM,
+                "mode": route["mode"],
+                "service": route["service"],
+            }
+        )
+
+    places_config = work / "places.json"
+    write_json(places_config, places_tile_config(output))
+    run(
+        "build service destination PMTiles",
+        [
+            "tilemaker",
+            "--quiet",
+            "--bbox",
+            coverage_bbox,
+            "--output",
+            output / "places.pmtiles",
+            "--config",
+            places_config,
+            "--process",
+            args.coverage_process,
+            "--threads",
+            args.concurrency,
+        ],
+    )
+
+    service_metadata = []
+    for service in SERVICE_SPECS:
+        presets = [
+            {
+                "label": f"{minutes} min {'walk' if mode == 'walk' else 'drive'}",
                 "minutes": minutes,
+                "mode": mode,
+            }
+            for mode, minutes_values in service["routes"]
+            for minutes in minutes_values
+        ]
+        service_metadata.append(
+            {
+                "count_bands": service["count_bands"],
+                "description": service["description"],
+                "id": service["id"],
+                "label": service["label"],
+                "place_count": len(prepared[service["id"]]),
+                "presets": presets,
+                "query": list(service["query"]),
             }
         )
 
     write_json(
         output / "metadata.json",
         {
-            "bbox": country_bbox,
+            "access_tiles": access_tiles,
             "basemap": {
                 "file": "lithuania.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
@@ -558,28 +698,39 @@ def main() -> None:
                 "min_data_zoom": 4,
                 "tilemaker_version": args.tilemaker_version,
             },
-            "cafe_count": len(prepared),
-            "contours_minutes": list(CONTOUR_MINUTES),
+            "bbox": country_bbox,
             "coverage_files": coverage_files,
-            "coverage_tiles": coverage_tiles,
             "generated_at_osm_timestamp": osm_timestamp,
+            "geometry": {
+                "corridor_buffer_meters": CORRIDOR_BUFFER_METERS,
+                "low_zoom_generalization_below": LOW_ZOOM_GENERALIZATION_BELOW,
+                "representation": "client_stroked_lines",
+                "source": "valhalla_expansion_edges",
+                "tile_max_zoom": COVERAGE_MAX_ZOOM,
+                "visual_smoothing": False,
+            },
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
             "osm_source": args.osm_source_url,
-            "query": ["amenity=cafe", "shop=coffee"],
-            "routed_cafe_count": routed_count,
-            "routing_failures": routing_failures,
-            "routing_mode": "pedestrian reverse isochrone (walk to cafe)",
-            "valhalla_version": args.valhalla_version,
-            "display_geometry": {
-                "authoritative_raw_files_are_included": True,
-                "simplify_meters": args.simplify_meters,
-                "smoothing_meters": args.smoothing_meters,
+            "places": {
+                "file": "places.pmtiles",
+                "format": "PMTiles v3 with Mapbox Vector Tiles",
+                "layer": "places",
+                "max_data_zoom": COVERAGE_MAX_ZOOM,
+                "min_data_zoom": 9,
             },
+            "routed_counts": routed_counts,
+            "routing_failure_policy": "fail_build_on_any_unroutable_destination",
+            "routing_mode": "reverse expansion edges: origin routing graph to concrete destination",
+            "services": service_metadata,
+            "valhalla_version": args.valhalla_version,
         },
     )
     print(
-        f"generated six raw and six display layers from {routed_count}/{len(prepared)} "
-        "Lithuania cafes and coffee shops",
+        "generated "
+        + ", ".join(
+            f"{len(prepared[service['id']])} {service['id']}" for service in SERVICE_SPECS
+        )
+        + " destinations",
         file=sys.stderr,
     )
     print(f"[mapgames] total pipeline: {time.perf_counter() - pipeline_started:.2f}s", flush=True)

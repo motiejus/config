@@ -2,105 +2,489 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'"
     >
-    <title>Lithuania cafe walking-time map</title>
+    <title>Everyday access map</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="assets/maplibre-gl.css">
     <script src="assets/maplibre-gl-csp.js"></script>
     <script src="assets/pmtiles.js"></script>
     <script src="assets/basemaps.js"></script>
     <style>
+      :root {
+        color-scheme: light;
+        --paper: rgb(248 250 252 / 96%);
+        --ink: #172033;
+        --muted: #596579;
+        --border: #c9d2df;
+      }
       html, body, #map { width: 100%; height: 100%; margin: 0; }
-      body { font-family: Georgia, serif; color: #35251d; }
+      body { color: var(--ink); font-family: system-ui, sans-serif; }
+      button, input, select { font: inherit; }
+      button, select { color: inherit; }
+      button { touch-action: manipulation; }
       .map-panel {
         position: absolute;
         z-index: 2;
         top: .65rem;
         right: .65rem;
         box-sizing: border-box;
-        width: min(25rem, calc(100vw - 4.5rem));
+        width: min(27rem, calc(100vw - 4.5rem));
         max-height: calc(100vh - 1.3rem);
         overflow: auto;
         padding: .85rem 1rem;
-        border: 1px solid rgb(92 61 42 / 24%);
-        border-radius: .55rem;
-        background: rgb(255 252 246 / 94%);
-        box-shadow: 0 1px 7px rgb(49 31 20 / 25%);
+        border: 1px solid rgb(58 73 96 / 22%);
+        border-radius: .45rem;
+        background: var(--paper);
+        box-shadow: 0 1px 8px rgb(20 30 48 / 18%);
       }
-      .map-panel h1 { margin: 0 0 .35rem; font-size: 1.18rem; }
-      .map-panel p { margin: .35rem 0; line-height: 1.35; }
-      .map-panel fieldset { margin: .65rem 0; border: 1px solid #d9c7b7; }
-      .map-panel legend { font-weight: 700; }
-      .choice-row { display: flex; flex-wrap: wrap; gap: .5rem .85rem; }
-      .choice-row label { display: inline-flex; align-items: center; gap: .25rem; }
-      .swatch { display: inline-block; width: .8rem; height: .8rem; border: 1px solid currentColor; }
-      .swatch.one { color: #b86d1c; background: rgb(216 144 47 / 30%); }
-      .swatch.two { color: #55271f; background: rgb(113 54 43 / 52%); }
-      .status { min-height: 1.2em; color: #704e3a; }
-      .source-note { font-size: .82rem; color: #715f53; }
-      .cafe-popup h2 { margin: 0 0 .45rem; font: 700 1.05rem Georgia, serif; }
-      .cafe-popup dl {
-        display: grid;
-        grid-template-columns: max-content minmax(0, 1fr);
-        gap: .2rem .55rem;
-        margin: .35rem 0;
-        overflow-wrap: anywhere;
+      .panel-title-row { display: flex; align-items: start; gap: .7rem; }
+      .panel-title-row h1 { flex: 1; }
+      .panel-toggle, .panel-done, .mobile-map-actions { display: none; }
+      .panel-content { min-height: 0; }
+      .panel-selection-summary { display: none; }
+      .map-panel h1 { margin: 0 0 .25rem; font-size: 1.2rem; }
+      .map-panel > p { margin: .3rem 0; line-height: 1.35; }
+      .quick-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin: .7rem 0; }
+      .quick-actions button {
+        padding: .28rem .55rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        cursor: pointer;
       }
-      .cafe-popup dt { font-weight: 700; }
-      .cafe-popup dd { margin: 0; }
-      .cafe-popup details { margin-top: .45rem; }
-      .cafe-popup details dl { font-size: .78rem; }
-      .cafe-popup a { color: #814621; }
-      .maplibregl-popup-content { color: #35251d; font-family: Georgia, serif; }
-      @media (max-width: 640px) {
-        .map-panel {
-          left: 3.4rem;
-          right: .6rem;
-          width: auto;
-          max-height: 48vh;
+      .quick-actions button:hover { background: #eef4fb; }
+      .panel-inspect {
+        display: flex;
+        width: 100%;
+        min-height: 2.4rem;
+        align-items: center;
+        justify-content: center;
+        margin-top: .55rem;
+        border: 1px solid var(--border);
+        border-radius: .4rem;
+        background: #ffffff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .service-list { display: grid; gap: .45rem; }
+      .service-card {
+        --service-color: #765;
+        padding: .55rem .65rem;
+        border: 1px solid var(--border);
+        border-left: .35rem solid var(--service-color);
+        border-radius: .4rem;
+        background: rgb(255 255 255 / 64%);
+      }
+      .service-card[data-enabled="false"] { opacity: .66; }
+      .service-heading { display: flex; align-items: center; gap: .4rem; }
+      .service-heading strong { flex: 1; }
+      .service-count { color: var(--muted); font-size: .76rem; }
+      .service-description { margin: .16rem 0 .42rem; color: var(--muted); font-size: .8rem; }
+      .service-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem .55rem; }
+      .preset-choices { display: flex; flex-wrap: wrap; gap: .3rem; }
+      .preset-choices button {
+        padding: .27rem .4rem;
+        border: 1px solid var(--border);
+        border-radius: .3rem;
+        background: white;
+        cursor: pointer;
+      }
+      .preset-choices button[aria-pressed="true"] {
+        color: white;
+        background: var(--service-color);
+        border-color: var(--service-color);
+      }
+      .preset-choices button:disabled { cursor: default; opacity: .55; }
+      .band-choices { display: flex; flex-wrap: wrap; gap: .45rem; font-size: .82rem; }
+      .band-choices label, .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
+      .band-swatch {
+        width: .72rem;
+        height: .72rem;
+        border: 1px solid rgb(53 37 29 / 60%);
+      }
+      .band-swatch.one { background: rgb(229 168 75 / 42%); }
+      .band-swatch.two-plus { background: rgb(113 54 43 / 70%); }
+      .map-options {
+        margin: .65rem 0 .25rem;
+        padding-top: .55rem;
+        border-top: 1px solid var(--border);
+      }
+      .status { min-height: 1.2em; color: #374861; font-size: .88rem; }
+      .source-note { color: var(--muted); font-size: .77rem; }
+      dialog {
+        box-sizing: border-box;
+        width: min(42rem, calc(100vw - 2rem));
+        max-height: min(46rem, calc(100vh - 2rem));
+        overflow: auto;
+        padding: 1rem 1.1rem 1.2rem;
+        border: 1px solid #8fa0b6;
+        border-radius: .5rem;
+        color: var(--ink);
+        background: #ffffff;
+        box-shadow: 0 8px 35px rgb(20 30 48 / 32%);
+      }
+      dialog::backdrop { background: rgb(15 23 42 / 42%); }
+      .dialog-header { display: flex; align-items: start; gap: .7rem; }
+      .dialog-header div { flex: 1; }
+      .dialog-header h2 { margin: 0; font-size: 1.25rem; }
+      .dialog-header p { margin: .2rem 0; color: var(--muted); }
+      .dialog-close {
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+      }
+      .intersection-summary {
+        margin: .75rem 0;
+        padding: .55rem .7rem;
+        border-radius: .4rem;
+        background: #eef4fb;
+        font-weight: 700;
+      }
+      .place-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .35rem; }
+      .place-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        padding: .18rem .45rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        font-size: .8rem;
+      }
+      .status-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem; }
+      .status-pill {
+        padding: .12rem .42rem;
+        border-radius: 999px;
+        color: white;
+        background: #64748b;
+        font-size: .75rem;
+        font-weight: 700;
+      }
+      .result-card.pass .status-pill { background: #237242; }
+      .result-card.fail .status-pill { background: #9a403b; }
+      .result-list { display: grid; gap: .55rem; }
+      .result-card {
+        --service-color: #765;
+        padding: .6rem .7rem;
+        border: 1px solid var(--border);
+        border-left: .35rem solid var(--service-color);
+        border-radius: .4rem;
+      }
+      .result-card h3 { margin: 0; font-size: 1rem; }
+      .result-card p { margin: .25rem 0; }
+      .destination-list { display: grid; gap: .35rem; margin: .45rem 0 0; padding: 0; list-style: none; }
+      .destination-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem;
+        padding: .35rem .45rem;
+        border-radius: .35rem;
+        background: #f8fafc;
+      }
+      .destination-list a { color: #7a421e; }
+      .route-link {
+        flex: 0 0 auto;
+        padding: .2rem .45rem;
+        border: 1px solid var(--border);
+        border-radius: .3rem;
+        background: #ffffff;
+        text-decoration: none;
+      }
+      .destination-kind { color: var(--muted); font-size: .78rem; }
+      .more-destinations { margin-top: .4rem; }
+      .clicked-place {
+        margin: .7rem 0;
+        padding: .55rem .7rem;
+        border: 1px solid var(--border);
+        border-radius: .4rem;
+        background: #f8fafc;
+      }
+      .clicked-place h3 { margin: 0 0 .25rem; font-size: 1rem; }
+      .clicked-place p { margin: .2rem 0; }
+      .clicked-place a { color: #7a421e; }
+      .maplibregl-ctrl-attrib { font-family: system-ui, sans-serif; }
+      .maplibregl-ctrl-bottom-right { right: auto; left: .5rem; }
+      @media (pointer: coarse) {
+        .quick-actions button,
+        .preset-choices button,
+        .panel-inspect,
+        .route-link,
+        .more-destinations > summary { min-height: 2.75rem; }
+        .route-link { display: inline-flex; align-items: center; }
+        .service-heading, .map-detail { min-height: 2.75rem; }
+        .service-heading input,
+        .map-detail input { width: 1.4rem; height: 1.4rem; }
+        .dialog-close,
+        .maplibregl-ctrl-group button,
+        .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
+        .maplibregl-ctrl-attrib-button {
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: 1.5rem;
         }
+      }
+      @media (max-width: 640px), (max-height: 520px) and (max-width: 950px) {
+        :root {
+          --mobile-panel-height: 5.5rem;
+          --mobile-map-center-y: 45vh;
+        }
+        .map-panel {
+          display: flex;
+          flex-direction: column;
+          top: auto;
+          bottom: calc(.5rem + env(safe-area-inset-bottom));
+          left: .5rem;
+          right: .55rem;
+          width: auto;
+          max-height: min(72dvh, 38rem);
+          padding: .65rem .75rem;
+          overflow: hidden;
+          border-radius: .8rem;
+        }
+        .panel-title-row { align-items: center; }
+        .map-panel h1 { margin: 0; font-size: 1.05rem; }
+        .panel-toggle {
+          display: inline-flex;
+          min-width: 5.6rem;
+          min-height: 2.75rem;
+          align-items: center;
+          justify-content: center;
+          gap: .4rem;
+          padding: .45rem .65rem;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          background: white;
+          cursor: pointer;
+        }
+        .panel-toggle-icon { font-size: .8rem; transition: transform .16s ease; }
+        .map-panel[data-collapsed="false"] .panel-toggle-icon { transform: rotate(180deg); }
+        .panel-selection-summary {
+          display: block;
+          margin: .15rem 0 0;
+          overflow: hidden;
+          color: var(--muted);
+          font-size: .84rem;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .panel-content {
+          overflow: auto;
+          overscroll-behavior: contain;
+          padding: .2rem .05rem calc(.15rem + env(safe-area-inset-bottom));
+        }
+        .map-panel[data-collapsed="true"] .panel-content { display: none; }
+        .map-panel[data-collapsed="true"] { max-height: none; }
+        .map-panel[data-collapsed="false"] .panel-selection-summary { display: none; }
+        .map-panel[data-collapsed="false"] .panel-content { margin-top: .25rem; }
+        .map-panel[data-collapsed="false"] ~ .mobile-map-actions,
+        .map-panel[data-collapsed="false"] ~ .map-crosshair { display: none; }
+        .map-panel > .panel-content > #summary-text { margin-top: .15rem; }
+        .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
+        .quick-actions button,
+        .preset-choices button,
+        .panel-done {
+          min-height: 2.75rem;
+          padding: .48rem .62rem;
+        }
+        .panel-inspect { display: none; }
+        .quick-actions button { border-radius: .45rem; }
+        .preset-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+        .preset-choices button { width: 100%; }
+        .service-list { gap: .55rem; }
+        .service-card { padding: .65rem .7rem; }
+        .service-heading { min-height: 2.75rem; }
+        .service-heading input,
+        .map-detail input { width: 1.4rem; height: 1.4rem; margin: 0; }
+        .map-detail { min-height: 2.75rem; }
+        .panel-done {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          justify-content: center;
+          margin-top: .6rem;
+          border: 0;
+          border-radius: .45rem;
+          color: white;
+          background: #253b59;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .mobile-map-actions {
+          position: absolute;
+          z-index: 2;
+          right: .75rem;
+          bottom: calc(var(--mobile-panel-height) + .9rem + env(safe-area-inset-bottom));
+          display: block;
+        }
+        .inspect-center {
+          display: inline-flex;
+          min-height: 3rem;
+          align-items: center;
+          padding: .55rem .8rem;
+          border: 1px solid rgb(58 73 96 / 30%);
+          border-radius: 999px;
+          color: var(--ink);
+          background: rgb(255 255 255 / 96%);
+          box-shadow: 0 1px 7px rgb(20 30 48 / 22%);
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .map-crosshair {
+          position: absolute;
+          z-index: 1;
+          top: var(--mobile-map-center-y);
+          left: 50%;
+          display: block;
+          width: 1.3rem;
+          height: 1.3rem;
+          border: 2px solid white;
+          border-radius: 50%;
+          background: rgb(23 32 51 / 22%);
+          box-shadow: 0 0 0 1px rgb(23 32 51 / 75%);
+          pointer-events: none;
+          transform: translate(-50%, -50%);
+        }
+        .map-crosshair::before,
+        .map-crosshair::after {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          display: block;
+          content: "";
+          background: white;
+          box-shadow: 0 0 0 1px rgb(23 32 51 / 55%);
+          transform: translate(-50%, -50%);
+        }
+        .map-crosshair::before { width: 1.75rem; height: 1px; }
+        .map-crosshair::after { width: 1px; height: 1.75rem; }
+        dialog {
+          width: 100%;
+          max-width: none;
+          max-height: min(84dvh, 48rem);
+          margin: auto 0 0;
+          padding: .8rem .85rem calc(1rem + env(safe-area-inset-bottom));
+          border-right: 0;
+          border-bottom: 0;
+          border-left: 0;
+          border-radius: .85rem .85rem 0 0;
+        }
+        .dialog-header {
+          position: sticky;
+          z-index: 1;
+          top: -.8rem;
+          align-items: center;
+          margin: -.8rem -.85rem .55rem;
+          padding: .8rem .85rem .55rem;
+          background: white;
+          border-radius: .85rem .85rem 0 0;
+        }
+        .dialog-close { width: 2.75rem; height: 2.75rem; flex: 0 0 auto; }
+        .destination-list li { align-items: stretch; }
+        .route-link { display: inline-flex; min-height: 2.75rem; align-items: center; }
+        .clicked-place a { display: inline-flex; min-height: 2.75rem; align-items: center; }
+        .more-destinations > summary { display: flex; min-height: 2.75rem; align-items: center; cursor: pointer; }
+        .maplibregl-ctrl-attrib { max-width: calc(100vw - 1rem); }
+        .maplibregl-ctrl-bottom-right {
+          top: calc(.5rem + env(safe-area-inset-top));
+          right: calc(.5rem + env(safe-area-inset-right));
+          bottom: auto;
+          left: auto;
+        }
+        .maplibregl-ctrl-top-left {
+          top: env(safe-area-inset-top);
+          left: env(safe-area-inset-left);
+        }
+        .maplibregl-ctrl-group button,
+        .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
       }
     </style>
   </head>
   <body>
-    <div id="map" aria-label="Lithuania cafe walking-time map"></div>
-    <section class="map-panel" aria-label="Map layers">
-      <h1>Walk to coffee in Lithuania</h1>
-      <p id="summary-text">Loading generated data…</p>
-      <fieldset>
-        <legend>Walking time</legend>
-        <div class="choice-row" id="time-choices"></div>
-      </fieldset>
-      <fieldset>
-        <legend>Coverage</legend>
-        <div class="choice-row">
-          <label><input id="show-one" type="checkbox" checked><span class="swatch one"></span>At least 1</label>
-          <label><input id="show-two" type="checkbox" checked><span class="swatch two"></span>At least 2</label>
+    <div id="map" aria-label="Everyday-service access map"></div>
+    <section class="map-panel" aria-label="Access requirements" data-collapsed="true">
+      <div class="panel-title-row">
+        <h1>Everyday access</h1>
+        <button
+          class="panel-toggle"
+          id="panel-toggle"
+          type="button"
+          aria-controls="panel-content"
+          aria-expanded="false"
+        >
+          <span id="panel-toggle-label">Filters</span>
+          <span class="panel-toggle-icon" aria-hidden="true">▲</span>
+        </button>
+      </div>
+      <p class="panel-selection-summary" id="panel-selection-summary" aria-live="polite">Loading filters…</p>
+      <div class="panel-content" id="panel-content">
+        <p id="summary-text">Loading generated data…</p>
+        <div class="quick-actions" role="group" aria-label="Quick views">
+          <button type="button" data-view="coffee">Coffee &amp; food only</button>
+          <button type="button" data-view="everyday">Everyday walk</button>
+          <button type="button" data-view="all">All services</button>
+          <button type="button" data-view="clear">Clear</button>
         </div>
-      </fieldset>
-      <fieldset>
-        <legend>Map details</legend>
-        <label><input id="show-cafes" type="checkbox" checked> Cafes and coffee shops</label>
-      </fieldset>
-      <p class="status" id="coverage-status" aria-live="polite">Loading map…</p>
-      <p class="source-note">The vector basemap, cafes, and routing output are bundled from one OSM snapshot. Display polygons are gently smoothed; raw Valhalla contours are also included.</p>
+        <div class="service-list" id="service-list"></div>
+        <div class="map-options">
+          <label class="map-detail"><input id="show-places" type="checkbox" checked> Show destinations when zoomed in</label>
+        </div>
+        <p class="status" id="coverage-status" aria-live="polite">Loading map…</p>
+        <button class="panel-inspect" id="panel-inspect" type="button">Inspect map center</button>
+        <button class="panel-done" id="panel-done" type="button">View map</button>
+        <p class="source-note">Colors overlap where requirements intersect. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings.</p>
+      </div>
     </section>
+    <div class="mobile-map-actions">
+      <button class="inspect-center" id="inspect-center" type="button">Inspect center</button>
+    </div>
+    <div class="map-crosshair" aria-hidden="true"></div>
+
+    <dialog id="location-dialog" aria-labelledby="location-dialog-title">
+      <div class="dialog-header">
+        <div>
+          <h2 id="location-dialog-title">Access from this location</h2>
+          <p id="location-coordinates"></p>
+        </div>
+        <button class="dialog-close" id="dialog-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div id="clicked-place"></div>
+      <p class="intersection-summary" id="intersection-summary" aria-live="polite"></p>
+      <div class="result-list" id="location-results" aria-live="polite" aria-busy="false"></div>
+    </dialog>
+
     <script>
       maplibregl.setWorkerUrl("assets/maplibre-gl-csp-worker.js");
       const pmtilesProtocol = new pmtiles.Protocol();
       maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
+      const serviceStyles = {
+        coffee: { color: "#98500f", fill: "#d8902f", marker: "#7d481d" },
+        hospital: { color: "#a72f40", fill: "#d95463", marker: "#922638" },
+        supermarket: { color: "#08796d", fill: "#26a89a", marker: "#08665d" },
+        fuel: { color: "#574793", fill: "#8373bd", marker: "#4e4084" }
+      };
+      const kindLabels = {
+        cafe: "Cafe",
+        restaurant: "Restaurant",
+        coffee_shop: "Coffee shop",
+        hospital: "Hospital",
+        supermarket: "Supermarket",
+        fuel: "Fuel station"
+      };
       const lithuaniaBounds = [[20.35, 53.75], [27.10, 56.60]];
+      const inspectZoom = 12;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
-      // This lean schema's buildings layer contains only building polygons, so
-      // it does not repeat the full Protomaps `kind=building` attribute.
       delete baseLayers.find(layer => layer.id === "buildings").filter;
       const mapStyle = {
         version: 8,
@@ -115,6 +499,7 @@
         },
         layers: baseLayers
       };
+      let persistentMapError = "";
 
       function reportMapError(error) {
         let message = error instanceof Error ? error.message : String(error ?? "Unknown error");
@@ -122,10 +507,12 @@
           const detail = JSON.parse(message);
           message = detail.message || detail.statusMessage || message;
         } catch (_error) {
-          // The ordinary case is already a human-readable error string.
+          // Ordinary errors are already readable.
         }
-        message = message.replaceAll(/\s+/g, " ").trim();
-        document.getElementById("coverage-status").textContent = `Map data error: ${message}`;
+        persistentMapError = `Map data error: ${message.replaceAll(/\s+/g, " ").trim()}`;
+        document.getElementById("coverage-status").textContent = persistentMapError;
+        document.getElementById("panel-selection-summary").textContent =
+          "Map data error · open filters for details";
       }
 
       window.addEventListener("error", event => reportMapError(event.error ?? event.message));
@@ -139,6 +526,7 @@
         maxZoom: 18,
         maxBounds: [[20.0, 53.5], [27.45, 56.85]],
         renderWorldCopies: false,
+        attributionControl: { compact: true },
         dragRotate: false,
         touchPitch: false,
         pitchWithRotate: false,
@@ -146,12 +534,57 @@
         pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
         maxTileCacheZoomLevels: 1
       });
+      const destinationSourceIds = new Set();
+      const failedDestinationSources = new Set();
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
-
       map.on("error", event => {
+        if (destinationSourceIds.has(event.sourceId)) {
+          failedDestinationSources.add(event.sourceId);
+        }
         reportMapError(event.error);
         console.error(event.error);
       });
+
+      const serviceState = new Map();
+      const runtimeLayers = new Map();
+      const placeLayerIds = [];
+      const mobileMedia = matchMedia(
+        "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
+      );
+      const mapPanel = document.querySelector(".map-panel");
+      let metadata;
+      let inspectionOrigin;
+      let inspectSequence = 0;
+      let locationMarker;
+      let placeCatalogPromise;
+
+      function updateMobileLayout() {
+        if (!mobileMedia.matches) return;
+        const panelRect = mapPanel.getBoundingClientRect();
+        const panelHeight = panelRect.height;
+        const visibleMapHeight = Math.max(0, panelRect.top);
+        document.documentElement.style.setProperty("--mobile-panel-height", `${panelHeight}px`);
+        document.documentElement.style.setProperty(
+          "--mobile-map-center-y",
+          `${visibleMapHeight / 2}px`
+        );
+      }
+
+      function setPanelCollapsed(collapsed) {
+        mapPanel.dataset.collapsed = String(collapsed);
+        const toggle = document.getElementById("panel-toggle");
+        toggle.setAttribute("aria-expanded", String(!collapsed));
+        document.getElementById("panel-toggle-label").textContent = collapsed ? "Filters" : "Close";
+        requestAnimationFrame(updateMobileLayout);
+      }
+
+      function syncMobileMode() {
+        setPanelCollapsed(mobileMedia.matches);
+      }
+
+      new ResizeObserver(updateMobileLayout).observe(mapPanel);
+      mobileMedia.addEventListener("change", syncMobileMode);
+      window.addEventListener("resize", updateMobileLayout);
 
       function fetchJson(url) {
         return fetch(url).then(response => {
@@ -160,131 +593,706 @@
         });
       }
 
-      function appendDefinition(list, term, value, href) {
-        if (value === undefined || value === null || value === "") return;
-        const dt = document.createElement("dt");
-        dt.textContent = term;
-        const dd = document.createElement("dd");
-        if (href) {
-          const link = document.createElement("a");
-          link.href = href;
-          link.textContent = String(value);
-          link.rel = "noopener noreferrer";
-          link.target = "_blank";
-          dd.append(link);
-        } else {
-          dd.textContent = String(value);
-        }
-        list.append(dt, dd);
+      function presetKey(service, mode, minutes) {
+        return `${service}|${mode}|${minutes}`;
       }
 
-      function safeWebUrl(value) {
-        if (!value) return null;
-        try {
-          const candidate = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
-          return ["http:", "https:"].includes(candidate.protocol) ? candidate.href : null;
-        } catch (_error) {
-          return null;
-        }
+      function selectedPreset(service) {
+        const state = serviceState.get(service.id);
+        return service.presets.find(preset => `${preset.mode}:${preset.minutes}` === state.preset);
       }
 
-      function cafePopup(feature) {
-        const properties = feature.properties || {};
-        const root = document.createElement("article");
-        root.className = "cafe-popup";
-        const title = document.createElement("h2");
-        title.textContent = properties.name || properties.brand || "Unnamed cafe or coffee shop";
-        root.append(title);
-
-        const category = properties.amenity === "cafe" ? "Cafe" : "Coffee shop";
-        const address = [
-          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
-          properties["addr:city"],
-          properties["addr:postcode"]
-        ].filter(Boolean).join(", ");
-        const details = document.createElement("dl");
-        appendDefinition(details, "Type", category);
-        appendDefinition(details, "Address", address);
-        appendDefinition(details, "Cuisine", properties.cuisine?.replaceAll(";", ", "));
-        appendDefinition(details, "Hours", properties.opening_hours);
-        appendDefinition(details, "Brand", properties.brand);
-        appendDefinition(details, "Operator", properties.operator);
-        appendDefinition(details, "Phone", properties.phone || properties["contact:phone"]);
-        const website = properties.website || properties["contact:website"];
-        appendDefinition(details, "Website", website, safeWebUrl(website));
-        appendDefinition(details, "Wheelchair", properties.wheelchair);
-        appendDefinition(details, "Internet", properties.internet_access || properties.wifi);
-        appendDefinition(details, "Outdoor seating", properties.outdoor_seating);
-        appendDefinition(details, "Takeaway", properties.takeaway);
-        appendDefinition(details, "Delivery", properties.delivery);
-        appendDefinition(details, "Description", properties.description);
-        root.append(details);
-
-        if (properties.osm_url) {
-          const osmLink = document.createElement("a");
-          osmLink.href = properties.osm_url;
-          osmLink.textContent = "Open this object in OpenStreetMap";
-          osmLink.rel = "noopener noreferrer";
-          osmLink.target = "_blank";
-          root.append(osmLink);
-        }
-
-        const allTags = document.createElement("details");
-        const summary = document.createElement("summary");
-        summary.textContent = "All available OSM tags";
-        const tagList = document.createElement("dl");
-        Object.entries(properties)
-          .filter(([key]) => !["osm_url", "routing_status", "source_geometry"].includes(key))
-          .sort(([left], [right]) => left.localeCompare(right))
-          .forEach(([key, value]) => appendDefinition(tagList, key, value));
-        allTags.append(summary, tagList);
-        root.append(allTags);
-        return root;
+      function activeRequirements() {
+        return metadata.services.filter(service => {
+          const state = serviceState.get(service.id);
+          if (!state.enabled) return false;
+          return !service.count_bands || state.one || state.two_plus;
+        });
       }
 
-      let metadata;
-      let selectedMinutes = 10;
+      function inspectionHash(lngLat) {
+        const requirements = activeRequirements().map(service => {
+          const preset = selectedPreset(service);
+          return `${service.id}:${preset.mode}:${preset.minutes}`;
+        });
+        return `#at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}` +
+          `&requirements=${requirements.join(",")}`;
+      }
 
-      function coverageLayerIds(minutes, minimumCafes) {
-        const count = minimumCafes === 1 ? "one" : "two";
-        return [`coverage-${minutes}-${count}-fill`, `coverage-${minutes}-${count}-line`];
+      function updateInspectionHash(lngLat) {
+        history.replaceState(
+          null,
+          "",
+          `${location.pathname}${location.search}${inspectionHash(lngLat)}`
+        );
+      }
+
+      function applySharedRequirements(value) {
+        const selected = value === "" ? [] : value.split(",").map(item => {
+          const [serviceId, mode, minutesText, ...extra] = item.split(":");
+          const minutes = Number(minutesText);
+          const service = metadata.services.find(candidate => candidate.id === serviceId);
+          const preset = service?.presets.find(candidate =>
+            candidate.mode === mode && candidate.minutes === minutes
+          );
+          if (!service || !preset || extra.length) {
+            throw new Error(`invalid shared requirement: ${item}`);
+          }
+          return { service, preset };
+        });
+        metadata.services.forEach(service => {
+          serviceState.get(service.id).enabled = false;
+        });
+        selected.forEach(({ service, preset }) => {
+          const state = serviceState.get(service.id);
+          state.enabled = true;
+          state.preset = `${preset.mode}:${preset.minutes}`;
+        });
+      }
+
+      function inspectionCenter() {
+        if (!mobileMedia.matches) return map.getCenter();
+        const mapRect = map.getContainer().getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          mapPanel.getBoundingClientRect().top - mapRect.top
+        );
+        return map.unproject([mapRect.width / 2, visibleHeight / 2]);
+      }
+
+      function inspectionOffset() {
+        if (!mobileMedia.matches) return [0, 0];
+        const mapRect = map.getContainer().getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          mapPanel.getBoundingClientRect().top - mapRect.top
+        );
+        return [0, visibleHeight / 2 - mapRect.height / 2];
       }
 
       function setLayerVisibility(layerIds, visible) {
-        layerIds.forEach(layerId => map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none"));
+        layerIds.forEach(layerId =>
+          map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none")
+        );
       }
 
-      function refreshCoverage() {
-        const selected = [];
-        [1, 2].forEach(minimumCafes => {
-          const word = minimumCafes === 1 ? "one" : "two";
-          const countSelected = document.getElementById(`show-${word}`).checked;
-          metadata.coverage_tiles.forEach(item => {
-            setLayerVisibility(
-              coverageLayerIds(item.minutes, minimumCafes),
-              countSelected && item.minutes === selectedMinutes
-            );
+      function createServiceControls() {
+        const list = document.getElementById("service-list");
+        metadata.services.forEach(service => {
+          const defaultPreset = service.presets.find(preset => preset.minutes === 10) || service.presets[0];
+          serviceState.set(service.id, {
+            enabled: service.id === "coffee",
+            one: true,
+            preset: `${defaultPreset.mode}:${defaultPreset.minutes}`,
+            two_plus: true
           });
-          if (countSelected) selected.push(`≥${minimumCafes}`);
+
+          const card = document.createElement("section");
+          card.className = "service-card";
+          card.dataset.service = service.id;
+          card.style.setProperty("--service-color", serviceStyles[service.id].color);
+
+          const heading = document.createElement("label");
+          heading.className = "service-heading";
+          const enabled = document.createElement("input");
+          enabled.type = "checkbox";
+          enabled.checked = service.id === "coffee";
+          enabled.dataset.role = "enabled";
+          const title = document.createElement("strong");
+          title.textContent = service.label;
+          const count = document.createElement("span");
+          count.className = "service-count";
+          count.textContent = `${service.place_count.toLocaleString()} places`;
+          heading.append(enabled, title, count);
+
+          const description = document.createElement("p");
+          description.className = "service-description";
+          description.textContent = service.description;
+
+          const controls = document.createElement("div");
+          controls.className = "service-controls";
+          const presets = document.createElement("div");
+          presets.className = "preset-choices";
+          presets.setAttribute("role", "group");
+          presets.setAttribute("aria-label", `${service.label} travel time`);
+          service.presets.forEach(preset => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.role = "preset";
+            button.dataset.preset = `${preset.mode}:${preset.minutes}`;
+            button.textContent = preset.label;
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.preset === `${defaultPreset.mode}:${defaultPreset.minutes}`)
+            );
+            presets.append(button);
+          });
+          controls.append(presets);
+
+          card.append(heading, description, controls);
+          card.addEventListener("change", event => {
+            const target = event.target;
+            const state = serviceState.get(service.id);
+            if (target.dataset.role === "enabled") state.enabled = target.checked;
+            refreshMap();
+          });
+          card.addEventListener("click", event => {
+            const target = event.target.closest("button[data-role='preset']");
+            if (!target || target.disabled) return;
+            serviceState.get(service.id).preset = target.dataset.preset;
+            refreshMap();
+          });
+          list.append(card);
         });
-        document.getElementById("coverage-status").textContent = selected.length
-          ? `${selectedMinutes}-minute coverage; ${selected.join(" and ")} selected.`
-          : "No coverage layers selected.";
       }
 
-      function changeCoverageTime(minutes) {
-        selectedMinutes = minutes;
-        refreshCoverage();
+      function corridorLineWidth(mode) {
+        const bufferMeters = metadata.geometry.corridor_buffer_meters[mode];
+        const latitude = (metadata.bbox[1] + metadata.bbox[3]) / 2;
+        const latitudeScale = Math.max(Math.cos(latitude * Math.PI / 180), .01);
+        const stops = [];
+        for (let zoom = 6; zoom <= 18; zoom += 2) {
+          // MapLibre's zoom-zero world is 512 CSS pixels wide.
+          const metersPerPixel = 78_271.516964 * latitudeScale / (2 ** zoom);
+          stops.push(zoom, Math.max(1.25, 2 * bufferMeters / metersPerPixel));
+        }
+        return ["interpolate", ["exponential", 2], ["zoom"], ...stops];
       }
 
-      function addCoverageLayer(id, source, sourceLayer, type, paint) {
+      function addCoveragePair(record, source, sourceLayer, band) {
+        const suffix = band || "any";
+        const lineId = `coverage-${record.service}-${record.mode}-${record.minutes}-${suffix}-line`;
+        const style = serviceStyles[record.service];
         map.addLayer({
-          id,
-          type,
+          id: lineId,
+          type: "line",
           source,
           "source-layer": sourceLayer,
-          layout: { visibility: "none" },
-          paint
+          layout: {
+            visibility: "none",
+            "line-cap": "butt",
+            "line-join": "miter",
+            "line-miter-limit": 2
+          },
+          paint: {
+            "line-color": style.fill,
+            "line-opacity": .42,
+            "line-width": corridorLineWidth(record.mode)
+          },
+          filter: [
+            "all",
+            ["<=", ["get", "min_minutes"], record.minutes],
+            [">=", ["get", "max_minutes"], record.minutes]
+          ]
+        });
+        return [lineId];
+      }
+
+      function addAccessSources() {
+        metadata.access_tiles.forEach(tile => {
+          const source = `access-${tile.service}-${tile.mode}`;
+          const destinationSource = `destination-${tile.service}-${tile.mode}`;
+          destinationSourceIds.add(destinationSource);
+          map.addSource(source, {
+            type: "vector",
+            url: `pmtiles://${new URL(tile.file, location.href).href}`
+          });
+          map.addSource(destinationSource, {
+            type: "vector",
+            url: `pmtiles://${new URL(tile.destination_file, location.href).href}`
+          });
+          Object.entries(tile.coverage_layers).forEach(([minutesText, layerSpec]) => {
+            const minutes = Number(minutesText);
+            const record = {
+              coverage: {},
+              destinationLayer: `destinations-${tile.service}-${tile.mode}-${minutes}`,
+              destinationSource,
+              minutes,
+              mode: tile.mode,
+              service: tile.service,
+              source
+            };
+            if (typeof layerSpec === "string") {
+              record.coverage.any = addCoveragePair(record, source, layerSpec, null);
+            } else {
+              Object.entries(layerSpec).forEach(([band, sourceLayer]) => {
+                record.coverage[band] = addCoveragePair(record, source, sourceLayer, band);
+              });
+            }
+            map.addLayer({
+              id: record.destinationLayer,
+              type: "line",
+              source: destinationSource,
+              "source-layer": tile.destination_layers[minutesText],
+              minzoom: inspectZoom,
+              layout: {
+                visibility: "none",
+                "line-cap": "butt",
+                "line-join": "miter",
+                "line-miter-limit": 2
+              },
+              paint: {
+                "line-color": "#000000",
+                "line-opacity": 0,
+                "line-width": corridorLineWidth(record.mode)
+              }
+            });
+            runtimeLayers.set(presetKey(tile.service, tile.mode, minutes), record);
+          });
+        });
+      }
+
+      function addPlaceLayers() {
+        map.addSource("places", {
+          type: "vector",
+          url: `pmtiles://${new URL(metadata.places.file, location.href).href}`
+        });
+        metadata.services.forEach(service => {
+          const layerId = `places-${service.id}`;
+          map.addLayer({
+            id: layerId,
+            type: "circle",
+            source: "places",
+            "source-layer": metadata.places.layer,
+            minzoom: metadata.places.min_data_zoom,
+            filter: ["==", ["get", "service"], service.id],
+            layout: { visibility: "none" },
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 14, 4],
+              "circle-color": "#fffaf1",
+              "circle-opacity": .94,
+              "circle-stroke-color": serviceStyles[service.id].marker,
+              "circle-stroke-width": 1.4
+            }
+          });
+          placeLayerIds.push(layerId);
+        });
+      }
+
+      function refreshControls() {
+        metadata.services.forEach(service => {
+          const state = serviceState.get(service.id);
+          const card = document.querySelector(`[data-service="${service.id}"]`);
+          card.dataset.enabled = String(state.enabled);
+          card.querySelector('[data-role="enabled"]').checked = state.enabled;
+          card.querySelectorAll("button[data-role='preset']").forEach(button => {
+            button.disabled = !state.enabled;
+            button.setAttribute("aria-pressed", String(button.dataset.preset === state.preset));
+          });
+        });
+      }
+
+      function updateCoverageStatus() {
+        const requirements = activeRequirements();
+        if (persistentMapError) {
+          document.getElementById("coverage-status").textContent = persistentMapError;
+          document.getElementById("panel-selection-summary").textContent =
+            "Map data error · open filters for details";
+        } else {
+          document.getElementById("coverage-status").textContent = requirements.length
+            ? `${requirements.length} ${requirements.length === 1 ? "requirement" : "requirements"} selected · tap or click the map to test their intersection.`
+            : "No requirements selected.";
+          document.getElementById("panel-selection-summary").textContent = requirements.length === 1
+            ? `${requirements[0].label} · ${selectedPreset(requirements[0]).label}`
+            : requirements.length
+              ? `${requirements.length} requirements selected`
+              : "No requirements selected";
+        }
+      }
+
+      function refreshMap() {
+        refreshControls();
+        runtimeLayers.forEach(record => {
+          const service = metadata.services.find(item => item.id === record.service);
+          const state = serviceState.get(record.service);
+          const preset = selectedPreset(service);
+          const active = state.enabled && preset.mode === record.mode && preset.minutes === record.minutes;
+          Object.values(record.coverage).forEach(layerIds => setLayerVisibility(layerIds, active));
+          setLayerVisibility([record.destinationLayer], false);
+        });
+        metadata.services.forEach(service => {
+          const state = serviceState.get(service.id);
+          setLayerVisibility(
+            [`places-${service.id}`],
+            state.enabled && document.getElementById("show-places").checked
+          );
+        });
+        updateCoverageStatus();
+        if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
+      }
+
+      function applyQuickView(view) {
+        metadata.services.forEach(service => {
+          const state = serviceState.get(service.id);
+          state.enabled = false;
+          const defaultPreset = service.presets.find(preset => preset.minutes === 10) || service.presets[0];
+          state.preset = `${defaultPreset.mode}:${defaultPreset.minutes}`;
+        });
+        const enable = id => { serviceState.get(id).enabled = true; };
+        if (view === "coffee") enable("coffee");
+        if (view === "everyday") {
+          enable("coffee");
+          enable("supermarket");
+          serviceState.get("coffee").preset = "walk:10";
+          serviceState.get("supermarket").preset = "walk:10";
+        }
+        if (view === "all") metadata.services.forEach(service => enable(service.id));
+        refreshMap();
+      }
+
+      function haversineMeters(origin, destination) {
+        const radians = degrees => degrees * Math.PI / 180;
+        const deltaLat = radians(destination.lat - origin.lat);
+        const deltaLon = radians(destination.lon - origin.lng);
+        const left = Math.sin(deltaLat / 2) ** 2;
+        const right = Math.cos(radians(origin.lat)) * Math.cos(radians(destination.lat)) * Math.sin(deltaLon / 2) ** 2;
+        return 6_371_000 * 2 * Math.atan2(Math.sqrt(left + right), Math.sqrt(1 - left - right));
+      }
+
+      function valhallaRouteUrl(origin, destination, mode) {
+        const url = new URL("https://valhalla.openstreetmap.de/directions");
+        url.searchParams.set("profile", mode === "walk" ? "pedestrian" : "car");
+        url.searchParams.set("wps", [origin.lng, origin.lat, destination.lon, destination.lat].join(","));
+        return url.href;
+      }
+
+      function destinationList(destinations, origin, mode) {
+        const list = document.createElement("ol");
+        list.className = "destination-list";
+        destinations.forEach(destination => {
+          const item = document.createElement("li");
+          const label = document.createElement("span");
+          label.textContent = destination.name || destination.brand || `Unnamed ${kindLabels[destination.kind]?.toLowerCase() || "destination"}`;
+          const meta = document.createElement("span");
+          meta.className = "destination-kind";
+          const distance = haversineMeters(origin, destination);
+          meta.textContent = `${kindLabels[destination.kind] || destination.kind} · ${(distance / 1000).toFixed(1)} km straight-line`;
+          const text = document.createElement("span");
+          text.append(label, document.createElement("br"), meta);
+          const link = document.createElement("a");
+          link.className = "route-link";
+          link.href = valhallaRouteUrl(origin, destination, mode);
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "Live route";
+          item.append(text, link);
+          list.append(item);
+        });
+        return list;
+      }
+
+      function featureDestination(feature) {
+        const properties = { ...feature.properties };
+        if (properties.lon === undefined || properties.lat === undefined) {
+          const coordinates = feature.geometry?.coordinates;
+          if (Array.isArray(coordinates) && coordinates.length >= 2) {
+            properties.lon = Number(coordinates[0]);
+            properties.lat = Number(coordinates[1]);
+          }
+        }
+        return properties;
+      }
+
+      function loadPlaceCatalog() {
+        if (!placeCatalogPromise) {
+          placeCatalogPromise = fetchJson("places.geojson")
+            .then(collection => {
+              const destinations = collection.features.map(feature => {
+                const destination = featureDestination(feature);
+                return destination;
+              });
+              return {
+                byId: new Map(destinations.map(destination => [destination.place_id, destination])),
+                byIndex: new Map(destinations.map(destination => [Number(destination.place_index), destination]))
+              };
+            })
+            .catch(error => {
+              placeCatalogPromise = undefined;
+              throw error;
+            });
+        }
+        return placeCatalogPromise;
+      }
+
+      function featureKey(feature) {
+        return feature.properties.place_id || `${feature.properties.service}:${feature.properties.osm_type}:${feature.properties.osm_id}`;
+      }
+
+      function dedupeFeatures(features) {
+        const seen = new Set();
+        const result = [];
+        features.forEach(feature => {
+          const key = featureKey(feature);
+          if (seen.has(key)) return;
+          seen.add(key);
+          result.push(feature);
+        });
+        return result;
+      }
+
+      function renderClickedPlaces(features) {
+        const root = document.getElementById("clicked-place");
+        root.replaceChildren();
+        if (!features.length) return;
+        const card = document.createElement("section");
+        card.className = "clicked-place";
+        const title = document.createElement("h3");
+        title.textContent = features.length === 1 ? "Selected place" : "Selected places";
+        card.append(title);
+        const chips = document.createElement("div");
+        chips.className = "place-chips";
+        for (const feature of features) {
+          const properties = feature.properties;
+          const chip = document.createElement("span");
+          chip.className = "place-chip";
+          chip.style.setProperty("--service-color", serviceStyles[properties.service]?.color || "#64748b");
+          chip.textContent = `${properties.name || properties.brand || "Unnamed"} · ${kindLabels[properties.kind] || properties.kind}`;
+          chips.append(chip);
+        }
+        card.append(chips);
+        const primary = features[0].properties;
+        const address = [
+          [primary["addr:street"], primary["addr:housenumber"]].filter(Boolean).join(" "),
+          primary["addr:city"],
+          primary["addr:postcode"]
+        ].filter(Boolean).join(", ");
+        for (const value of [address, primary.opening_hours, primary.phone || primary["contact:phone"]]) {
+          if (!value) continue;
+          const paragraph = document.createElement("p");
+          paragraph.textContent = value;
+          card.append(paragraph);
+        }
+        root.append(card);
+      }
+
+      function destinationRecordsForRequirements(requirements) {
+        return requirements.map(service => {
+          const preset = selectedPreset(service);
+          return runtimeLayers.get(presetKey(service.id, preset.mode, preset.minutes));
+        });
+      }
+
+      function renderLocationResults(origin, markerFeatures, destinationFeatures, placeCatalog) {
+        const requirements = activeRequirements();
+        const byService = new Map(requirements.map(service => [service.id, new Map()]));
+        destinationFeatures.forEach(feature => {
+          const properties = feature.properties;
+          if (!byService.has(properties.service)) return;
+          let placeIds;
+          try {
+            placeIds = JSON.parse(properties.lookup_ids);
+          } catch (error) {
+            throw new Error(`Invalid destination IDs in ${properties.service}: ${error}`);
+          }
+          if (!Array.isArray(placeIds)) {
+            throw new Error(`Invalid destination IDs in ${properties.service}: expected an array`);
+          }
+          placeIds.forEach(placeId => {
+            const destination = placeCatalog.byIndex.get(placeId);
+            if (!destination) {
+              throw new Error(
+                `Destination lookup references unknown place index ${placeId} in ${properties.service}`
+              );
+            }
+            byService.get(properties.service).set(destination.place_id, destination);
+          });
+        });
+        document.getElementById("location-coordinates").textContent =
+          `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
+        renderClickedPlaces(markerFeatures.map(feature => ({
+          ...feature,
+          properties: {
+            ...placeCatalog.byId.get(feature.properties.place_id),
+            ...feature.properties
+          }
+        })));
+        const results = document.getElementById("location-results");
+        results.replaceChildren();
+        let passed = 0;
+        requirements.forEach(service => {
+          const preset = selectedPreset(service);
+          const destinations = [...byService.get(service.id).values()]
+            .sort((left, right) => haversineMeters(origin, left) - haversineMeters(origin, right));
+          const pass = destinations.length > 0;
+          if (pass) passed += 1;
+
+          const card = document.createElement("section");
+          card.className = `result-card ${pass ? "pass" : "fail"}`;
+          card.style.setProperty("--service-color", serviceStyles[service.id].color);
+          const row = document.createElement("div");
+          row.className = "status-row";
+          const pill = document.createElement("span");
+          pill.className = "status-pill";
+          pill.textContent = pass ? "Available" : "Not found";
+          const heading = document.createElement("h3");
+          heading.textContent = service.label;
+          row.append(pill, heading);
+          const summary = document.createElement("p");
+          summary.textContent = destinations.length
+            ? `${destinations.length.toLocaleString()} ${destinations.length === 1 ? "option" : "options"} within ${preset.label}. Closest by straight-line distance.`
+            : `No ${service.label.toLowerCase()} matched ${preset.label} at this point.`;
+          card.append(row, summary);
+          if (destinations.length) {
+            const first = destinations.slice(0, 3);
+            card.append(destinationList(first, origin, preset.mode));
+            if (destinations.length > first.length) {
+              const details = document.createElement("details");
+              details.className = "more-destinations";
+              const detailsSummary = document.createElement("summary");
+              detailsSummary.textContent = `Show ${destinations.length - first.length} more`;
+              details.append(detailsSummary);
+              details.addEventListener("toggle", () => {
+                if (!details.open || details.dataset.loaded) return;
+                details.dataset.loaded = "true";
+                details.append(destinationList(destinations.slice(first.length), origin, preset.mode));
+              });
+              card.append(details);
+            }
+          }
+          results.append(card);
+        });
+
+        const intersection = document.getElementById("intersection-summary");
+        intersection.textContent = requirements.length
+          ? passed === requirements.length
+            ? `Meets all ${requirements.length} selected requirements.`
+            : `Meets ${passed} of ${requirements.length} selected requirements.`
+          : "Select at least one requirement to inspect this location.";
+        results.setAttribute("aria-busy", "false");
+        const dialog = document.getElementById("location-dialog");
+        if (!dialog.open) dialog.showModal();
+      }
+
+      function inspectLocation(lngLat, updateHash = true, sequence = ++inspectSequence) {
+        inspectionOrigin = { lng: Number(lngLat.lng), lat: Number(lngLat.lat) };
+        setLayerVisibility(
+          [...runtimeLayers.values()].map(record => record.destinationLayer),
+          false
+        );
+        if (map.getZoom() < inspectZoom) {
+          document.getElementById("coverage-status").textContent = "Zooming in to load concrete destinations…";
+          map.easeTo({
+            center: lngLat,
+            zoom: inspectZoom,
+            offset: inspectionOffset(),
+            duration: 450
+          });
+          map.once("idle", () => {
+            if (sequence === inspectSequence) inspectLocation(lngLat, updateHash, sequence);
+          });
+          return;
+        }
+        const destinationRecords = destinationRecordsForRequirements(activeRequirements());
+        const destinationLayerIds = destinationRecords.map(record => record.destinationLayer);
+        const requiredDestinationSources = new Set(
+          destinationRecords.map(record => record.destinationSource)
+        );
+        if (!destinationLayerIds.length) {
+          inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
+          return;
+        }
+        if ([...requiredDestinationSources].some(source => failedDestinationSources.has(source))) {
+          renderInspectionError(lngLat, updateHash);
+          return;
+        }
+        setLayerVisibility(destinationLayerIds, true);
+        map.once("idle", () => {
+          if (sequence !== inspectSequence) return;
+          if ([...requiredDestinationSources].some(source => failedDestinationSources.has(source))) {
+            setLayerVisibility(destinationLayerIds, false);
+            renderInspectionError(lngLat, updateHash);
+            return;
+          }
+          inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
+          setLayerVisibility(destinationLayerIds, false);
+          updateCoverageStatus();
+        });
+      }
+
+      function renderInspectionError(lngLat, updateHash) {
+        if (!persistentMapError) {
+          reportMapError(new Error("destination lookup data is unavailable"));
+        }
+        if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
+        locationMarker.setLngLat(lngLat).addTo(map);
+        if (updateHash) {
+          updateInspectionHash(lngLat);
+        }
+        document.getElementById("location-coordinates").textContent =
+          `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
+        document.getElementById("clicked-place").replaceChildren();
+        document.getElementById("intersection-summary").textContent =
+          "Could not evaluate the selected requirements.";
+        const message = document.createElement("p");
+        message.className = "status";
+        message.textContent =
+          "Destination lookup data failed to load. No availability conclusion was made.";
+        const results = document.getElementById("location-results");
+        results.replaceChildren(message);
+        results.setAttribute("aria-busy", "false");
+        const dialog = document.getElementById("location-dialog");
+        if (!dialog.open) dialog.showModal();
+      }
+
+      function inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence) {
+        const point = map.project(lngLat);
+        const markerFeatures = dedupeFeatures(
+          map.queryRenderedFeatures(point, { layers: placeLayerIds })
+        );
+        const destinationFeatures = destinationLayerIds.length
+          ? map.queryRenderedFeatures(point, { layers: destinationLayerIds })
+          : [];
+        if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
+        locationMarker.setLngLat(lngLat).addTo(map);
+        if (updateHash) {
+          updateInspectionHash(lngLat);
+        }
+        document.getElementById("location-coordinates").textContent =
+          `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)} · exact test is shareable in this page’s URL`;
+        document.getElementById("intersection-summary").textContent = "Loading destination details…";
+        const results = document.getElementById("location-results");
+        results.replaceChildren();
+        results.setAttribute("aria-busy", "true");
+        const dialog = document.getElementById("location-dialog");
+        if (!dialog.open) dialog.showModal();
+        loadPlaceCatalog()
+          .then(placeCatalog => {
+            if (sequence === inspectSequence) {
+              renderLocationResults(lngLat, markerFeatures, destinationFeatures, placeCatalog);
+            }
+          })
+          .catch(error => {
+            if (sequence !== inspectSequence) return;
+            reportMapError(error);
+            console.error(error);
+            renderInspectionError(lngLat, updateHash);
+          });
+      }
+
+      function openInitialLocation() {
+        const parameters = new URLSearchParams(location.hash.slice(1));
+        const coordinates = parameters.get("at")?.split(",");
+        if (!coordinates || coordinates.length !== 2) return;
+        const lngLat = { lng: Number(coordinates[0]), lat: Number(coordinates[1]) };
+        const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+        if (!Number.isFinite(lngLat.lng) || !Number.isFinite(lngLat.lat) ||
+            lngLat.lng < minLon || lngLat.lng > maxLon ||
+            lngLat.lat < minLat || lngLat.lat > maxLat) {
+          reportMapError(new Error("shared location is outside the coverage bounds"));
+          return;
+        }
+        try {
+          const sharedRequirements = parameters.get("requirements");
+          if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
+        } catch (error) {
+          reportMapError(error);
+          return;
+        }
+        refreshMap();
+        const sequence = ++inspectSequence;
+        map.jumpTo({ center: lngLat, zoom: Math.max(map.getZoom(), inspectZoom) });
+        map.once("idle", () => {
+          if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
         });
       }
 
@@ -293,76 +1301,49 @@
         new Promise(resolve => map.once("load", resolve))
       ]).then(([loadedMetadata]) => {
         metadata = loadedMetadata;
-        metadata.coverage_tiles.forEach(item => {
-          const source = `coverage-${item.minutes}`;
-          map.addSource(source, {
-            type: "vector",
-            url: `pmtiles://${new URL(item.file, location.href).href}`
-          });
-          const oneLayers = coverageLayerIds(item.minutes, 1);
-          const twoLayers = coverageLayerIds(item.minutes, 2);
-          addCoverageLayer(oneLayers[0], source, item.layers["1"], "fill", {
-            "fill-color": "#d8902f",
-            "fill-opacity": .30
-          });
-          addCoverageLayer(oneLayers[1], source, item.layers["1"], "line", {
-            "line-color": "#b86d1c",
-            "line-width": 1
-          });
-          addCoverageLayer(twoLayers[0], source, item.layers["2"], "fill", {
-            "fill-color": "#71362b",
-            "fill-opacity": .52
-          });
-          addCoverageLayer(twoLayers[1], source, item.layers["2"], "line", {
-            "line-color": "#55271f",
-            "line-width": 1
-          });
-        });
-        map.addSource("cafes", { type: "geojson", data: "cafes.geojson" });
-        map.addLayer({
-          id: "cafes",
-          type: "circle",
-          source: "cafes",
-          paint: {
-            "circle-radius": 3,
-            "circle-color": "#fff7e8",
-            "circle-opacity": .95,
-            "circle-stroke-color": "#392013",
-            "circle-stroke-width": 1
-          }
-        });
+        createServiceControls();
+        addAccessSources();
+        addPlaceLayers();
+        const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+        map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
+        map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 8, duration: 0 });
 
-        map.on("click", "cafes", event => {
-          const feature = event.features?.[0];
-          if (!feature) return;
-          new maplibregl.Popup({ maxWidth: "340px" })
-            .setLngLat(feature.geometry.coordinates)
-            .setDOMContent(cafePopup(feature))
-            .addTo(map);
-        });
-        map.on("mouseenter", "cafes", () => { map.getCanvas().style.cursor = "pointer"; });
-        map.on("mouseleave", "cafes", () => { map.getCanvas().style.cursor = ""; });
-
+        const totalPlaces = metadata.services.reduce((sum, service) => sum + service.place_count, 0);
         document.getElementById("summary-text").textContent =
-          `${metadata.routed_cafe_count.toLocaleString()} cafes and coffee shops routed from OpenStreetMap data.`;
-        const timeChoices = document.getElementById("time-choices");
-        metadata.contours_minutes.forEach(minutes => {
-          const label = document.createElement("label");
-          const input = document.createElement("input");
-          input.type = "radio";
-          input.name = "minutes";
-          input.value = minutes;
-          input.checked = minutes === selectedMinutes;
-          input.addEventListener("change", () => changeCoverageTime(Number(input.value)));
-          label.append(input, `${minutes} min`);
-          timeChoices.append(label);
+          `${totalPlaces.toLocaleString()} routed service destinations from one OpenStreetMap snapshot.`;
+        document.querySelectorAll("[data-view]").forEach(button =>
+          button.addEventListener("click", () => applyQuickView(button.dataset.view))
+        );
+        document.getElementById("show-places").addEventListener("change", refreshMap);
+        document.getElementById("panel-inspect").addEventListener("click", () =>
+          inspectLocation(inspectionCenter())
+        );
+        document.getElementById("panel-toggle").addEventListener("click", () =>
+          setPanelCollapsed(mapPanel.dataset.collapsed !== "true")
+        );
+        document.getElementById("panel-done").addEventListener("click", () => {
+          setPanelCollapsed(true);
+          document.getElementById("inspect-center").focus();
         });
-        document.getElementById("show-one").addEventListener("change", refreshCoverage);
-        document.getElementById("show-two").addEventListener("change", refreshCoverage);
-        document.getElementById("show-cafes").addEventListener("change", event => {
-          setLayerVisibility(["cafes"], event.currentTarget.checked);
+        document.getElementById("inspect-center").addEventListener("click", () =>
+          inspectLocation(inspectionCenter())
+        );
+        document.getElementById("dialog-close").addEventListener("click", () =>
+          document.getElementById("location-dialog").close()
+        );
+        document.getElementById("location-dialog").addEventListener("close", () => {
+          inspectionOrigin = undefined;
+          inspectSequence += 1;
+          setLayerVisibility(
+            [...runtimeLayers.values()].map(record => record.destinationLayer),
+            false
+          );
+          history.replaceState(null, "", `${location.pathname}${location.search}`);
         });
-        refreshCoverage();
+        map.on("click", event => inspectLocation(event.lngLat));
+        syncMobileMode();
+        refreshMap();
+        openInitialLocation();
       }).catch(error => {
         document.getElementById("summary-text").textContent = `Could not load generated data: ${error}`;
         reportMapError(error);
