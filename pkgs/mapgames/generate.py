@@ -101,6 +101,21 @@ for _route, _requirement_key in zip(ROUTE_SPECS, REQUIREMENT_KEYS, strict=True):
         )
 del _route, _requirement_key, _key
 
+# Expansion-helper worker clamp for country-scale routes. A band whose
+# expansion reaches the whole country graph converges every helper worker's
+# per-minute interval maps and edge cache to the full reachable network, so
+# peak helper RSS grows with worker count on top of a worker-count-
+# independent union/output floor: measured for hospital-drive 60 at
+# full-Lithuania scale, RSS(K) ~= 9.8 GiB + 1.14 GiB/worker (12.1 GiB at
+# K=2, 16.6 at K=6, 23.4 at K=12). Unclamped $NIX_BUILD_CORES on a
+# many-core build host would OOM; K=2 holds the phase at ~12 GiB for
+# +107 s of wall time (155 s -> 262 s), and lower K buys almost nothing
+# against the ~9.8 GiB floor. Only the expansion helper is clamped, and
+# only for routes with a >= 60-minute band; tilemaker and every other
+# route keep full concurrency.
+EXPENSIVE_ROUTE_MINUTES = 60
+EXPENSIVE_ROUTE_MAX_WORKERS = 2
+
 MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
 CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
 DESTINATION_SOURCE_COLUMNS = (
@@ -555,6 +570,11 @@ def main() -> None:
         entries = prepared[route["service"]]
         requests_path = work / f"expansion-{key}.tsv"
         write_expansion_requests(requests_path, route, entries)
+        helper_concurrency = (
+            min(args.concurrency, EXPENSIVE_ROUTE_MAX_WORKERS)
+            if max(route["minutes"]) >= EXPENSIVE_ROUTE_MINUTES
+            else args.concurrency
+        )
         run(
             f"compute {key} native reverse expansion lines",
             [
@@ -565,7 +585,7 @@ def main() -> None:
                 # and merge-tool inputs only; keep them out of the published
                 # output directory.
                 work,
-                args.concurrency,
+                helper_concurrency,
                 ",".join(str(minutes) for minutes in route["minutes"]),
                 bbox_arg,
                 key,

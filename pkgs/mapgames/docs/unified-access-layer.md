@@ -474,8 +474,8 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   coffee 5/10/20 → `#8A5F00 / #C08600 / #E69F00`;
   hospital 20/30/60 → `#9E4600 / #D55E00 / #FF843E` (60 is the next
   constant-hue/chroma lightness step above 30, OKLCH L 0.50/0.62/0.74 at
-  C 0.17 h 48; as the outermost near-universal drive band it also gets the
-  de-emphasis below);
+  C 0.17 h 48 (the 20-band is gamut-limited to C 0.135); as the outermost
+  near-universal drive band it also gets the de-emphasis below);
   supermarket 10/20 → `#00664A / #009E73` (drive-10 single band `#009E73`);
   fuel 10/20 → `#004E7A / #0072B2`.
 - Intersection: ink `#172033` — outside every service hue, maximal contrast on
@@ -591,15 +591,23 @@ interval union). Merge (lt-full): 19 s / 2.30 GiB peak RSS → 24 s / 2.48 GiB
 lt-full 116 → 125 MB. The 30-min bands already reach 894k of the 932k
 hospital-reachable edges at lt-full — the 60-band adds only 38k
 edges (+4%), mostly relabeling coverage that existed. One cost spike to
-know about: the expansion helper's peak RSS during the lt-full
-hospital phase rose to ~23 GiB (12 workers' per-minute interval maps over a
-country-wide reachable set ×3 bands); it swaps but completes on the 27 GB
-build machine. If that ever pinches, run the hospital route at lower
-concurrency or shrink `DestinationEdges` before adding more country-scale
-bands. Behavioral note, measured on Vilnius: raising the contour cap from
+know about: the expansion helper's peak RSS on this phase is
+`RSS(K) ≈ 9.8 GiB + 1.14 GiB per worker` (measured at K = 2/6/12: 12.1,
+16.6, ~23.4 GiB — per-worker interval maps and edge caches converge to the
+country-wide reachable set ×3 bands on top of a worker-count-independent
+union/output floor), so generate.py clamps the helper to
+`EXPENSIVE_ROUTE_MAX_WORKERS = 2` for routes with a ≥60-minute band:
+~12 GiB peak, phase 262 s instead of 155 s at 12 workers, output
+byte-identical across worker counts (verified). Shrink `DestinationEdges`
+before adding more country-scale bands. Behavioral note, measured on
+Vilnius: raising the contour cap from
 1800 s to 3600 s changed the 30-band intervals of exactly 1 edge of 182k
 (an isochrone boundary-settlement artifact; nesting still holds — the 60
 band covers it).
+
+---
+
+## 5. Efficiency piggyback (same series, same code)
 
 ### 5.1 uint64 canonical keys for the hot maps
 
