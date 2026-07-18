@@ -745,6 +745,28 @@ def main() -> None:
         ],
     )
 
+    # Phase-B group table (docs/lowzoom-fastpath.md section 3.2): the
+    # attribute map of every group, listed in `g` order, read back from
+    # work/network.geojson — the same single source that feeds the tiles,
+    # never a second derivation. R-L5: `g` is a per-build index and must
+    # never be persisted client-side across deploys; URL state stores
+    # requirement keys/minutes, never group ids, and index.html + data
+    # deploy atomically.
+    with timed("read attribute-map groups for metadata"):
+        network_features = json.loads(
+            (work / "network.geojson").read_text(encoding="utf-8")
+        )["features"]
+        access_groups = []
+        for index, feature in enumerate(network_features):
+            properties = dict(feature["properties"])
+            if properties.pop("g", None) != index:
+                raise RuntimeError(
+                    f"network.geojson feature {index} does not carry its own"
+                    " file-order index as g"
+                )
+            access_groups.append(properties)
+        del network_features
+
     service_metadata = []
     for service in SERVICE_SPECS:
         presets = [
@@ -773,6 +795,10 @@ def main() -> None:
             "access_network": {
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
+                # Attribute map per group, indexed by the tiles' `g`
+                # property (feature-state styling, lowzoom-fastpath
+                # section 3.2). Per-build; never persist g across deploys.
+                "groups": access_groups,
                 "layer": "network",
                 # Informational (docs/lowzoom-fastpath.md section 2.3):
                 # z6-max_zoom tiles carry the grid_zoom encoder-grid

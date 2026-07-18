@@ -546,7 +546,31 @@
       // CVD-neutral, maximal contrast on the light basemap (§3.3).
       const intersectInk = "#172033";
       const contextGray = "#8a93a3";
-      const accessLayerIds = ["access-context", "access-score", "access-bands", "access-intersect"];
+      // Two permanent access layers over the one network source-layer
+      // (lowzoom-fastpath §3.2): "access-under" renders the intersect
+      // view's context union, "access-main" renders bands / intersect ink /
+      // score. Styling is per attribute-map group via feature-state — one
+      // color key per layer (uc under, mc main), with the group's opacity
+      // folded into the color's alpha channel: line-opacity times
+      // line-color alpha is a single multiplier in the blend, and one
+      // color binder per layer halves the paint-buffer re-uploads that
+      // dominate switch latency (every data-driven paint property is a
+      // separate per-vertex array uploaded on every feature-state change).
+      const accessLayerIds = ["access-under", "access-main"];
+      // State every group takes when it draws nothing under the current
+      // selection (and, via the paint expressions' coalesce defaults, the
+      // effective state of every group before the first refreshMap()).
+      const hiddenGroupState = { uc: "rgba(0,0,0,0)", mc: "rgba(0,0,0,0)" };
+
+      // "#RRGGBB" or "rgba(...)" -> "rgba(r,g,b,alpha)" (feature-state
+      // color strings carry the group's opacity in the alpha channel).
+      function withAlpha(color, alpha) {
+        if (color.startsWith("#")) {
+          const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
+          return `rgba(${r},${g},${b},${alpha})`;
+        }
+        return color.replace(/,[^,]*\)$/, `,${alpha})`);
+      }
       const viewModes = ["bands", "intersect", "score"];
       // Score ramp: sequential, perceptually-uniform, CVD-safe — viridis
       // anchors sampled at N steps in JS, light → dark with count (§3.3).
@@ -1398,20 +1422,40 @@
         map.addSource("access", {
           type: "vector",
           url: `pmtiles://${new URL(network.file, location.href).href}`,
-          attribution: snapshotAttribution()
+          attribution: snapshotAttribution(),
+          // Feature id = attribute-map group id (lowzoom-fastpath §3.2).
+          // Many features share one id by design; feature-state is an
+          // id-keyed map consulted per feature.
+          promoteId: { [network.layer]: "g" }
         });
-        // Four style layers over the one network source-layer, bottom to top
-        // (§3.1). All views read the same tiles, so view and threshold
-        // switches are pure restyles — refreshMap() sets the real
-        // filter/paint before any layer becomes visible.
-        const accessLayer = id => ({
-          id,
-          type: "line",
-          source: "access",
-          "source-layer": network.layer,
-          layout: lineLayout()
+        // Both access layers stay visible from load with a constant
+        // filter: every view and threshold switch is a per-group
+        // feature-state repaint (refreshMap) — no setFilter, no visibility
+        // flips, no re-tessellation. Until the first refreshMap() writes
+        // group states, the paint expressions' coalesce defaults hold
+        // every group at opacity 0, so nothing flashes.
+        accessLayerIds.forEach(id => {
+          const prefix = id === "access-under" ? "u" : "m";
+          map.addLayer({
+            id,
+            type: "line",
+            source: "access",
+            "source-layer": network.layer,
+            filter: ["has", "g"],
+            layout: { ...lineLayout(), visibility: "visible" },
+            paint: {
+              "line-color": ["to-color",
+                ["coalesce", ["feature-state", `${prefix}c`], "rgba(0,0,0,0)"]],
+              // Constant: the per-group opacity rides in the state color's
+              // alpha (see accessLayerIds).
+              "line-opacity": 1,
+              // Plain (non-data-driven) zoom curve; refreshMap swaps it
+              // per effective mode via setPaintProperty — cheap repaint,
+              // no re-layout.
+              "line-width": corridorLineWidth("walk")
+            }
+          });
         });
-        accessLayerIds.forEach(id => map.addLayer(accessLayer(id)));
         metadata.destination_tiles.forEach(tile => {
           const destinationSource = `destination-${tile.service}-${tile.mode}`;
           destinationSourceIds.add(destinationSource);
@@ -1486,11 +1530,42 @@
         });
       }
 
-      // Canonical reachability test (§1.1): absent key = unreachable, and
-      // MVT has no null, so every ["get"] must be ["has"]-guarded.
-      function reachableTest(selection) {
-        return ["all", ["has", selection.key],
-          ["<=", ["get", selection.key], selection.preset.minutes]];
+      // Canonical reachability test (§1.1), evaluated in JS over a group's
+      // attribute map (absent key = unreachable). The map never reads
+      // attributes from tiles: groups ship in
+      // metadata.access_network.groups, indexed by the tiles' `g`.
+      function groupReachable(attributes, selection) {
+        const minutes = attributes[selection.key];
+        return minutes !== undefined && minutes <= selection.preset.minutes;
+      }
+
+      // Push one feature-state per attribute-map group (N states total,
+      // N = groups.length from metadata — never hardcoded). stateOf must
+      // return both uc/mc keys so no stale state survives a mode or
+      // threshold switch (setFeatureState merges partial states). States
+      // are diffed against the last pushed value per group: MapLibre
+      // re-uploads a bucket's whole paint array when any contained id
+      // changes (no value-equality check), so a refreshMap that changes
+      // nothing — or only some groups — must not resend the rest.
+      let lastGroupStates;
+
+      function setAccessGroupStates(stateOf) {
+        const network = metadata.access_network;
+        if (!lastGroupStates) lastGroupStates = new Array(network.groups.length);
+        network.groups.forEach((attributes, group) => {
+          const next = stateOf(attributes);
+          const last = lastGroupStates[group];
+          if (last && last.uc === next.uc && last.mc === next.mc) return;
+          lastGroupStates[group] = next;
+          map.setFeatureState(
+            { source: "access", sourceLayer: network.layer, id: group },
+            next
+          );
+        });
+      }
+
+      function setAccessLineWidth(width) {
+        accessLayerIds.forEach(id => map.setPaintProperty(id, "line-width", width));
       }
 
       function combinedCorridorMode(selections) {
@@ -1527,57 +1602,56 @@
         const focus = selections[0];
         const bands = drawnBands(focus);
         const fullRamp = bandColors(focus);
-        // The layer filter excludes out-of-selection features, but
-        // data-driven paint is re-evaluated in the worker against unfiltered
-        // tile features during restyles — guard the null (§1.1) or it logs
-        // type warnings.
-        const bandValue = ["coalesce", ["get", focus.key], -1];
-        const color = ["match", bandValue];
-        bands.forEach(band => color.push(band.minutes, band.color));
-        color.push("rgba(0,0,0,0)");
         // §3.3: de-emphasize the outermost (near-always-true) band of a
         // drive requirement — only when it is the ramp's own largest band
         // and inner bands exist to contrast with; a tighter preset's
         // outermost band is the user's threshold and keeps full weight.
         const outermost = bands[bands.length - 1];
-        const opacity = focus.preset.mode === "drive" && bands.length > 1 &&
-          outermost.minutes === fullRamp[fullRamp.length - 1].minutes
-          ? ["match", bandValue, outermost.minutes, 0.5, 0.9]
-          : 0.9;
-        map.setFilter("access-bands", reachableTest(focus));
-        map.setPaintProperty("access-bands", "line-color", color);
-        map.setPaintProperty("access-bands", "line-opacity", opacity);
-        map.setPaintProperty("access-bands", "line-width", corridorLineWidth(focus.preset.mode));
-        setLayerVisibility(["access-bands"], true);
+        const deEmphasized = focus.preset.mode === "drive" && bands.length > 1 &&
+          outermost.minutes === fullRamp[fullRamp.length - 1].minutes;
+        const bandColor = new Map(bands.map(band => [band.minutes, band.color]));
+        setAccessGroupStates(attributes => {
+          // Band values are disjoint by construction: a group carries one
+          // ramp value per requirement, so reachable implies a drawn band
+          // (bands ≤ preset). Unknown values fall through to hidden, like
+          // the old match expression's transparent default.
+          if (!groupReachable(attributes, focus)) return hiddenGroupState;
+          const minutes = attributes[focus.key];
+          const color = bandColor.get(minutes);
+          if (color === undefined) return hiddenGroupState;
+          return {
+            uc: "rgba(0,0,0,0)",
+            mc: withAlpha(color, deEmphasized && minutes === outermost.minutes ? 0.5 : 0.9)
+          };
+        });
+        setAccessLineWidth(corridorLineWidth(focus.preset.mode));
       }
 
       function styleIntersectView(selections) {
-        const tests = selections.map(reachableTest);
-        const width = corridorLineWidth(combinedCorridorMode(selections));
-        map.setFilter("access-intersect", ["all", ...tests]);
-        map.setPaintProperty("access-intersect", "line-color", intersectInk);
-        map.setPaintProperty("access-intersect", "line-opacity", 0.95);
-        map.setPaintProperty("access-intersect", "line-width", width);
-        map.setFilter("access-context", ["any", ...tests]);
-        map.setPaintProperty("access-context", "line-color", contextGray);
-        map.setPaintProperty("access-context", "line-opacity", 0.35);
-        map.setPaintProperty("access-context", "line-width", width);
-        setLayerVisibility(["access-context", "access-intersect"], true);
+        setAccessGroupStates(attributes => {
+          const meetsAll = selections.every(selection => groupReachable(attributes, selection));
+          const meetsSome = meetsAll ||
+            selections.some(selection => groupReachable(attributes, selection));
+          // The under layer renders the whole union (including meets-all
+          // groups) beneath the ink, exactly like the old any-filtered
+          // context layer under the all-filtered intersect layer.
+          return {
+            uc: meetsSome ? withAlpha(contextGray, 0.35) : "rgba(0,0,0,0)",
+            mc: meetsAll ? withAlpha(intersectInk, 0.95) : "rgba(0,0,0,0)"
+          };
+        });
+        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections)));
       }
 
       function styleScoreView(selections) {
-        const score = ["+", ...selections.map(selection =>
-          ["case", reachableTest(selection), 1, 0])];
-        const color = ["match", score];
-        scoreRamp(selections.length).forEach((rampColor, index) =>
-          color.push(index + 1, rampColor));
-        color.push("rgba(0,0,0,0)");
-        map.setFilter("access-score", [">=", score, 1]);
-        map.setPaintProperty("access-score", "line-color", color);
-        map.setPaintProperty("access-score", "line-opacity", 0.9);
-        map.setPaintProperty("access-score", "line-width",
-          corridorLineWidth(combinedCorridorMode(selections)));
-        setLayerVisibility(["access-score"], true);
+        const ramp = scoreRamp(selections.length);
+        setAccessGroupStates(attributes => {
+          const score = selections.reduce((sum, selection) =>
+            sum + (groupReachable(attributes, selection) ? 1 : 0), 0);
+          if (score < 1) return hiddenGroupState;
+          return { uc: "rgba(0,0,0,0)", mc: withAlpha(ramp[score - 1], 0.9) };
+        });
+        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections)));
       }
 
       function refreshViewSwitcher(mode, selectionCount) {
@@ -1692,12 +1766,14 @@
         const selections = selectionDetails();
         const mode = effectiveViewMode(selections.length);
         refreshViewSwitcher(mode, selections.length);
-        // Only the active view's layers are visible; all views read the same
-        // tiles, so this is a pure restyle — zero tile fetches (§3.1).
-        setLayerVisibility(accessLayerIds, false);
+        // Per-group feature-state styling (lowzoom-fastpath §3.2): the
+        // effective view is a pure function attribute map → (color,
+        // opacity), pushed as N group states — a paint-buffer refresh over
+        // loaded tiles; zero tile fetches, zero re-buckets.
         if (mode === "bands") styleBandsView(selections);
         else if (mode === "intersect") styleIntersectView(selections);
         else if (mode === "score") styleScoreView(selections);
+        else setAccessGroupStates(() => hiddenGroupState);
         renderLegend(mode, selections);
         destinationRecords.forEach(record => setLayerVisibility([record.destinationLayer], false));
         metadata.services.forEach(service => {
