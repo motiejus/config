@@ -42,6 +42,9 @@ NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2 ** (LOW_ZOOM_GENERALIZATION_BELOW - 1))
 # serves z6-7. GRID_ZOOM is fixed at 10 for both (coarser grids measured
 # exhausted, section 4.6); N_drop = 64 grid units (~350 m ground) is the
 # owner-accepted comparison value.
+# Must equal coarsen.py's GRID_ZOOM literal (the grid the skeleton is
+# actually built on); changing LOW_ZOOM_GENERALIZATION_BELOW alone would
+# silently desync the advertised metadata grid_zoom from the real grid.
 COARSE_GRID_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
 COARSE_MAX_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
 VARIANT_B_MAX_ZOOM = 7

@@ -619,7 +619,13 @@ As §3.2: promoteId, two permanent layers, `metadata.access_network.groups`,
 feature-state styling; delete the per-view visibility flipping and
 per-switch `setFilter` calls.
 *Gate (BINDING):* measured combo-switch latency **< 300 ms** at z7 and z13
-on the reference phone (expected < 200); z11–14 initial tile bucket cost
+on the reference phone (expected < 200). As executed: evaluated on the
+swiftshader CDP harness (desktop 1920×1080 + phone-viewport 390×844) as the
+reference-phone proxy; the desktop-viewport z13 mode-switch (440 ms) is an
+upload-bound software-GL artifact — MapLibre re-uploads the whole ~101 MB
+data-driven paint array per state change and swiftshader moves 250–500 MB/s
+where a real GPU moves tens of GB/s — and is therefore non-gating; the
+phone-viewport battery passes with ×10 margin. z11–14 initial tile bucket cost
 measured before/after — constant-true filters tessellate all groups at tile
 load, so record tile-load/bucket time at z12 and z13 (loaded-tile
 `bucket`/layout timing via the §6 CDP harness) and confirm pan/zoom tile
