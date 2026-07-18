@@ -631,21 +631,47 @@
         });
       }
 
-      function inspectionHash(lngLat) {
-        const requirements = activeRequirements().map(service => {
+      function requirementsParam() {
+        return activeRequirements().map(service => {
           const preset = selectedPreset(service);
           return `${service.id}:${preset.mode}:${preset.minutes}`;
-        });
+        }).join(",");
+      }
+
+      function inspectionHash(lngLat) {
         return `#at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}` +
-          `&requirements=${requirements.join(",")}`;
+          `&requirements=${requirementsParam()}`;
+      }
+
+      let lastWrittenHash = "";
+
+      function writeHash(hash) {
+        lastWrittenHash = hash;
+        history.replaceState(null, "", `${location.pathname}${location.search}${hash}`);
       }
 
       function updateInspectionHash(lngLat) {
-        history.replaceState(
-          null,
-          "",
-          `${location.pathname}${location.search}${inspectionHash(lngLat)}`
+        writeHash(inspectionHash(lngLat));
+      }
+
+      let viewHashTimer;
+
+      function updateViewHash() {
+        // The inspect-share hash (#at=...) owns the URL while a location is
+        // inspected; view state fills it the rest of the time.
+        if (!metadata || inspectionOrigin || document.getElementById("location-dialog").open) {
+          return;
+        }
+        const center = map.getCenter();
+        writeHash(
+          `#requirements=${requirementsParam()}` +
+          `&view=${center.lng.toFixed(5)},${center.lat.toFixed(5)},${map.getZoom().toFixed(2)}`
         );
+      }
+
+      function scheduleViewHash() {
+        clearTimeout(viewHashTimer);
+        viewHashTimer = setTimeout(updateViewHash, 250);
       }
 
       function applySharedRequirements(value) {
@@ -940,6 +966,7 @@
         });
         updateCoverageStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
+        else scheduleViewHash();
       }
 
       function applyQuickView(view) {
@@ -1290,18 +1317,39 @@
           });
       }
 
-      function openInitialLocation() {
+      function applyLocationHash() {
         const parameters = new URLSearchParams(location.hash.slice(1));
         const coordinates = parameters.get("at")?.split(",");
-        if (!coordinates || coordinates.length !== 2) return;
-        const lngLat = { lng: Number(coordinates[0]), lat: Number(coordinates[1]) };
-        const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
-        if (!Number.isFinite(lngLat.lng) || !Number.isFinite(lngLat.lat) ||
-            lngLat.lng < minLon || lngLat.lng > maxLon ||
-            lngLat.lat < minLat || lngLat.lat > maxLat) {
-          reportMapError(new Error("shared location is outside the coverage bounds"));
+        if (coordinates && coordinates.length === 2) {
+          // Inspect-share link: same behavior and hash format as always.
+          const lngLat = { lng: Number(coordinates[0]), lat: Number(coordinates[1]) };
+          const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+          if (!Number.isFinite(lngLat.lng) || !Number.isFinite(lngLat.lat) ||
+              lngLat.lng < minLon || lngLat.lng > maxLon ||
+              lngLat.lat < minLat || lngLat.lat > maxLat) {
+            reportMapError(new Error("shared location is outside the coverage bounds"));
+            return;
+          }
+          try {
+            const sharedRequirements = parameters.get("requirements");
+            if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
+          } catch (error) {
+            reportMapError(error);
+            return;
+          }
+          refreshMap();
+          const sequence = ++inspectSequence;
+          // Claim the URL immediately so debounced view-hash writes cannot
+          // clobber the share hash while the camera settles;
+          // inspectLocation re-establishes this origin itself.
+          inspectionOrigin = lngLat;
+          map.jumpTo({ center: lngLat, zoom: Math.max(map.getZoom(), inspectZoom) });
+          map.once("idle", () => {
+            if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
+          });
           return;
         }
+        // View-only hash: restore requirements and camera, no inspect dialog.
         try {
           const sharedRequirements = parameters.get("requirements");
           if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
@@ -1309,12 +1357,13 @@
           reportMapError(error);
           return;
         }
+        const dialog = document.getElementById("location-dialog");
+        if (dialog.open) dialog.close();
+        const view = parameters.get("view")?.split(",").map(Number);
+        if (view && view.length === 3 && view.every(Number.isFinite)) {
+          map.jumpTo({ center: [view[0], view[1]], zoom: view[2] });
+        }
         refreshMap();
-        const sequence = ++inspectSequence;
-        map.jumpTo({ center: lngLat, zoom: Math.max(map.getZoom(), inspectZoom) });
-        map.once("idle", () => {
-          if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
-        });
       }
 
       Promise.all([
@@ -1359,13 +1408,21 @@
             [...runtimeLayers.values()].map(record => record.destinationLayer),
             false
           );
-          history.replaceState(null, "", `${location.pathname}${location.search}`);
+          // Fall back from the inspect-share hash to the view-state hash.
+          scheduleViewHash();
         });
         map.on("click", event => inspectLocation(event.lngLat));
+        map.on("moveend", scheduleViewHash);
+        window.addEventListener("hashchange", () => {
+          // replaceState never fires hashchange, but stay safe against
+          // user edits that match our last write.
+          if (location.hash === lastWrittenHash) return;
+          applyLocationHash();
+        });
         syncMobileMode();
         if (mobileMedia.matches) collapseCompactAttribution();
         refreshMap();
-        openInitialLocation();
+        applyLocationHash();
       }).catch(error => {
         document.getElementById("summary-text").textContent = `Could not load generated data: ${error}`;
         reportMapError(error);
