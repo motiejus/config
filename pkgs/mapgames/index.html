@@ -569,6 +569,11 @@
           const [r, g, b] = [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
           return `rgba(${r},${g},${b},${alpha})`;
         }
+        // The tail-replace below assumes a 4-component rgba(); an rgb()
+        // 3-tuple would lose its blue channel. All live colors are hex.
+        if (!color.startsWith("rgba(")) {
+          throw new Error(`withAlpha: unsupported color format: ${color}`);
+        }
         return color.replace(/,[^,]*\)$/, `,${alpha})`);
       }
       const viewModes = ["bands", "intersect", "score"];
