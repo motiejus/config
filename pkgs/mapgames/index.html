@@ -1408,7 +1408,16 @@
         });
       }
 
-      function corridorLineWidth(mode) {
+      // The real-world corridor width doubles on screen with every zoom
+      // step; past ~z15 that floods whole blocks with no added information
+      // (reported as the map growing "too thick" when zoomed in). The
+      // visible access views cap the on-screen width so high zooms read as
+      // a street highlight; the invisible destination hit corridors carry
+      // the reachability verdict, so they always stay geographically true
+      // (maxWidthPx defaults to uncapped).
+      const corridorWidthCapPx = 22;
+
+      function corridorLineWidth(mode, maxWidthPx = Infinity) {
         const bufferMeters = metadata.geometry.corridor_buffer_meters[mode];
         const latitude = (metadata.bbox[1] + metadata.bbox[3]) / 2;
         const latitudeScale = Math.max(Math.cos(latitude * Math.PI / 180), .01);
@@ -1416,7 +1425,7 @@
         for (let zoom = 6; zoom <= 18; zoom += 2) {
           // MapLibre's zoom-zero world is 512 CSS pixels wide.
           const metersPerPixel = 78_271.516964 * latitudeScale / (2 ** zoom);
-          stops.push(zoom, Math.max(1.25, 2 * bufferMeters / metersPerPixel));
+          stops.push(zoom, Math.min(maxWidthPx, Math.max(1.25, 2 * bufferMeters / metersPerPixel)));
         }
         return ["interpolate", ["exponential", 2], ["zoom"], ...stops];
       }
@@ -1464,8 +1473,10 @@
               "line-opacity": 1,
               // Plain (non-data-driven) zoom curve; refreshMap swaps it
               // per effective mode via setPaintProperty — cheap repaint,
-              // no re-layout.
-              "line-width": corridorLineWidth("walk")
+              // no re-layout. These are the visible corridor layers, so the
+              // on-screen width caps at corridorWidthCapPx (the invisible
+              // destination hit corridors below stay uncapped).
+              "line-width": corridorLineWidth("walk", corridorWidthCapPx)
             }
           });
         });
@@ -1637,7 +1648,7 @@
             mc: withAlpha(color, deEmphasized && minutes === outermost.minutes ? 0.5 : 0.9)
           };
         });
-        setAccessLineWidth(corridorLineWidth(focus.preset.mode));
+        setAccessLineWidth(corridorLineWidth(focus.preset.mode, corridorWidthCapPx));
       }
 
       function styleIntersectView(selections) {
@@ -1653,7 +1664,7 @@
             mc: meetsAll ? withAlpha(intersectInk, 0.95) : "rgba(0,0,0,0)"
           };
         });
-        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections)));
+        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections), corridorWidthCapPx));
       }
 
       function styleScoreView(selections) {
@@ -1664,7 +1675,7 @@
           if (score < 1) return hiddenGroupState;
           return { uc: "rgba(0,0,0,0)", mc: withAlpha(ramp[score - 1], 0.9) };
         });
-        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections)));
+        setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections), corridorWidthCapPx));
       }
 
       function refreshViewSwitcher(mode, selectionCount) {
