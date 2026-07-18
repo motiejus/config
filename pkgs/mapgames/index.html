@@ -84,6 +84,7 @@
       .service-list { display: grid; gap: .45rem; }
       .service-card {
         --service-color: #765;
+        --service-foreground: white;
         padding: .55rem .65rem;
         border: 1px solid var(--border);
         border-left: .35rem solid var(--service-color);
@@ -105,7 +106,7 @@
         cursor: pointer;
       }
       .preset-choices button[aria-pressed="true"] {
-        color: white;
+        color: var(--service-foreground);
         background: var(--service-color);
         border-color: var(--service-color);
       }
@@ -205,6 +206,7 @@
         gap: .25rem;
         padding: .18rem .45rem;
         border: 1px solid var(--border);
+        border-left: .3rem solid var(--service-color, var(--border));
         border-radius: 999px;
         background: #ffffff;
         font-size: .8rem;
@@ -527,10 +529,14 @@
       // basemap): Okabe-Ito service hues; markers darken the same hue (the
       // darkest band step of each ramp).
       const serviceStyles = {
-        coffee: { color: "#E69F00", marker: "#8A5F00" },
-        hospital: { color: "#D55E00", marker: "#B95200" },
-        supermarket: { color: "#009E73", marker: "#00664A" },
-        fuel: { color: "#0072B2", marker: "#004E7A" }
+        // White text fails WCAG AA on the first three Okabe-Ito hues
+        // (2.25:1, 3.87:1, and 3.42:1 respectively). Keep the identifying
+        // hues, but pair each pressed preset with a foreground that is at
+        // least 4.5:1; fuel is the one hue on which white remains clearer.
+        coffee: { color: "#E69F00", marker: "#8A5F00", foreground: "#0f172a" },
+        hospital: { color: "#D55E00", marker: "#B95200", foreground: "#0f172a" },
+        supermarket: { color: "#009E73", marker: "#00664A", foreground: "#0f172a" },
+        fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
       };
       // Band ramps: lightness steps of the service hue at constant
       // hue/chroma, darkest = smallest minutes (§3.3). Keyed by the
@@ -545,7 +551,13 @@
       // Intersection ink: outside every service hue, hue-free hence
       // CVD-neutral, maximal contrast on the light basemap (§3.3).
       const intersectInk = "#172033";
-      const contextGray = "#8a93a3";
+      // The old #8a93a3 at 35% composited to only 1.41:1 against white and
+      // was effectively lost among pale roads and landcover. This darker
+      // neutral at 90% is still subordinate to intersectInk, but reaches
+      // 4.71:1 on white and 3.08:1 on the custom forest fill. The legend
+      // uses the same composited color below.
+      const contextGray = "#596579";
+      const contextOpacity = 0.9;
       // Two permanent access layers over the one network source-layer
       // (lowzoom-fastpath §3.2): "access-under" renders the intersect
       // view's context union, "access-main" renders bands / intersect ink /
@@ -577,30 +589,30 @@
         return color.replace(/,[^,]*\)$/, `,${alpha})`);
       }
       const viewModes = ["bands", "intersect", "score"];
-      // Score ramp: sequential, perceptually-uniform, CVD-safe — viridis
-      // anchors sampled at N steps in JS, light → dark with count (§3.3).
-      const viridisAnchors = [
-        [68, 1, 84], [72, 40, 120], [62, 74, 137], [49, 104, 142], [38, 130, 142],
-        [31, 158, 137], [53, 183, 121], [109, 205, 89], [180, 222, 44], [253, 231, 37]
-      ];
-
-      function viridisColor(t) {
-        const scaled = Math.min(Math.max(t, 0), 1) * (viridisAnchors.length - 1);
-        const index = Math.min(Math.floor(scaled), viridisAnchors.length - 2);
-        const mix = scaled - index;
-        const channel = i => Math.round(
-          viridisAnchors[index][i] * (1 - mix) + viridisAnchors[index + 1][i] * mix
-        );
-        return `#${[channel(0), channel(1), channel(2)]
-          .map(value => value.toString(16).padStart(2, "0")).join("")}`;
-      }
+      // Exact-count score palettes. The previous viridis sampling assigned
+      // green to 1/N and blue-purple to N/N. With green supermarket + blue
+      // fuel selected, those score colors looked like service identities and
+      // made a correct count legend appear reversed. Score answers "how
+      // many", not "which ones", so keep it deliberately outside every
+      // service hue: one purple sequence, lighter -> darker with count. This
+      // also remains ordered under color-vision deficiencies because the
+      // primary cue is monotonic lightness. Every color, after the map's 0.9
+      // alpha blend, reaches at least 3:1 against white.
+      //
+      // N cannot exceed four because the UI selects at most one preset per
+      // service. Keeping all cardinalities explicit prevents interpolation
+      // or selection-order changes from silently swapping meanings again.
+      const scorePalettes = Object.freeze({
+        1: Object.freeze(["#4B166E"]),
+        2: Object.freeze(["#80509C", "#4B166E"]),
+        3: Object.freeze(["#80509C", "#663287", "#4B166E"]),
+        4: Object.freeze(["#80509C", "#72408F", "#60277F", "#4B166E"])
+      });
 
       function scoreRamp(count) {
-        // Subset away from the pale-yellow end; score 1 lightest, N darkest.
-        const light = 0.82;
-        const dark = 0.12;
-        return Array.from({ length: count }, (_, index) =>
-          viridisColor(light - (count === 1 ? 0 : index / (count - 1)) * (light - dark)));
+        const palette = scorePalettes[count];
+        if (!palette) throw new Error(`no score palette for ${count} selected requirements`);
+        return palette;
       }
       // ---- i18n ----------------------------------------------------------
       // UI language: Lithuanian by default, English via the toggle or
@@ -1363,6 +1375,7 @@
           card.className = "service-card";
           card.dataset.service = service.id;
           card.style.setProperty("--service-color", serviceStyles[service.id].color);
+          card.style.setProperty("--service-foreground", serviceStyles[service.id].foreground);
 
           const heading = document.createElement("label");
           heading.className = "service-heading";
@@ -1673,7 +1686,7 @@
           // groups) beneath the ink, exactly like the old any-filtered
           // context layer under the all-filtered intersect layer.
           return {
-            uc: meetsSome ? withAlpha(contextGray, 0.35) : "rgba(0,0,0,0)",
+            uc: meetsSome ? withAlpha(contextGray, contextOpacity) : "rgba(0,0,0,0)",
             mc: meetsAll ? withAlpha(intersectInk, 0.95) : "rgba(0,0,0,0)"
           };
         });
@@ -1737,7 +1750,7 @@
         } else if (mode === "intersect") {
           title.textContent = t("legendSelectedTitle");
           row.append(legendItem(intersectInk, t("legendMeetsAll", selections.length)));
-          row.append(legendItem(contextGray, t("legendMeetsSome")));
+          row.append(legendItem(withAlpha(contextGray, contextOpacity), t("legendMeetsSome")));
         } else {
           title.textContent = t("legendScoreTitle", selections.length);
           scoreRamp(selections.length).forEach((color, index) =>

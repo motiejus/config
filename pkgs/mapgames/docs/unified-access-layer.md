@@ -363,7 +363,7 @@ encoder is not byte-deterministic; measured as the A/B noise floor).
 
 | id | view | type | notes |
 |---|---|---|---|
-| `access-context` | intersect | line | union of selected requirements, faint gray — shows "reachable by something you selected" under the intersection |
+| `access-context` | intersect | line | union of selected requirements, subordinate dark gray — shows "reachable by something you selected" under the intersection |
 | `access-score` | score | line | color by client-computed score |
 | `access-bands` | bands | line | color by focused requirement's band value |
 | `access-intersect` | intersect | line | solid high-contrast |
@@ -443,7 +443,7 @@ filter: ["all", ...R.map(r => ["all", ["has", r.key], ["<=", ["get", r.key], r.t
 paint:  { "line-color": "#172033", "line-opacity": 0.95 }   // ink, no blending
 // access-context
 filter: ["any", ...R.map(r => ["all", ["has", r.key], ["<=", ["get", r.key], r.t]])]
-paint:  { "line-color": "#8a93a3", "line-opacity": 0.35 }
+paint:  { "line-color": "#596579", "line-opacity": 0.9 }
 ```
 
 One solid layer — always-true requirements (hospital 60-drive) contribute a
@@ -483,8 +483,12 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   fuel 10/20 → `#004E7A / #0072B2`.
 - Intersection: ink `#172033` — outside every service hue, maximal contrast on
   the light Protomaps flavor, hue-free hence CVD-neutral.
-- Score: a sequential ramp sampled at N steps from a perceptually-uniform
-  CVD-safe scale (viridis subset, light→dark with count), computed in JS.
+- Score: an identity-neutral single-hue purple sequence, light→dark with
+  count, explicitly tabulated for N=1..4. It deliberately avoids every
+  service hue: with green supermarket and blue fuel selected, a green/blue
+  score ramp misleadingly reads as *which* service is reachable rather than
+  *how many*. Monotonic lightness preserves the order under color-vision
+  deficiencies; the explicit tables keep legend and paint meanings fixed.
 - Drive/always-true de-emphasis: in bands view, the outermost (largest-minute,
   near-always-true) band of a drive requirement renders at reduced opacity
   (~0.5) with the inner bands at full strength — the line-network analogue of
