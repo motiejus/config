@@ -9,11 +9,21 @@
       "simplify_algorithm": "visvalingam"
     },
     "landcover": {
-      "minzoom": 7,
+      "minzoom": 5,
       "maxzoom": 14,
       "simplify_below": 13,
       "simplify_level": 0.00015,
       "simplify_algorithm": "visvalingam"
+    },
+    "infrastructure": {
+      "minzoom": 11,
+      "maxzoom": 14,
+      "simplify_below": 13,
+      "simplify_level": 0.0001
+    },
+    "pois": {
+      "minzoom": 14,
+      "maxzoom": 14
     },
     "landuse": {
       "minzoom": 9,

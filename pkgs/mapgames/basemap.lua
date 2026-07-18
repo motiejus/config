@@ -2,7 +2,7 @@
 -- feature comes from the Lithuania PBF. The earth polygon is the configured
 -- coverage bbox rectangle that generate.py writes before tilemaker runs.
 
-node_keys = { "place" }
+node_keys = { "place", "amenity=bench" }
 way_keys = {
   "aeroway",
   "amenity",
@@ -12,6 +12,8 @@ way_keys = {
   "landuse",
   "leisure",
   "natural",
+  "power=line",
+  "power=minor_line",
   "railway",
   "route=ferry",
   "waterway"
@@ -42,6 +44,17 @@ function relation_scan_function()
 end
 
 function node_function()
+  if Find("amenity") == "bench" then
+    -- The vendored style's pois layer knows kind=bench (sprite icon included)
+    -- and gates display on the min_zoom attribute, so benches only appear on
+    -- overzoomed z17+ views while living in the z14 data tiles.
+    Layer("pois", false)
+    Attribute("kind", "bench")
+    AttributeNumeric("min_zoom", 17)
+    MinZoom(14)
+    return
+  end
+
   local place = Find("place")
   if place == "" then return end
 
@@ -135,6 +148,15 @@ function way_function()
         Layer("roads", false)
         Attribute("kind", kind)
         Attribute("kind_detail", highway)
+        -- The vendored style's ground road layers exclude is_bridge/is_tunnel
+        -- features and its dedicated bridge/tunnel layers only draw from z12,
+        -- so the flags are withheld below z12 (third argument) to avoid gaps.
+        -- Same for is_link: the link layer only gets width at z13+.
+        local bridge = Find("bridge")
+        if bridge ~= "" and bridge ~= "no" then AttributeBoolean("is_bridge", true, 12) end
+        local tunnel = Find("tunnel")
+        if tunnel ~= "" and tunnel ~= "no" then AttributeBoolean("is_tunnel", true, 12) end
+        if highway:sub(-5) == "_link" then AttributeBoolean("is_link", true, 13) end
         local ref = Find("ref")
         if ref ~= "" then Attribute("ref", ref) end
         set_names()
@@ -169,6 +191,32 @@ function way_function()
     MinZoom(9)
   end
 
+  local power = Find("power")
+  if power == "line" or power == "minor_line" then
+    -- Transmission lines (2.4k ways country-wide) from z11 give the OSM-ish
+    -- infrastructure texture at regional zoom; distribution lines wait for z13.
+    Layer("infrastructure", false)
+    Attribute("kind", "power_line")
+    Attribute("kind_detail", power)
+    if power == "line" then MinZoom(11) else MinZoom(13) end
+  end
+
+  if waterway == "dam" or waterway == "weir" then
+    if is_closed then
+      -- The vendored style fills landuse kind=dam (shared with pedestrian).
+      Layer("landuse", true)
+      Attribute("kind", "dam")
+      set_names()
+      MinZoom(12)
+    else
+      Layer("infrastructure", false)
+      Attribute("kind", "dam")
+      Attribute("kind_detail", waterway)
+      set_names()
+      MinZoom(12)
+    end
+  end
+
   if waterway == "river" or waterway == "canal" or waterway == "stream" or waterway == "drain" or waterway == "ditch" then
     if not is_closed then
       Layer("water", false)
@@ -195,15 +243,28 @@ function way_function()
   if is_closed then
     local cover = nil
     if natural == "wood" or landuse == "forest" then cover = "forest"
+    elseif natural == "wetland" then cover = "wetland"
     elseif natural == "scrub" then cover = "scrub"
     elseif natural == "heath" or natural == "grassland" or landuse == "meadow" or landuse == "grass" then cover = "grassland"
     elseif landuse == "farmland" or landuse == "orchard" or landuse == "vineyard" then cover = "farmland"
     elseif natural == "bare_rock" or natural == "scree" or natural == "sand" then cover = "barren"
     elseif landuse == "residential" then cover = "urban_area" end
     if cover then
+      -- Appear once the polygon spans roughly two screen pixels at 55°N
+      -- (pixel ≈ 90km/2^z): the country view at z6-7 already reads like OSM
+      -- default — big forests, wetlands and farmland — without paying for
+      -- sub-pixel parcels. Below 50000 m² polygons only matter at z14.
+      local area = Area()
+      local minzoom = 14
+      if area > 25000000 then minzoom = 5
+      elseif area > 8000000 then minzoom = 6
+      elseif area > 2000000 then minzoom = 7
+      elseif area > 500000 then minzoom = 8
+      elseif area > 120000 then minzoom = 9
+      elseif area > 50000 then minzoom = 10 end
       Layer("landcover", true)
       Attribute("kind", cover)
-      MinZoom(minzoom_by_area(14, 7))
+      MinZoom(minzoom)
     end
 
     local use = nil

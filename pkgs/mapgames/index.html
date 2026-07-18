@@ -836,6 +836,47 @@
       const buildingsLayer = baseLayers.find(layer => layer.id === "buildings");
       if (buildingsLayer) delete buildingsLayer.filter;
       else console.warn("vendored basemap style has no buildings layer; skipping filter removal");
+      // The flavor fades landcover out by z7, expecting separate landuse
+      // fills to take over; this lean schema keeps all natural cover
+      // (forest/wetland/grassland/farmland/urban) in the landcover layer
+      // through z14, so hold it visible — thinned slightly at street zooms
+      // so the access overlays keep their contrast. The kind=wetland color
+      // is spliced into the flavor's match expression (it only knows the
+      // low-zoom Daylight kinds).
+      const landcoverLayer = baseLayers.find(layer => layer.id === "landcover");
+      if (landcoverLayer) {
+        landcoverLayer.paint["fill-opacity"] = ["interpolate", ["linear"], ["zoom"], 11, 1, 14, 0.8];
+        const landcoverColor = landcoverLayer.paint["fill-color"];
+        if (Array.isArray(landcoverColor) && landcoverColor[0] === "match") {
+          landcoverColor.splice(landcoverColor.length - 1, 0, "wetland", "rgba(185, 219, 222, 1)");
+        }
+      } else console.warn("vendored basemap style has no landcover layer; skipping opacity/wetland fixes");
+      // Power lines and linear dams live in a custom `infrastructure` tile
+      // layer the vendored style knows nothing about; draw them above roads
+      // and below the admin boundary dashes and all labels.
+      const infrastructureIndex = baseLayers.findIndex(layer => layer.id === "boundaries_country");
+      baseLayers.splice(infrastructureIndex < 0 ? baseLayers.length : infrastructureIndex, 0, {
+        id: "infrastructure_dam",
+        type: "line",
+        source: baseSource,
+        "source-layer": "infrastructure",
+        filter: ["==", "kind", "dam"],
+        paint: {
+          "line-color": "#8d8d85",
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 12, 1, 15, 2.5, 18, 6]
+        }
+      }, {
+        id: "infrastructure_power",
+        type: "line",
+        source: baseSource,
+        "source-layer": "infrastructure",
+        filter: ["==", "kind", "power_line"],
+        paint: {
+          "line-color": "#9c9c96",
+          "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.55, 14, 0.75],
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 11, 0.5, 14, 0.9, 18, 2]
+        }
+      });
       const baseAttribution = '<a href="https://protomaps.com">Protomaps</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
       const mapStyle = {
         version: 8,
