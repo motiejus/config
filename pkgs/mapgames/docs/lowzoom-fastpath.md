@@ -321,7 +321,12 @@ Notes:
 The skeleton preserves the attribute model exactly: same five requirement
 keys, same integer-minutes values, same absent-key-means-unreachable
 semantics, same N attribute maps (assert in the coarsen tool: the set of
-distinct property maps emitted equals the set read). Every
+distinct property maps emitted equals the set read — with one measured
+exception: a group whose every piece quantizes to a single z10 grid point
+(sub-grid-unit geometry, ~2 of 198 groups on the 4-band build) derives zero
+grid segments and may vanish from the skeleton; the coarsen tool logs this
+loudly, the checker independently re-verifies zero derived segments, and a
+vanished group that DID derive segments is a hard failure). Every
 expression in index.html — `reachableTest`, bands `match`, intersect
 `all`/`any`, score sum — evaluates identically over coarse features because
 it only reads the attribute map. Bands view renders disjoint-by-construction
