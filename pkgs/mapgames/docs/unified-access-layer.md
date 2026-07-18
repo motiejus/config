@@ -614,10 +614,11 @@ both columns).** Replacing the 20 band with 15 and adding 45 costs little:
 the 45 band rides the same 3600 s Dijkstra the 60 band already pays for, and
 15 only tightens the innermost threshold. Hospital-drive route phase:
 Vilnius 71 s → 91 s; full Lithuania 269 s → 303 s. Expansion-helper peak
-RSS on the lt-full hospital phase: 12.1 → 16.3 GiB at K = 2 (the per-worker
-per-minute interval maps scale with band count ×4/3 on top of the
-band-independent floor) — still comfortable on the 27 GB build machine, and
-the `EXPENSIVE_ROUTE_MAX_WORKERS = 2` clamp is unchanged. Merge (lt-full):
+RSS on the lt-full hospital phase: 12.1 → 16.3 GiB at K = 2 — the whole
+phase, union/output floor included, scales ≈×4/3 with band count
+(~4 GiB per 60-class band at K = 2; a 5th such band would land ~20 GiB and
+a 6th ~24.5 GiB, approaching the 27 GB build machine) — 4 bands still clear
+comfortably, and the `EXPENSIVE_ROUTE_MAX_WORKERS = 2` clamp is unchanged. Merge (lt-full):
 21.2 s / 2.57 GiB peak. `access.pmtiles`: Vilnius 86.6 → 85.6 MB, lt-full
 819 → 810 MB (both ≈ −1.2%: the 15 band relabels fewer edges than 20
 reached, outweighing the new 45 attribute); `network.geojson` lt-full
