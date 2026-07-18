@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -663,12 +664,11 @@ bool lines_equal(const Line &left, const Line &right) {
 
 // Derive whether `normalized` runs opposite to the pair's cached canonical
 // geometry, and assert geometry consistency on this re-insert: the incoming
-// line must equal the canonical line or its exact reverse. Endpoint
-// comparison would suffice when the endpoints differ; the full comparison
-// decides closed loops by the first differing point pair (matching
-// canonical_line()'s full-string comparison) and doubles as the equality
-// assert. A true palindrome compares equal forward, so it gets
-// reversed=false — the same direction-independent ambiguity today's
+// line must equal, point for point, either the whole canonical line or its
+// whole reverse. Endpoint comparison would suffice when the endpoints
+// differ; the whole-line equality tests also decide closed loops and double
+// as the equality assert. A true palindrome compares equal forward, so it
+// gets reversed=false — the same direction-independent ambiguity today's
 // canonical_line() has.
 bool derive_reversed(const Line &normalized, const Line &canonical,
                      uint64_t edge_id) {
@@ -876,6 +876,151 @@ bool contains(const std::vector<Interval> &intervals, double position) {
       intervals.begin(), intervals.end(), [&](const Interval &interval) {
         return interval.start <= position && position <= interval.end;
       });
+}
+
+// One edge-interval dump entry: the canonical geometry of one uint64
+// canonical edge id plus its per-band merged interval lists. Unlike
+// CoverageEdges this map stays keyed by the uint64 id — the geometry-string
+// pre-merge of dual-digitized edges is deliberately NOT applied here: a
+// dual-digitized group's uint64 representative can differ across routes when
+// a route reaches only one member, so the pre-merge belongs in every dump
+// consumer, never in the dump itself.
+struct DumpEdge {
+  Line line;
+  std::vector<std::vector<Interval>> bands;
+};
+
+using DumpEdges = std::map<uint64_t, DumpEdge>;
+
+DumpEdges
+collect_dump_edges(const std::vector<DestinationEdges> &destinations_by_minute,
+                   size_t minute_count) {
+  DumpEdges result;
+  for (size_t minute_index = 0; minute_index < minute_count; ++minute_index) {
+    for (const auto &[canonical_id, destination] :
+         destinations_by_minute[minute_index]) {
+      auto [entry, inserted] = result.try_emplace(
+          canonical_id,
+          DumpEdge{destination.line,
+                   std::vector<std::vector<Interval>>(minute_count)});
+      static_cast<void>(inserted);
+      std::vector<Interval> &band = entry->second.bands[minute_index];
+      band.reserve(band.size() + destination.intervals.size());
+      for (const DestinationInterval &item : destination.intervals) {
+        band.push_back(item.interval);
+      }
+    }
+  }
+  for (auto &[canonical_id, edge] : result) {
+    static_cast<void>(canonical_id);
+    for (std::vector<Interval> &band : edge.bands) {
+      band = merge_intervals(std::move(band));
+    }
+  }
+  return result;
+}
+
+// Dump consumers re-derive band membership from the intervals alone, so
+// enforce the band-nesting invariant per uint64 entry at dump time with the
+// same midpoint classification coverage_lines() applies to the string-merged
+// coverage edges.
+void verify_dump_nesting(const DumpEdges &edges) {
+  for (const auto &[canonical_id, edge] : edges) {
+    std::vector<double> endpoints;
+    for (const std::vector<Interval> &band : edge.bands) {
+      for (const Interval &interval : band) {
+        endpoints.push_back(interval.start);
+        endpoints.push_back(interval.end);
+      }
+    }
+    std::sort(endpoints.begin(), endpoints.end());
+    endpoints.erase(std::unique(endpoints.begin(), endpoints.end(),
+                                [](double left, double right) {
+                                  return std::abs(left - right) <= 1e-12;
+                                }),
+                    endpoints.end());
+    for (size_t endpoint_index = 1; endpoint_index < endpoints.size();
+         ++endpoint_index) {
+      const double start = endpoints[endpoint_index - 1];
+      const double end = endpoints[endpoint_index];
+      if (end - start <= 1e-12) {
+        continue;
+      }
+      const double midpoint = (start + end) / 2.0;
+      bool found = false;
+      for (const std::vector<Interval> &band : edge.bands) {
+        const bool present = contains(band, midpoint);
+        if (present && !found) {
+          found = true;
+        } else if (!present && found) {
+          throw std::runtime_error(
+              "dump edge " + std::to_string(canonical_id) +
+              ": reachable edge intervals are not nested by minute threshold");
+        }
+      }
+    }
+  }
+}
+
+// Edge-interval dump: one line per canonical edge, ascending numeric uint64
+// key order (std::map iteration; matches the merge tool's uint64 k-way merge
+// comparator, NOT decimal-string order), ASCII, deterministic:
+//   <key_u64>\t<lon,lat;...>\t<minutes>:<start>-<end>[,...][|<minutes>:...]
+// Geometry is the stored string-canonical orientation, %.7f fixed format
+// (exact for 1e-7-rounded values). Fractions print as %.17g so they
+// round-trip to the identical double. Bands left empty by merge_intervals()
+// are omitted; entries whose bands are all empty are skipped entirely (they
+// contribute nothing to any consumer).
+void write_edge_dump(const std::filesystem::path &path, const DumpEdges &edges,
+                     const std::vector<int> &minutes) {
+  std::ofstream output(path, std::ios::binary);
+  if (!output) {
+    throw std::runtime_error("could not open output: " + path.string());
+  }
+  char buffer[64];
+  for (const auto &[canonical_id, edge] : edges) {
+    if (std::all_of(edge.bands.begin(), edge.bands.end(),
+                    [](const std::vector<Interval> &band) {
+                      return band.empty();
+                    })) {
+      continue;
+    }
+    output << canonical_id << '\t';
+    for (size_t index = 0; index < edge.line.size(); ++index) {
+      if (index != 0) {
+        output << ';';
+      }
+      std::snprintf(buffer, sizeof buffer, "%.7f,%.7f", edge.line[index].lon,
+                    edge.line[index].lat);
+      output << buffer;
+    }
+    output << '\t';
+    bool first_band = true;
+    for (size_t minute_index = 0; minute_index < minutes.size();
+         ++minute_index) {
+      const std::vector<Interval> &band = edge.bands[minute_index];
+      if (band.empty()) {
+        continue;
+      }
+      if (!first_band) {
+        output << '|';
+      }
+      first_band = false;
+      output << minutes[minute_index] << ':';
+      for (size_t index = 0; index < band.size(); ++index) {
+        if (index != 0) {
+          output << ',';
+        }
+        std::snprintf(buffer, sizeof buffer, "%.17g-%.17g", band[index].start,
+                      band[index].end);
+        output << buffer;
+      }
+    }
+    output << '\n';
+  }
+  if (!output) {
+    throw std::runtime_error("could not write output: " + path.string());
+  }
 }
 
 void add_coverage_segment(CoverageLines &coverage, const Line &line,
@@ -1336,6 +1481,11 @@ int main(int argc, char **argv) {
     write_coverage_collection(coverage_dir /
                                   ("coverage-" + route_key + ".geojson"),
                               coverage, bounds, service, mode);
+    const DumpEdges dump =
+        collect_dump_edges(destinations_by_minute, minutes.size());
+    verify_dump_nesting(dump);
+    write_edge_dump(coverage_dir / ("edges-" + route_key + ".tsv"), dump,
+                    minutes);
     const auto output_finished = std::chrono::steady_clock::now();
     std::cerr << "[mapgames] native parallel routing+line extraction: "
               << std::chrono::duration<double>(routing_finished -
