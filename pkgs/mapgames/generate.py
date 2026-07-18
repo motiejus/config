@@ -23,6 +23,15 @@ TILE_MIN_ZOOM = 6
 DESTINATION_MIN_ZOOM = 12
 TILE_MAX_ZOOM = 14
 LOW_ZOOM_GENERALIZATION_BELOW = 11
+# One MVT coordinate unit (tile extent 4096) at zoom z spans
+# 360 / (4096 * 2**z) projected degrees — the grid every vertex is rounded
+# to when the tile is encoded. Tilemaker scales the configured level by
+# simplify_ratio**((simplify_below - 1) - z) at zoom z (tile_worker.cpp:438
+# in the pinned 3.1.0), and both that scaling (ratio 2) and the coordinate
+# unit double per zoom step down, so anchoring the level to one coordinate
+# unit at LOW_ZOOM_GENERALIZATION_BELOW - 1 makes the effective tolerance
+# exactly one coordinate unit at every generalized zoom.
+NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2 ** (LOW_ZOOM_GENERALIZATION_BELOW - 1))
 
 SERVICE_SPECS = (
     {
@@ -235,10 +244,13 @@ def network_tile_config(work: Path) -> dict:
                 "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / "network.geojson"),
                 "source_columns": sorted(REQUIREMENT_KEYS),
-                # Only country-scale tiles are generalized. Street-scale
-                # tiles retain the reachable routing edges.
+                # Zoom-scaled generalization bounded by the tile encoder's
+                # coordinate grid (one MVT unit per generalized zoom, z6-10;
+                # see NETWORK_SIMPLIFY_LEVEL). Street-scale tiles (z11-14)
+                # retain the raw reachable routing edges.
                 "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
-                "simplify_level": 0.00001,
+                "simplify_level": NETWORK_SIMPLIFY_LEVEL,
+                "simplify_ratio": 2.0,
                 "simplify_algorithm": "visvalingam",
             }
         },

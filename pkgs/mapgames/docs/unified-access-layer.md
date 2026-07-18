@@ -231,8 +231,10 @@ def network_tile_config(work: Path) -> dict:
                 "maxzoom": TILE_MAX_ZOOM,          # 14
                 "source": str(work / "network.geojson"),
                 "source_columns": sorted(REQUIREMENT_KEYS),
+                # one MVT coordinate unit per generalized zoom; see §2.3
                 "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
-                "simplify_level": 0.00001,
+                "simplify_level": NETWORK_SIMPLIFY_LEVEL,
+                "simplify_ratio": 2.0,
                 "simplify_algorithm": "visvalingam",
             }
         },
@@ -304,35 +306,43 @@ their names, layer names (`destination_layer_name()`), and schema
 
 ### 2.3 Simplification per zoom (visually lossless only)
 
-Current state: `simplify_below: 11` with `simplify_level: 0.00001` (~1 m) means
-z6–10 get near-full street detail and z11–14 get raw geometry — z6–8 tiles are
-barely simplified relative to what a pixel can show. Constraint from the
-priority re-weight: simplification must be visually lossless at the zooms users
-look at; no fidelity is traded for bytes.
+Quantization-bounded, zoom-scaled tolerance (landed at §7 step 8). Constraint
+from the priority re-weight: simplification must be visually lossless at the
+zooms users look at; no fidelity is traded for bytes.
 
-Proposal: quantization-bounded, zoom-scaled tolerance. At zoom z, one MVT
-coordinate unit at the default tile extent 4096 covers
-~`156543·cos(lat)/2^(z+4)` m ≈ 0.34 m at z14, 22 m at z8, 87 m at z6
-(lat 55°). The tile encoder rounds every vertex to that grid anyway, so a
+Tilemaker stores geometry in (lon, latp) projected degrees — the same uniform
+space as the web-mercator tile grid — so at zoom z one MVT coordinate unit at
+the default tile extent 4096 spans `360 / (4096·2^z)` projected degrees in
+both axes (≈ 0.34 m at z14, 22 m at z8, 87 m at z6 ground distance at
+lat 55°). The tile encoder rounds every vertex to that grid anyway, so a
 Visvalingam tolerance at or below the tile's coordinate quantization step
-cannot produce displacement beyond what encoding already introduces — it is
-invisible by construction. Concretely:
+cannot produce displacement meaningfully beyond what encoding already
+introduces. Concretely:
 
-- z11–14: raw geometry (unchanged — these are the inspection zooms).
-- z6–10: tolerance ≈ one MVT coordinate unit at each zoom. Preferred
-  mechanism: tilemaker's
-  per-zoom scaling of `simplify_level` (`simplify_ratio`), if the pinned
-  tilemaker version supports it with doubling-per-zoom semantics — **verify
-  against the pinned tilemaker source before relying on it** (open question
-  R6). Fallback that needs no tilemaker feature: duplicate the `network` source
-  into zoom-banded layers (`network` z11–14 raw, `network_mid` z9–10,
-  `network_low` z6–8) each with a fixed quantization-step `simplify_level`; the
-  front-end already knows zoom bands and can point one MapLibre layer per band
-  at the right source-layer.
+- z11–14: raw geometry (these are the inspection zooms).
+- z6–10: effective tolerance = exactly one MVT coordinate unit at each zoom.
+  Mechanism (R6 resolved against the pinned 3.1.0 source): tilemaker scales
+  the configured level per zoom —
+  `simplifyLevel *= pow(simplifyRatio, (simplifyBelow-1) - zoom)`
+  (src/tile_worker.cpp:438), with `simplify_ratio` defaulting to 2.0
+  (src/shared_data.cpp:317, set explicitly in our config). The ratio-2
+  doubling per zoom step down matches the coordinate unit's own doubling, so
+  anchoring `simplify_level = 360/(4096·2^10)` ≈ 8.583e-5 (one unit at z10;
+  `NETWORK_SIMPLIFY_LEVEL` in generate.py) holds the tolerance at one unit
+  across all of z6–10. The zoom-banded-duplicate-layer fallback designed for
+  the case where `simplify_ratio` was absent is moot and was not built.
 
-Gate for whichever mechanism lands: screenshot A/B at z6/z8/z10 against
-unsimplified rendering; any visible line displacement or dropout rejects the
-tolerance (§7 step 8).
+Gate evidence (Vilnius c12, 2026-07-18, §7 step 8): `network.geojson`
+byte-identical to the pre-change run; only 18 tiles differ between the
+pre/post archives, all at z6–10 (z11–14 byte-identical); per-tile feature
+counts unchanged at every zoom (no dropped features), vertex counts
+−7.3% (z6) to −29.4% (z9); screenshot A/B at z6–z10 in bands and score
+modes, same camera, against the pre-change output showed no visible line
+displacement, corridor thinning, or dropout — remaining pixel deltas are
+sub-pixel antialiasing shifts plus the draw-order blending noise that two
+builds of *identical* config already exhibit (tilemaker's multithreaded
+encoder is not byte-deterministic; measured as the A/B noise floor).
+`access.pmtiles` 87,881,187 → 85,923,162 bytes (−2.2%, informational).
 
 ---
 
@@ -877,11 +887,12 @@ the parallel-worktree policy, but 6 cannot gate before 5's metadata is real.
   *Resolution:* assert in step 1 (`is_shortcut()`); if the assert ever fires,
   resolve shortcuts to constituent base edges via `tile->edgeinfo` recovery
   before keying. Do not ship the assert-less version.
-- **R6 (med) — tilemaker zoom-scaled simplification semantics.** The exact
-  behavior (`simplify_ratio` availability/formula) in the pinned tilemaker
-  version is unverified.
-  *Resolution:* read the pinned source in step 8; fallback design (zoom-banded
-  duplicate layers) is already specified and requires no tilemaker feature.
+- **R6 (med, resolved) — tilemaker zoom-scaled simplification semantics.**
+  Verified against the pinned 3.1.0 source at step 8:
+  `simplify_level * pow(simplify_ratio, (simplify_below-1) - zoom)` with
+  ratio defaulting to 2.0 (src/tile_worker.cpp:438, src/shared_data.cpp:317);
+  §2.3 documents the mechanism and gate evidence. The zoom-banded-layer
+  fallback was not needed.
 - **R7 (low) — corridor width for mixed-mode selections.** Walk (12 m) vs
   drive (18 m) buffers can't both be honest in one line.
   *Resolution:* narrower-mode rule (§3.1); revisit only if step 6 screenshots
