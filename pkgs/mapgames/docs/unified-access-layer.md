@@ -17,7 +17,7 @@ Terminology used throughout, tied to current code:
   generate.py: `coffee/walk`, `hospital/drive`, `supermarket/walk`,
   `supermarket/drive`, `fuel/drive`.
 - **band** — one minute threshold of a requirement (`SERVICE_SPECS[...]["routes"]`):
-  coffee_walk {5,10,20}, hospital_drive {20,30}, supermarket_walk {10,20},
+  coffee_walk {5,10,20}, hospital_drive {20,30,60}, supermarket_walk {10,20},
   supermarket_drive {10}, fuel_drive {10,20}.
 - **piece** — a sub-segment of a canonical edge produced by the segmentation
   algorithm (§1.3); the feature unit of the new layer.
@@ -137,7 +137,7 @@ merged geometry, not per uint64 key.
    `write_destination_collection()`); one Feature per group, MultiLineString
    members in canonical-key order, features in serialized-attribute-map order.
 
-Distinct attribute maps are bounded by ∏(bands+1) = 4·3·3·2·3 = 216, so the
+Distinct attribute maps are bounded by ∏(bands+1) = 4·4·3·2·3 = 288, so the
 GeoJSON stays MultiLineString-grouped and small in feature count; tilemaker
 splits per tile regardless.
 
@@ -446,7 +446,7 @@ filter: ["any", ...R.map(r => ["all", ["has", r.key], ["<=", ["get", r.key], r.t
 paint:  { "line-color": "#8a93a3", "line-opacity": 0.35 }
 ```
 
-One solid layer — always-true requirements (hospital 30-drive) contribute a
+One solid layer — always-true requirements (hospital 60-drive) contribute a
 boolean `true` to the `all`, not another translucent wash; the "dominates the
 blend" pathology is structurally gone.
 
@@ -472,7 +472,10 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   darkest = smallest minutes. Indicative hexes (validate with the dataviz
   contrast validator before landing; treat as placeholders):
   coffee 5/10/20 → `#8A5F00 / #C08600 / #E69F00`;
-  hospital 20/30 → `#9E4600 / #D55E00`;
+  hospital 20/30/60 → `#9E4600 / #D55E00 / #FF843E` (60 is the next
+  constant-hue/chroma lightness step above 30, OKLCH L 0.50/0.62/0.74 at
+  C 0.17 h 48; as the outermost near-universal drive band it also gets the
+  de-emphasis below);
   supermarket 10/20 → `#00664A / #009E73` (drive-10 single band `#009E73`);
   fuel 10/20 → `#004E7A / #0072B2`.
 - Intersection: ink `#172033` — outside every service hue, maximal contrast on
@@ -521,7 +524,9 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
 
 ## 4. Size / performance analysis (informational — not decision-driving)
 
-Measured, current pipeline (bands as configured in `SERVICE_SPECS`):
+Measured on the pre-unified pipeline with hospital_drive at [20,30] (the
+analysis basis for this design; the hospital 60-band added 2026-07-18 is
+measured at the end of this section):
 
 **Vilnius** (`bbox 24.95,54.52,25.55,54.92`, scratchpad `vilnius/generated/`):
 
@@ -574,9 +579,27 @@ dominate merge CPU+RAM. The uint64 keying removes string construction from the
 hot path entirely (strings remain only in the once-per-output-piece
 canonicalization). GraphReader cache cap bounds per-worker RAM (§5.2).
 
----
-
-## 5. Efficiency piggyback (same series, same code)
+**Hospital 60-band (added 2026-07-18, measured at c12).** The 3600-second
+reverse expansion runs over the whole country graph from every hospital, but
+the graph itself is small (193 MB of Valhalla tiles — under even the 256 MiB
+per-worker cache floor of §5.2), so cost grows with settled edges, not with
+cache thrash. Hospital-drive route phase: Vilnius (40 origins) 21.9 s →
+34.2 s; full Lithuania (190 origins) 69 s → 155 s (57 s routing + 94 s
+interval union). Merge (lt-full): 19 s / 2.30 GiB peak RSS → 24 s / 2.48 GiB
+— far under the 8 GB spill threshold (§2.1). `access.pmtiles`: Vilnius
+85.9 → 86.6 MB (+0.75%); lt-full 747 → 819 MB (+9.7%). `network.geojson`
+lt-full 116 → 125 MB. The 30-min bands already reach 894k of the 932k
+hospital-reachable edges at lt-full — the 60-band adds only 38k
+edges (+4%), mostly relabeling coverage that existed. One cost spike to
+know about: the expansion helper's peak RSS during the lt-full
+hospital phase rose to ~23 GiB (12 workers' per-minute interval maps over a
+country-wide reachable set ×3 bands); it swaps but completes on the 27 GB
+build machine. If that ever pinches, run the hospital route at lower
+concurrency or shrink `DestinationEdges` before adding more country-scale
+bands. Behavioral note, measured on Vilnius: raising the contour cap from
+1800 s to 3600 s changed the 30-band intervals of exactly 1 edge of 182k
+(an isochrone boundary-settlement artifact; nesting still holds — the 60
+band covers it).
 
 ### 5.1 uint64 canonical keys for the hot maps
 
@@ -875,7 +898,7 @@ the parallel-worktree policy, but 6 cannot gate before 5's metadata is real.
   butt caps; verify at z18 overzoom in step 6's screenshots. If pinholes
   appear, a 0.5px `line-gap`-free casing under band joins is the fallback.
 - **R4 (med) — score view legibility on always-true drive requirements.**
-  With hospital-30 selected, score ≥1 nearly everywhere → the ramp's low end
+  With hospital-60 selected, score ≥1 nearly everywhere → the ramp's low end
   dominates and the view can look like today's wash.
   *Resolution:* score 0 is not drawn and the ramp is sampled per-N so the
   interesting high-count end keeps contrast; legend communicates "N of N".
@@ -898,7 +921,7 @@ the parallel-worktree policy, but 6 cannot gate before 5's metadata is real.
   *Resolution:* narrower-mode rule (§3.1); revisit only if step 6 screenshots
   show drive-only selections looking anemic.
 - **R8 (low) — attribute growth with future services.** Keys scale linearly
-  with `ROUTE_SPECS`; 216 attribute-map combinations today, growing
+  with `ROUTE_SPECS`; 288 attribute-map combinations today, growing
   multiplicatively.
   *Resolution:* acceptable; combos only affect GeoJSON feature grouping, not
   tile size (tilemaker regroups per tile). Note in code where
