@@ -212,6 +212,14 @@
       .clicked-place p { margin: .2rem 0; }
       .clicked-place a { color: #7a421e; }
       .maplibregl-ctrl-attrib { font-family: system-ui, sans-serif; }
+      /* The attribution button is enlarged on coarse-pointer and narrow
+         viewports; stock MapLibre CSS lets the ⓘ icon tile across an
+         enlarged button, so pin it unconditionally. */
+      .maplibregl-ctrl-attrib-button {
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 1.5rem;
+      }
       .maplibregl-ctrl-bottom-right { right: auto; left: .5rem; }
       @media (pointer: coarse) {
         .quick-actions button,
@@ -226,11 +234,8 @@
         .dialog-close,
         .maplibregl-ctrl-group button,
         .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
-        .maplibregl-ctrl-attrib-button {
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: 1.5rem;
-        }
+        /* Stock inner padding assumes a 24px button; clear the 44px one. */
+        .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 3rem; }
       }
       @media (max-width: 640px), (max-height: 520px) and (max-width: 950px) {
         :root {
@@ -392,7 +397,10 @@
         .route-link { display: inline-flex; min-height: 2.75rem; align-items: center; }
         .clicked-place a { display: inline-flex; min-height: 2.75rem; align-items: center; }
         .more-destinations > summary { display: flex; min-height: 2.75rem; align-items: center; cursor: pointer; }
-        .maplibregl-ctrl-attrib { max-width: calc(100vw - 1rem); }
+        /* Keep the expanded attribution clear of the top-left nav control:
+           the compact control is content-box, so subtract its own padding
+           (.5rem + 3rem) and margins on top of the 4.5rem nav zone. */
+        .maplibregl-ctrl-attrib { max-width: calc(100vw - 9rem); }
         .maplibregl-ctrl-bottom-right {
           top: calc(.5rem + env(safe-area-inset-top));
           right: calc(.5rem + env(safe-area-inset-right));
@@ -405,6 +413,8 @@
         }
         .maplibregl-ctrl-group button,
         .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
+        /* Stock inner padding assumes a 24px button; clear the 44px one. */
+        .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 3rem; }
       }
     </style>
   </head>
@@ -580,6 +590,17 @@
 
       function syncMobileMode() {
         setPanelCollapsed(mobileMedia.matches);
+      }
+
+      function collapseCompactAttribution() {
+        // MapLibre auto-opens the compact attribution; on narrow viewports the
+        // expanded box would cover the zoom controls, so start it collapsed.
+        // Mirrors the collapsed state _toggleAttribution itself produces.
+        const attribution = document.querySelector(".maplibregl-ctrl-attrib");
+        if (attribution?.classList.contains("maplibregl-compact-show")) {
+          attribution.setAttribute("open", "");
+          attribution.classList.remove("maplibregl-compact-show");
+        }
       }
 
       new ResizeObserver(updateMobileLayout).observe(mapPanel);
@@ -1342,6 +1363,7 @@
         });
         map.on("click", event => inspectLocation(event.lngLat));
         syncMobileMode();
+        if (mobileMedia.matches) collapseCompactAttribution();
         refreshMap();
         openInitialLocation();
       }).catch(error => {
