@@ -116,7 +116,6 @@
         background: white;
         border-color: var(--border);
       }
-      .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
       .view-switcher { display: flex; gap: .3rem; margin: .55rem 0 .45rem; }
       /* An author display beats the UA [hidden] rule; restate it. */
       .view-switcher[hidden] { display: none; }
@@ -165,11 +164,6 @@
         height: .7rem;
         border: 1px solid rgb(23 32 51 / 30%);
         border-radius: .2rem;
-      }
-      .map-options {
-        margin: .65rem 0 .25rem;
-        padding-top: .55rem;
-        border-top: 1px solid var(--border);
       }
       .status { min-height: 1.2em; color: #374861; font-size: .88rem; }
       dialog {
@@ -337,10 +331,9 @@
         .destination-details summary,
         .more-destinations > summary { min-height: 2.75rem; }
         .route-link { display: inline-flex; align-items: center; }
-        .service-heading, .map-detail { min-height: 2.75rem; }
+        .service-heading { min-height: 2.75rem; }
         .lang-toggle { min-width: 2.75rem; min-height: 2.75rem; }
-        .service-heading input,
-        .map-detail input { width: 1.4rem; height: 1.4rem; }
+        .service-heading input { width: 1.4rem; height: 1.4rem; }
         .dialog-close,
         .maplibregl-ctrl-group button,
         .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
@@ -412,9 +405,7 @@
         .service-list { gap: .55rem; }
         .service-card { padding: .65rem .7rem; }
         .service-heading { min-height: 2.75rem; }
-        .service-heading input,
-        .map-detail input { width: 1.4rem; height: 1.4rem; margin: 0; }
-        .map-detail { min-height: 2.75rem; }
+        .service-heading input { width: 1.4rem; height: 1.4rem; margin: 0; }
         .panel-done {
           display: flex;
           width: 100%;
@@ -509,9 +500,6 @@
         </div>
         <div class="access-legend" id="access-legend" hidden></div>
         <div class="service-list" id="service-list"></div>
-        <div class="map-options">
-          <label class="map-detail"><input id="show-places" type="checkbox" checked> <span id="show-places-label">Priartinus rodyti vietas</span></label>
-        </div>
         <p class="status" id="map-status" aria-live="polite">Įkeliamas žemėlapis…</p>
         <button class="panel-done" id="panel-done" type="button">Rodyti žemėlapį</button>
       </div>
@@ -712,7 +700,6 @@
           modeBands: "Trukmės zonos",
           modeIntersect: "Tenkina visas",
           modeScore: "Kiek tenkina",
-          showPlaces: "Priartinus rodyti vietas",
           viewMap: "Rodyti žemėlapį",
           dialogTitle: "Pasiekiamumas iš šios vietos",
           closeDialog: "Užverti",
@@ -798,7 +785,6 @@
           modeBands: "Time bands",
           modeIntersect: "Meets all",
           modeScore: "How many",
-          showPlaces: "Show destinations when zoomed in",
           viewMap: "View map",
           dialogTitle: "Access from this location",
           closeDialog: "Close",
@@ -1264,7 +1250,6 @@
         document.querySelectorAll("#view-switcher button").forEach(button => {
           button.textContent = t(modeTexts[button.dataset.mode]);
         });
-        document.getElementById("show-places-label").textContent = t("showPlaces");
         document.getElementById("panel-done").textContent = t("viewMap");
         document.getElementById("location-dialog-title").textContent = t("dialogTitle");
         document.getElementById("dialog-close").setAttribute("aria-label", t("closeDialog"));
@@ -1806,10 +1791,7 @@
         destinationRecords.forEach(record => setLayerVisibility([record.destinationLayer], false));
         metadata.services.forEach(service => {
           const state = serviceState.get(service.id);
-          setLayerVisibility(
-            [`places-${service.id}`],
-            state.enabled && document.getElementById("show-places").checked
-          );
+          setLayerVisibility([`places-${service.id}`], state.enabled);
         });
         updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
@@ -2370,7 +2352,6 @@
           setPanelCollapsed(false);
           document.getElementById("panel-toggle").focus();
         });
-        document.getElementById("show-places").addEventListener("change", refreshMap);
         document.getElementById("panel-toggle").addEventListener("click", () =>
           setPanelCollapsed(mapPanel.dataset.collapsed !== "true")
         );
