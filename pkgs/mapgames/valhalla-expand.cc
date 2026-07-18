@@ -1020,8 +1020,10 @@ int main(int argc, char **argv) {
           const Request &request = requests[request_index];
           try {
             // Unlike Valhalla's expansion action, the regular isochrone action
-            // propagates routing errors. Validate first so a partial expansion
-            // can never masquerade as a complete result.
+            // propagates request-setup errors (e.g. Loki's "no edges near
+            // location") that the expansion swallows. With its 1-minute
+            // contour this validation covers exactly those time-independent
+            // errors, not mid-expansion failures.
             valhalla::Api validation_api;
             static_cast<void>(actor.isochrone(validation_request_json(request),
                                               nullptr, &validation_api));

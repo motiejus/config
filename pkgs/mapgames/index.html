@@ -660,8 +660,14 @@
       let lastWrittenHash = "";
 
       function writeHash(hash) {
-        lastWrittenHash = hash;
-        history.replaceState(null, "", `${location.pathname}${location.search}${hash}`);
+        try {
+          // Safari throttles history API calls (~100/30s) and throws; a
+          // dropped write only leaves a slightly stale URL, so swallow it.
+          history.replaceState(null, "", `${location.pathname}${location.search}${hash}`);
+          lastWrittenHash = hash;
+        } catch (error) {
+          console.warn("could not update the URL hash", error);
+        }
       }
 
       function updateInspectionHash(lngLat) {
@@ -1254,15 +1260,20 @@
           return;
         }
         // A transient tile error must not poison every later inspection of
-        // this service: clear the failure marks and retry with a forced
-        // refetch (errored tiles would otherwise be served stale from the
-        // tile cache and silently yield "no data"). The post-idle check
-        // below still fails this inspection if a source errors again during
-        // the attempt, so verdicts stay fail-closed.
+        // this service: clear the failure mark and force a refetch via
+        // setUrl. (MapLibre's reload skips errored tiles and never puts them
+        // in the reuse cache; what keeps this fail-closed is that every
+        // failure path hides the destination layers, which drops the errored
+        // tiles.) Clear the mark only when a refetch was actually issued;
+        // the post-idle check below still fails this inspection if a source
+        // errors again during the attempt.
         requiredDestinationSources.forEach(sourceId => {
-          if (!failedDestinationSources.delete(sourceId)) return;
+          if (!failedDestinationSources.has(sourceId)) return;
           const source = map.getSource(sourceId);
-          if (source?.setUrl) source.setUrl(source.url);
+          if (source?.setUrl) {
+            failedDestinationSources.delete(sourceId);
+            source.setUrl(source.url);
+          }
         });
         setLayerVisibility(destinationLayerIds, true);
         map.once("idle", () => {
@@ -1382,7 +1393,21 @@
         if (dialog.open) dialog.close();
         const view = parameters.get("view")?.split(",").map(Number);
         if (view && view.length === 3 && view.every(Number.isFinite)) {
-          map.jumpTo({ center: [view[0], view[1]], zoom: view[2] });
+          // Validate like the at= path: a mangled coordinate (e.g. a
+          // truncated paste producing lat 547) must degrade gracefully, not
+          // throw inside MapLibre's LngLat constructor and masquerade as a
+          // data error while skipping the refreshMap below.
+          const [lng, lat, zoom] = view;
+          const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+          if (lng >= minLon && lng <= maxLon && lat >= minLat && lat <= maxLat) {
+            try {
+              map.jumpTo({ center: [lng, lat], zoom });
+            } catch (error) {
+              console.warn("ignoring unusable view hash", error);
+            }
+          } else {
+            console.warn("ignoring view hash outside the coverage bounds");
+          }
         }
         refreshMap();
       }

@@ -327,19 +327,6 @@ def prepare_boundary(args: argparse.Namespace, work: Path):
     if country.is_empty:
         raise RuntimeError("coverage boundary is empty")
     country_bbox = list(country.bounds)
-    write_json(
-        work / "lithuania.geojson",
-        feature_collection(
-            [
-                {
-                    "type": "Feature",
-                    "properties": {"boundary_type": "bbox", "name": "Coverage bounds"},
-                    "geometry": mapping(country),
-                }
-            ],
-            country_bbox,
-        ),
-    )
     return country, country_bbox
 
 
