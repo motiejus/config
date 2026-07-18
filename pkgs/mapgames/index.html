@@ -2178,14 +2178,28 @@
         // mobile bottom sheet the dimmed map above it becomes the big
         // one-handed close target; Esc and the × button work as before.
         // The rect check keeps clicks on the dialog's own padding (which
-        // also target the dialog element) from closing it.
+        // also target the dialog element) from closing it. `click` fires with
+        // the mouseup coordinates at the common ancestor of press and release,
+        // so a text-selection drag that ends over the backdrop would otherwise
+        // count as a backdrop click — require the pointer to have gone DOWN on
+        // the backdrop too.
+        const backdropHit = (dialog, x, y) => {
+          const rect = dialog.getBoundingClientRect();
+          return x < rect.left || x > rect.right || y < rect.top || y > rect.bottom;
+        };
+        let dialogPressOnBackdrop = false;
+        document.getElementById("location-dialog").addEventListener("pointerdown", event => {
+          const dialog = event.currentTarget;
+          dialogPressOnBackdrop = event.target === dialog &&
+            backdropHit(dialog, event.clientX, event.clientY);
+        });
         document.getElementById("location-dialog").addEventListener("click", event => {
           const dialog = event.currentTarget;
           if (event.target !== dialog) return;
-          const rect = dialog.getBoundingClientRect();
-          const outside = event.clientX < rect.left || event.clientX > rect.right ||
-            event.clientY < rect.top || event.clientY > rect.bottom;
-          if (outside) dialog.close();
+          if (dialogPressOnBackdrop && backdropHit(dialog, event.clientX, event.clientY)) {
+            dialog.close();
+          }
+          dialogPressOnBackdrop = false;
         });
         document.getElementById("location-dialog").addEventListener("close", () => {
           inspectionOrigin = undefined;
