@@ -594,16 +594,13 @@ interval union). Merge (lt-full): 19 s / 2.30 GiB peak RSS → 24 s / 2.48 GiB
 85.9 → 86.6 MB (+0.75%); lt-full 747 → 819 MB (+9.7%). `network.geojson`
 lt-full 116 → 125 MB. The 30-min bands already reach 894k of the 932k
 hospital-reachable edges at lt-full — the 60-band adds only 38k
-edges (+4%), mostly relabeling coverage that existed. One cost spike to
-know about: the expansion helper's peak RSS on this phase is
+edges (+4%), mostly relabeling coverage that existed. Before the compact
+accumulator described below, the expansion helper's peak RSS was
 `RSS(K) ≈ 9.8 GiB + 1.14 GiB per worker` (measured at K = 2/6/12: 12.1,
-16.6, ~23.4 GiB — per-worker interval maps and edge caches converge to the
+16.6, ~23.4 GiB). Per-worker interval maps and edge caches converged to the
 country-wide reachable set ×3 bands on top of a worker-count-independent
-union/output floor), so generate.py clamps the helper to
-`EXPENSIVE_ROUTE_MAX_WORKERS = 2` for routes with a ≥60-minute band:
-~12 GiB peak, phase 262 s instead of 155 s at 12 workers, output
-byte-identical across worker counts (verified). Shrink `DestinationEdges`
-before adding more country-scale bands. Behavioral note, measured on
+union/output floor. That historical spike motivated the accumulator rewrite;
+it is not the current resource model. Behavioral note, measured on
 Vilnius: raising the contour cap from
 1800 s to 3600 s changed the 30-band intervals of exactly 1 edge of 182k
 (an isochrone boundary-settlement artifact; nesting still holds — the 60
@@ -614,11 +611,9 @@ both columns).** Replacing the 20 band with 15 and adding 45 costs little:
 the 45 band rides the same 3600 s Dijkstra the 60 band already pays for, and
 15 only tightens the innermost threshold. Hospital-drive route phase:
 Vilnius 71 s → 91 s; full Lithuania 269 s → 303 s. Expansion-helper peak
-RSS on the lt-full hospital phase: 12.1 → 16.3 GiB at K = 2 — the whole
-phase, union/output floor included, scales ≈×4/3 with band count
-(~4 GiB per 60-class band at K = 2; a 5th such band would land ~20 GiB and
-a 6th ~24.5 GiB, approaching the 27 GB build machine) — 4 bands still clear
-comfortably, and the `EXPENSIVE_ROUTE_MAX_WORKERS = 2` clamp is unchanged. Merge (lt-full):
+RSS on the lt-full hospital phase: 12.1 → 16.3 GiB at K = 2. This is the
+pre-rewrite four-map measurement; it no longer predicts the compact
+cross-band representation below. Merge (lt-full):
 21.2 s / 2.57 GiB peak. `access.pmtiles`: Vilnius 86.6 → 85.6 MB, lt-full
 819 → 810 MB (both ≈ −1.2%: the 15 band relabels fewer edges than 20
 reached, outweighing the new 45 attribute); `network.geojson` lt-full
@@ -626,6 +621,46 @@ reached, outweighing the new 45 attribute); `network.geojson` lt-full
 full Lithuania: tile `hospital_drive` values exactly {15,30,45,60},
 check-edge-dump nesting clean, check-network-segments exact,
 merge byte-deterministic across reruns.
+
+**Compact cross-band accumulator + direct PBF (2026-07-18, current).** One
+map node now owns all minute bands for a canonical edge. For routes with at
+most 256 destinations, full `[0,1]` memberships are route-ordinal bitsets;
+only fractional contour-frontier intervals remain individual records. Larger
+routes use chunked 12-byte full records instead of a global-width bitset, so
+2,441 coffee destinations cannot turn the hospital optimization into a new
+memory spike. Canonical geometry is shared with the edge cache. Worker maps
+are k-way merged for geometry extraction and the edge dump, and attribute
+grouping keeps line references rather than geometry copies. Valhalla expansion
+is consumed from its protobuf `Api` with a compact sorted predecessor index,
+avoiding the expansion GeoJSON string, RapidJSON DOM, and country-wide
+`map<uint64_t, Edge>`. Destination bands use separately bounded concurrency:
+two maps may coexist under the selected Nix policy, instead of materializing
+all bands at once.
+
+The exact full-Lithuania hospital helper measurements (190 origins,
+15/30/45/60, existing graph tiles) are:
+
+| helper / routing workers / arenas / output workers | wall | peak RSS |
+|---:|---:|---:|
+| old / 2 / glibc default / 1 | 323.6 s | 16.32 GiB |
+| compact / 2 / 2 / 1 | 150.4 s | 2.78 GiB |
+| compact / 8 / 8 / 1 | 84.3 s | 8.22 GiB |
+| compact / 8 / 8 / 2 | **77.2 s** | **8.57 GiB** |
+| compact / 9 / 9 / 1 | 91.7 s | 9.01 GiB |
+
+Eight routing workers and two output workers are the selected caps: the full
+run stays 1.43 GiB below the 10 GiB RSS budget and is 4.19× faster than the old
+helper. `default.nix` owns both worker-count policies
+(`expansionConcurrencyCap = 8`, `expansionOutputConcurrencyCap = 2`), computes
+each effective count against the general pipeline concurrency, sets allocator
+arenas to the larger cap, and passes a wrapped helper plus the resulting
+counts to `generate.py`; Python contains no route-size or memory policy. All
+four hospital destination GeoJSON files and the edge TSV are byte-identical to
+the old implementation at every measured worker count. The independent
+edge-dump checker reports 932,024 entries and 996,130 valid derived pieces,
+and the five-route merged `network.geojson` is also byte-identical. The
+2,441-destination sparse fallback improved the coffee helper from 33.0 s /
+6.01 GiB at 12 workers to 20.6 s / 2.91 GiB at the selected caps.
 
 ---
 

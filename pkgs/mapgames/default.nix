@@ -14,13 +14,16 @@
   runCommand,
   tilemaker,
   valhalla,
-  # null means "use $NIX_BUILD_CORES at build time". Helper RAM scales with
-  # concurrency; the country-scale hospital expansion phase (>= 60-minute
-  # band) peaked at ~23 GiB at 12 workers, so generate.py clamps that phase
-  # to EXPENSIVE_ROUTE_MAX_WORKERS (2 -> ~12 GiB at 3 hospital bands,
-  # ~16 GiB at the current 4); everything else measured fine at 12 on a
-  # 27 GB machine.
+  writeShellScript,
+  # null means "use $NIX_BUILD_CORES at build time" for the general pipeline.
+  # Expansion worker-count policy belongs here; generate.py simply uses the
+  # helper and worker counts it is passed. Full-Lithuania hospitals measured
+  # 77.2 s / 8.57 GiB at 8 routing workers+arenas and 2 output workers. 9
+  # routing workers used 9.01 GiB but were slower even with serial output
+  # (91.7 s), while 10 projects over the 10 GiB RSS budget.
   concurrency ? null,
+  expansionConcurrencyCap ? 8,
+  expansionOutputConcurrencyCap ? 2,
   # Full Lithuania PBF extent. Data build measured ~8 min at concurrency 12;
   # output is ~5 GB. Deploy size is accepted (UX/correctness > size).
   bbox ? "20.618591,53.892206,26.83873,56.45329",
@@ -30,9 +33,20 @@
 assert lib.assertMsg (
   concurrency == null || (builtins.isInt concurrency && concurrency > 0)
 ) "mapgames: concurrency must be a positive integer";
+assert lib.assertMsg (
+  builtins.isInt expansionConcurrencyCap && expansionConcurrencyCap > 0
+) "mapgames: expansionConcurrencyCap must be a positive integer";
+assert lib.assertMsg (
+  builtins.isInt expansionOutputConcurrencyCap && expansionOutputConcurrencyCap > 0
+) "mapgames: expansionOutputConcurrencyCap must be a positive integer";
 
 let
   sourceUrl = "https://dl.jakstys.lt/maps/lithuania-260716.osm.pbf";
+  expansionArenaCap =
+    if expansionConcurrencyCap > expansionOutputConcurrencyCap then
+      expansionConcurrencyCap
+    else
+      expansionOutputConcurrencyCap;
   lithuaniaPbf = fetchurl {
     name = "lithuania-260716.osm.pbf";
     url = sourceUrl;
@@ -104,6 +118,10 @@ let
       runHook postInstall
     '';
   };
+  valhallaExpandRunner = writeShellScript "mapgames-valhalla-expand-runner" ''
+    export MALLOC_ARENA_MAX=${toString expansionArenaCap}
+    exec ${valhallaExpand}/bin/mapgames-valhalla-expand "$@"
+  '';
   writeEtags = ''
     find "$out" -type f ! -name '*.etag' | while read -r file; do
       hash=$(sha256sum "$file")
@@ -127,17 +145,29 @@ let
     buildPhase = ''
       runHook preBuild
 
+      mapgames_concurrency=${if concurrency == null then "\"$NIX_BUILD_CORES\"" else toString concurrency}
+      mapgames_expansion_concurrency="$mapgames_concurrency"
+      if (( mapgames_expansion_concurrency > ${toString expansionConcurrencyCap} )); then
+        mapgames_expansion_concurrency=${toString expansionConcurrencyCap}
+      fi
+      mapgames_expansion_output_concurrency=${toString expansionOutputConcurrencyCap}
+      if (( mapgames_expansion_output_concurrency > mapgames_concurrency )); then
+        mapgames_expansion_output_concurrency="$mapgames_concurrency"
+      fi
+
       export PYTHONPATH="${valhalla}/${python3.sitePackages}"
       python ${./generate.py} \
         --pbf ${lithuaniaPbf} \
         --bbox ${lib.escapeShellArg bbox} \
-        --concurrency ${if concurrency == null then "\"$NIX_BUILD_CORES\"" else toString concurrency} \
+        --concurrency "$mapgames_concurrency" \
+        --expansion-concurrency "$mapgames_expansion_concurrency" \
+        --expansion-output-concurrency "$mapgames_expansion_output_concurrency" \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
         --geojson-process ${./geojson.lua} \
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
-        --expansion-helper ${valhallaExpand}/bin/mapgames-valhalla-expand \
+        --expansion-helper ${valhallaExpandRunner} \
         --coarsen-tool ${./coarsen.py} \
         --osm-source-url ${lib.escapeShellArg sourceUrl} \
         --output generated

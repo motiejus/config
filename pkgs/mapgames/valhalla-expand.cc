@@ -4,11 +4,14 @@
 #include <valhalla/tyr/actor.h>
 
 #include <rapidjson/document.h>
+#include <rapidjson/internal/dtoa.h>
 
 #include <boost/property_tree/ptree.hpp>
 
 #include <algorithm>
 #include <atomic>
+#include <bit>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -69,23 +72,182 @@ struct Interval {
   double end;
 };
 
+struct CanonicalGeometry;
+
+// Full-edge memberships dominate the hospital accumulator. Keep those in a
+// dense, route-ordinal bitset for modest route sets and retain only
+// contour-frontier intervals as individual records. One record carries its
+// band because all bands for a canonical edge now live in one map node.
 struct DestinationInterval {
   Interval interval;
-  uint32_t lookup_id;
+  uint32_t request_index;
+  uint32_t minute_index;
 };
 
 // Accumulation maps are keyed by the canonical edge id min(edge_id,
-// opposing_edge_id); the stored geometry keeps the string-canonical
-// orientation `canonical_line()` picks, and `key` carries that string so
-// consumers can re-merge dual-digitized edges (distinct graph edges with
-// identical rounded geometry) exactly as the string-keyed maps merged them.
+// opposing_edge_id). Canonical geometry is shared with the worker's edge
+// cache rather than copied into every band map.
 struct DestinationEdge {
-  std::string key;
-  Line line;
-  std::vector<DestinationInterval> intervals;
+  std::shared_ptr<const CanonicalGeometry> canonical;
+  size_t full_index;
+  std::vector<DestinationInterval> partials;
 };
 
-using DestinationEdges = std::map<uint64_t, DestinationEdge>;
+// Fixed-width membership rows are allocated in chunks. A single vector per
+// edge would add an allocation (and allocator metadata) to nearly every road
+// edge; one monolithic vector would temporarily double a large slab whenever
+// it grows. Stable row ordinals into zero-filled chunks avoid both costs. For
+// route sets above kDenseRequestLimit, sparse 12-byte full records avoid a
+// global-width bitset regression (notably for thousands of coffee shops).
+class DestinationEdges {
+public:
+  using Map = std::map<uint64_t, DestinationEdge>;
+  using const_iterator = Map::const_iterator;
+
+  DestinationEdges(size_t minute_count, size_t request_count)
+      : request_count_(request_count),
+        dense_(request_count <= kDenseRequestLimit),
+        route_words_(dense_ ? (request_count + 63) / 64 : 0),
+        words_per_edge_(minute_count * route_words_),
+        edges_per_chunk_(
+            dense_ ? std::max<size_t>(1, kChunkTargetBytes / (words_per_edge_ *
+                                                              sizeof(uint64_t)))
+                   : 1) {}
+
+  DestinationEdges(const DestinationEdges &) = delete;
+  DestinationEdges &operator=(const DestinationEdges &) = delete;
+  DestinationEdges(DestinationEdges &&) = default;
+  DestinationEdges &operator=(DestinationEdges &&) = default;
+
+  std::pair<Map::iterator, bool>
+  try_emplace(uint64_t canonical_id,
+              std::shared_ptr<const CanonicalGeometry> canonical) {
+    auto existing = edges_.find(canonical_id);
+    if (existing != edges_.end()) {
+      return {existing, false};
+    }
+    size_t full_index = UINT32_MAX;
+    if (dense_) {
+      full_index = membership_count_++;
+      if (full_index % edges_per_chunk_ == 0) {
+        chunks_.push_back(
+            std::make_unique<uint64_t[]>(edges_per_chunk_ * words_per_edge_));
+      }
+    }
+    return edges_.try_emplace(
+        canonical_id, DestinationEdge{std::move(canonical), full_index, {}});
+  }
+
+  void add_full(DestinationEdge &edge, size_t minute_index,
+                size_t request_index) {
+    if (dense_) {
+      membership(edge)[minute_index * route_words_ + request_index / 64] |=
+          uint64_t{1} << (request_index % 64);
+      return;
+    }
+    if (sparse_full_count_ >= UINT32_MAX) {
+      throw std::runtime_error("too many sparse full-edge memberships");
+    }
+    if (sparse_full_count_ % kSparseFullChunkRecords == 0) {
+      sparse_full_chunks_.push_back(
+          std::make_unique<SparseFull[]>(kSparseFullChunkRecords));
+    }
+    const uint32_t index = static_cast<uint32_t>(sparse_full_count_++);
+    sparse_full(index) = {static_cast<uint32_t>(request_index),
+                          static_cast<uint32_t>(minute_index),
+                          static_cast<uint32_t>(edge.full_index)};
+    edge.full_index = index;
+  }
+
+  bool has_full(const DestinationEdge &edge, size_t minute_index) const {
+    if (dense_) {
+      const uint64_t *row = membership(edge) + minute_index * route_words_;
+      return std::any_of(row, row + route_words_,
+                         [](uint64_t word) { return word != 0; });
+    }
+    for (uint32_t index = static_cast<uint32_t>(edge.full_index);
+         index != UINT32_MAX; index = sparse_full(index).next) {
+      if (sparse_full(index).minute_index == minute_index) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  template <typename Function>
+  void for_each_full(const DestinationEdge &edge, size_t minute_index,
+                     Function &&function) const {
+    if (dense_) {
+      const uint64_t *row = membership(edge) + minute_index * route_words_;
+      for (size_t word_index = 0; word_index < route_words_; ++word_index) {
+        uint64_t word = row[word_index];
+        while (word != 0) {
+          const unsigned bit = std::countr_zero(word);
+          const size_t request_index = word_index * 64 + bit;
+          if (request_index < request_count_) {
+            function(request_index);
+          }
+          word &= word - 1;
+        }
+      }
+      return;
+    }
+    for (uint32_t index = static_cast<uint32_t>(edge.full_index);
+         index != UINT32_MAX; index = sparse_full(index).next) {
+      const SparseFull &full = sparse_full(index);
+      if (full.minute_index == minute_index) {
+        function(full.request_index);
+      }
+    }
+  }
+
+  const_iterator begin() const { return edges_.begin(); }
+  const_iterator end() const { return edges_.end(); }
+  bool empty() const { return edges_.empty(); }
+
+private:
+  struct SparseFull {
+    uint32_t request_index;
+    uint32_t minute_index;
+    uint32_t next;
+  };
+  static_assert(sizeof(SparseFull) == 12);
+
+  static constexpr size_t kDenseRequestLimit = 256;
+  static constexpr size_t kChunkTargetBytes = 1 << 20;
+  static constexpr size_t kSparseFullChunkRecords = 1 << 16;
+
+  uint64_t *membership(const DestinationEdge &edge) {
+    return chunks_[edge.full_index / edges_per_chunk_].get() +
+           (edge.full_index % edges_per_chunk_) * words_per_edge_;
+  }
+
+  const uint64_t *membership(const DestinationEdge &edge) const {
+    return chunks_[edge.full_index / edges_per_chunk_].get() +
+           (edge.full_index % edges_per_chunk_) * words_per_edge_;
+  }
+
+  SparseFull &sparse_full(uint32_t index) {
+    return sparse_full_chunks_[index / kSparseFullChunkRecords]
+                              [index % kSparseFullChunkRecords];
+  }
+
+  const SparseFull &sparse_full(uint32_t index) const {
+    return sparse_full_chunks_[index / kSparseFullChunkRecords]
+                              [index % kSparseFullChunkRecords];
+  }
+
+  size_t request_count_;
+  bool dense_;
+  size_t route_words_;
+  size_t words_per_edge_;
+  size_t edges_per_chunk_;
+  size_t membership_count_ = 0;
+  Map edges_;
+  std::vector<std::unique_ptr<uint64_t[]>> chunks_;
+  size_t sparse_full_count_ = 0;
+  std::vector<std::unique_ptr<SparseFull[]>> sparse_full_chunks_;
+};
 
 struct Edge {
   uint64_t id;
@@ -242,7 +404,7 @@ std::string request_json(const Request &request) {
       << R"(,"lat":)" << request.lat << R"(,"radius":100}],"costing":)"
       << json_string(request.costing) << R"(,"contours":[{"time":)"
       << request.minutes
-      << R"(}],"dedupe":true,"generalize":0,"expansion_properties":["edge_id","pred_edge_id","duration","distance"],)"
+      << R"(}],"dedupe":true,"format":"pbf","generalize":0,"expansion_properties":["edge_id","pred_edge_id","duration","distance"],)"
       << R"("reverse":true,"skip_opposites":false})";
   return out.str();
 }
@@ -339,72 +501,102 @@ std::vector<Line> clip_line(const Line &line, const Bounds &bounds) {
   return result;
 }
 
-Line parse_line(const rapidjson::Value &coordinates) {
-  if (!coordinates.IsArray() || coordinates.Size() < 2) {
-    return {};
+double expansion_coordinate(int32_t coordinate) {
+  // Expansion GeoJSON is written through RapidJSON with at most six decimal
+  // places. Preserve that historical double exactly while avoiding the huge
+  // GeoJSON string and DOM: direct coordinate / 1e6 can differ by one
+  // microdegree when its binary approximation lies below the decimal value.
+  char buffer[32];
+  char *end = rapidjson::internal::dtoa(coordinate / 1e6, buffer, 6);
+  double result = 0;
+  const auto [parsed_end, error] = std::from_chars(buffer, end, result);
+  if (error != std::errc{} || parsed_end != end) {
+    throw std::runtime_error("could not decode expansion coordinate");
   }
-  Line line;
-  line.reserve(coordinates.Size());
-  for (const auto &coordinate : coordinates.GetArray()) {
-    if (!coordinate.IsArray() || coordinate.Size() < 2 ||
-        !coordinate[0].IsNumber() || !coordinate[1].IsNumber()) {
-      throw std::runtime_error("invalid expansion LineString coordinates");
+  return result;
+}
+
+struct ExpansionEdgeRef {
+  uint64_t id;
+  uint32_t expansion_index;
+};
+
+using ExpansionEdgeIndex = std::vector<ExpansionEdgeRef>;
+
+ExpansionEdgeIndex index_expansion_edges(const valhalla::Expansion &expansion) {
+  const int edge_count = expansion.geometries_size();
+  if (expansion.edge_id_size() != edge_count ||
+      expansion.pred_edge_id_size() != edge_count ||
+      expansion.durations_size() != edge_count ||
+      expansion.distances_size() != edge_count) {
+    throw std::runtime_error(
+        "Valhalla returned inconsistent expansion protobuf arrays");
+  }
+  ExpansionEdgeIndex edges;
+  edges.reserve(edge_count);
+  for (int index = 0; index < edge_count; ++index) {
+    const valhalla::Expansion::Geometry &geometry = expansion.geometries(index);
+    if (geometry.coords_size() % 2 != 0) {
+      throw std::runtime_error("invalid expansion protobuf geometry");
     }
-    line.push_back({coordinate[0].GetDouble(), coordinate[1].GetDouble()});
+    if (geometry.coords_size() >= 4) {
+      edges.push_back({expansion.edge_id(index), static_cast<uint32_t>(index)});
+    }
+  }
+  std::sort(edges.begin(), edges.end(),
+            [](const ExpansionEdgeRef &left, const ExpansionEdgeRef &right) {
+              return left.id < right.id;
+            });
+  if (std::adjacent_find(
+          edges.begin(), edges.end(),
+          [](const ExpansionEdgeRef &left, const ExpansionEdgeRef &right) {
+            return left.id == right.id;
+          }) != edges.end()) {
+    throw std::runtime_error("duplicate edge_id in deduplicated expansion");
+  }
+  return edges;
+}
+
+Line expansion_line(const valhalla::Expansion::Geometry &geometry) {
+  Line line;
+  line.reserve(geometry.coords_size() / 2);
+  for (int coordinate = 0; coordinate < geometry.coords_size();
+       coordinate += 2) {
+    line.push_back({expansion_coordinate(geometry.coords(coordinate)),
+                    expansion_coordinate(geometry.coords(coordinate + 1))});
   }
   return line;
 }
 
-Line parse_geometry_line(const rapidjson::Value &geometry) {
-  if (!geometry.IsObject() || !geometry.HasMember("type") ||
-      !geometry["type"].IsString() || !geometry.HasMember("coordinates")) {
-    throw std::runtime_error("invalid expansion geometry");
-  }
-  const std::string type = geometry["type"].GetString();
-  if (type != "LineString") {
-    throw std::runtime_error("expansion geometry is not a LineString");
-  }
-  return parse_line(geometry["coordinates"]);
+Edge expansion_edge(const valhalla::Expansion &expansion,
+                    const ExpansionEdgeRef &reference) {
+  const uint32_t index = reference.expansion_index;
+  return {
+      reference.id,
+      expansion.pred_edge_id(index),
+      static_cast<double>(expansion.durations(index)),
+      static_cast<double>(expansion.distances(index)),
+      expansion_line(expansion.geometries(index)),
+  };
 }
 
-std::map<uint64_t, Edge> parse_edges(const std::string &response) {
-  rapidjson::Document expansion;
-  expansion.Parse(response.c_str());
-  if (expansion.HasParseError() || !expansion.IsObject() ||
-      !expansion.HasMember("features") || !expansion["features"].IsArray()) {
-    throw std::runtime_error("Valhalla returned invalid expansion GeoJSON");
+double predecessor_duration(const Edge &edge,
+                            const valhalla::Expansion &expansion,
+                            const ExpansionEdgeIndex &edges) {
+  if (edge.pred_id == kInvalidGraphId) {
+    return 0;
   }
-  std::map<uint64_t, Edge> edges;
-  for (const auto &feature : expansion["features"].GetArray()) {
-    if (!feature.IsObject() || !feature.HasMember("properties") ||
-        !feature["properties"].IsObject() || !feature.HasMember("geometry")) {
-      continue;
-    }
-    const auto &properties = feature["properties"];
-    if (!properties.HasMember("duration") ||
-        !properties["duration"].IsNumber() ||
-        !properties.HasMember("distance") ||
-        !properties["distance"].IsNumber() ||
-        !properties.HasMember("edge_id") || !properties["edge_id"].IsUint64() ||
-        !properties.HasMember("pred_edge_id") ||
-        !properties["pred_edge_id"].IsUint64()) {
-      throw std::runtime_error(
-          "expansion edge lacks duration, distance, edge_id, or pred_edge_id");
-    }
-    const uint64_t edge_id = properties["edge_id"].GetUint64();
-    Edge edge{
-        edge_id,
-        properties["pred_edge_id"].GetUint64(),
-        properties["duration"].GetDouble(),
-        properties["distance"].GetDouble(),
-        parse_geometry_line(feature["geometry"]),
-    };
-    if (edge.line.size() >= 2 &&
-        !edges.try_emplace(edge_id, std::move(edge)).second) {
-      throw std::runtime_error("duplicate edge_id in deduplicated expansion");
-    }
+  const auto predecessor =
+      std::lower_bound(edges.begin(), edges.end(), edge.pred_id,
+                       [](const ExpansionEdgeRef &candidate, uint64_t id) {
+                         return candidate.id < id;
+                       });
+  if (predecessor == edges.end() || predecessor->id != edge.pred_id) {
+    throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
+                             " has a missing predecessor " +
+                             std::to_string(edge.pred_id));
   }
-  return edges;
+  return expansion.durations(predecessor->expansion_index);
 }
 
 double segment_length(const Point &first, const Point &second) {
@@ -499,20 +691,11 @@ Line slice_line(const Line &line, double start_fraction, double end_fraction) {
   return slice_line(line, measure_line(line), start_fraction, end_fraction);
 }
 
-std::optional<Interval>
-reachable_interval(const Edge &edge, const std::map<uint64_t, Edge> &edges,
-                   double max_seconds, double traversal_seconds) {
+std::optional<Interval> reachable_interval(const Edge &edge,
+                                           double start_seconds,
+                                           double max_seconds,
+                                           double traversal_seconds) {
   const bool origin = edge.pred_id == kInvalidGraphId;
-  double start_seconds = 0;
-  if (!origin) {
-    const auto predecessor = edges.find(edge.pred_id);
-    if (predecessor == edges.end()) {
-      throw std::runtime_error("expansion edge " + std::to_string(edge.id) +
-                               " has a missing predecessor " +
-                               std::to_string(edge.pred_id));
-    }
-    start_seconds = predecessor->second.duration;
-  }
   if (edge.duration < start_seconds) {
     throw std::runtime_error(
         "expansion edge duration precedes its predecessor");
@@ -746,19 +929,24 @@ double reverse_edge_traversal_seconds(const Edge &edge, EdgeCacheEntry &entry,
 
 bool add_destination_interval(DestinationEdges &destination,
                               const EdgeCacheEntry &cache_entry,
-                              Interval interval, uint32_t lookup_id) {
+                              Interval interval, size_t request_index,
+                              size_t minute_index) {
   if (cache_entry.canonical == nullptr) {
     return false;
   }
   if (cache_entry.reversed) {
     interval = {1.0 - interval.end, 1.0 - interval.start};
   }
-  auto [entry, inserted] = destination.try_emplace(
-      cache_entry.canonical_id,
-      DestinationEdge{cache_entry.canonical->key, cache_entry.canonical->line,
-                      {}});
+  auto [entry, inserted] =
+      destination.try_emplace(cache_entry.canonical_id, cache_entry.canonical);
   static_cast<void>(inserted);
-  entry->second.intervals.push_back({interval, lookup_id});
+  if (interval.start == 0.0 && interval.end == 1.0) {
+    destination.add_full(entry->second, minute_index, request_index);
+  } else {
+    entry->second.partials.push_back({interval,
+                                      static_cast<uint32_t>(request_index),
+                                      static_cast<uint32_t>(minute_index)});
+  }
   return true;
 }
 
@@ -798,29 +986,126 @@ std::vector<Interval> merge_intervals(std::vector<Interval> intervals) {
   return merged;
 }
 
-DestinationLines destination_lines(const DestinationEdges &edges,
-                                   const Bounds &bounds) {
-  DestinationLines result;
-  for (const auto &[canonical_id, edge] : edges) {
-    static_cast<void>(canonical_id);
-    const LineMeasure measure = measure_line(edge.line);
-    for (const DestinationInterval &destination : edge.intervals) {
-      const Line reachable =
-          slice_line(edge.line, measure, destination.interval.start,
-                     destination.interval.end);
-      for (const Line &clipped : clip_line(reachable, bounds)) {
-        CanonicalLine canonical = canonical_line(clipped);
-        if (canonical.line.empty()) {
-          continue;
-        }
-        auto [entry, inserted] =
-            result.try_emplace(std::move(canonical.key),
-                               DestinationLine{std::move(canonical.line), {}});
-        static_cast<void>(inserted);
-        entry->second.lookup_ids.push_back(destination.lookup_id);
-      }
+struct DestinationEdgeRef {
+  const DestinationEdges *edges;
+  const DestinationEdge *edge;
+};
+
+using DestinationEdgeGroup = std::vector<DestinationEdgeRef>;
+
+// K-way merge the workers' numeric edge maps without constructing another
+// country-wide map. The first reference in a group is from the lowest worker
+// index, matching the old worker merge's geometry representative.
+template <typename Function>
+void for_each_destination_edge_group(
+    const std::vector<DestinationEdges> &worker_destinations,
+    Function &&function) {
+  struct Cursor {
+    const DestinationEdges *edges;
+    DestinationEdges::const_iterator current;
+    DestinationEdges::const_iterator end;
+  };
+  std::vector<Cursor> cursors;
+  cursors.reserve(worker_destinations.size());
+  for (const DestinationEdges &edges : worker_destinations) {
+    if (!edges.empty()) {
+      cursors.push_back({&edges, edges.begin(), edges.end()});
     }
   }
+
+  DestinationEdgeGroup group;
+  group.reserve(cursors.size());
+  while (!cursors.empty()) {
+    const uint64_t canonical_id =
+        std::min_element(cursors.begin(), cursors.end(),
+                         [](const Cursor &left, const Cursor &right) {
+                           return left.current->first < right.current->first;
+                         })
+            ->current->first;
+    group.clear();
+    for (Cursor &cursor : cursors) {
+      if (cursor.current != cursor.end &&
+          cursor.current->first == canonical_id) {
+        group.push_back({cursor.edges, &cursor.current->second});
+        ++cursor.current;
+      }
+    }
+    function(canonical_id, group);
+    cursors.erase(std::remove_if(cursors.begin(), cursors.end(),
+                                 [](const Cursor &cursor) {
+                                   return cursor.current == cursor.end;
+                                 }),
+                  cursors.end());
+  }
+}
+
+DestinationLine &add_destination_line(DestinationLines &result,
+                                      CanonicalLine canonical) {
+  auto [entry, inserted] = result.try_emplace(
+      std::move(canonical.key), DestinationLine{std::move(canonical.line), {}});
+  static_cast<void>(inserted);
+  return entry->second;
+}
+
+DestinationLines
+destination_lines(const std::vector<DestinationEdges> &worker_destinations,
+                  size_t minute_index, const std::vector<Request> &requests,
+                  const Bounds &bounds) {
+  DestinationLines result;
+  for_each_destination_edge_group(
+      worker_destinations,
+      [&](uint64_t canonical_id, const DestinationEdgeGroup &group) {
+        static_cast<void>(canonical_id);
+        const Line &line = group.front().edge->canonical->line;
+        const LineMeasure measure = measure_line(line);
+
+        // Every full membership produces the same clipped geometry. Slice and
+        // canonicalize it once across all workers, then enumerate their compact
+        // membership rows.
+        const bool full =
+            std::any_of(group.begin(), group.end(), [&](const auto &reference) {
+              return reference.edges->has_full(*reference.edge, minute_index);
+            });
+        if (full) {
+          const Line reachable = slice_line(line, measure, 0.0, 1.0);
+          for (const Line &clipped : clip_line(reachable, bounds)) {
+            CanonicalLine canonical = canonical_line(clipped);
+            if (canonical.line.empty()) {
+              continue;
+            }
+            DestinationLine &destination =
+                add_destination_line(result, std::move(canonical));
+            for (const DestinationEdgeRef &reference : group) {
+              reference.edges->for_each_full(
+                  *reference.edge, minute_index, [&](size_t request_index) {
+                    destination.lookup_ids.push_back(
+                        requests[request_index].lookup_id);
+                  });
+            }
+          }
+        }
+
+        // Fractional contour-frontier records retain their exact doubles and
+        // are materialized individually, matching the old path.
+        for (const DestinationEdgeRef &reference : group) {
+          for (const DestinationInterval &partial : reference.edge->partials) {
+            if (partial.minute_index != minute_index) {
+              continue;
+            }
+            const Line reachable = slice_line(
+                line, measure, partial.interval.start, partial.interval.end);
+            for (const Line &clipped : clip_line(reachable, bounds)) {
+              CanonicalLine canonical = canonical_line(clipped);
+              if (canonical.line.empty()) {
+                continue;
+              }
+              add_destination_line(result, std::move(canonical))
+                  .lookup_ids.push_back(
+                      requests[partial.request_index].lookup_id);
+            }
+          }
+        }
+      });
   normalize_lookup_ids(result);
   return result;
 }
@@ -832,88 +1117,96 @@ bool contains(const std::vector<Interval> &intervals, double position) {
       });
 }
 
-// One edge-interval dump entry: the canonical geometry of one uint64
-// canonical edge id plus its per-band merged interval lists. This map stays
-// keyed by the uint64 id — the geometry-string pre-merge of dual-digitized
-// edges is deliberately NOT applied here: a dual-digitized group's uint64
-// representative can differ across routes when a route reaches only one
-// member, so the pre-merge belongs in every dump consumer, never in the dump
-// itself.
-struct DumpEdge {
-  Line line;
-  std::vector<std::vector<Interval>> bands;
-};
+void validate_destination_geometry(
+    const std::vector<DestinationEdges> &worker_destinations) {
+  for_each_destination_edge_group(
+      worker_destinations,
+      [](uint64_t canonical_id, const DestinationEdgeGroup &group) {
+        const std::string &key = group.front().edge->canonical->key;
+        for (const DestinationEdgeRef &reference : group) {
+          if (reference.edge->canonical->key != key) {
+            throw std::runtime_error(
+                "canonical edge " + std::to_string(canonical_id) +
+                " has inconsistent geometry across workers");
+          }
+        }
+      });
+}
 
-using DumpEdges = std::map<uint64_t, DumpEdge>;
-
-DumpEdges
-collect_dump_edges(const std::vector<DestinationEdges> &destinations_by_minute,
-                   size_t minute_count) {
-  DumpEdges result;
+void collect_dump_bands(const DestinationEdgeGroup &group, size_t minute_count,
+                        std::vector<std::vector<Interval>> &bands) {
+  if (bands.size() != minute_count) {
+    bands.resize(minute_count);
+  }
   for (size_t minute_index = 0; minute_index < minute_count; ++minute_index) {
-    for (const auto &[canonical_id, destination] :
-         destinations_by_minute[minute_index]) {
-      auto [entry, inserted] = result.try_emplace(
-          canonical_id,
-          DumpEdge{destination.line,
-                   std::vector<std::vector<Interval>>(minute_count)});
-      static_cast<void>(inserted);
-      std::vector<Interval> &band = entry->second.bands[minute_index];
-      band.reserve(band.size() + destination.intervals.size());
-      for (const DestinationInterval &item : destination.intervals) {
-        band.push_back(item.interval);
+    std::vector<Interval> &band = bands[minute_index];
+    band.clear();
+    const bool full =
+        std::any_of(group.begin(), group.end(), [&](const auto &reference) {
+          return reference.edges->has_full(*reference.edge, minute_index);
+        });
+    if (full) {
+      band.push_back({0.0, 1.0});
+      continue;
+    }
+    for (const DestinationEdgeRef &reference : group) {
+      for (const DestinationInterval &partial : reference.edge->partials) {
+        if (partial.minute_index == minute_index) {
+          band.push_back(partial.interval);
+        }
       }
     }
+    band = merge_intervals(std::move(band));
   }
-  for (auto &[canonical_id, edge] : result) {
-    static_cast<void>(canonical_id);
-    for (std::vector<Interval> &band : edge.bands) {
-      band = merge_intervals(std::move(band));
-    }
-  }
-  return result;
 }
 
 // Dump consumers re-derive band membership from the intervals alone, so
 // enforce the band-nesting invariant per uint64 entry at dump time with the
 // same midpoint classification the merge tool's segment_group() applies to
 // the string-merged geometry groups.
-void verify_dump_nesting(const DumpEdges &edges) {
-  for (const auto &[canonical_id, edge] : edges) {
-    std::vector<double> endpoints;
-    for (const std::vector<Interval> &band : edge.bands) {
-      for (const Interval &interval : band) {
-        endpoints.push_back(interval.start);
-        endpoints.push_back(interval.end);
-      }
-    }
-    std::sort(endpoints.begin(), endpoints.end());
-    endpoints.erase(std::unique(endpoints.begin(), endpoints.end(),
-                                [](double left, double right) {
-                                  return std::abs(left - right) <= 1e-12;
-                                }),
-                    endpoints.end());
-    for (size_t endpoint_index = 1; endpoint_index < endpoints.size();
-         ++endpoint_index) {
-      const double start = endpoints[endpoint_index - 1];
-      const double end = endpoints[endpoint_index];
-      if (end - start <= 1e-12) {
-        continue;
-      }
-      const double midpoint = (start + end) / 2.0;
-      bool found = false;
-      for (const std::vector<Interval> &band : edge.bands) {
-        const bool present = contains(band, midpoint);
-        if (present && !found) {
-          found = true;
-        } else if (!present && found) {
-          throw std::runtime_error(
-              "dump edge " + std::to_string(canonical_id) +
-              ": reachable edge intervals are not nested by minute threshold");
+void verify_dump_nesting(
+    const std::vector<DestinationEdges> &worker_destinations,
+    size_t minute_count) {
+  std::vector<std::vector<Interval>> bands(minute_count);
+  for_each_destination_edge_group(
+      worker_destinations,
+      [&](uint64_t canonical_id, const DestinationEdgeGroup &group) {
+        collect_dump_bands(group, minute_count, bands);
+        std::vector<double> endpoints;
+        for (const std::vector<Interval> &band : bands) {
+          for (const Interval &interval : band) {
+            endpoints.push_back(interval.start);
+            endpoints.push_back(interval.end);
+          }
         }
-      }
-    }
-  }
+        std::sort(endpoints.begin(), endpoints.end());
+        endpoints.erase(std::unique(endpoints.begin(), endpoints.end(),
+                                    [](double left, double right) {
+                                      return std::abs(left - right) <= 1e-12;
+                                    }),
+                        endpoints.end());
+        for (size_t endpoint_index = 1; endpoint_index < endpoints.size();
+             ++endpoint_index) {
+          const double start = endpoints[endpoint_index - 1];
+          const double end = endpoints[endpoint_index];
+          if (end - start <= 1e-12) {
+            continue;
+          }
+          const double midpoint = (start + end) / 2.0;
+          bool found = false;
+          for (const std::vector<Interval> &band : bands) {
+            const bool present = contains(band, midpoint);
+            if (present && !found) {
+              found = true;
+            } else if (!present && found) {
+              throw std::runtime_error(
+                  "dump edge " + std::to_string(canonical_id) +
+                  ": reachable edge intervals are not nested by minute "
+                  "threshold");
+            }
+          }
+        }
+      });
 }
 
 // Edge-interval dump: one line per canonical edge, ascending numeric uint64
@@ -925,53 +1218,59 @@ void verify_dump_nesting(const DumpEdges &edges) {
 // round-trip to the identical double. Bands left empty by merge_intervals()
 // are omitted; entries whose bands are all empty are skipped entirely (they
 // contribute nothing to any consumer).
-void write_edge_dump(const std::filesystem::path &path, const DumpEdges &edges,
+void write_edge_dump(const std::filesystem::path &path,
+                     const std::vector<DestinationEdges> &worker_destinations,
                      const std::vector<int> &minutes) {
   std::ofstream output(path, std::ios::binary);
   if (!output) {
     throw std::runtime_error("could not open output: " + path.string());
   }
   char buffer[64];
-  for (const auto &[canonical_id, edge] : edges) {
-    if (std::all_of(edge.bands.begin(), edge.bands.end(),
-                    [](const std::vector<Interval> &band) {
-                      return band.empty();
-                    })) {
-      continue;
-    }
-    output << canonical_id << '\t';
-    for (size_t index = 0; index < edge.line.size(); ++index) {
-      if (index != 0) {
-        output << ';';
-      }
-      std::snprintf(buffer, sizeof buffer, "%.7f,%.7f", edge.line[index].lon,
-                    edge.line[index].lat);
-      output << buffer;
-    }
-    output << '\t';
-    bool first_band = true;
-    for (size_t minute_index = 0; minute_index < minutes.size();
-         ++minute_index) {
-      const std::vector<Interval> &band = edge.bands[minute_index];
-      if (band.empty()) {
-        continue;
-      }
-      if (!first_band) {
-        output << '|';
-      }
-      first_band = false;
-      output << minutes[minute_index] << ':';
-      for (size_t index = 0; index < band.size(); ++index) {
-        if (index != 0) {
-          output << ',';
+  std::vector<std::vector<Interval>> bands(minutes.size());
+  for_each_destination_edge_group(
+      worker_destinations,
+      [&](uint64_t canonical_id, const DestinationEdgeGroup &group) {
+        collect_dump_bands(group, minutes.size(), bands);
+        if (std::all_of(bands.begin(), bands.end(),
+                        [](const std::vector<Interval> &band) {
+                          return band.empty();
+                        })) {
+          return;
         }
-        std::snprintf(buffer, sizeof buffer, "%.17g-%.17g", band[index].start,
-                      band[index].end);
-        output << buffer;
-      }
-    }
-    output << '\n';
-  }
+        const Line &line = group.front().edge->canonical->line;
+        output << canonical_id << '\t';
+        for (size_t index = 0; index < line.size(); ++index) {
+          if (index != 0) {
+            output << ';';
+          }
+          std::snprintf(buffer, sizeof buffer, "%.7f,%.7f", line[index].lon,
+                        line[index].lat);
+          output << buffer;
+        }
+        output << '\t';
+        bool first_band = true;
+        for (size_t minute_index = 0; minute_index < minutes.size();
+             ++minute_index) {
+          const std::vector<Interval> &band = bands[minute_index];
+          if (band.empty()) {
+            continue;
+          }
+          if (!first_band) {
+            output << '|';
+          }
+          first_band = false;
+          output << minutes[minute_index] << ':';
+          for (size_t index = 0; index < band.size(); ++index) {
+            if (index != 0) {
+              output << ',';
+            }
+            std::snprintf(buffer, sizeof buffer, "%.17g-%.17g",
+                          band[index].start, band[index].end);
+            output << buffer;
+          }
+        }
+        output << '\n';
+      });
   if (!output) {
     throw std::runtime_error("could not write output: " + path.string());
   }
@@ -998,6 +1297,21 @@ void write_multiline(std::ostream &output, const Lines &lines) {
     }
     first = false;
     write_line(output, line);
+  }
+  output << "]}";
+}
+
+using LineRefs = std::vector<const Line *>;
+
+void write_multiline(std::ostream &output, const LineRefs &lines) {
+  output << "{\"type\":\"MultiLineString\",\"coordinates\":[";
+  bool first = true;
+  for (const Line *line : lines) {
+    if (!first) {
+      output << ',';
+    }
+    first = false;
+    write_line(output, *line);
   }
   output << "]}";
 }
@@ -1034,10 +1348,14 @@ void write_destination_collection(const std::filesystem::path &path,
   if (!output) {
     throw std::runtime_error("could not open output: " + path.string());
   }
-  std::map<std::string, Lines> groups;
+  // Group by references: DestinationLines already owns every geometry until
+  // this writer returns, so copying all lines into a second country-wide map
+  // only raises the output-phase peak.
+  std::map<std::string, LineRefs> groups;
   for (const auto &[key, destination_line] : lines) {
-    groups[lookup_ids_json(destination_line.lookup_ids)].emplace(
-        key, destination_line.line);
+    static_cast<void>(key);
+    groups[lookup_ids_json(destination_line.lookup_ids)].push_back(
+        &destination_line.line);
   }
   output << "{\"type\":\"FeatureCollection\",\"bbox\":" << bbox_json(bounds)
          << ",\"features\":[";
@@ -1715,7 +2033,7 @@ int merge_network_main(const std::vector<std::string> &args) {
 
 void usage(const char *argv0) {
   std::cerr << "usage: " << argv0
-            << " CONFIG REQUESTS_TSV OUT_DIR THREADS"
+            << " CONFIG REQUESTS_TSV OUT_DIR ROUTING_THREADS OUTPUT_THREADS"
                " MINUTES BOUNDS ROUTE_KEY SERVICE MODE\n"
             << "       " << argv0
             << " --merge-network OUT BOUNDS DUMP... [--debug-segments FILE]\n";
@@ -1732,7 +2050,7 @@ int main(int argc, char **argv) {
       return 1;
     }
   }
-  if (argc != 10) {
+  if (argc != 11) {
     usage(argv[0]);
     return 2;
   }
@@ -1744,16 +2062,24 @@ int main(int argc, char **argv) {
     // caller's work directory; neither artifact is published).
     const std::filesystem::path out_dir = argv[3];
     const size_t requested_threads = std::stoul(argv[4]);
-    const std::vector<int> minutes = parse_minutes(argv[5]);
-    const Bounds bounds = parse_bounds(argv[6]);
-    const std::string route_key = argv[7];
-    const std::string service = argv[8];
-    const std::string mode = argv[9];
+    const size_t requested_output_threads = std::stoul(argv[5]);
+    const std::vector<int> minutes = parse_minutes(argv[6]);
+    const Bounds bounds = parse_bounds(argv[7]);
+    const std::string route_key = argv[8];
+    const std::string service = argv[9];
+    const std::string mode = argv[10];
     if (requested_threads == 0) {
-      throw std::runtime_error("threads must be positive");
+      throw std::runtime_error("routing threads must be positive");
+    }
+    if (requested_output_threads == 0) {
+      throw std::runtime_error("output threads must be positive");
     }
 
     const std::vector<Request> requests = read_requests(requests_path);
+    if (requests.size() > UINT32_MAX || minutes.size() > UINT32_MAX) {
+      throw std::runtime_error(
+          "too many requests or minute thresholds for compact memberships");
+    }
     if (std::any_of(requests.begin(), requests.end(),
                     [&](const Request &request) {
                       return request.minutes != minutes.back();
@@ -1785,8 +2111,11 @@ int main(int argc, char **argv) {
               << max_cache_size << " bytes per worker\n";
     std::filesystem::create_directories(out_dir);
 
-    std::vector<std::vector<DestinationEdges>> worker_destinations(
-        worker_count, std::vector<DestinationEdges>(minutes.size()));
+    std::vector<DestinationEdges> worker_destinations;
+    worker_destinations.reserve(worker_count);
+    for (size_t worker_index = 0; worker_index < worker_count; ++worker_index) {
+      worker_destinations.emplace_back(minutes.size(), requests.size());
+    }
     std::atomic_size_t next_request{0};
     std::atomic_size_t completed{0};
     std::atomic_bool failed{false};
@@ -1819,11 +2148,20 @@ int main(int argc, char **argv) {
               costing =
                   valhalla::sif::CostFactory{}.Create(validation_api.options());
             }
-            const std::map<uint64_t, Edge> edges =
-                parse_edges(actor.expansion(request_json(request)));
+            valhalla::Api expansion_api;
+            static_cast<void>(actor.expansion(request_json(request), nullptr,
+                                              &expansion_api));
+            if (!expansion_api.has_expansion()) {
+              throw std::runtime_error(
+                  "Valhalla returned no expansion protobuf");
+            }
+            const valhalla::Expansion &expansion = expansion_api.expansion();
+            const ExpansionEdgeIndex edges = index_expansion_edges(expansion);
             std::vector<bool> destination_found(minutes.size(), false);
-            for (const auto &[edge_id, edge] : edges) {
-              static_cast<void>(edge_id);
+            for (const ExpansionEdgeRef &edge_reference : edges) {
+              const Edge edge = expansion_edge(expansion, edge_reference);
+              const double start_seconds =
+                  predecessor_duration(edge, expansion, edges);
               EdgeCacheEntry &cache_entry =
                   edge_cache_entry(edge, graph_reader, edge_cache);
               const double traversal_seconds =
@@ -1834,12 +2172,12 @@ int main(int argc, char **argv) {
               for (size_t minute_index = 0; minute_index < minutes.size();
                    ++minute_index) {
                 const std::optional<Interval> interval = reachable_interval(
-                    edge, edges, minutes[minute_index] * 60.0,
+                    edge, start_seconds, minutes[minute_index] * 60.0,
                     traversal_seconds);
                 if (interval) {
                   const bool added = add_destination_interval(
-                      worker_destinations[worker_index][minute_index],
-                      cache_entry, *interval, request.lookup_id);
+                      worker_destinations[worker_index], cache_entry, *interval,
+                      request_index, minute_index);
                   if (added && !destination_found[minute_index] &&
                       interval_intersects_bounds(edge.line, *interval,
                                                  bounds)) {
@@ -1894,43 +2232,27 @@ int main(int argc, char **argv) {
     }
     const auto routing_finished = std::chrono::steady_clock::now();
 
-    std::vector<DestinationEdges> destinations_by_minute(minutes.size());
-    for (size_t minute_index = 0; minute_index < minutes.size();
-         ++minute_index) {
-      DestinationEdges &destination_edges =
-          destinations_by_minute[minute_index];
-      for (size_t worker_index = 0; worker_index < worker_count;
-           ++worker_index) {
-        for (const auto &[canonical_id, source_edge] :
-             worker_destinations[worker_index][minute_index]) {
-          auto [destination, inserted] = destination_edges.try_emplace(
-              canonical_id,
-              DestinationEdge{source_edge.key, source_edge.line, {}});
-          if (!inserted && destination->second.key != source_edge.key) {
-            // Geometry must be bitwise-independent of which direction each
-            // worker saw first; the canonical key string encodes it exactly.
-            throw std::runtime_error(
-                "canonical edge " + std::to_string(canonical_id) +
-                " has inconsistent geometry across workers");
-          }
-          destination->second.intervals.insert(
-              destination->second.intervals.end(),
-              source_edge.intervals.begin(), source_edge.intervals.end());
-        }
-        worker_destinations[worker_index][minute_index].clear();
-      }
-    }
+    validate_destination_geometry(worker_destinations);
 
-    std::exception_ptr output_error;
+    // Bound concurrent DestinationLines maps independently from routing.
+    // Keeping this below the number of bands prevents the historical
+    // all-bands-at-once multi-GiB output peak while allowing the Nix resource
+    // policy to spend measured headroom on serialization throughput.
+    const size_t output_worker_count =
+        std::min(requested_output_threads, minutes.size());
+    std::atomic_size_t next_minute{0};
+    std::atomic_bool output_failed{false};
+    std::exception_ptr first_output_error;
     std::mutex output_error_mutex;
-    std::vector<std::jthread> output_threads;
-    output_threads.reserve(minutes.size());
-    for (size_t minute_index = 0; minute_index < minutes.size();
-         ++minute_index) {
-      output_threads.emplace_back([&, minute_index]() {
-        try {
-          const DestinationLines destinations =
-              destination_lines(destinations_by_minute[minute_index], bounds);
+    auto output_worker = [&]() {
+      try {
+        while (!output_failed.load(std::memory_order_acquire)) {
+          const size_t minute_index = next_minute.fetch_add(1);
+          if (minute_index >= minutes.size()) {
+            break;
+          }
+          const DestinationLines destinations = destination_lines(
+              worker_destinations, minute_index, requests, bounds);
           if (destinations.empty()) {
             throw std::runtime_error(
                 "destination lookup is empty after bbox clipping for " +
@@ -1941,41 +2263,50 @@ int main(int argc, char **argv) {
               out_dir / ("destinations-" + route_key + "-" +
                          std::to_string(minute) + ".geojson"),
               destinations, service, mode, minute, bounds);
-        } catch (...) {
-          std::lock_guard<std::mutex> lock(output_error_mutex);
-          if (output_error == nullptr) {
-            output_error = std::current_exception();
-          }
         }
-      });
+      } catch (...) {
+        output_failed.store(true, std::memory_order_release);
+        std::lock_guard<std::mutex> lock(output_error_mutex);
+        if (first_output_error == nullptr) {
+          first_output_error = std::current_exception();
+        }
+      }
+    };
+    std::vector<std::jthread> output_workers;
+    output_workers.reserve(output_worker_count);
+    for (size_t output_worker_index = 0;
+         output_worker_index < output_worker_count; ++output_worker_index) {
+      output_workers.emplace_back(output_worker);
     }
-    for (std::jthread &thread : output_threads) {
+    for (auto &thread : output_workers) {
       thread.join();
     }
-    if (output_error != nullptr) {
-      std::rethrow_exception(output_error);
+    if (first_output_error != nullptr) {
+      std::rethrow_exception(first_output_error);
     }
 
-    const DumpEdges dump =
-        collect_dump_edges(destinations_by_minute, minutes.size());
-    if (dump.empty()) {
+    if (std::all_of(
+            worker_destinations.begin(), worker_destinations.end(),
+            [](const DestinationEdges &edges) { return edges.empty(); })) {
       throw std::runtime_error("edge-interval dump is empty");
     }
-    verify_dump_nesting(dump);
-    write_edge_dump(out_dir / ("edges-" + route_key + ".tsv"), dump, minutes);
+    verify_dump_nesting(worker_destinations, minutes.size());
+    write_edge_dump(out_dir / ("edges-" + route_key + ".tsv"),
+                    worker_destinations, minutes);
     const auto output_finished = std::chrono::steady_clock::now();
     std::cerr << "[mapgames] native parallel routing+line extraction: "
               << std::chrono::duration<double>(routing_finished -
                                                routing_started)
                      .count()
               << "s\n";
-    std::cerr << "[mapgames] native interval union+parallel GeoJSON: "
+    std::cerr << "[mapgames] native interval union+bounded-parallel output: "
               << std::chrono::duration<double>(output_finished -
                                                routing_finished)
                      .count()
               << "s\n";
     std::cerr << "[mapgames] native expansion+lines: " << requests.size()
-              << " routed with " << worker_count << " worker(s)\n";
+              << " routed with " << worker_count << " routing worker(s), "
+              << output_worker_count << " output worker(s)\n";
   } catch (const std::exception &error) {
     std::cerr << "valhalla-expand: " << error.what() << '\n';
     return 1;
