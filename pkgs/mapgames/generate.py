@@ -69,6 +69,12 @@ ROUTE_SPECS = tuple(
     for mode, minutes in service["routes"]
 )
 
+# Attribute keys of the unified network layer (docs/unified-access-layer.md
+# section 1.1): one per requirement, `{service}_{mode}` with underscore.
+# valhalla-expand.cc derives the same keys from the edges-<service>-<mode>.tsv
+# dump filenames; main() asserts the two derivations agree before merging.
+REQUIREMENT_KEYS = tuple(f"{route['service']}_{route['mode']}" for route in ROUTE_SPECS)
+
 MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
 CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
 DESTINATION_SOURCE_COLUMNS = (
@@ -231,6 +237,32 @@ def coverage_tile_config(route: dict, work: Path) -> dict:
         "settings": common_tile_settings(
             f"Mapgames {route_key(route)} access",
             "Deduplicated reverse Valhalla expansion edges",
+        ),
+    }
+
+
+def edge_dump_filename(route: dict) -> str:
+    return f"edges-{route_key(route)}.tsv"
+
+
+def network_tile_config(work: Path) -> dict:
+    return {
+        "layers": {
+            "network": {
+                "minzoom": COVERAGE_MIN_ZOOM,
+                "maxzoom": COVERAGE_MAX_ZOOM,
+                "source": str(work / "network.geojson"),
+                "source_columns": sorted(REQUIREMENT_KEYS),
+                # Only country-scale tiles are generalized, as for the
+                # per-route access tiles above.
+                "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
+                "simplify_level": 0.00001,
+                "simplify_algorithm": "visvalingam",
+            }
+        },
+        "settings": common_tile_settings(
+            "Mapgames unified access network",
+            "Edge-attributed everyday-access bands for all services",
         ),
     }
 
@@ -553,12 +585,61 @@ def main() -> None:
             place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
         routed_counts[key] = len(entries)
 
+    # Unified network (docs/unified-access-layer.md section 2.1): merge the
+    # per-route edge-interval dumps into one work/network.geojson. The helper
+    # derives each dump's attribute key from its filename
+    # (requirement_key_from_dump in valhalla-expand.cc: edges-<service>-<mode>
+    # .tsv -> <service>_<mode>); assert that derivation lands exactly on the
+    # authoritative REQUIREMENT_KEYS before wiring the merge.
+    network_dumps = tuple(work / edge_dump_filename(route) for route in ROUTE_SPECS)
+    derived_keys = tuple(
+        dump.name.removeprefix("edges-").removesuffix(".tsv").replace("-", "_")
+        for dump in network_dumps
+    )
+    if derived_keys != REQUIREMENT_KEYS:
+        raise RuntimeError(
+            f"dump-derived requirement keys {derived_keys}"
+            f" do not match REQUIREMENT_KEYS {REQUIREMENT_KEYS}"
+        )
+    run(
+        "merge per-route edge dumps into unified network",
+        [
+            args.expansion_helper,
+            "--merge-network",
+            # network.geojson is a tilemaker input only (never published);
+            # see "network.geojson is NOT published" in the design doc.
+            work / "network.geojson",
+            coverage_bbox,
+            *network_dumps,
+        ],
+    )
+
     place_features = [
         feature
         for service in SERVICE_SPECS
         for _location, feature in prepared[service["id"]]
     ]
     write_json(output / "places.geojson", feature_collection(place_features, country_bbox))
+
+    network_config_path = work / "access.json"
+    write_json(network_config_path, network_tile_config(work))
+    run(
+        "build unified access PMTiles",
+        [
+            "tilemaker",
+            "--quiet",
+            "--bbox",
+            coverage_bbox,
+            "--output",
+            output / "access.pmtiles",
+            "--config",
+            network_config_path,
+            "--process",
+            args.coverage_process,
+            "--threads",
+            args.concurrency,
+        ],
+    )
 
     access_tiles = []
     for route in ROUTE_SPECS:
@@ -668,7 +749,39 @@ def main() -> None:
     write_json(
         output / "metadata.json",
         {
+            # access_network/destination_tiles are what the reworked front end
+            # (design doc section 3) will read; access_tiles is what the
+            # currently deployed front end reads. Both stay until the step-7
+            # legacy removal (section 7 of the design doc).
+            "access_network": {
+                "file": "access.pmtiles",
+                "format": "PMTiles v3 with Mapbox Vector Tiles",
+                "layer": "network",
+                "max_data_zoom": COVERAGE_MAX_ZOOM,
+                "min_data_zoom": COVERAGE_MIN_ZOOM,
+                "requirements": [
+                    {
+                        "key": key,
+                        "minutes": list(route["minutes"]),
+                        "mode": route["mode"],
+                        "service": route["service"],
+                    }
+                    for key, route in zip(REQUIREMENT_KEYS, ROUTE_SPECS, strict=True)
+                ],
+            },
             "access_tiles": access_tiles,
+            "destination_tiles": [
+                {
+                    "file": f"destinations-{route_key(route)}.pmtiles",
+                    "layers": {
+                        str(minutes): destination_layer_name(minutes)
+                        for minutes in route["minutes"]
+                    },
+                    "mode": route["mode"],
+                    "service": route["service"],
+                }
+                for route in ROUTE_SPECS
+            ],
             "basemap": {
                 "file": "lithuania.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",

@@ -29,6 +29,8 @@ import sys
 
 _NUMBER = r"[0-9.]+(?:[eE][-+]?[0-9]+)?"
 _INTERVAL_RE = re.compile(rf"^({_NUMBER})-({_NUMBER})$")
+# Grammar shared with requirement_key_from_dump() in valhalla-expand.cc and
+# the authoritative-key assertion in generate.py. Keep the three in lockstep.
 _DUMP_NAME_RE = re.compile(r"^edges-([a-z]+)-([a-z]+)\.tsv$")
 
 

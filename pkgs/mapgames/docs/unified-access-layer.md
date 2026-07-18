@@ -764,7 +764,10 @@ policy.
    Re-executing the same deterministic algorithm and demanding exact equality
    is decidable and covers classification, nesting, and coalescing.
    Slicing/rounding downstream of this point is covered by step 3's byte-diff
-   round-trip and needs no second geometry gate.
+   round-trip and needs no second geometry gate. Note: the merge *tool's*
+   slicing/emit stages (§1.3 steps 4–7) are new C++ verified by inspection
+   plus the determinism gate — step 3's byte-diff round-trip exercised the
+   independent checker's single-service slicing, not this code path.
    *Reviewer checks:* shared boundary points (no per-piece re-slicing);
    §1.3 step-0 geometry pre-merge across dumps (uint64 alignment alone is
    insufficient — R1/§2.1); attribute-min merge on residual canonical-string

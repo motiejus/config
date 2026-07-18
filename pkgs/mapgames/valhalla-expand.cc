@@ -1395,6 +1395,9 @@ private:
   bool have_previous_ = false;
 };
 
+// Grammar shared with check-network-segments.py's _DUMP_NAME_RE and the
+// authoritative-key assertion in generate.py: edges-<service>-<mode>.tsv with
+// service and mode non-empty lowercase [a-z] runs. Keep the three in lockstep.
 std::string requirement_key_from_dump(const std::filesystem::path &path) {
   const std::string name = path.filename().string();
   const std::string prefix = "edges-";
@@ -1402,12 +1405,24 @@ std::string requirement_key_from_dump(const std::filesystem::path &path) {
   if (name.size() <= prefix.size() + suffix.size() ||
       name.compare(0, prefix.size(), prefix) != 0 ||
       name.compare(name.size() - suffix.size(), suffix.size(), suffix) != 0) {
-    throw std::runtime_error("dump filename must be edges-<route_key>.tsv: " +
-                             name);
+    throw std::runtime_error(
+        "dump filename must be edges-<service>-<mode>.tsv: " + name);
   }
   std::string key =
       name.substr(prefix.size(), name.size() - prefix.size() - suffix.size());
-  std::replace(key.begin(), key.end(), '-', '_');
+  const size_t dash = key.find('-');
+  const bool one_dash =
+      dash != std::string::npos && key.find('-', dash + 1) == std::string::npos;
+  const bool lowercase_runs =
+      dash != 0 && dash + 1 != key.size() &&
+      std::all_of(key.begin(), key.end(), [](char character) {
+        return character == '-' || (character >= 'a' && character <= 'z');
+      });
+  if (!one_dash || !lowercase_runs) {
+    throw std::runtime_error(
+        "dump filename must be edges-<service>-<mode>.tsv: " + name);
+  }
+  key[dash] = '_';
   return key;
 }
 

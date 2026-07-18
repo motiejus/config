@@ -261,6 +261,10 @@ def parse_dump(path, minutes):
                     raise SystemExit(
                         f"{path}:{line_number}: unexpected band minute {minute}"
                     )
+                if bands[minute_index[minute]]:
+                    raise SystemExit(
+                        f"{path}:{line_number}: duplicate band {minute}"
+                    )
                 intervals = []
                 for interval_token in rest.split(","):
                     match = _INTERVAL_RE.match(interval_token)
