@@ -2428,6 +2428,10 @@
             [...destinationRecords.values()].map(record => record.destinationLayer),
             false
           );
+          // Closing during the below-z12 auto-zoom invalidates its idle
+          // callback, so restore the ordinary selection status here instead
+          // of leaving “Loading…” behind indefinitely.
+          updateMapStatus();
           // Fall back from the inspect-share hash to the view-state hash.
           scheduleViewHash();
         });
