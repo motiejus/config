@@ -864,17 +864,26 @@
       // fills to take over; this lean schema keeps all natural cover
       // (forest/wetland/grassland/farmland/urban) in the landcover layer
       // through z14, so hold it visible — thinned slightly at street zooms
-      // so the access overlays keep their contrast. The kind=wetland color
-      // is spliced into the flavor's match expression (it only knows the
-      // low-zoom Daylight kinds).
+      // so the access overlays keep their contrast. The kind=wetland and
+      // kind=forest colors are spliced into the flavor's match expression
+      // (it only knows the low-zoom Daylight kinds; kind=forest otherwise
+      // falls to the match DEFAULT, a pale green all but identical to
+      // farmland/grassland — so forests read as one flat catch-all at
+      // country zoom). basemap.lua folds natural=wood into kind=forest, so
+      // there is no separate kind=wood to splice.
       const landcoverLayer = baseLayers.find(layer => layer.id === "landcover");
       if (landcoverLayer) {
         landcoverLayer.paint["fill-opacity"] = ["interpolate", ["linear"], ["zoom"], 11, 1, 14, 0.8];
         const landcoverColor = landcoverLayer.paint["fill-color"];
         if (Array.isArray(landcoverColor) && landcoverColor[0] === "match") {
           landcoverColor.splice(landcoverColor.length - 1, 0, "wetland", "rgba(185, 219, 222, 1)");
+          // A clearly-forest mid green (#a8d4b0) so wooded country reads
+          // distinctly against the pale farmland/grassland tones, while
+          // staying protomaps-light-flavored and lighter than the access
+          // overlays that draw above it.
+          landcoverColor.splice(landcoverColor.length - 1, 0, "forest", "rgba(168, 212, 176, 1)");
         }
-      } else console.warn("vendored basemap style has no landcover layer; skipping opacity/wetland fixes");
+      } else console.warn("vendored basemap style has no landcover layer; skipping opacity/forest/wetland fixes");
       // Power lines and linear dams live in a custom `infrastructure` tile
       // layer the vendored style knows nothing about; draw them above roads
       // and below the admin boundary dashes and all labels.
