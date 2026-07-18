@@ -1133,6 +1133,19 @@ int main(int argc, char **argv) {
 
     const auto &config = valhalla::config(config_path);
     const size_t worker_count = std::min(requested_threads, requests.size());
+    // Each worker constructs its own GraphReader, and Valhalla's default
+    // mjolnir.max_cache_size is 1 GiB per reader, so N workers could hold
+    // N GiB of tile cache. Cap it here (not in generate.py's valhalla.json,
+    // which valhalla_build_tiles also consumes): 4 GiB split across workers
+    // with a 256 MiB floor. Workers read this copy; the shared config used
+    // by actor_t stays unmodified. Caching affects only speed, never
+    // results.
+    auto mjolnir = config.get_child("mjolnir");
+    const uint64_t max_cache_size =
+        std::max<uint64_t>(256ull << 20, (4096ull << 20) / worker_count);
+    mjolnir.put("max_cache_size", max_cache_size);
+    std::cerr << "[mapgames] native expansion GraphReader cache cap: "
+              << max_cache_size << " bytes per worker\n";
     std::filesystem::create_directories(destinations_dir);
     std::filesystem::create_directories(coverage_dir);
 
@@ -1147,7 +1160,7 @@ int main(int argc, char **argv) {
 
     auto worker = [&](size_t worker_index) {
       try {
-        valhalla::baldr::GraphReader graph_reader(config.get_child("mjolnir"));
+        valhalla::baldr::GraphReader graph_reader(mjolnir);
         valhalla::tyr::actor_t actor(config, graph_reader, true);
         valhalla::sif::cost_ptr_t costing;
         EdgeCache edge_cache;
