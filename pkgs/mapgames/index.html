@@ -46,7 +46,17 @@
       .panel-title-row h1 { flex: 1; }
       .panel-toggle, .panel-done, .mobile-map-actions { display: none; }
       .panel-content { min-height: 0; }
-      .panel-selection-summary { display: none; }
+      /* Collapsed-mobile chip row; a button so tapping it expands the panel. */
+      .panel-selection-summary {
+        display: none;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+      }
       .map-panel h1 { margin: 0 0 .25rem; font-size: 1.2rem; }
       .map-panel > p { margin: .3rem 0; line-height: 1.35; }
       .quick-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin: .7rem 0; }
@@ -106,15 +116,52 @@
         background: white;
         border-color: var(--border);
       }
-      .band-choices { display: flex; flex-wrap: wrap; gap: .45rem; font-size: .82rem; }
-      .band-choices label, .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
-      .band-swatch {
-        width: .72rem;
-        height: .72rem;
-        border: 1px solid rgb(53 37 29 / 60%);
+      .map-detail { display: inline-flex; align-items: center; gap: .25rem; }
+      .view-switcher { display: flex; gap: .3rem; margin: .55rem 0 .45rem; }
+      .view-switcher button {
+        flex: 1;
+        min-height: 2.2rem;
+        padding: .28rem .3rem;
+        border: 1px solid var(--border);
+        border-radius: .4rem;
+        background: #ffffff;
+        cursor: pointer;
       }
-      .band-swatch.one { background: rgb(229 168 75 / 42%); }
-      .band-swatch.two-plus { background: rgb(113 54 43 / 70%); }
+      .view-switcher button[aria-checked="true"] {
+        color: white;
+        background: var(--ink);
+        border-color: var(--ink);
+      }
+      .view-switcher button:disabled { cursor: default; opacity: .55; }
+      .access-legend { display: grid; gap: .3rem; margin: 0 0 .6rem; font-size: .82rem; }
+      .legend-title { color: var(--muted); }
+      .legend-row { display: flex; flex-wrap: wrap; gap: .35rem .8rem; }
+      .legend-item { display: inline-flex; align-items: center; gap: .3rem; }
+      .legend-item.active { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: .15rem; }
+      .legend-swatch {
+        width: 1.15rem;
+        height: .6rem;
+        border: 1px solid rgb(23 32 51 / 30%);
+        border-radius: .15rem;
+      }
+      .summary-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        margin-right: .3rem;
+        padding: .1rem .45rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        font-size: .78rem;
+        vertical-align: middle;
+      }
+      .chip-swatch {
+        width: .7rem;
+        height: .7rem;
+        border: 1px solid rgb(23 32 51 / 30%);
+        border-radius: .2rem;
+      }
       .map-options {
         margin: .65rem 0 .25rem;
         padding-top: .55rem;
@@ -229,6 +276,7 @@
       .maplibregl-ctrl-bottom-right { right: auto; left: .5rem; }
       @media (pointer: coarse) {
         .quick-actions button,
+        .view-switcher button,
         .preset-choices button,
         .panel-inspect,
         .route-link,
@@ -280,6 +328,7 @@
         .map-panel[data-collapsed="false"] .panel-toggle-icon { transform: rotate(180deg); }
         .panel-selection-summary {
           display: block;
+          min-height: 2.75rem;
           margin: .15rem 0 0;
           overflow: hidden;
           color: var(--muted);
@@ -301,6 +350,7 @@
         .map-panel > .panel-content > #summary-text { margin-top: .15rem; }
         .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
         .quick-actions button,
+        .view-switcher button,
         .preset-choices button,
         .panel-done {
           min-height: 2.75rem;
@@ -440,7 +490,7 @@
           <span class="panel-toggle-icon" aria-hidden="true">▲</span>
         </button>
       </div>
-      <p class="panel-selection-summary" id="panel-selection-summary" aria-live="polite">Loading filters…</p>
+      <button class="panel-selection-summary" id="panel-selection-summary" type="button" aria-live="polite">Loading filters…</button>
       <div class="panel-content" id="panel-content">
         <p id="summary-text">Loading generated data…</p>
         <div class="quick-actions" role="group" aria-label="Quick views">
@@ -449,6 +499,12 @@
           <button type="button" data-view="all">All services</button>
           <button type="button" data-view="clear">Clear</button>
         </div>
+        <div class="view-switcher" id="view-switcher" role="radiogroup" aria-label="Map view mode">
+          <button type="button" role="radio" data-mode="bands" aria-checked="false">Time bands</button>
+          <button type="button" role="radio" data-mode="intersect" aria-checked="false">Meets all</button>
+          <button type="button" role="radio" data-mode="score" aria-checked="false">How many</button>
+        </div>
+        <div class="access-legend" id="access-legend" hidden></div>
         <div class="service-list" id="service-list"></div>
         <div class="map-options">
           <label class="map-detail"><input id="show-places" type="checkbox" checked> Show destinations when zoomed in</label>
@@ -456,7 +512,7 @@
         <p class="status" id="coverage-status" aria-live="polite">Loading map…</p>
         <button class="panel-inspect" id="panel-inspect" type="button">Inspect map center</button>
         <button class="panel-done" id="panel-done" type="button">View map</button>
-        <p class="source-note">Colors overlap where requirements intersect. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.</p>
+        <p class="source-note">Every view restyles one unified access network: time bands for a single service, or the whole selection tested at once. Tap or click a location, or inspect the map center, to test every selected requirement and route to concrete destinations. Coverage is drawn directly from Valhalla’s reachable routing edges, leaving barriers empty except at routable crossings. Routing and destinations exist only inside the OpenStreetMap Lithuania snapshot, so reachability near the national border may be understated — services across the border are not represented.</p>
       </div>
     </section>
     <div class="mobile-map-actions">
@@ -482,12 +538,56 @@
       const pmtilesProtocol = new pmtiles.Protocol();
       maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
+      // Palette per docs/unified-access-layer.md §3.3 (CVD-safe, light
+      // basemap): Okabe-Ito service hues; markers darken the same hue (the
+      // darkest band step of each ramp).
       const serviceStyles = {
-        coffee: { color: "#98500f", fill: "#d8902f", marker: "#7d481d" },
-        hospital: { color: "#a72f40", fill: "#d95463", marker: "#922638" },
-        supermarket: { color: "#08796d", fill: "#26a89a", marker: "#08665d" },
-        fuel: { color: "#574793", fill: "#8373bd", marker: "#4e4084" }
+        coffee: { color: "#E69F00", marker: "#8A5F00" },
+        hospital: { color: "#D55E00", marker: "#9E4600" },
+        supermarket: { color: "#009E73", marker: "#00664A" },
+        fuel: { color: "#0072B2", marker: "#004E7A" }
       };
+      // Band ramps: lightness steps of the service hue at constant
+      // hue/chroma, darkest = smallest minutes (§3.3). Keyed by the
+      // requirement keys of metadata.access_network.
+      const bandRamps = {
+        coffee_walk: { 5: "#8A5F00", 10: "#C08600", 20: "#E69F00" },
+        hospital_drive: { 20: "#9E4600", 30: "#D55E00" },
+        supermarket_walk: { 10: "#00664A", 20: "#009E73" },
+        supermarket_drive: { 10: "#009E73" },
+        fuel_drive: { 10: "#004E7A", 20: "#0072B2" }
+      };
+      // Intersection ink: outside every service hue, hue-free hence
+      // CVD-neutral, maximal contrast on the light basemap (§3.3).
+      const intersectInk = "#172033";
+      const contextGray = "#8a93a3";
+      const accessLayerIds = ["access-context", "access-score", "access-bands", "access-intersect"];
+      const viewModes = ["bands", "intersect", "score"];
+      // Score ramp: sequential, perceptually-uniform, CVD-safe — viridis
+      // anchors sampled at N steps in JS, light → dark with count (§3.3).
+      const viridisAnchors = [
+        [68, 1, 84], [72, 40, 120], [62, 74, 137], [49, 104, 142], [38, 130, 142],
+        [31, 158, 137], [53, 183, 121], [109, 205, 89], [180, 222, 44], [253, 231, 37]
+      ];
+
+      function viridisColor(t) {
+        const scaled = Math.min(Math.max(t, 0), 1) * (viridisAnchors.length - 1);
+        const index = Math.min(Math.floor(scaled), viridisAnchors.length - 2);
+        const mix = scaled - index;
+        const channel = i => Math.round(
+          viridisAnchors[index][i] * (1 - mix) + viridisAnchors[index + 1][i] * mix
+        );
+        return `#${[channel(0), channel(1), channel(2)]
+          .map(value => value.toString(16).padStart(2, "0")).join("")}`;
+      }
+
+      function scoreRamp(count) {
+        // Subset away from the pale-yellow end; score 1 lightest, N darkest.
+        const light = 0.82;
+        const dark = 0.12;
+        return Array.from({ length: count }, (_, index) =>
+          viridisColor(light - (count === 1 ? 0 : index / (count - 1)) * (light - dark)));
+      }
       const kindLabels = {
         cafe: "Cafe",
         restaurant: "Restaurant",
@@ -570,8 +670,11 @@
       });
 
       const serviceState = new Map();
-      const runtimeLayers = new Map();
+      const destinationRecords = new Map();
       const placeLayerIds = [];
+      // Stored view-mode *preference* (§3.2); rendering always goes through
+      // effectiveViewMode(), and coercion never overwrites this value.
+      let viewMode = "intersect";
       const mobileMedia = matchMedia(
         "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
       );
@@ -638,11 +741,34 @@
       }
 
       function activeRequirements() {
-        return metadata.services.filter(service => {
-          const state = serviceState.get(service.id);
-          if (!state.enabled) return false;
-          return !service.count_bands || state.one || state.two_plus;
+        return metadata.services.filter(service => serviceState.get(service.id).enabled);
+      }
+
+      // One entry per active requirement: at most one per service (N <= 4;
+      // supermarket walk/drive are alternatives via the single preset, §3.2).
+      function selectionDetails() {
+        return activeRequirements().map(service => {
+          const preset = selectedPreset(service);
+          return { service, preset, key: `${service.id}_${preset.mode}` };
         });
+      }
+
+      function networkRequirement(key) {
+        const requirement = metadata.access_network.requirements
+          .find(candidate => candidate.key === key);
+        if (!requirement) throw new Error(`unknown network requirement: ${key}`);
+        return requirement;
+      }
+
+      // Preference vs. effective mode (§3.2): |R|=0 renders nothing, |R|=1
+      // is always bands, bands with |R|>=2 coerces to intersect — without
+      // touching the stored preference, so toggling a second service on and
+      // off round-trips bands -> intersect -> bands.
+      function effectiveViewMode(selectionCount) {
+        if (selectionCount === 0) return null;
+        if (selectionCount === 1) return "bands";
+        if (viewMode === "bands") return "intersect";
+        return viewMode;
       }
 
       function requirementsParam() {
@@ -652,9 +778,17 @@
         }).join(",");
       }
 
+      // The URL records the *effective* mode so shared links reproduce what
+      // the sharer saw (§3.4); with nothing selected there is no effective
+      // mode and the parameter is omitted.
+      function effectiveModeParam() {
+        const mode = effectiveViewMode(activeRequirements().length);
+        return mode ? `&mode=${mode}` : "";
+      }
+
       function inspectionHash(lngLat) {
         return `#at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}` +
-          `&requirements=${requirementsParam()}`;
+          `&requirements=${requirementsParam()}${effectiveModeParam()}`;
       }
 
       let lastWrittenHash = "";
@@ -685,7 +819,8 @@
         const center = map.getCenter();
         writeHash(
           `#requirements=${requirementsParam()}` +
-          `&view=${center.lng.toFixed(5)},${center.lat.toFixed(5)},${map.getZoom().toFixed(2)}`
+          `&view=${center.lng.toFixed(5)},${center.lat.toFixed(5)},${map.getZoom().toFixed(2)}` +
+          effectiveModeParam()
         );
       }
 
@@ -715,6 +850,18 @@
           state.enabled = true;
           state.preset = `${preset.mode}:${preset.minutes}`;
         });
+      }
+
+      // Shared-link view mode (§3.4). The `view` hash key already carries
+      // the camera, so the mode travels as `mode=`; absent means "derived
+      // default" (§3.2), keeping older shared links working unchanged.
+      function applySharedViewMode(parameters) {
+        const shared = parameters.get("mode");
+        if (shared === null) return;
+        if (!viewModes.includes(shared)) {
+          throw new Error(`invalid shared view mode: ${shared}`);
+        }
+        viewMode = shared;
       }
 
       function inspectionCenter() {
@@ -749,9 +896,7 @@
           const defaultPreset = service.presets.find(preset => preset.minutes === 10) || service.presets[0];
           serviceState.set(service.id, {
             enabled: service.id === "coffee",
-            one: true,
-            preset: `${defaultPreset.mode}:${defaultPreset.minutes}`,
-            two_plus: true
+            preset: `${defaultPreset.mode}:${defaultPreset.minutes}`
           });
 
           const card = document.createElement("section");
@@ -826,85 +971,63 @@
         return ["interpolate", ["exponential", 2], ["zoom"], ...stops];
       }
 
-      function addCoveragePair(record, source, sourceLayer, band) {
-        const suffix = band || "any";
-        const lineId = `coverage-${record.service}-${record.mode}-${record.minutes}-${suffix}-line`;
-        const style = serviceStyles[record.service];
-        map.addLayer({
-          id: lineId,
-          type: "line",
-          source,
-          "source-layer": sourceLayer,
-          layout: {
-            visibility: "none",
-            "line-cap": "butt",
-            "line-join": "miter",
-            "line-miter-limit": 2
-          },
-          paint: {
-            "line-color": style.fill,
-            "line-opacity": .42,
-            "line-width": corridorLineWidth(record.mode)
-          },
-          filter: [
-            "all",
-            ["<=", ["get", "min_minutes"], record.minutes],
-            [">=", ["get", "max_minutes"], record.minutes]
-          ]
-        });
-        return [lineId];
+      function lineLayout() {
+        return {
+          visibility: "none",
+          "line-cap": "butt",
+          "line-join": "miter",
+          "line-miter-limit": 2
+        };
       }
 
-      function addAccessSources() {
-        metadata.access_tiles.forEach(tile => {
-          const source = `access-${tile.service}-${tile.mode}`;
+      function addAccessNetwork() {
+        const network = metadata.access_network;
+        map.addSource("access", {
+          type: "vector",
+          url: `pmtiles://${new URL(network.file, location.href).href}`
+        });
+        // Four style layers over the one network source-layer, bottom to top
+        // (§3.1). All views read the same tiles, so view and threshold
+        // switches are pure restyles — refreshMap() sets the real
+        // filter/paint before any layer becomes visible.
+        const accessLayer = id => ({
+          id,
+          type: "line",
+          source: "access",
+          "source-layer": network.layer,
+          layout: lineLayout()
+        });
+        accessLayerIds.forEach(id => map.addLayer(accessLayer(id)));
+        metadata.destination_tiles.forEach(tile => {
           const destinationSource = `destination-${tile.service}-${tile.mode}`;
           destinationSourceIds.add(destinationSource);
-          map.addSource(source, {
+          map.addSource(destinationSource, {
             type: "vector",
             url: `pmtiles://${new URL(tile.file, location.href).href}`
           });
-          map.addSource(destinationSource, {
-            type: "vector",
-            url: `pmtiles://${new URL(tile.destination_file, location.href).href}`
-          });
-          Object.entries(tile.coverage_layers).forEach(([minutesText, layerSpec]) => {
+          Object.entries(tile.layers).forEach(([minutesText, sourceLayer]) => {
             const minutes = Number(minutesText);
             const record = {
-              coverage: {},
               destinationLayer: `destinations-${tile.service}-${tile.mode}-${minutes}`,
               destinationSource,
               minutes,
               mode: tile.mode,
-              service: tile.service,
-              source
+              service: tile.service
             };
-            if (typeof layerSpec === "string") {
-              record.coverage.any = addCoveragePair(record, source, layerSpec, null);
-            } else {
-              Object.entries(layerSpec).forEach(([band, sourceLayer]) => {
-                record.coverage[band] = addCoveragePair(record, source, sourceLayer, band);
-              });
-            }
             map.addLayer({
               id: record.destinationLayer,
               type: "line",
               source: destinationSource,
-              "source-layer": tile.destination_layers[minutesText],
+              "source-layer": sourceLayer,
               minzoom: inspectZoom,
-              layout: {
-                visibility: "none",
-                "line-cap": "butt",
-                "line-join": "miter",
-                "line-miter-limit": 2
-              },
+              layout: lineLayout(),
               paint: {
                 "line-color": "#000000",
                 "line-opacity": 0,
                 "line-width": corridorLineWidth(record.mode)
               }
             });
-            runtimeLayers.set(presetKey(tile.service, tile.mode, minutes), record);
+            destinationRecords.set(presetKey(tile.service, tile.mode, minutes), record);
           });
         });
       }
@@ -949,34 +1072,194 @@
         });
       }
 
+      // Canonical reachability test (§1.1): absent key = unreachable, and
+      // MVT has no null, so every ["get"] must be ["has"]-guarded.
+      function reachableTest(selection) {
+        return ["all", ["has", selection.key],
+          ["<=", ["get", selection.key], selection.preset.minutes]];
+      }
+
+      function combinedCorridorMode(selections) {
+        // R7 judgment call: for a mixed selection the narrower walk corridor
+        // is the honest width — a drive-width ribbon would overclaim walk
+        // coverage.
+        return selections.some(selection => selection.preset.mode === "walk") ? "walk" : "drive";
+      }
+
+      function bandColors(selection) {
+        const minutes = networkRequirement(selection.key).minutes;
+        const ramp = bandRamps[selection.key];
+        if (!ramp || minutes.some(value => !ramp[value])) {
+          throw new Error(`no band ramp for ${selection.key} (${minutes})`);
+        }
+        return minutes.map(value => ({ minutes: value, color: ramp[value] }));
+      }
+
+      function styleBandsView(selections) {
+        // Bands is only effective with exactly one selection (§3.2).
+        const focus = selections[0];
+        const bands = bandColors(focus);
+        // The layer filter excludes absent-key features, but data-driven
+        // paint is re-evaluated in the worker against unfiltered tile
+        // features during restyles — guard the null (§1.1) or it logs
+        // type warnings.
+        const bandValue = ["coalesce", ["get", focus.key], -1];
+        const color = ["match", bandValue];
+        bands.forEach(band => color.push(band.minutes, band.color));
+        color.push("rgba(0,0,0,0)");
+        // §3.3: de-emphasize the outermost (near-always-true) band of a
+        // drive requirement; only when inner bands exist to contrast with.
+        const opacity = focus.preset.mode === "drive" && bands.length > 1
+          ? ["match", bandValue, bands[bands.length - 1].minutes, 0.5, 0.9]
+          : 0.9;
+        map.setFilter("access-bands", ["has", focus.key]);
+        map.setPaintProperty("access-bands", "line-color", color);
+        map.setPaintProperty("access-bands", "line-opacity", opacity);
+        map.setPaintProperty("access-bands", "line-width", corridorLineWidth(focus.preset.mode));
+        setLayerVisibility(["access-bands"], true);
+      }
+
+      function styleIntersectView(selections) {
+        const tests = selections.map(reachableTest);
+        const width = corridorLineWidth(combinedCorridorMode(selections));
+        map.setFilter("access-intersect", ["all", ...tests]);
+        map.setPaintProperty("access-intersect", "line-color", intersectInk);
+        map.setPaintProperty("access-intersect", "line-opacity", 0.95);
+        map.setPaintProperty("access-intersect", "line-width", width);
+        map.setFilter("access-context", ["any", ...tests]);
+        map.setPaintProperty("access-context", "line-color", contextGray);
+        map.setPaintProperty("access-context", "line-opacity", 0.35);
+        map.setPaintProperty("access-context", "line-width", width);
+        setLayerVisibility(["access-context", "access-intersect"], true);
+      }
+
+      function styleScoreView(selections) {
+        const score = ["+", ...selections.map(selection =>
+          ["case", reachableTest(selection), 1, 0])];
+        const color = ["match", score];
+        scoreRamp(selections.length).forEach((rampColor, index) =>
+          color.push(index + 1, rampColor));
+        color.push("rgba(0,0,0,0)");
+        map.setFilter("access-score", [">=", score, 1]);
+        map.setPaintProperty("access-score", "line-color", color);
+        map.setPaintProperty("access-score", "line-opacity", 0.9);
+        map.setPaintProperty("access-score", "line-width",
+          corridorLineWidth(combinedCorridorMode(selections)));
+        setLayerVisibility(["access-score"], true);
+      }
+
+      function refreshViewSwitcher(mode, selectionCount) {
+        document.querySelectorAll("#view-switcher button").forEach(button => {
+          // §3.2: bands with two or more selections is the multi-service
+          // band compositing this rework removes — disabled, with a hint.
+          const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
+          button.disabled = bandsLocked;
+          button.title = bandsLocked ? "Pick one service to see its time bands" : "";
+          button.setAttribute("aria-checked", String(button.dataset.mode === mode));
+        });
+      }
+
+      function legendItem(background, label, active = false) {
+        const entry = document.createElement("span");
+        entry.className = `legend-item${active ? " active" : ""}`;
+        const swatch = document.createElement("span");
+        swatch.className = "legend-swatch";
+        swatch.style.background = background;
+        const text = document.createElement("span");
+        text.textContent = label;
+        entry.append(swatch, text);
+        return entry;
+      }
+
+      function renderLegend(mode, selections) {
+        const legend = document.getElementById("access-legend");
+        legend.replaceChildren();
+        legend.hidden = !mode;
+        if (!mode) return;
+        const title = document.createElement("span");
+        title.className = "legend-title";
+        const row = document.createElement("span");
+        row.className = "legend-row";
+        if (mode === "bands") {
+          const focus = selections[0];
+          title.textContent =
+            `${focus.service.label} · minutes by ${focus.preset.mode === "walk" ? "walking" : "driving"}`;
+          bandColors(focus).forEach(band => row.append(legendItem(
+            band.color, `${band.minutes} min`, band.minutes === focus.preset.minutes
+          )));
+        } else if (mode === "intersect") {
+          title.textContent = "Selected requirements";
+          row.append(legendItem(intersectInk, `Meets all ${selections.length}`));
+          row.append(legendItem(contextGray, "Meets some"));
+        } else {
+          title.textContent = `How many of ${selections.length} requirements are met`;
+          scoreRamp(selections.length).forEach((color, index) =>
+            row.append(legendItem(color, `${index + 1} of ${selections.length}`)));
+        }
+        legend.append(title, row);
+      }
+
+      function summaryChip(label, background, title) {
+        const chip = document.createElement("span");
+        chip.className = "summary-chip";
+        if (title) chip.title = title;
+        const swatch = document.createElement("span");
+        swatch.className = "chip-swatch";
+        swatch.style.background = background;
+        const text = document.createElement("span");
+        text.textContent = label;
+        chip.append(swatch, text);
+        return chip;
+      }
+
       function updateCoverageStatus() {
-        const requirements = activeRequirements();
+        const selections = selectionDetails();
+        const mode = effectiveViewMode(selections.length);
+        const summary = document.getElementById("panel-selection-summary");
         if (persistentMapError) {
           document.getElementById("coverage-status").textContent = persistentMapError;
-          document.getElementById("panel-selection-summary").textContent =
-            "Map data error · open filters for details";
-        } else {
-          document.getElementById("coverage-status").textContent = requirements.length
-            ? `${requirements.length} ${requirements.length === 1 ? "requirement" : "requirements"} selected · tap or click the map to test their intersection.`
-            : "No requirements selected.";
-          document.getElementById("panel-selection-summary").textContent = requirements.length === 1
-            ? `${requirements[0].label} · ${selectedPreset(requirements[0]).label}`
-            : requirements.length
-              ? `${requirements.length} requirements selected`
-              : "No requirements selected";
+          summary.textContent = "Map data error · open filters for details";
+          return;
         }
+        document.getElementById("coverage-status").textContent = selections.length
+          ? `${selections.length} ${selections.length === 1 ? "requirement" : "requirements"} selected · tap or click the map to test every one.`
+          : "No requirements selected.";
+        // Collapsed-mobile legend (§3.4): a mode chip plus one mini-swatch
+        // chip per active requirement; tapping the row expands the panel.
+        summary.replaceChildren();
+        if (!mode) {
+          summary.textContent = "No requirements selected";
+          return;
+        }
+        if (mode === "bands") {
+          const colors = bandColors(selections[0]).map(band => band.color);
+          summary.append(summaryChip("Time bands", `linear-gradient(90deg, ${colors.join(", ")})`));
+        } else if (mode === "intersect") {
+          summary.append(summaryChip(`All ${selections.length}`, intersectInk));
+        } else {
+          summary.append(summaryChip("How many",
+            `linear-gradient(90deg, ${scoreRamp(selections.length).join(", ")})`));
+        }
+        selections.forEach(selection => summary.append(summaryChip(
+          selection.service.label,
+          serviceStyles[selection.service.id].color,
+          `${selection.service.label} · ${selection.preset.label}`
+        )));
       }
 
       function refreshMap() {
         refreshControls();
-        runtimeLayers.forEach(record => {
-          const service = metadata.services.find(item => item.id === record.service);
-          const state = serviceState.get(record.service);
-          const preset = selectedPreset(service);
-          const active = state.enabled && preset.mode === record.mode && preset.minutes === record.minutes;
-          Object.values(record.coverage).forEach(layerIds => setLayerVisibility(layerIds, active));
-          setLayerVisibility([record.destinationLayer], false);
-        });
+        const selections = selectionDetails();
+        const mode = effectiveViewMode(selections.length);
+        refreshViewSwitcher(mode, selections.length);
+        // Only the active view's layers are visible; all views read the same
+        // tiles, so this is a pure restyle — zero tile fetches (§3.1).
+        setLayerVisibility(accessLayerIds, false);
+        if (mode === "bands") styleBandsView(selections);
+        else if (mode === "intersect") styleIntersectView(selections);
+        else if (mode === "score") styleScoreView(selections);
+        renderLegend(mode, selections);
+        destinationRecords.forEach(record => setLayerVisibility([record.destinationLayer], false));
         metadata.services.forEach(service => {
           const state = serviceState.get(service.id);
           setLayerVisibility(
@@ -997,14 +1280,23 @@
           state.preset = `${defaultPreset.mode}:${defaultPreset.minutes}`;
         });
         const enable = id => { serviceState.get(id).enabled = true; };
-        if (view === "coffee") enable("coffee");
+        // Quick views pick the matching view mode too (§3.4); "clear" keeps
+        // the stored preference.
+        if (view === "coffee") {
+          enable("coffee");
+          viewMode = "bands";
+        }
         if (view === "everyday") {
           enable("coffee");
           enable("supermarket");
           serviceState.get("coffee").preset = "walk:10";
           serviceState.get("supermarket").preset = "walk:10";
+          viewMode = "intersect";
         }
-        if (view === "all") metadata.services.forEach(service => enable(service.id));
+        if (view === "all") {
+          metadata.services.forEach(service => enable(service.id));
+          viewMode = "score";
+        }
         refreshMap();
       }
 
@@ -1136,7 +1428,7 @@
       function destinationRecordsForRequirements(requirements) {
         return requirements.map(service => {
           const preset = selectedPreset(service);
-          return runtimeLayers.get(presetKey(service.id, preset.mode, preset.minutes));
+          return destinationRecords.get(presetKey(service.id, preset.mode, preset.minutes));
         });
       }
 
@@ -1234,7 +1526,7 @@
       function inspectLocation(lngLat, updateHash = true, sequence = ++inspectSequence) {
         inspectionOrigin = { lng: Number(lngLat.lng), lat: Number(lngLat.lat) };
         setLayerVisibility(
-          [...runtimeLayers.values()].map(record => record.destinationLayer),
+          [...destinationRecords.values()].map(record => record.destinationLayer),
           false
         );
         if (map.getZoom() < inspectZoom) {
@@ -1250,10 +1542,10 @@
           });
           return;
         }
-        const destinationRecords = destinationRecordsForRequirements(activeRequirements());
-        const destinationLayerIds = destinationRecords.map(record => record.destinationLayer);
+        const requiredRecords = destinationRecordsForRequirements(activeRequirements());
+        const destinationLayerIds = requiredRecords.map(record => record.destinationLayer);
         const requiredDestinationSources = new Set(
-          destinationRecords.map(record => record.destinationSource)
+          requiredRecords.map(record => record.destinationSource)
         );
         if (!destinationLayerIds.length) {
           inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
@@ -1365,6 +1657,7 @@
           try {
             const sharedRequirements = parameters.get("requirements");
             if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
+            applySharedViewMode(parameters);
           } catch (error) {
             reportMapError(error);
             return;
@@ -1381,10 +1674,12 @@
           });
           return;
         }
-        // View-only hash: restore requirements and camera, no inspect dialog.
+        // View-only hash: restore requirements, view mode, and camera; no
+        // inspect dialog.
         try {
           const sharedRequirements = parameters.get("requirements");
           if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
+          applySharedViewMode(parameters);
         } catch (error) {
           reportMapError(error);
           return;
@@ -1418,7 +1713,7 @@
       ]).then(([loadedMetadata]) => {
         metadata = loadedMetadata;
         createServiceControls();
-        addAccessSources();
+        addAccessNetwork();
         addPlaceLayers();
         const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
         map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
@@ -1429,6 +1724,16 @@
           `${totalPlaces.toLocaleString()} routed service destinations from one OpenStreetMap snapshot.`;
         document.querySelectorAll("[data-view]").forEach(button =>
           button.addEventListener("click", () => applyQuickView(button.dataset.view))
+        );
+        document.querySelectorAll("#view-switcher button").forEach(button =>
+          button.addEventListener("click", () => {
+            viewMode = button.dataset.mode;
+            refreshMap();
+          })
+        );
+        // Tapping the collapsed chip row opens the panel (§3.4).
+        document.getElementById("panel-selection-summary").addEventListener("click", () =>
+          setPanelCollapsed(false)
         );
         document.getElementById("show-places").addEventListener("change", refreshMap);
         document.getElementById("panel-inspect").addEventListener("click", () =>
@@ -1451,7 +1756,7 @@
           inspectionOrigin = undefined;
           inspectSequence += 1;
           setLayerVisibility(
-            [...runtimeLayers.values()].map(record => record.destinationLayer),
+            [...destinationRecords.values()].map(record => record.destinationLayer),
             false
           );
           // Fall back from the inspect-share hash to the view-state hash.
