@@ -179,7 +179,7 @@ let
       runHook preInstall
 
       mkdir -p "$out"
-      cp generated/*.geojson generated/*.pmtiles generated/metadata.json "$out/"
+      cp generated/*.json generated/*.pmtiles "$out/"
       ${writeEtags}
 
       runHook postInstall

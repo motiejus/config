@@ -1917,30 +1917,14 @@
         return list;
       }
 
-      function featureDestination(feature) {
-        const properties = { ...feature.properties };
-        if (properties.lon === undefined || properties.lat === undefined) {
-          const coordinates = feature.geometry?.coordinates;
-          if (Array.isArray(coordinates) && coordinates.length >= 2) {
-            properties.lon = Number(coordinates[0]);
-            properties.lat = Number(coordinates[1]);
-          }
-        }
-        return properties;
-      }
-
       function loadPlaceCatalog() {
         if (!placeCatalogPromise) {
-          placeCatalogPromise = fetchJson("places.geojson")
-            .then(collection => {
-              const destinations = collection.features.map(feature => {
-                const destination = featureDestination(feature);
-                return destination;
-              });
-              return {
-                byId: new Map(destinations.map(destination => [destination.place_id, destination])),
-                byIndex: new Map(destinations.map(destination => [Number(destination.place_index), destination]))
-              };
+          placeCatalogPromise = fetchJson(metadata.places.catalog_file)
+            .then(destinations => {
+              if (!Array.isArray(destinations)) {
+                throw new Error(`${metadata.places.catalog_file}: expected an array`);
+              }
+              return destinations;
             })
             .catch(error => {
               placeCatalogPromise = undefined;
@@ -2030,13 +2014,13 @@
             throw new Error(`Invalid destination IDs in ${properties.service}: expected an array`);
           }
           placeIds.forEach(placeId => {
-            const destination = placeCatalog.byIndex.get(placeId);
+            const destination = placeCatalog[placeId];
             if (!destination) {
               throw new Error(
                 `Destination lookup references unknown place index ${placeId} in ${properties.service}`
               );
             }
-            byService.get(properties.service).set(destination.place_id, destination);
+            byService.get(properties.service).set(placeId, destination);
           });
         });
         document.getElementById("location-coordinates").textContent =
@@ -2044,7 +2028,7 @@
         renderClickedPlaces(markerFeatures.map(feature => ({
           ...feature,
           properties: {
-            ...placeCatalog.byId.get(feature.properties.place_id),
+            ...placeCatalog[Number(feature.properties.place_index)],
             ...feature.properties
           }
         })));
@@ -2107,6 +2091,7 @@
 
       function inspectLocation(lngLat, updateHash = true, sequence = ++inspectSequence) {
         inspectionOrigin = { lng: Number(lngLat.lng), lat: Number(lngLat.lat) };
+        renderInspectionLoading(inspectionOrigin, updateHash);
         setLayerVisibility(
           [...destinationRecords.values()].map(record => record.destinationLayer),
           false
@@ -2186,6 +2171,25 @@
         if (!dialog.open) dialog.showModal();
       }
 
+      // Open the dialog at click time, before an automatic zoom or PMTiles
+      // lookup can make the interaction feel ignored. Rendered marker fields
+      // are already enough for the place chip; the compact catalog fills in
+      // its address and the destination cards when the lookup completes.
+      function renderInspectionLoading(lngLat, updateHash) {
+        if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
+        locationMarker.setLngLat(lngLat).addTo(map);
+        if (updateHash) updateInspectionHash(lngLat);
+        document.getElementById("location-coordinates").textContent =
+          t("coordsLine", `${Number(lngLat.lat).toFixed(6)}, ${Number(lngLat.lng).toFixed(6)}`);
+        renderClickedPlaces(inspectionMarkerFeatures ?? []);
+        document.getElementById("intersection-summary").textContent = t("loadingDetails");
+        const results = document.getElementById("location-results");
+        results.replaceChildren();
+        results.setAttribute("aria-busy", "true");
+        const dialog = document.getElementById("location-dialog");
+        if (!dialog.open) dialog.showModal();
+      }
+
       // A destination dot renders as a ~5px-radius circle; requiring a
       // pixel-exact hit made real clicks (and every finger tap) miss it, so
       // the place card silently never appeared. Query a padded box instead —
@@ -2222,20 +2226,10 @@
         const destinationFeatures = destinationLayerIds.length
           ? map.queryRenderedFeatures(point, { layers: destinationLayerIds })
           : [];
-        if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
-        locationMarker.setLngLat(lngLat).addTo(map);
-        if (updateHash) {
-          updateInspectionHash(lngLat);
-        }
-        document.getElementById("location-coordinates").textContent =
-          t("coordsLine", `${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}`);
-        document.getElementById("intersection-summary").textContent = t("loadingDetails");
-        const results = document.getElementById("location-results");
-        results.replaceChildren();
-        results.setAttribute("aria-busy", "true");
-        const dialog = document.getElementById("location-dialog");
-        if (!dialog.open) dialog.showModal();
-        loadPlaceCatalog()
+        const catalogPromise = markerFeatures.length || destinationFeatures.length
+          ? loadPlaceCatalog()
+          : Promise.resolve([]);
+        catalogPromise
           .then(placeCatalog => {
             if (sequence === inspectSequence) {
               renderLocationResults(lngLat, markerFeatures, destinationFeatures, placeCatalog);

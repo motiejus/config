@@ -141,6 +141,23 @@ PLACE_SOURCE_COLUMNS = (
     "shop",
     "source_geometry",
 )
+# The inspect dialog needs only these human-facing fields plus the point
+# coordinates. Keep its catalog separate from the tilemaker GeoJSON: shipping
+# the latter exposed every OSM tag and made the browser parse several MiB on
+# the first inspection. Entries are stored in place_index order, so the array
+# position is the lookup key already carried by the destination tiles.
+PLACE_CATALOG_COLUMNS = (
+    "addr:city",
+    "addr:housenumber",
+    "addr:postcode",
+    "addr:street",
+    "brand",
+    "contact:phone",
+    "kind",
+    "name",
+    "opening_hours",
+    "phone",
+)
 
 
 @contextmanager
@@ -319,13 +336,13 @@ def destination_tile_config(route: dict, work: Path) -> dict:
     }
 
 
-def places_tile_config(output: Path) -> dict:
+def places_tile_config(work: Path) -> dict:
     return {
         "layers": {
             "places": {
                 "minzoom": 9,
                 "maxzoom": TILE_MAX_ZOOM,
-                "source": str(output / "places.geojson"),
+                "source": str(work / "places.geojson"),
                 "source_columns": list(PLACE_SOURCE_COLUMNS),
                 "combine_points": False,
             }
@@ -488,6 +505,25 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
             feature["properties"]["place_index"] = place_index
             place_index += 1
     return prepared
+
+
+def place_catalog(features: list[dict]) -> list[dict]:
+    result = []
+    for expected_index, feature in enumerate(features):
+        properties = feature["properties"]
+        if properties.get("place_index") != expected_index:
+            raise RuntimeError(
+                f"place catalog feature {expected_index} has index "
+                f"{properties.get('place_index')!r}"
+            )
+        entry = {
+            key: properties[key]
+            for key in PLACE_CATALOG_COLUMNS
+            if key in properties
+        }
+        entry["lon"], entry["lat"] = feature["geometry"]["coordinates"]
+        result.append(entry)
+    return result
 
 
 def write_expansion_requests(path: Path, route: dict, entries: list[tuple[dict, dict]]):
@@ -668,7 +704,11 @@ def main() -> None:
         for service in SERVICE_SPECS
         for _location, feature in prepared[service["id"]]
     ]
-    write_json(output / "places.geojson", feature_collection(place_features, country_bbox))
+    # The full GeoJSON is an encoder input, not a web API. The browser gets a
+    # compact, index-addressed detail catalog without geometry wrappers or
+    # hundreds of unrelated OSM tags.
+    write_json(work / "places.geojson", feature_collection(place_features, country_bbox))
+    write_json(output / "place-catalog.json", place_catalog(place_features))
 
     network_config_path = work / "access.json"
     write_json(network_config_path, network_tile_config(work))
@@ -714,7 +754,7 @@ def main() -> None:
         )
 
     places_config = work / "places.json"
-    write_json(places_config, places_tile_config(output))
+    write_json(places_config, places_tile_config(work))
     run(
         "build service destination PMTiles",
         [
@@ -839,6 +879,7 @@ def main() -> None:
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
             "osm_source": args.osm_source_url,
             "places": {
+                "catalog_file": "place-catalog.json",
                 "file": "places.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "places",
