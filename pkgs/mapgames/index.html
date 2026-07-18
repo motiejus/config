@@ -836,6 +836,7 @@
       const buildingsLayer = baseLayers.find(layer => layer.id === "buildings");
       if (buildingsLayer) delete buildingsLayer.filter;
       else console.warn("vendored basemap style has no buildings layer; skipping filter removal");
+      const baseAttribution = '<a href="https://protomaps.com">Protomaps</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
       const mapStyle = {
         version: 8,
         glyphs: `${new URL("assets/fonts/", location.href).href}{fontstack}/{range}.pbf`,
@@ -844,11 +845,24 @@
           [baseSource]: {
             type: "vector",
             url: `pmtiles://${archiveUrl}`,
-            attribution: '<a href="https://protomaps.com">Protomaps</a> · &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: baseAttribution
           }
         },
         layers: baseLayers
       };
+
+      // The OSM snapshot date (metadata.generated_at_osm_timestamp, from the
+      // PBF's osmosis_replication_timestamp) joins the attribution line. The
+      // dated string contains the base one, so MapLibre's containment
+      // dedupe shows only the dated line once the access source is added;
+      // ISO dates read natively in both Lithuanian and English, so the line
+      // needs no re-render on language toggle.
+      function snapshotAttribution() {
+        const date = (metadata.generated_at_osm_timestamp ?? "").slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(date)
+          ? `${baseAttribution} · ${date}`
+          : baseAttribution;
+      }
       // The raw message is stored language-free so a later language toggle
       // re-renders the banner; renderMapError formats it on every call.
       let persistentMapError = "";
@@ -1342,7 +1356,8 @@
         const network = metadata.access_network;
         map.addSource("access", {
           type: "vector",
-          url: `pmtiles://${new URL(network.file, location.href).href}`
+          url: `pmtiles://${new URL(network.file, location.href).href}`,
+          attribution: snapshotAttribution()
         });
         // Four style layers over the one network source-layer, bottom to top
         // (§3.1). All views read the same tiles, so view and threshold
@@ -2105,6 +2120,10 @@
         new Promise(resolve => map.once("load", resolve))
       ]).then(([loadedMetadata]) => {
         metadata = loadedMetadata;
+        // Date the always-used basemap source too, so the snapshot date
+        // stays visible even when no access layer is active (the
+        // attribution control ignores unused sources).
+        map.getSource(baseSource).attribution = snapshotAttribution();
         createServiceControls();
         addAccessNetwork();
         addPlaceLayers();
