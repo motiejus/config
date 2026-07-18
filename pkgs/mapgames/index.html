@@ -256,6 +256,16 @@
         text-decoration: none;
       }
       .destination-kind { color: var(--muted); font-size: .78rem; }
+      .destination-details { flex: 1; min-width: 0; }
+      .destination-details summary { cursor: pointer; }
+      .destination-place-card {
+        margin: .3rem 0 .1rem;
+        padding: .35rem .5rem;
+        border-left: .25rem solid var(--border);
+        border-radius: .3rem;
+        background: #ffffff;
+      }
+      .destination-place-card p { margin: .2rem 0; font-size: .85rem; }
       .more-destinations { margin-top: .4rem; }
       .clicked-place {
         margin: .7rem 0;
@@ -324,6 +334,7 @@
         .view-switcher button,
         .preset-choices button,
         .route-link,
+        .destination-details summary,
         .more-destinations > summary { min-height: 2.75rem; }
         .route-link { display: inline-flex; align-items: center; }
         .service-heading, .map-detail { min-height: 2.75rem; }
@@ -442,6 +453,7 @@
         .destination-list li { align-items: stretch; }
         .route-link { display: inline-flex; min-height: 2.75rem; align-items: center; }
         .clicked-place a { display: inline-flex; min-height: 2.75rem; align-items: center; }
+        .destination-details summary { min-height: 2.75rem; }
         .more-destinations > summary { display: flex; min-height: 2.75rem; align-items: center; cursor: pointer; }
         /* Keep the expanded attribution clear of the top-left nav control:
            the compact control is content-box, so subtract its own padding
@@ -738,6 +750,7 @@
           unnamedKind: label => `${label} be pavadinimo`,
           genericDestination: "Vieta",
           destinationMeta: (label, km) => `${label} · ${km} km tiesia linija`,
+          noPlaceDetails: "Papildomos informacijos apie šią vietą nėra.",
           liveRoute: "Maršrutas",
           pillAvailable: "Pasiekiama",
           pillNotFound: "Nerasta",
@@ -821,6 +834,7 @@
           unnamedKind: label => `Unnamed ${label.toLowerCase()}`,
           genericDestination: "Destination",
           destinationMeta: (label, km) => `${label} · ${km} km straight-line`,
+          noPlaceDetails: "No further details for this place.",
           liveRoute: "Live route",
           pillAvailable: "Available",
           pillNotFound: "Not found",
@@ -1858,15 +1872,40 @@
           meta.className = "destination-kind";
           const distance = haversineMeters(origin, destination);
           meta.textContent = t("destinationMeta", kindLabel(destination.kind), formatKm(distance));
-          const text = document.createElement("span");
-          text.append(label, document.createElement("br"), meta);
+          // Each destination expands in place to its place-card details —
+          // one tap to open, one tap back to the list; the catalog entry
+          // already carries the full place properties.
+          const details = document.createElement("details");
+          details.className = "destination-details";
+          const summary = document.createElement("summary");
+          summary.append(label, document.createElement("br"), meta);
+          details.append(summary);
+          details.addEventListener("toggle", () => {
+            if (!details.open || details.dataset.loaded) return;
+            details.dataset.loaded = "true";
+            const card = document.createElement("div");
+            card.className = "destination-place-card";
+            const values = placeDetailValues(destination);
+            for (const value of values) {
+              const paragraph = document.createElement("p");
+              paragraph.textContent = value;
+              card.append(paragraph);
+            }
+            if (!values.length) {
+              const paragraph = document.createElement("p");
+              paragraph.className = "destination-kind";
+              paragraph.textContent = t("noPlaceDetails");
+              card.append(paragraph);
+            }
+            details.append(card);
+          });
           const link = document.createElement("a");
           link.className = "route-link";
           link.href = valhallaRouteUrl(origin, destination, mode);
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           link.textContent = t("liveRoute");
-          item.append(text, link);
+          item.append(details, link);
           list.append(item);
         });
         return list;
@@ -1921,6 +1960,19 @@
         return result;
       }
 
+      // The place-card body lines (address, opening hours, phone), shared by
+      // the "selected place" card and the per-destination expansion in the
+      // inspect dialog.
+      function placeDetailValues(properties) {
+        const address = [
+          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
+          properties["addr:city"],
+          properties["addr:postcode"]
+        ].filter(Boolean).join(", ");
+        return [address, properties.opening_hours, properties.phone || properties["contact:phone"]]
+          .filter(Boolean);
+      }
+
       function renderClickedPlaces(features) {
         const root = document.getElementById("clicked-place");
         root.replaceChildren();
@@ -1941,14 +1993,7 @@
           chips.append(chip);
         }
         card.append(chips);
-        const primary = features[0].properties;
-        const address = [
-          [primary["addr:street"], primary["addr:housenumber"]].filter(Boolean).join(" "),
-          primary["addr:city"],
-          primary["addr:postcode"]
-        ].filter(Boolean).join(", ");
-        for (const value of [address, primary.opening_hours, primary.phone || primary["contact:phone"]]) {
-          if (!value) continue;
+        for (const value of placeDetailValues(features[0].properties)) {
           const paragraph = document.createElement("p");
           paragraph.textContent = value;
           card.append(paragraph);
