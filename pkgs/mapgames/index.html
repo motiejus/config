@@ -857,6 +857,11 @@
       // ---- end i18n ------------------------------------------------------
       const lithuaniaBounds = [[20.35, 53.75], [27.10, 56.60]];
       const inspectZoom = 12;
+      // Individual destinations are useful at street scale, but become a
+      // noisy point cloud over whole cities. Although the archive supports
+      // lower zooms, delay the visual dots until a user can distinguish
+      // nearby streets and aim at a specific destination.
+      const placeDisplayMinZoom = 14;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
@@ -1420,7 +1425,10 @@
       // a street highlight; the invisible destination hit corridors carry
       // the reachability verdict, so they always stay geographically true
       // (maxWidthPx defaults to uncapped).
-      const corridorWidthCapPx = 22;
+      // Six CSS pixels stays legible over the basemap without swallowing
+      // buildings or merging parallel streets. Geographic corridor width is
+      // still preserved by the invisible destination hit layers below.
+      const corridorWidthCapPx = 6;
 
       function corridorLineWidth(mode, maxWidthPx = Infinity) {
         const bufferMeters = metadata.geometry.corridor_buffer_meters[mode];
@@ -1531,7 +1539,7 @@
             type: "circle",
             source: "places",
             "source-layer": metadata.places.layer,
-            minzoom: metadata.places.min_data_zoom,
+            minzoom: Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom),
             filter: ["==", ["get", "service"], service.id],
             layout: { visibility: "none" },
             paint: {
