@@ -1005,6 +1005,11 @@
       const mapPanel = document.querySelector(".map-panel");
       let metadata;
       let inspectionOrigin;
+      // Rendered destination dots captured at click time (before any
+      // auto-zoom moves the camera), so the place card always reflects the
+      // dot the user actually aimed at. undefined = no click capture (hash
+      // restore); an empty array is a real "nothing was near the click".
+      let inspectionMarkerFeatures;
       let inspectSequence = 0;
       let locationMarker;
       let placeCatalogPromise;
@@ -2130,11 +2135,39 @@
         if (!dialog.open) dialog.showModal();
       }
 
+      // A destination dot renders as a ~5px-radius circle; requiring a
+      // pixel-exact hit made real clicks (and every finger tap) miss it, so
+      // the place card silently never appeared. Query a padded box instead —
+      // clickability is decoupled from the visual dot size — and order hits
+      // nearest-first so the primary card is the dot the user aimed at. The
+      // access verdict is untouched: it stays an exact-point test.
+      const dotHitPadding = matchMedia("(pointer: coarse)").matches ? 14 : 9;
+
+      function markerFeaturesAt(point) {
+        const layers = placeLayerIds.filter(id => map.getLayer(id));
+        if (!layers.length) return [];
+        const features = map.queryRenderedFeatures([
+          [point.x - dotHitPadding, point.y - dotHitPadding],
+          [point.x + dotHitPadding, point.y + dotHitPadding]
+        ], { layers });
+        const distance = feature => {
+          const projected = map.project(feature.geometry.coordinates);
+          return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
+        };
+        // At low zooms the padded box spans hundreds of meters; keep the
+        // card to the nearest few dots instead of flooding it with chips.
+        return dedupeFeatures(features.sort((left, right) => distance(left) - distance(right)))
+          .slice(0, 6);
+      }
+
       function inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence) {
         const point = map.project(lngLat);
-        const markerFeatures = dedupeFeatures(
-          map.queryRenderedFeatures(point, { layers: placeLayerIds })
-        );
+        // Click-time capture wins: after the below-inspectZoom auto-zoom the
+        // re-projected point is many pixels off the aimed-at dot, so a
+        // post-settle query would lose it. The fallback query serves the
+        // hash-restore path, where there was no click to capture.
+        const markerFeatures = inspectionMarkerFeatures ?? markerFeaturesAt(point);
+        inspectionMarkerFeatures = markerFeatures;
         const destinationFeatures = destinationLayerIds.length
           ? map.queryRenderedFeatures(point, { layers: destinationLayerIds })
           : [];
@@ -2198,6 +2231,9 @@
           // clobber the share hash while the camera settles;
           // inspectLocation re-establishes this origin itself.
           inspectionOrigin = lngLat;
+          // A hash-driven inspection had no click; drop any stale capture so
+          // the shared location gets its own post-settle dot query.
+          inspectionMarkerFeatures = undefined;
           map.jumpTo({ center: lngLat, zoom: Math.max(map.getZoom(), inspectZoom) });
           map.once("idle", () => {
             if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
@@ -2329,6 +2365,7 @@
         });
         document.getElementById("location-dialog").addEventListener("close", () => {
           inspectionOrigin = undefined;
+          inspectionMarkerFeatures = undefined;
           inspectSequence += 1;
           setLayerVisibility(
             [...destinationRecords.values()].map(record => record.destinationLayer),
@@ -2337,7 +2374,10 @@
           // Fall back from the inspect-share hash to the view-state hash.
           scheduleViewHash();
         });
-        map.on("click", event => inspectLocation(event.lngLat));
+        map.on("click", event => {
+          inspectionMarkerFeatures = markerFeaturesAt(event.point);
+          inspectLocation(event.lngLat);
+        });
         // Destination dots are clickable; make them read that way.
         placeLayerIds.forEach(layerId => {
           map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
