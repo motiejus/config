@@ -14,14 +14,15 @@
   runCommand,
   tilemaker,
   valhalla,
-  concurrency ? 4,
+  # null means "use $NIX_BUILD_CORES at build time".
+  concurrency ? null,
   # Full Lithuania PBF extent; expect multi-GiB lookup output.
   # bbox ? "20.618591,53.892206,26.83873,56.45329",
   bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/production area
 }:
 
 assert lib.assertMsg (
-  builtins.isInt concurrency && concurrency > 0
+  concurrency == null || (builtins.isInt concurrency && concurrency > 0)
 ) "mapgames: concurrency must be a positive integer";
 
 let
@@ -124,7 +125,7 @@ let
       python ${./generate.py} \
         --pbf ${lithuaniaPbf} \
         --bbox ${lib.escapeShellArg bbox} \
-        --concurrency ${toString concurrency} \
+        --concurrency ${if concurrency == null then "\"$NIX_BUILD_CORES\"" else toString concurrency} \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
         --coverage-process ${./coverage.lua} \

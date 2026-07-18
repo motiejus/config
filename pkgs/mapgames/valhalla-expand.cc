@@ -253,12 +253,15 @@ std::string request_json(const Request &request) {
 }
 
 std::string validation_request_json(const Request &request) {
+  // The validation isochrone exists only to propagate routing errors that the
+  // expansion action swallows (e.g. Loki's "no edges near location"). Those
+  // errors do not depend on the contour time, so a 1-minute contour surfaces
+  // them without repeating the full-threshold routing work.
   std::ostringstream out;
   out << std::setprecision(17) << R"({"locations":[{"lon":)" << request.lon
       << R"(,"lat":)" << request.lat << R"(,"radius":100}],"costing":)"
-      << json_string(request.costing) << R"(,"contours":[{"time":)"
-      << request.minutes
-      << R"(}],"generalize":0,"polygons":false,"reverse":true,"show_locations":false})";
+      << json_string(request.costing)
+      << R"(,"contours":[{"time":1}],"generalize":0,"polygons":false,"reverse":true,"show_locations":false})";
   return out.str();
 }
 

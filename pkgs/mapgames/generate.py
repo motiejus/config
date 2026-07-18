@@ -212,14 +212,14 @@ def common_tile_settings(name: str, description: str, minzoom: int = COVERAGE_MI
     }
 
 
-def coverage_tile_config(route: dict, output: Path) -> dict:
+def coverage_tile_config(route: dict, work: Path) -> dict:
     layer = coverage_layer_name()
     return {
         "layers": {
             layer: {
                 "minzoom": COVERAGE_MIN_ZOOM,
                 "maxzoom": COVERAGE_MAX_ZOOM,
-                "source": str(output / coverage_filename(route)),
+                "source": str(work / coverage_filename(route)),
                 "source_columns": ["max_minutes", "min_minutes", "mode", "service"],
                 # Only country-scale tiles are generalized. Street-scale tiles and
                 # the exported GeoJSON retain the reachable routing edges.
@@ -307,7 +307,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def prepare_boundary(args: argparse.Namespace, work: Path, output: Path):
+def prepare_boundary(args: argparse.Namespace, work: Path):
     boundary_geojson_path = work / "lithuania-boundary.raw.geojson"
     country = box(*args.bbox)
     write_json(
@@ -327,9 +327,8 @@ def prepare_boundary(args: argparse.Namespace, work: Path, output: Path):
     if country.is_empty:
         raise RuntimeError("coverage boundary is empty")
     country_bbox = list(country.bounds)
-    write_json(work / "coverage-boundary.geojson", mapping(country))
     write_json(
-        output / "lithuania.geojson",
+        work / "lithuania.geojson",
         feature_collection(
             [
                 {
@@ -481,7 +480,7 @@ def main() -> None:
     )
 
     with timed("prepare coverage boundary"):
-        country, country_bbox = prepare_boundary(args, work, output)
+        country, country_bbox = prepare_boundary(args, work)
 
     basemap_command = [
         "tilemaker",
@@ -537,7 +536,6 @@ def main() -> None:
     )
 
     routed_counts = {}
-    coverage_files = []
     coverage_bbox = ",".join(str(coordinate) for coordinate in country_bbox)
     for route in ROUTE_SPECS:
         if route["count_bands"]:
@@ -553,7 +551,9 @@ def main() -> None:
                 config_path,
                 requests_path,
                 work,
-                output,
+                # Coverage GeoJSON is a tilemaker input only; keep it out of
+                # the published output directory.
+                work,
                 args.concurrency,
                 ",".join(str(minutes) for minutes in route["minutes"]),
                 coverage_bbox,
@@ -565,15 +565,6 @@ def main() -> None:
         for _location, place_feature in entries:
             place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
         routed_counts[key] = len(entries)
-        coverage_files.append(
-            {
-                "direction": "to_destination",
-                "file": coverage_filename(route),
-                "minute_bands": list(route["minutes"]),
-                "mode": route["mode"],
-                "service": route["service"],
-            }
-        )
 
     place_features = [
         feature
@@ -586,7 +577,7 @@ def main() -> None:
     for route in ROUTE_SPECS:
         key = route_key(route)
         config_path = work / f"access-{key}.json"
-        write_json(config_path, coverage_tile_config(route, output))
+        write_json(config_path, coverage_tile_config(route, work))
         tile_name = f"access-{key}.pmtiles"
         run(
             f"build {key} access PMTiles",
@@ -699,7 +690,6 @@ def main() -> None:
                 "tilemaker_version": args.tilemaker_version,
             },
             "bbox": country_bbox,
-            "coverage_files": coverage_files,
             "generated_at_osm_timestamp": osm_timestamp,
             "geometry": {
                 "corridor_buffer_meters": CORRIDOR_BUFFER_METERS,
