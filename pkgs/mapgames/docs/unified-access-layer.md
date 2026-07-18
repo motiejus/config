@@ -506,10 +506,11 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   place catalog, pass/fail cards). The dialog's per-requirement verdicts are
   the ground truth the map views visualize; keep them in lockstep by deriving
   both from `activeRequirements()` + `selectedPreset()` as today.
-- **URL state:** extend the hash with `&view=bands|intersect|score`:
-  `inspectionHash()` appends it; `applySharedRequirements()`/
-  `openInitialLocation()` parse and validate it (unknown value → error via
-  `reportMapError`, matching current strictness). Absent `view` → derived
+- **URL state:** extend the hash with `&mode=bands|intersect|score` (the
+  `view=` hash key already carries the camera in the view-state hash, so the
+  view mode travels under `mode=`): `inspectionHash()` appends it;
+  `applyLocationHash()` parses and validates it (unknown value → error via
+  `reportMapError`, matching current strictness). Absent `mode` → derived
   default (§3.2), so existing shared links keep working.
 
 ---

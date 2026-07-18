@@ -134,6 +134,8 @@
       }
       .view-switcher button:disabled { cursor: default; opacity: .55; }
       .access-legend { display: grid; gap: .3rem; margin: 0 0 .6rem; font-size: .82rem; }
+      /* An author display beats the UA [hidden] rule; restate it. */
+      .access-legend[hidden] { display: none; }
       .legend-title { color: var(--muted); }
       .legend-row { display: flex; flex-wrap: wrap; gap: .35rem .8rem; }
       .legend-item { display: inline-flex; align-items: center; gap: .3rem; }
@@ -490,7 +492,7 @@
           <span class="panel-toggle-icon" aria-hidden="true">▲</span>
         </button>
       </div>
-      <button class="panel-selection-summary" id="panel-selection-summary" type="button" aria-live="polite">Loading filters…</button>
+      <button class="panel-selection-summary" id="panel-selection-summary" type="button" aria-label="Expand filters" aria-live="polite">Loading filters…</button>
       <div class="panel-content" id="panel-content">
         <p id="summary-text">Loading generated data…</p>
         <div class="quick-actions" role="group" aria-label="Quick views">
@@ -855,13 +857,15 @@
       // Shared-link view mode (§3.4). The `view` hash key already carries
       // the camera, so the mode travels as `mode=`; absent means "derived
       // default" (§3.2), keeping older shared links working unchanged.
-      function applySharedViewMode(parameters) {
+      // Validation is split from application so the caller can validate the
+      // whole hash before mutating any state: an invalid mode must not leave
+      // already-applied requirements behind without a refreshMap.
+      function parseSharedViewMode(parameters) {
         const shared = parameters.get("mode");
-        if (shared === null) return;
-        if (!viewModes.includes(shared)) {
+        if (shared !== null && !viewModes.includes(shared)) {
           throw new Error(`invalid shared view mode: ${shared}`);
         }
-        viewMode = shared;
+        return shared;
       }
 
       function inspectionCenter() {
@@ -1087,7 +1091,11 @@
       }
 
       function bandColors(selection) {
-        const minutes = networkRequirement(selection.key).minutes;
+        // Legend order and the outermost-band de-emphasis both assume
+        // ascending minutes; generate.py emits them sorted, but sort
+        // defensively rather than trust the data file.
+        const minutes = [...networkRequirement(selection.key).minutes]
+          .sort((left, right) => left - right);
         const ramp = bandRamps[selection.key];
         if (!ramp || minutes.some(value => !ramp[value])) {
           throw new Error(`no band ramp for ${selection.key} (${minutes})`);
@@ -1152,9 +1160,17 @@
         document.querySelectorAll("#view-switcher button").forEach(button => {
           // §3.2: bands with two or more selections is the multi-service
           // band compositing this rework removes — disabled, with a hint.
+          // Conversely, a single requirement always renders as bands, so
+          // intersect/score carry a hint explaining the coercion at |R|=1.
           const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
           button.disabled = bandsLocked;
-          button.title = bandsLocked ? "Pick one service to see its time bands" : "";
+          if (bandsLocked) {
+            button.title = "Pick one service to see its time bands";
+          } else if (button.dataset.mode !== "bands" && selectionCount === 1) {
+            button.title = "A single requirement is shown as its time bands; select another service to compare";
+          } else {
+            button.title = "";
+          }
           button.setAttribute("aria-checked", String(button.dataset.mode === mode));
         });
       }
@@ -1655,9 +1671,13 @@
             return;
           }
           try {
+            // Validate the mode before applying the requirements
+            // (applySharedRequirements itself validates fully before
+            // mutating), so a bad hash applies nothing at all.
+            const sharedMode = parseSharedViewMode(parameters);
             const sharedRequirements = parameters.get("requirements");
             if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
-            applySharedViewMode(parameters);
+            if (sharedMode !== null) viewMode = sharedMode;
           } catch (error) {
             reportMapError(error);
             return;
@@ -1675,11 +1695,12 @@
           return;
         }
         // View-only hash: restore requirements, view mode, and camera; no
-        // inspect dialog.
+        // inspect dialog. Same validate-then-apply order as the at= path.
         try {
+          const sharedMode = parseSharedViewMode(parameters);
           const sharedRequirements = parameters.get("requirements");
           if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
-          applySharedViewMode(parameters);
+          if (sharedMode !== null) viewMode = sharedMode;
         } catch (error) {
           reportMapError(error);
           return;
