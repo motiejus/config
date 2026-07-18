@@ -22,6 +22,10 @@ from valhalla import get_config
 TILE_MIN_ZOOM = 6
 DESTINATION_MIN_ZOOM = 12
 TILE_MAX_ZOOM = 14
+# Raw network minzoom (docs/lowzoom-fastpath.md section 2.3): z6-10 serve
+# the coarsen.py encoder-grid skeleton; the raw reachable routing edges
+# serve the inspection zooms z11-14 only. The value doubles as the anchor
+# for NETWORK_SIMPLIFY_LEVEL below.
 LOW_ZOOM_GENERALIZATION_BELOW = 11
 # One MVT coordinate unit (tile extent 4096) at zoom z spans
 # 360 / (4096 * 2**z) projected degrees — the grid every vertex is rounded
@@ -32,6 +36,16 @@ LOW_ZOOM_GENERALIZATION_BELOW = 11
 # unit at LOW_ZOOM_GENERALIZATION_BELOW - 1 makes the effective tolerance
 # exactly one coordinate unit at every generalized zoom.
 NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2 ** (LOW_ZOOM_GENERALIZATION_BELOW - 1))
+# Low-zoom fast-path (docs/lowzoom-fastpath.md, owner-selected Variant B):
+# the z10-encoder-grid skeleton serves z8-10, and the section 4.6
+# short-chain-filtered subset (chains of z10-grid length >= N_drop kept)
+# serves z6-7. GRID_ZOOM is fixed at 10 for both (coarser grids measured
+# exhausted, section 4.6); N_drop = 64 grid units (~350 m ground) is the
+# owner-accepted comparison value.
+COARSE_GRID_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
+COARSE_MAX_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
+VARIANT_B_MAX_ZOOM = 7
+VARIANT_B_N_DROP = 64
 
 SERVICE_SPECS = (
     {
@@ -254,22 +268,44 @@ def edge_dump_filename(route: dict) -> str:
 
 
 def network_tile_config(work: Path) -> dict:
+    # Three config layers, one MVT source-layer `network` via write_to
+    # (docs/lowzoom-fastpath.md sections 2.3 and 4.6, Variant B): the raw
+    # reachable routing edges at the inspection zooms z11-14, the coarsen.py
+    # encoder-grid skeleton at z8-10, and its short-chain-filtered subset at
+    # z6-7. Zoom-scaled generalization on the skeleton layers is bounded by
+    # the tile encoder's coordinate grid (one MVT unit per generalized zoom,
+    # z6-10; see NETWORK_SIMPLIFY_LEVEL); the raw layer ships unsimplified.
+    source_columns = sorted((*REQUIREMENT_KEYS, "g"))
+    skeleton_simplify = {
+        "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
+        "simplify_level": NETWORK_SIMPLIFY_LEVEL,
+        "simplify_ratio": 2.0,
+        "simplify_algorithm": "visvalingam",
+    }
     return {
         "layers": {
             "network": {
-                "minzoom": TILE_MIN_ZOOM,
+                "minzoom": LOW_ZOOM_GENERALIZATION_BELOW,
                 "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / "network.geojson"),
-                "source_columns": sorted(REQUIREMENT_KEYS),
-                # Zoom-scaled generalization bounded by the tile encoder's
-                # coordinate grid (one MVT unit per generalized zoom, z6-10;
-                # see NETWORK_SIMPLIFY_LEVEL). Street-scale tiles (z11-14)
-                # retain the raw reachable routing edges.
-                "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
-                "simplify_level": NETWORK_SIMPLIFY_LEVEL,
-                "simplify_ratio": 2.0,
-                "simplify_algorithm": "visvalingam",
-            }
+                "source_columns": source_columns,
+            },
+            "network_lowzoom": {
+                "minzoom": VARIANT_B_MAX_ZOOM + 1,
+                "maxzoom": COARSE_MAX_ZOOM,
+                "source": str(work / "network-lowzoom.geojson"),
+                "source_columns": source_columns,
+                "write_to": "network",
+                **skeleton_simplify,
+            },
+            "network_lowzoom_z67": {
+                "minzoom": TILE_MIN_ZOOM,
+                "maxzoom": VARIANT_B_MAX_ZOOM,
+                "source": str(work / "network-lowzoom-z67.geojson"),
+                "source_columns": source_columns,
+                "write_to": "network",
+                **skeleton_simplify,
+            },
         },
         "settings": common_tile_settings(
             "Mapgames unified access network",
@@ -345,6 +381,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tilemaker-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
     parser.add_argument("--expansion-helper", type=Path, required=True)
+    parser.add_argument("--coarsen-tool", type=Path, required=True)
     parser.add_argument("--osm-source-url", required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
@@ -620,6 +657,24 @@ def main() -> None:
         ],
     )
 
+    # Low-zoom fast-path (docs/lowzoom-fastpath.md section 2.2): derive the
+    # encoder-grid skeleton (z8-10 tiles) and the Variant-B short-chain-
+    # filtered subset (z6-7 tiles) from the merged network. Both are work/
+    # intermediates, never published, exactly like network.geojson.
+    run(
+        "derive low-zoom skeleton from unified network",
+        [
+            sys.executable,
+            args.coarsen_tool,
+            work / "network.geojson",
+            work / "network-lowzoom.geojson",
+            "--z67-out",
+            work / "network-lowzoom-z67.geojson",
+            "--n-drop",
+            VARIANT_B_N_DROP,
+        ],
+    )
+
     place_features = [
         feature
         for service in SERVICE_SPECS
@@ -719,6 +774,13 @@ def main() -> None:
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "network",
+                # Informational (docs/lowzoom-fastpath.md section 2.3):
+                # z6-max_zoom tiles carry the grid_zoom encoder-grid
+                # skeleton; the raw edges begin one zoom above.
+                "lowzoom": {
+                    "grid_zoom": COARSE_GRID_ZOOM,
+                    "max_zoom": COARSE_MAX_ZOOM,
+                },
                 "max_data_zoom": TILE_MAX_ZOOM,
                 "min_data_zoom": TILE_MIN_ZOOM,
                 "requirements": [

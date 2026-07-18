@@ -138,6 +138,7 @@ let
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
         --expansion-helper ${valhallaExpand}/bin/mapgames-valhalla-expand \
+        --coarsen-tool ${./coarsen.py} \
         --osm-source-url ${lib.escapeShellArg sourceUrl} \
         --output generated
 
