@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -69,11 +70,32 @@ ROUTE_SPECS = tuple(
     for mode, minutes in service["routes"]
 )
 
+def route_key(route: dict) -> str:
+    return f"{route['service']}-{route['mode']}"
+
+
 # Attribute keys of the unified network layer (docs/unified-access-layer.md
 # section 1.1): one per requirement, `{service}_{mode}` with underscore.
 # valhalla-expand.cc derives the same keys from the edges-<service>-<mode>.tsv
-# dump filenames; main() asserts the two derivations agree before merging.
+# dump filenames, so the two derivations (plus the step-3 checker's regex)
+# stay lockstep only while every route key is exactly one lowercase word, one
+# dash, one lowercase word. Validate that grammar here at import time — the
+# check is static (module constants only), and failing before the expensive
+# routing phase beats failing after it.
+_ROUTE_KEY_GRAMMAR = re.compile(r"[a-z]+-[a-z]+")
 REQUIREMENT_KEYS = tuple(f"{route['service']}_{route['mode']}" for route in ROUTE_SPECS)
+for _route, _requirement_key in zip(ROUTE_SPECS, REQUIREMENT_KEYS, strict=True):
+    _key = route_key(_route)
+    if not _ROUTE_KEY_GRAMMAR.fullmatch(_key):
+        raise RuntimeError(
+            f"route key {_key!r} does not match the one-dash [a-z]+-[a-z]+ grammar"
+            " that the dump-filename key derivation in valhalla-expand.cc assumes"
+        )
+    if _key.replace("-", "_") != _requirement_key:
+        raise RuntimeError(
+            f"route key {_key!r} does not derive requirement key {_requirement_key!r}"
+        )
+del _route, _requirement_key, _key
 
 MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
 CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
@@ -175,10 +197,6 @@ def place_kind(service: str, properties: dict) -> str:
             return "cafe"
         return "coffee_shop"
     return service
-
-
-def route_key(route: dict) -> str:
-    return f"{route['service']}-{route['mode']}"
 
 
 def coverage_layer_name() -> str:
@@ -589,18 +607,10 @@ def main() -> None:
     # per-route edge-interval dumps into one work/network.geojson. The helper
     # derives each dump's attribute key from its filename
     # (requirement_key_from_dump in valhalla-expand.cc: edges-<service>-<mode>
-    # .tsv -> <service>_<mode>); assert that derivation lands exactly on the
-    # authoritative REQUIREMENT_KEYS before wiring the merge.
+    # .tsv -> <service>_<mode>); the module-scope grammar check next to
+    # REQUIREMENT_KEYS guarantees that derivation lands exactly on the
+    # authoritative keys.
     network_dumps = tuple(work / edge_dump_filename(route) for route in ROUTE_SPECS)
-    derived_keys = tuple(
-        dump.name.removeprefix("edges-").removesuffix(".tsv").replace("-", "_")
-        for dump in network_dumps
-    )
-    if derived_keys != REQUIREMENT_KEYS:
-        raise RuntimeError(
-            f"dump-derived requirement keys {derived_keys}"
-            f" do not match REQUIREMENT_KEYS {REQUIREMENT_KEYS}"
-        )
     run(
         "merge per-route edge dumps into unified network",
         [

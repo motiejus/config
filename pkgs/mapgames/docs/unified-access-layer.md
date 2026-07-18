@@ -688,7 +688,11 @@ The new pipeline preserves it by the same discipline:
    `merge_intervals()` before writing; lines written in ascending numeric
    uint64 key order (matching the merge comparator, §2.1); fixed numeric
    formatting (`%.7f` geometry, 17 significant digits for fractions). Gate:
-   dumps from threads=1 and threads=N runs are byte-identical.
+   dumps from threads=1 and threads=N runs are byte-identical. Note that
+   uint64 edge ids are stable only within one graph build (Valhalla assigns
+   them per `valhalla_build_tiles` run), so comparing dumps across graph
+   rebuilds is meaningless — compare post-step-0 geometry-string groupings or
+   `network.geojson` instead.
 3. Merge tool: single-threaded k-way merge over sorted dumps; endpoint dedup
    uses the same first-wins 1e-12 tolerance as `coverage_lines()`; output maps
    keyed by canonical string; feature groups ordered by serialized
@@ -735,7 +739,11 @@ policy.
    counts; a checker script re-derives `coverage-<route_key>.geojson` from the
    dump alone (reimplementing §1.3 for a single service degenerates to today's
    `coverage_lines()`) and byte-diffs it against the helper's own output — a
-   full semantic round-trip proof.
+   full semantic round-trip proof. All dump comparisons assume one shared
+   graph build: uint64 edge ids are stable only within a single
+   `valhalla_build_tiles` run, so cross-rebuild dump diffs are meaningless —
+   compare post-step-0 geometry groupings or `network.geojson` across rebuilds
+   instead.
    *Reviewer checks:* dump precision round-trips; nesting invariant enforced
    at dump time; ascending numeric uint64 sort (not decimal-string order); the
    checker performs the §1.3 step-0 geometry-string pre-merge before band
