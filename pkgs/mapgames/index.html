@@ -2378,11 +2378,29 @@
           inspectionMarkerFeatures = markerFeaturesAt(event.point);
           inspectLocation(event.lngLat);
         });
-        // Destination dots are clickable; make them read that way.
-        placeLayerIds.forEach(layerId => {
-          map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
+        // Cursor affordances: the default pan hand on plain basemap, a
+        // pointer over the clickable things — destination dots (same padded
+        // hit box as the click, so hover and click always agree) and
+        // rendered access-network segments. One mousemove handler, hit-tested
+        // at most once per animation frame, keeps panning jank-free.
+        const visibleSegmentLayers = () => accessLayerIds.filter(id =>
+          map.getLayer(id) && map.getLayoutProperty(id, "visibility") === "visible");
+        let hoverPoint;
+        let hoverScheduled = false;
+        map.on("mousemove", event => {
+          hoverPoint = event.point;
+          if (hoverScheduled) return;
+          hoverScheduled = true;
+          requestAnimationFrame(() => {
+            hoverScheduled = false;
+            const overDot = markerFeaturesAt(hoverPoint).length > 0;
+            const segmentLayers = overDot ? [] : visibleSegmentLayers();
+            const overSegment = segmentLayers.length > 0 &&
+              map.queryRenderedFeatures(hoverPoint, { layers: segmentLayers }).length > 0;
+            map.getCanvas().style.cursor = overDot || overSegment ? "pointer" : "";
+          });
         });
+        map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
         map.on("moveend", scheduleViewHash);
         window.addEventListener("hashchange", () => {
           // replaceState never fires hashchange, but stay safe against
