@@ -1725,22 +1725,23 @@
           },
           paint: { ...halo, "text-color": "#274f57" }
         });
-        const transitMarkerLayer = (id, tier) => ({
+        const transitMarkerLayer = (id, tier, minzoom = tier) => ({
           id,
           type: "circle",
           source: "details",
           "source-layer": details.layers.transit_details,
-          minzoom: tier,
+          minzoom,
           filter: ["==", ["get", "display_tier"], tier],
           layout: { "circle-sort-key": ["get", "rank"] },
           paint: {
             "circle-radius": ["match", ["get", "kind"],
-              ["station", "terminal"], 5, "halt", 3.8, 2.6],
-            "circle-color": ["match", ["get", "kind"],
-              ["station", "terminal"], "#fffaf1", "#37676d"],
+              ["station", "terminal"], 5, "halt", 4, 3.5],
+            // Every marker needs a light centre: a solid teal local-stop dot
+            // is almost indistinguishable from the basemap's dark road casing.
+            "circle-color": "#fffaf1",
             "circle-stroke-color": "#274f57",
             "circle-stroke-width": ["match", ["get", "kind"],
-              ["station", "terminal"], 2, 1],
+              ["station", "terminal"], 2, 1.5],
             "circle-opacity": 0.94,
             "circle-stroke-opacity": 1
           }
@@ -1797,11 +1798,12 @@
           paint: microPaint
         });
         addBelowBaseLabels(poiLayer("detail-poi-micro", 18, 0.5));
-        // Rings distinguish stations/terminals; progressively smaller solid
-        // dots denote halts and local stops. Unnamed platform dots remain
-        // marker-only and cannot appear before their z18 display tier.
+        // Rings distinguish stations/terminals from progressively smaller
+        // halt and local-stop rings. Named local-stop markers begin at z16 so
+        // a city view is not dominated by the much larger ferry terminals;
+        // their labels remain z17-only. Unnamed platform markers remain z18.
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-18", 18));
-        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17));
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17, 16));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-16", 16));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-15", 15));
         addBelowBaseLabels({

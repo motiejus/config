@@ -60,6 +60,18 @@ def main() -> None:
     assert '"text-anchor": "top",\n            "text-offset": [0, 0.9]' in index, (
         "transit text must be offset below its marker so ring/dot shape remains visible"
     )
+    assert 'const transitMarkerLayer = (id, tier, minzoom = tier)' in index
+    assert 'transitMarkerLayer("detail-transit-markers-17", 17, 16)' in index, (
+        "named local-stop markers must appear at z16 while retaining their z17 label tier"
+    )
+    assert 'transitLayer("detail-transit-local", 17,' in index, (
+        "local-stop labels must remain z17-only to avoid z16 text clutter"
+    )
+    assert '"circle-color": "#fffaf1"' in index, (
+        "all transit markers need a light centre that contrasts with dark road casings"
+    )
+    assert '["station", "terminal"], 5, "halt", 4, 3.5]' in index
+    assert '["station", "terminal"], 2, 1.5]' in index
     print(f"transit fixture passed ({len(features)} canonical stops)")
 
 

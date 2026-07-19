@@ -975,6 +975,16 @@ def main() -> None:
                     "transit_modes": ["train", "subway", "tram", "trolleybus", "bus", "ferry"],
                     "transit_platform_count": "canonicalized_source_members",
                     "transit_ref": "short_explicit_ref_only",
+                    "transit_marker_min_zoom": {
+                        "station_or_terminal": 15,
+                        "named_local_stop": 16,
+                        "unnamed_stop": 18,
+                    },
+                    "transit_label_min_zoom": {
+                        "station_or_terminal": 15,
+                        "interchange_or_halt": 16,
+                        "local_stop": 17,
+                    },
                 },
                 "display_max_zoom": 18,
                 "display_min_zoom": 15,
