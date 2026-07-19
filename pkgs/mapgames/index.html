@@ -538,16 +538,18 @@
         supermarket: { color: "#009E73", marker: "#00664A", foreground: "#0f172a" },
         fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
       };
-      // Band ramps: lightness steps of the service hue at constant
-      // hue/chroma, darkest = smallest minutes (§3.3). Keyed by the
-      // requirement keys of metadata.access_network.
+      // Band ramps: discrete lightness steps of each service hue, darkest =
+      // smallest minutes (§3.3). The deliberately wide steps stay ordered
+      // under color-vision deficiencies and remain distinct on the light
+      // basemap; keyed by the requirement keys of metadata.access_network.
       const bandRamps = {
-        coffee_walk: { 5: "#8A5F00", 10: "#C08600", 20: "#E69F00" },
-        hospital_drive: { 15: "#B95200", 30: "#D55E00", 45: "#E97125", 60: "#FF843E" },
-        supermarket_walk: { 10: "#00664A", 20: "#009E73" },
-        supermarket_drive: { 10: "#009E73" },
-        fuel_drive: { 10: "#004E7A", 20: "#0072B2" }
+        coffee_walk: { 5: "#3F2800", 10: "#654100", 20: "#8D5C00" },
+        hospital_drive: { 15: "#350900", 30: "#5B1900", 45: "#842C00", 60: "#B04700" },
+        supermarket_walk: { 10: "#003D2C", 20: "#006D50" },
+        supermarket_drive: { 10: "#006D50" },
+        fuel_drive: { 10: "#002D49", 20: "#005E90" }
       };
+      const bandOpacity = 0.9;
       // Intersection ink: outside every service hue, hue-free hence
       // CVD-neutral, maximal contrast on the light basemap (§3.3).
       const intersectInk = "#172033";
@@ -1626,9 +1628,8 @@
       }
 
       function bandColors(selection) {
-        // Legend order and the outermost-band de-emphasis both assume
-        // ascending minutes; generate.py emits them sorted, but sort
-        // defensively rather than trust the data file.
+        // Legend order assumes ascending minutes; generate.py emits them
+        // sorted, but sort defensively rather than trust the data file.
         const minutes = [...networkRequirement(selection.key).minutes]
           .sort((left, right) => left - right);
         const ramp = bandRamps[selection.key];
@@ -1651,14 +1652,6 @@
         // Bands is only effective with exactly one selection (§3.2).
         const focus = selections[0];
         const bands = drawnBands(focus);
-        const fullRamp = bandColors(focus);
-        // §3.3: de-emphasize the outermost (near-always-true) band of a
-        // drive requirement — only when it is the ramp's own largest band
-        // and inner bands exist to contrast with; a tighter preset's
-        // outermost band is the user's threshold and keeps full weight.
-        const outermost = bands[bands.length - 1];
-        const deEmphasized = focus.preset.mode === "drive" && bands.length > 1 &&
-          outermost.minutes === fullRamp[fullRamp.length - 1].minutes;
         const bandColor = new Map(bands.map(band => [band.minutes, band.color]));
         setAccessGroupStates(attributes => {
           // Band values are disjoint by construction: a group carries one
@@ -1671,7 +1664,7 @@
           if (color === undefined) return hiddenGroupState;
           return {
             uc: "rgba(0,0,0,0)",
-            mc: withAlpha(color, deEmphasized && minutes === outermost.minutes ? 0.5 : 0.9)
+            mc: withAlpha(color, bandOpacity)
           };
         });
         setAccessLineWidth(corridorLineWidth(focus.preset.mode, corridorWidthCapPx));
@@ -1745,7 +1738,9 @@
           const focus = selections[0];
           title.textContent = t("legendBandsTitle", serviceLabel(focus.service), focus.preset);
           drawnBands(focus).forEach(band => row.append(legendItem(
-            band.color, t("legendMinutes", band.minutes), band.minutes === focus.preset.minutes
+            withAlpha(band.color, bandOpacity),
+            t("legendMinutes", band.minutes),
+            band.minutes === focus.preset.minutes
           )));
         } else if (mode === "intersect") {
           title.textContent = t("legendSelectedTitle");
@@ -1791,7 +1786,8 @@
           return;
         }
         if (mode === "bands") {
-          const colors = drawnBands(selections[0]).map(band => band.color);
+          const colors = drawnBands(selections[0])
+            .map(band => withAlpha(band.color, bandOpacity));
           summary.append(summaryChip(t("chipBands"), `linear-gradient(90deg, ${colors.join(", ")})`));
         } else if (mode === "intersect") {
           summary.append(summaryChip(t("chipAll", selections.length), intersectInk));

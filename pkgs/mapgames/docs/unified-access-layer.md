@@ -488,19 +488,17 @@ Replace `serviceStyles` base hues with the Okabe-Ito subset (committed):
 coffee `#E69F00`, hospital `#D55E00`, supermarket `#009E73`, fuel `#0072B2`.
 Marker (`circle-stroke-color`) variants: darken the same hue.
 
-- Band ramps: lightness steps of the service hue at constant hue/chroma,
-  evenly spaced in L, darkest = smallest minutes. Indicative hexes (validate
-  with the dataviz contrast validator before landing; treat as placeholders):
-  coffee 5/10/20 → `#8A5F00 / #C08600 / #E69F00`;
-  hospital 15/30/45/60 → `#B95200 / #D55E00 / #E97125 / #FF843E`
-  (construction: the surviving 30/60 bands keep their hexes, which pins
-  OKLCH L 0.62/0.74 at h 48; even minute spacing → even L spacing, ΔL 0.06
-  per 15 min, so 15/45 interpolate-extrapolate to L 0.56/0.68; C 0.17 where
-  the sRGB gamut allows — the 15-band is gamut-limited to C 0.152, and the
-  retired 20-band's `#9E4600` (L 0.50, C 0.135) leaves with its band; 60 as
-  the outermost near-universal drive band also gets the de-emphasis below);
-  supermarket 10/20 → `#00664A / #009E73` (drive-10 single band `#009E73`);
-  fuel 10/20 → `#004E7A / #0072B2`.
+- Band ramps: discrete lightness steps within each service hue, darkest =
+  smallest minutes. The steps are intentionally wider than the original
+  near-continuous gradients: adjacent rendered colors have an OKLab distance
+  of at least 0.10, lightness strictly increases with minutes, and every
+  90%-opacity stroke retains at least 3:1 contrast against white, paper,
+  forest, wetland, and road reference fills. The map, expanded legend, and
+  collapsed gradient use the same RGBA colors:
+  coffee 5/10/20 → `#3F2800 / #654100 / #8D5C00`;
+  hospital 15/30/45/60 → `#350900 / #5B1900 / #842C00 / #B04700`;
+  supermarket 10/20 → `#003D2C / #006D50` (drive-10 single band `#006D50`);
+  fuel 10/20 → `#002D49 / #005E90`.
 - Intersection: ink `#172033` — outside every service hue, maximal contrast on
   the light Protomaps flavor, hue-free hence CVD-neutral.
 - Score: an identity-neutral single-hue purple sequence, light→dark with
@@ -509,11 +507,11 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   score ramp misleadingly reads as *which* service is reachable rather than
   *how many*. Monotonic lightness preserves the order under color-vision
   deficiencies; the explicit tables keep legend and paint meanings fixed.
-- Drive/always-true de-emphasis: in bands view, the outermost (largest-minute,
-  near-always-true) band of a drive requirement renders at reduced opacity
-  (~0.5) with the inner bands at full strength — the line-network analogue of
-  "dim fill, emphasized boundary". In intersect/score, de-emphasis is
-  unnecessary (boolean tests).
+- All bands render at 0.9 opacity. The old 0.5 drive-outer exception made the
+  most geographically widespread band nearly disappear on pale landcover and
+  made its opaque legend swatch misrepresent the map; the ordered lightness
+  ramp now supplies the intended outer-band de-emphasis without sacrificing
+  visibility.
 
 ### 3.4 Panel, mobile, legend
 
