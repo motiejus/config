@@ -77,7 +77,7 @@ SERVICE_SPECS = (
         "label": "Hospital",
         "description": "Hospitals reachable by car",
         "query": ("amenity=hospital", "healthcare=hospital"),
-        "routes": (("drive", (15, 30, 45, 60)),),
+        "routes": (("drive", (15, 30)),),
     },
     {
         "id": "supermarket",
