@@ -1,0 +1,42 @@
+{
+  "layers": {
+    "inspect_points": {
+      "minzoom": 15,
+      "maxzoom": 16,
+      "combine_points": false
+    },
+    "inspect_lines": {
+      "minzoom": 15,
+      "maxzoom": 16,
+      "combine_lines_below": 15
+    },
+    "inspect_areas": {
+      "minzoom": 15,
+      "maxzoom": 16,
+      "combine_polygons_below": 15
+    },
+    "hiking_routes": {
+      "minzoom": 15,
+      "maxzoom": 16,
+      "combine_lines_below": 15
+    }
+  },
+  "settings": {
+    "minzoom": 15,
+    "maxzoom": 16,
+    "basezoom": 16,
+    "include_ids": false,
+    "combine_below": 15,
+    "name": "Mapgames on-demand OSM inspector",
+    "version": "1.2.0",
+    "description": "High-zoom OpenStreetMap geometries and carefully selected practical, accessibility, outdoor, civic, business, and tourism tags for on-demand inspection",
+    "compress": "gzip",
+    "filemetadata": {
+      "tilejson": "3.0.0",
+      "scheme": "xyz",
+      "type": "overlay",
+      "format": "pbf",
+      "attribution": "© OpenStreetMap contributors, ODbL 1.0"
+    }
+  }
+}

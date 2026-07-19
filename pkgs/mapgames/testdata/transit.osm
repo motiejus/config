@@ -18,9 +18,22 @@
   <node id="15" lat="55.0240" lon="25.0240" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Active despite false lifecycle"/><tag k="disused" v="no"/></node>
   <node id="16" lat="55.0260" lon="25.0260" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Razed"/><tag k="railway" v="razed"/></node>
   <node id="17" lat="55.0280" lon="25.0280" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Demolished"/><tag k="demolished" v="yes"/></node>
+  <node id="18" lat="55.0061" lon="25.0061" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Disabled relation member"/><tag k="ferry" v="yes"/><tag k="ref" v="BAD"/><tag k="disused" v="yes"/></node>
+  <node id="19" lat="55.0290" lon="25.0290" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Must not resurrect"/><tag k="bus" v="yes"/></node>
+  <node id="20" lat="55.0295" lon="25.0295" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Malformed survivor"/><tag k="bus" v="yes"/></node>
   <relation id="100" version="1">
-    <member type="node" ref="5" role="platform"/><member type="node" ref="6" role="stop"/>
+    <member type="node" ref="5" role="platform"/><member type="node" ref="6" role="stop"/><member type="node" ref="18" role="platform"/>
     <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/><tag k="amenity" v="bus_station"/>
     <tag k="name" v="Area canonical"/><tag k="bus" v="yes"/><tag k="trolleybus" v="yes"/><tag k="ref" v="R42"/>
+  </relation>
+  <relation id="101" version="1">
+    <member type="node" ref="19" role="platform"/>
+    <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/>
+    <tag k="name" v="Disabled stop area"/><tag k="disused" v="yes"/>
+  </relation>
+  <relation id="102" version="1">
+    <member type="node" ref="20" role="platform"/>
+    <tag k="type" v="route"/><tag k="public_transport" v="stop_area"/>
+    <tag k="name" v="Malformed unrelated relation"/><tag k="disused" v="yes"/>
   </relation>
 </osm>

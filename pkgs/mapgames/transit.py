@@ -217,7 +217,11 @@ def parse_opl_relations(text: str) -> list[dict]:
             if "=" in item:
                 key, value = item.split("=", 1)
                 properties[decode(key)] = decode(value)
-        if properties.get("public_transport") != "stop_area":
+        if properties.get("public_transport") != "stop_area" or properties.get("type") not in (
+            None,
+            "",
+            "public_transport",
+        ):
             continue
         members = []
         for item in fields.get("M", "").split(","):
@@ -280,7 +284,15 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
 
     for relation in parse_opl_relations(relation_text):
         members = [by_id[member] for member in relation["members"] if member in by_id and member not in consumed]
-        if not members or excluded(relation["properties"]):
+        if excluded(relation["properties"]):
+            # A lifecycle-disabled stop area disables its members as a unit.
+            # Consume otherwise-active candidates before the standalone passes
+            # below can resurrect them. parse_opl_relations admits only actual
+            # public_transport=stop_area relations, so unrelated/malformed
+            # relations cannot suppress valid stops here.
+            consumed.update(member["id"] for member in members)
+            continue
+        if not members:
             continue
         primary = {"properties": relation["properties"]}
         features.append(canonical_feature(relation["id"], primary, members))

@@ -139,12 +139,33 @@ let
       --tilemaker ${tilemaker}/bin/tilemaker
     touch "$out"
   '';
+  inspectorFixtureCheck = runCommand "mapgames-inspector-fixture-check" { } ''
+    ${python3}/bin/python ${./check-inspector-fixture.py} \
+      --config ${./inspector.json} \
+      --fixture ${./testdata/inspector.osm} \
+      --osmium ${osmium-tool}/bin/osmium \
+      --process ${./inspector.lua} \
+      --tilemaker ${tilemaker}/bin/tilemaker
+    touch "$out"
+  '';
   transitFixtureCheck = runCommand "mapgames-transit-fixture-check" { } ''
     ${python3}/bin/python ${./check-transit-fixture.py} \
       --fixture ${./testdata/transit.osm} \
       --index ${./index.html} \
       --osmium ${osmium-tool}/bin/osmium \
       --transit ${./transit.py}
+    touch "$out"
+  '';
+  inspectorUiCheck = runCommand "mapgames-inspector-ui-check" { } ''
+    ${python3}/bin/python ${./check-inspector-ui.py} --index ${./index.html}
+    touch "$out"
+  '';
+  cameraBoundsCheck = runCommand "mapgames-camera-bounds-check" { } ''
+    ${python3}/bin/python ${./check-camera-bounds.py} --index ${./index.html}
+    touch "$out"
+  '';
+  geolocationUiCheck = runCommand "mapgames-geolocation-ui-check" { } ''
+    ${python3}/bin/python ${./check-geolocation-ui.py} --index ${./index.html}
     touch "$out"
   '';
   data = stdenvNoCC.mkDerivation {
@@ -186,6 +207,8 @@ let
         --basemap-process ${./basemap.lua} \
         --detail-config ${./detail.json} \
         --detail-process ${./detail.lua} \
+        --inspector-config ${./inspector.json} \
+        --inspector-process ${./inspector.lua} \
         --transit-tool ${./transit.py} \
         --geojson-process ${./geojson.lua} \
         --pmtiles-cli-version ${lib.escapeShellArg pmtiles.version} \
@@ -211,8 +234,14 @@ let
 
     passthru = {
       inherit bbox lithuaniaPbf;
-      tests.detailFixture = detailFixtureCheck;
-      tests.transitFixture = transitFixtureCheck;
+      tests = {
+        cameraBounds = cameraBoundsCheck;
+        detailFixture = detailFixtureCheck;
+        geolocationUi = geolocationUiCheck;
+        inspectorFixture = inspectorFixtureCheck;
+        inspectorUi = inspectorUiCheck;
+        transitFixture = transitFixtureCheck;
+      };
     };
 
     meta = {

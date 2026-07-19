@@ -249,6 +249,10 @@
     <tag k="building" v="demolished"/>
     <tag k="name" v="Demolished named building"/>
   </node>
+  <node id="1038" lat="55.0068" lon="24.9930" version="1">
+    <tag k="amenity" v="drinking_water"/><tag k="drinking_water" v="no"/>
+    <tag k="name" v="Non-potable tap"/>
+  </node>
 
   <!-- Open rack geometry is retained as a representative centroid point. -->
   <node id="2000" lat="55.0050" lon="24.9920" version="1"/>

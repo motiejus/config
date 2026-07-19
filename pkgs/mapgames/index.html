@@ -167,6 +167,35 @@
         border-radius: .2rem;
       }
       .status { min-height: 1.2em; color: #374861; font-size: .88rem; }
+      .geolocation-status {
+        position: absolute;
+        z-index: 2;
+        top: 4.8rem;
+        left: 3.45rem;
+        box-sizing: border-box;
+        max-width: min(23rem, calc(100vw - 4.25rem));
+        margin: 0;
+        padding: .42rem .62rem;
+        border: 1px solid rgb(58 73 96 / 22%);
+        border-radius: .4rem;
+        color: #253b59;
+        background: var(--paper);
+        box-shadow: 0 1px 6px rgb(20 30 48 / 16%);
+        font-size: .82rem;
+        line-height: 1.3;
+        pointer-events: none;
+      }
+      .geolocation-status[hidden] { display: none; }
+      /* Keep the device position visually distinct from every map-data
+         colour. The translucent outlined circle is the reported error
+         range, not a selectable area or an accessibility result. */
+      .maplibregl-user-location-dot,
+      .maplibregl-user-location-dot::before { background-color: #1267c4; }
+      .maplibregl-user-location-accuracy-circle {
+        box-sizing: border-box;
+        border: 1px solid rgb(18 103 196 / 48%);
+        background-color: rgb(18 103 196 / 16%);
+      }
       dialog {
         box-sizing: border-box;
         width: min(42rem, calc(100vw - 2rem));
@@ -273,6 +302,59 @@
       .clicked-place h3 { margin: 0 0 .25rem; font-size: 1rem; }
       .clicked-place p { margin: .2rem 0; }
       .clicked-place a { color: #7a421e; }
+      .osm-choice-list {
+        display: flex;
+        gap: .35rem;
+        margin: .35rem 0 .55rem;
+        padding: 0;
+        overflow-x: auto;
+        list-style: none;
+        scrollbar-width: thin;
+      }
+      .osm-choice {
+        max-width: 16rem;
+        min-height: 2.75rem;
+        padding: .35rem .6rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        font: inherit;
+        font-size: .82rem;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .osm-choice[aria-pressed="true"] {
+        border-color: #355f4f;
+        outline: 2px solid rgba(53, 95, 79, .18);
+        background: #edf5f0;
+        font-weight: 700;
+      }
+      .osm-object-card {
+        padding-top: .15rem;
+        border-top: 1px solid var(--border);
+      }
+      .osm-object-card h4 { margin: .45rem 0 .2rem; font-size: 1rem; }
+      .osm-facts { display: grid; gap: .25rem; margin: .35rem 0; }
+      .osm-fact { margin: 0; }
+      .osm-fact-label { color: var(--muted); font-size: .78rem; font-weight: 700; }
+      .osm-object-more { margin-top: .45rem; }
+      .osm-object-more summary { min-height: 2.75rem; cursor: pointer; }
+      .osm-object-links { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
+      .osm-object-links a { display: inline-flex; min-height: 2.75rem; align-items: center; }
+      .osm-inspect-zoom {
+        min-height: 2.75rem;
+        padding: .45rem .75rem;
+        border: 1px solid #355f4f;
+        border-radius: .45rem;
+        background: #edf5f0;
+        color: var(--ink);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
       .maplibregl-ctrl-attrib { font-family: system-ui, sans-serif; }
       /* The attribution button is enlarged on coarse-pointer and narrow
          viewports; stock MapLibre CSS lets the ⓘ icon tile across an
@@ -462,6 +544,11 @@
           top: env(safe-area-inset-top);
           left: env(safe-area-inset-left);
         }
+        .geolocation-status {
+          top: calc(7.2rem + env(safe-area-inset-top));
+          left: calc(3.8rem + env(safe-area-inset-left));
+          max-width: calc(100vw - 4.6rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+        }
         .maplibregl-ctrl-group button,
         .maplibregl-ctrl-attrib-button { width: 2.75rem; height: 2.75rem; }
         /* Stock inner padding assumes a 24px button; clear the 44px one. */
@@ -471,6 +558,14 @@
   </head>
   <body>
     <div id="map" aria-label="Kasdienių paslaugų pasiekiamumo žemėlapis"></div>
+    <p
+      class="geolocation-status"
+      id="geolocation-status"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    ></p>
     <section class="map-panel" aria-label="Pasiekiamumo sąlygos" data-collapsed="true">
       <div class="panel-title-row">
         <h1 id="app-title">Kasdienis pasiekiamumas</h1>
@@ -510,14 +605,14 @@
     <dialog id="location-dialog" aria-labelledby="location-dialog-title">
       <div class="dialog-header">
         <div>
-          <h2 id="location-dialog-title">Pasiekiamumas iš šios vietos</h2>
+          <h2 id="location-dialog-title">Apie šią vietą</h2>
           <p id="location-coordinates"></p>
         </div>
         <button class="dialog-close" id="dialog-close" type="button" aria-label="Užverti">×</button>
       </div>
-      <div id="clicked-place"></div>
       <p class="intersection-summary" id="intersection-summary" aria-live="polite"></p>
       <div class="result-list" id="location-results" aria-live="polite" aria-busy="false"></div>
+      <div id="clicked-place" aria-live="polite" aria-busy="false"></div>
     </dialog>
 
     <script>
@@ -726,7 +821,7 @@
           modeIntersect: "Tenkina visas",
           modeScore: "Kiek tenkina",
           viewMap: "Rodyti žemėlapį",
-          dialogTitle: "Pasiekiamumas iš šios vietos",
+          dialogTitle: "Apie šią vietą",
           closeDialog: "Užverti",
           langToggle: "EN",
           langToggleAria: "Switch to English",
@@ -758,6 +853,30 @@
           coordsLine: coordinates => `${coordinates} · tiksliu patikrinimu galima dalytis šio puslapio nuoroda`,
           loadingDetails: "Įkeliama vietų informacija…",
           selectedPlaces: count => count === 1 ? "Pasirinkta vieta" : "Pasirinktos vietos",
+          aboutLocation: "Apie šią vietą",
+          mapObjectsTitle: "Žemėlapio objektai netoliese",
+          objectsHere: count => `${count} ${pluralForm(count, ["objektas", "objektai", "objektų"])} šioje vietoje`,
+          loadingMapObjects: "Ieškoma žemėlapio objektų…",
+          noMapObjects: "Šiame mastelyje šalia žymos nerasta aprašytų OpenStreetMap objektų.",
+          objectUnavailable: "Bendrintas OpenStreetMap objektas šioje iškarpoje nerastas.",
+          inspectorUnavailable: "Nepavyko įkelti OpenStreetMap objektų informacijos.",
+          moreInformation: "Daugiau informacijos",
+          osmObject: "OpenStreetMap objektas",
+          openInOsm: "Atverti OpenStreetMap",
+          statusLabel: "Būsena",
+          accessLabel: "Patekimas pėsčiomis",
+          trailLabel: "Takas ir saugumas",
+          practicalLabel: "Praktinė informacija",
+          transitCaveat: "Viešojo transporto informacija yra iš OpenStreetMap ir gali neatitikti dabartinio tvarkaraščio.",
+          contactLabel: "Vieta ir ryšiai",
+          addressLabel: "Adresas",
+          unnamedObject: "Objektas be pavadinimo",
+          zoomToInspect: "Priartinkite, kad patikrintumėte netoliese esančius žemėlapio objektus.",
+          zoomToInspectButton: "Priartinti ir patikrinti",
+          website: "Svetainė",
+          phone: "Telefonas",
+          email: "El. paštas",
+          errInvalidOsm: value => `netinkamas bendrinamas OpenStreetMap objektas: ${value}`,
           unnamed: "Be pavadinimo",
           unnamedKind: label => `${label} be pavadinimo`,
           genericDestination: "Vieta",
@@ -789,6 +908,22 @@
           zoomIn: "Priartinti",
           zoomOut: "Atitolinti",
           geolocate: "Rodyti mano vietą",
+          geolocationStopButton: "Išjungti mano vietos rodymą",
+          geolocationRecenterButton: "Vėl centruoti mano vietą",
+          geolocationUnavailableButton: "Vietos nustatymas nepasiekiamas",
+          geolocationLocating: "Nustatoma jūsų vieta…",
+          geolocationTracking: accuracy => accuracy === undefined
+            ? "Jūsų vieta rodoma ir atnaujinama; paspauskite vietos mygtuką, kad išjungtumėte."
+            : `Jūsų vieta rodoma ir atnaujinama · tikslumas ±${accuracy} m; paspauskite vietos mygtuką, kad išjungtumėte.`,
+          geolocationBackground: accuracy => accuracy === undefined
+            ? "Vieta toliau atnaujinama; paspauskite vietos mygtuką, kad vėl ją centruotumėte."
+            : `Vieta toliau atnaujinama · tikslumas ±${accuracy} m; paspauskite vietos mygtuką, kad vėl ją centruotumėte.`,
+          geolocationOff: "Vietos rodymas išjungtas.",
+          geolocationDenied: "Vietos leidimas nesuteiktas. Jį galima pakeisti naršyklės svetainės nustatymuose.",
+          geolocationUnavailable: "Šioje naršyklėje arba nesaugiame ryšyje vietos nustatyti negalima.",
+          geolocationPositionUnavailable: "Įrenginiui nepavyko nustatyti vietos. Patikrinkite vietos nustatymus ir bandykite dar kartą.",
+          geolocationTimeout: "Vietos nustatyti laiku nepavyko. Išjunkite vietos rodymą ir bandykite dar kartą.",
+          geolocationOutside: "Jūsų vieta yra už šio žemėlapio aprėpties ribų.",
           toggleAttribution: "Rodyti duomenų šaltinius"
         },
         en: {
@@ -812,7 +947,7 @@
           modeIntersect: "Meets all",
           modeScore: "How many",
           viewMap: "View map",
-          dialogTitle: "Access from this location",
+          dialogTitle: "About this location",
           closeDialog: "Close",
           langToggle: "LT",
           langToggleAria: "Perjungti į lietuvių kalbą",
@@ -842,6 +977,30 @@
           coordsLine: coordinates => `${coordinates} · exact test is shareable in this page’s URL`,
           loadingDetails: "Loading destination details…",
           selectedPlaces: count => count === 1 ? "Selected place" : "Selected places",
+          aboutLocation: "About this location",
+          mapObjectsTitle: "Nearby map objects",
+          objectsHere: count => `${count} OpenStreetMap ${pluralForm(count, ["object", "objects"])} here`,
+          loadingMapObjects: "Looking for map objects…",
+          noMapObjects: "No described OpenStreetMap objects were found near the pin at this zoom.",
+          objectUnavailable: "The shared OpenStreetMap object was not found in this map snapshot.",
+          inspectorUnavailable: "OpenStreetMap object information could not be loaded.",
+          moreInformation: "More information",
+          osmObject: "OpenStreetMap object",
+          openInOsm: "Open in OpenStreetMap",
+          statusLabel: "Status",
+          accessLabel: "Access on foot",
+          trailLabel: "Trail and safety",
+          practicalLabel: "Practical information",
+          transitCaveat: "Public transport details come from OpenStreetMap and may not reflect the current timetable.",
+          contactLabel: "Place and contact",
+          addressLabel: "Address",
+          unnamedObject: "Unnamed object",
+          zoomToInspect: "Zoom in to inspect nearby map objects.",
+          zoomToInspectButton: "Zoom in and inspect",
+          website: "Website",
+          phone: "Phone",
+          email: "Email",
+          errInvalidOsm: value => `invalid shared OpenStreetMap object: ${value}`,
           unnamed: "Unnamed",
           unnamedKind: label => `Unnamed ${label.toLowerCase()}`,
           genericDestination: "Destination",
@@ -868,6 +1027,22 @@
           zoomIn: "Zoom in",
           zoomOut: "Zoom out",
           geolocate: "Find my location",
+          geolocationStopButton: "Turn off my location",
+          geolocationRecenterButton: "Recenter my location",
+          geolocationUnavailableButton: "Location is unavailable",
+          geolocationLocating: "Finding your location…",
+          geolocationTracking: accuracy => accuracy === undefined
+            ? "Your location is shown and updating; press the location button to turn it off."
+            : `Your location is shown and updating · accuracy ±${accuracy} m; press the location button to turn it off.`,
+          geolocationBackground: accuracy => accuracy === undefined
+            ? "Location keeps updating; press the location button to recenter it."
+            : `Location keeps updating · accuracy ±${accuracy} m; press the location button to recenter it.`,
+          geolocationOff: "Location display is off.",
+          geolocationDenied: "Location permission was not granted. You can change it in this site’s browser settings.",
+          geolocationUnavailable: "Location is unavailable in this browser or over an insecure connection.",
+          geolocationPositionUnavailable: "Your device could not determine its location. Check location settings and try again.",
+          geolocationTimeout: "Finding your location timed out. Turn location off, then try again.",
+          geolocationOutside: "Your location is outside this map’s coverage.",
           toggleAttribution: "Toggle attribution"
         }
       };
@@ -997,14 +1172,110 @@
         "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
       );
       const coarsePointerMedia = matchMedia("(pointer: coarse)");
+      const reducedMotionMedia = matchMedia("(prefers-reduced-motion: reduce)");
+      // MapLibre normally constrains the whole viewport inside maxBounds. That
+      // prevents a coverage-border point from reaching the screen centre, and
+      // changing maxBounds in zoom/resize events is one transform too late:
+      // the old constraint has already shifted the proposed camera.
+      //
+      // transformConstrain runs synchronously inside every proposed transform,
+      // with its proposed zoom and the container's already-current dimensions.
+      // Constrain the camera *centre* instead. The data bbox itself is always
+      // reachable, with 32 px of intentional overscroll and just enough extra
+      // on the panel side to reach the centre of the unobscured map. Thus the
+      // permitted travel shrinks with zoom instead of exposing a country-sized
+      // void at z18.
+      const cameraMinZoom = 6;
+      const cameraMaxZoom = 18;
+      const cameraEdgeGutter = 32;
+      const cameraTileSize = 512;
+      const cameraPanelOverscroll = { west: 0, east: 0, north: 0, south: 0 };
+      let cameraPanelMeasureKey;
+      let cameraCoverageBounds = [
+        lithuaniaBounds[0][0], lithuaniaBounds[0][1],
+        lithuaniaBounds[1][0], lithuaniaBounds[1][1]
+      ];
+
+      function mercatorY(latitude) {
+        const clamped = Math.max(-85.051129, Math.min(85.051129, latitude));
+        const radians = clamped * Math.PI / 180;
+        return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
+      }
+
+      function latitudeFromMercatorY(y) {
+        return Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180 / Math.PI;
+      }
+
+      function measurePanelOverscroll(width, height) {
+        const panel = document.querySelector(".map-panel");
+        const measureKey = `${width}:${height}:${mobileMedia.matches}:${panel.dataset.collapsed}`;
+        // Camera constraints run for every drag/zoom frame. Panel geometry is
+        // stable between a resize, mode switch, content render, or explicit
+        // toggle, so avoid repeated layout reads on the mobile pan hot path.
+        if (measureKey === cameraPanelMeasureKey) return;
+        cameraPanelMeasureKey = measureKey;
+        const containerRect = document.getElementById("map").getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        let usableCenterX = width / 2;
+        let usableCenterY = height / 2;
+        // Eight pixels clears the panel shadow. A remaining strip counts as
+        // usable as soon as it can hold one standard 44 px touch target.
+        if (panelRect.width > 0 && panelRect.height > 0) {
+          if (mobileMedia.matches) {
+            const usableBottom = Math.max(0, panelRect.top - containerRect.top - 8);
+            if (usableBottom >= 44) usableCenterY = usableBottom / 2;
+          } else {
+            const usableRight = Math.max(0, panelRect.left - containerRect.left - 8);
+            if (usableRight >= 44) usableCenterX = usableRight / 2;
+          }
+        }
+        // Retain the largest observed panel allowance. Closing a panel may
+        // relax no new constraint and therefore never pulls the map inward.
+        cameraPanelOverscroll.west = Math.max(
+          cameraPanelOverscroll.west, usableCenterX - width / 2
+        );
+        cameraPanelOverscroll.east = Math.max(
+          cameraPanelOverscroll.east, width / 2 - usableCenterX
+        );
+        cameraPanelOverscroll.north = Math.max(
+          cameraPanelOverscroll.north, usableCenterY - height / 2
+        );
+        cameraPanelOverscroll.south = Math.max(
+          cameraPanelOverscroll.south, height / 2 - usableCenterY
+        );
+      }
+
+      function constrainCameraCenter(lngLat, zoom) {
+        const container = document.getElementById("map");
+        measurePanelOverscroll(container.clientWidth, container.clientHeight);
+        const constrainedZoom = Math.max(cameraMinZoom, Math.min(cameraMaxZoom, zoom));
+        const worldSize = cameraTileSize * 2 ** constrainedZoom;
+        const [minLon, minLat, maxLon, maxLat] = cameraCoverageBounds;
+        const west = minLon -
+          (cameraEdgeGutter + cameraPanelOverscroll.west) / worldSize * 360;
+        const east = maxLon +
+          (cameraEdgeGutter + cameraPanelOverscroll.east) / worldSize * 360;
+        const northY = mercatorY(maxLat) -
+          (cameraEdgeGutter + cameraPanelOverscroll.north) / worldSize;
+        const southY = mercatorY(minLat) +
+          (cameraEdgeGutter + cameraPanelOverscroll.south) / worldSize;
+        const requestedY = mercatorY(lngLat.lat);
+        const center = new maplibregl.LngLat(
+          Math.max(west, Math.min(east, lngLat.lng)),
+          latitudeFromMercatorY(Math.max(northY, Math.min(southY, requestedY)))
+        );
+        return { center, zoom: constrainedZoom };
+      }
+
       const map = new maplibregl.Map({
         container: "map",
         style: mapStyle,
         bounds: lithuaniaBounds,
         fitBoundsOptions: { padding: 8 },
-        minZoom: 6,
-        maxZoom: 18,
+        minZoom: cameraMinZoom,
+        maxZoom: cameraMaxZoom,
         maxBounds: [[20.0, 53.5], [27.45, 56.85]],
+        transformConstrain: constrainCameraCenter,
         renderWorldCopies: false,
         attributionControl: { compact: true },
         dragRotate: false,
@@ -1020,22 +1291,237 @@
       });
       const destinationSourceIds = new Set();
       const failedDestinationSources = new Set();
+      // Tile objects are stable across their request/error lifecycle. Tagging
+      // each request when it starts lets a late failure from an invalidated
+      // click be ignored instead of poisoning whichever inspection is active.
+      const inspectorTileLookupSequences = new WeakMap();
+      let activeInspectorLookupSequence;
+      let inspectorSourceId;
+      let inspectorSourceSerial = 0;
+      let inspectorLayersReady = false;
+      let inspectorSourceNeedsReset = false;
+      // Geolocation is deliberately ephemeral: following the device must
+      // never turn its coordinates into a shareable view= hash. The flag
+      // remains set while the browser watch is active, including MapLibre's
+      // background-follow state after a user pans away.
+      let geolocationPrivacyActive = false;
+      // Once a successful fix has moved the camera, later filter/language
+      // changes must not accidentally serialize that camera after tracking
+      // is switched off. Keep the pre-location URL for the rest of this page
+      // session; an explicit map click can still create its own inspect link.
+      let geolocationCameraTainted = false;
+      let geolocationCameraFollowing = false;
+      let geolocationStatusState;
+      let geolocationStatusHideTimer;
+      let lastGeolocationAccuracy;
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
-      // Let mobile users test their own location; inspection stays click-driven.
-      map.addControl(new maplibregl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true }
-      }), "top-left");
+      // No trigger() call is made: the browser permission prompt and live
+      // watch begin only after the user presses the control. Once enabled,
+      // panning moves tracking into MapLibre's background mode: the blue dot
+      // keeps updating without fighting the user's camera.
+      const geolocationControl = new maplibregl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 12000
+        },
+        fitBoundsOptions: {
+          maxZoom: 16,
+          duration: reducedMotionMedia.matches ? 0 : 450
+        },
+        trackUserLocation: true,
+        showUserLocation: true,
+        showAccuracyCircle: true
+      });
+      // An error radius larger than 10 km cannot usefully identify a city
+      // neighbourhood or hiking area, and astronomical finite values can
+      // overflow MapLibre's camera/circle calculations. Sanitize before the
+      // control sees the position: keep the useful dot, but treat its range
+      // as unavailable. The event-side marker lets our status and circle
+      // handler distinguish a rejected range from a legitimate zero.
+      const maxUsefulGeolocationAccuracyMeters = 10_000;
+      const maplibreGeolocationSuccess = geolocationControl._onSuccess;
+      geolocationControl._onSuccess = position => {
+        const accuracy = Number(position?.coords?.accuracy);
+        if (Number.isFinite(accuracy) && accuracy >= 0 &&
+            accuracy <= maxUsefulGeolocationAccuracyMeters) {
+          maplibreGeolocationSuccess(position);
+          return;
+        }
+        const coords = position?.coords ?? {};
+        maplibreGeolocationSuccess({
+          coords: {
+            latitude: Number(coords.latitude),
+            longitude: Number(coords.longitude),
+            accuracy: 0,
+            altitude: coords.altitude ?? null,
+            altitudeAccuracy: coords.altitudeAccuracy ?? null,
+            heading: coords.heading ?? null,
+            speed: coords.speed ?? null,
+            _mapgamesAccuracyRejected: true
+          },
+          timestamp: position?.timestamp ?? Date.now()
+        });
+      };
+      map.addControl(geolocationControl, "top-left");
+
+      function setGeolocationStatus(key, ...args) {
+        const priorAccuracyAvailable = geolocationStatusState?.args?.[0] !== undefined;
+        const nextAccuracyAvailable = args[0] !== undefined;
+        const stateChanged = geolocationStatusState?.key !== key ||
+          priorAccuracyAvailable !== nextAccuracyAvailable;
+        geolocationStatusState = { key, args };
+        if (!stateChanged) return;
+        const status = document.getElementById("geolocation-status");
+        status.textContent = t(key, ...args);
+        clearTimeout(geolocationStatusHideTimer);
+        status.hidden = false;
+        // The blue dot and pressed control carry steady-state information;
+        // keep the map frugal after the status has been announced. Failures,
+        // unsupported contexts, and the initial permission wait stay visible.
+        if (["geolocationTracking", "geolocationBackground", "geolocationOff"].includes(key)) {
+          geolocationStatusHideTimer = setTimeout(() => { status.hidden = true; }, 6000);
+        }
+      }
+
+      function renderGeolocationStatus() {
+        if (!geolocationStatusState) return;
+        const { key, args } = geolocationStatusState;
+        const status = document.getElementById("geolocation-status");
+        status.textContent = t(key, ...args);
+      }
+
+      function finiteAccuracy(position) {
+        if (position?.coords?._mapgamesAccuracyRejected) return undefined;
+        const accuracy = Number(position?.coords?.accuracy);
+        return Number.isFinite(accuracy) && accuracy >= 0 &&
+          accuracy <= maxUsefulGeolocationAccuracyMeters
+          ? Math.round(accuracy)
+          : undefined;
+      }
+
+      geolocationControl.on("trackuserlocationstart", () => {
+        geolocationPrivacyActive = true;
+        geolocationCameraFollowing = true;
+        clearTimeout(viewHashTimer);
+        setGeolocationStatus("geolocationLocating");
+        localizeMapControls();
+      });
+      geolocationControl.on("geolocate", event => {
+        geolocationCameraTainted = true;
+        lastGeolocationAccuracy = finiteAccuracy(event);
+        const accuracyCircle = document.querySelector(".maplibregl-user-location-accuracy-circle");
+        if (accuracyCircle) {
+          // A missing/non-finite range must not masquerade as a precise fix.
+          // Zero metres has no visible radius; every positive finite range
+          // retains MapLibre's projected accuracy circle.
+          accuracyCircle.hidden = !(lastGeolocationAccuracy > 0);
+        }
+        setGeolocationStatus(
+          geolocationCameraFollowing ? "geolocationTracking" : "geolocationBackground",
+          lastGeolocationAccuracy
+        );
+      });
+      geolocationControl.on("userlocationlostfocus", () => {
+        geolocationCameraFollowing = false;
+        setGeolocationStatus("geolocationBackground", lastGeolocationAccuracy);
+        localizeMapControls();
+      });
+      geolocationControl.on("userlocationfocus", () => {
+        geolocationCameraFollowing = true;
+        geolocationCameraTainted = true;
+        setGeolocationStatus("geolocationTracking", lastGeolocationAccuracy);
+        localizeMapControls();
+      });
+      geolocationControl.on("outofmaxbounds", () => {
+        setGeolocationStatus("geolocationOutside");
+      });
+      geolocationControl.on("error", error => {
+        if (error.code === 1) {
+          geolocationPrivacyActive = false;
+          geolocationCameraFollowing = false;
+          setGeolocationStatus("geolocationDenied");
+        } else if (error.code === 3) {
+          setGeolocationStatus("geolocationTimeout");
+        } else {
+          setGeolocationStatus("geolocationPositionUnavailable");
+        }
+        localizeMapControls();
+      });
+
+      const geolocationButton = document.querySelector(".maplibregl-ctrl-geolocate");
+      // MapLibre owns the state machine; observe the resulting pressed state
+      // after its click listener has run. Turning tracking off releases the
+      // active-watch guard; the session's camera-taint guard still preserves
+      // the pre-location URL.
+      geolocationButton?.addEventListener("click", () => queueMicrotask(() => {
+        geolocationPrivacyActive = geolocationButton.getAttribute("aria-pressed") === "true";
+        if (!geolocationPrivacyActive && geolocationButton.disabled !== true) {
+          geolocationCameraFollowing = false;
+          setGeolocationStatus("geolocationOff");
+        }
+        localizeMapControls();
+      }));
+
+      const geolocationCapable = window.isSecureContext &&
+        typeof navigator.geolocation?.watchPosition === "function";
+      if (!geolocationCapable) {
+        geolocationButton.disabled = true;
+        setGeolocationStatus("geolocationUnavailable");
+      }
+      // Geolocation support resolution is asynchronous. Keep unsupported or
+      // insecure contexts disabled, and translate MapLibre's stock tooltip
+      // whenever that resolution changes the button state.
+      new MutationObserver(() => {
+        if (!geolocationCapable && !geolocationButton.disabled) {
+          geolocationButton.disabled = true;
+        }
+        localizeMapControls();
+      }).observe(geolocationButton, { attributes: true, attributeFilter: ["disabled"] });
       map.on("error", event => {
         if (destinationSourceIds.has(event.sourceId)) {
           failedDestinationSources.add(event.sourceId);
         }
+        if (String(event.sourceId || "").startsWith("inspector-")) {
+          // A discarded MapLibre source can still finish an asynchronous
+          // callback after its replacement has started. Source IDs are unique
+          // per protocol-cache generation, so an old source-level failure can
+          // never be mistaken for a failure of the active lookup.
+          if (event.sourceId !== inspectorSourceId) return;
+          const failedLookupSequence = event.tile
+            ? inspectorTileLookupSequences.get(event.tile)
+            : activeInspectorLookupSequence;
+          if (failedLookupSequence === activeInspectorLookupSequence &&
+              failedLookupSequence !== undefined) {
+            // Leave the failed source hidden and replace it at the start of
+            // the next explicit inspection. This makes transient PMTiles or
+            // tile failures retryable without a late failure from an older
+            // click tearing down a newer lookup.
+            inspectorSourceNeedsReset = true;
+            failInspectorLookup(failedLookupSequence);
+          }
+          console.warn("inspector tile lookup failed", event.error);
+          return;
+        }
         reportMapError(event.error);
         console.error(event.error);
+      });
+      map.on("sourcedataloading", event => {
+        if (event.sourceId === inspectorSourceId && event.tile &&
+            activeInspectorLookupSequence !== undefined) {
+          inspectorTileLookupSequences.set(event.tile, activeInspectorLookupSequence);
+        }
       });
 
       const serviceState = new Map();
       const destinationRecords = new Map();
       const placeLayerIds = [];
+      const inspectorHitLayerIds = [
+        "inspector-hit-areas",
+        "inspector-hit-routes",
+        "inspector-hit-lines",
+        "inspector-hit-points"
+      ];
       const detailLayerIds = [
         "detail-building-poi-addresses",
         "detail-micro-names",
@@ -1063,6 +1549,17 @@
       // #at remains an exact coordinate test.
       let inspectionPlaceId;
       let inspectionMarkerFeatures;
+      // Rich OSM objects are retained independently of the accessibility
+      // origin and service marker. A language toggle can therefore re-render
+      // the card without refetching the lazy inspector tiles.
+      let inspectionOsmFeatures = [];
+      let inspectionOsmId;
+      let requestedInspectionOsmId;
+      let inspectionOsmLoading = false;
+      let inspectionOsmFailed = false;
+      let inspectionOsmQueried = false;
+      let inspectionPlaceCardFeatures = [];
+      let inspectorLookupSequence = 0;
       let inspectionPending = false;
       let inspectSequence = 0;
       let locationMarker;
@@ -1084,6 +1581,7 @@
       }
 
       function setPanelCollapsed(collapsed) {
+        cameraPanelMeasureKey = undefined;
         mapPanel.dataset.collapsed = String(collapsed);
         const toggle = document.getElementById("panel-toggle");
         toggle.setAttribute("aria-expanded", String(!collapsed));
@@ -1187,12 +1685,35 @@
         return lang === "lt" ? "" : `&lang=${lang}`;
       }
 
+      const osmSharePattern = /^[nwr][1-9][0-9]*$/;
+      const osmTypePrefixes = { node: "n", way: "w", relation: "r" };
+
+      function osmIdentity(properties) {
+        const type = String(properties?.osm_type ?? "").toLowerCase();
+        const id = String(properties?.osm_id ?? "");
+        const prefix = osmTypePrefixes[type] || ("nwr".includes(type) ? type : "");
+        const value = `${prefix}${id}`;
+        return osmSharePattern.test(value) ? value : undefined;
+      }
+
+      function parseSharedOsm(parameters) {
+        const value = parameters.get("osm");
+        if (value !== null && !osmSharePattern.test(value)) {
+          throw new Error(t("errInvalidOsm", value));
+        }
+        return value ?? undefined;
+      }
+
+      function osmParam() {
+        return inspectionOsmId ? `&osm=${inspectionOsmId}` : "";
+      }
+
       function inspectionHash(lngLat) {
         const origin = inspectionPlaceId === undefined
           ? `at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}`
           : `place=${encodeURIComponent(inspectionPlaceId)}`;
         return `#${origin}` +
-          `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}`;
+          `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}${osmParam()}`;
       }
 
       let lastWrittenHash = "";
@@ -1217,7 +1738,9 @@
       function updateViewHash() {
         // The inspect-share hash (#at=... or #place=...) owns the URL while a
         // location is inspected; view state fills it the rest of the time.
-        if (!metadata || inspectionPending || inspectionOrigin ||
+        // A device-following camera is intentionally never shareable.
+        if (geolocationPrivacyActive || geolocationCameraTainted || !metadata ||
+            inspectionPending || inspectionOrigin ||
             document.getElementById("location-dialog").open) {
           return;
         }
@@ -1231,6 +1754,7 @@
 
       function scheduleViewHash() {
         clearTimeout(viewHashTimer);
+        if (geolocationPrivacyActive || geolocationCameraTainted) return;
         viewHashTimer = setTimeout(updateViewHash, 250);
       }
 
@@ -1311,6 +1835,7 @@
         document.getElementById("panel-done").textContent = t("viewMap");
         document.getElementById("location-dialog-title").textContent = t("dialogTitle");
         document.getElementById("dialog-close").setAttribute("aria-label", t("closeDialog"));
+        renderGeolocationStatus();
         if (!metadata && !persistentMapError) {
           selectionSummary.textContent = t("loadingFilters");
           document.getElementById("summary-text").textContent = t("loadingData");
@@ -1325,7 +1850,6 @@
         [
           [".maplibregl-ctrl-zoom-in", "zoomIn"],
           [".maplibregl-ctrl-zoom-out", "zoomOut"],
-          [".maplibregl-ctrl-geolocate", "geolocate"],
           [".maplibregl-ctrl-attrib-button", "toggleAttribution"]
         ].forEach(([selector, key]) => {
           const control = document.querySelector(selector);
@@ -1333,6 +1857,16 @@
           control.title = t(key);
           control.setAttribute("aria-label", t(key));
         });
+        const geolocate = document.querySelector(".maplibregl-ctrl-geolocate");
+        if (geolocate) {
+          const key = geolocate.disabled
+            ? "geolocationUnavailableButton"
+            : geolocationPrivacyActive
+              ? (geolocationCameraFollowing ? "geolocationStopButton" : "geolocationRecenterButton")
+              : "geolocate";
+          geolocate.title = t(key);
+          geolocate.setAttribute("aria-label", t(key));
+        }
       }
 
       function renderSummaryText() {
@@ -1365,6 +1899,7 @@
           updateServiceCardTexts();
           renderSummaryText();
           updateDetailLanguage();
+          if (document.getElementById("location-dialog").open) renderClickedPlaces();
         }
         renderMapError();
       }
@@ -1394,9 +1929,29 @@
       }
 
       function setLayerVisibility(layerIds, visible) {
-        layerIds.forEach(layerId =>
-          map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none")
-        );
+        layerIds.forEach(layerId => {
+          if (map.getLayer(layerId)) {
+            map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+          }
+        });
+      }
+
+      function invalidateInspectorLookup() {
+        activeInspectorLookupSequence = undefined;
+        inspectorLookupSequence += 1;
+        if (metadata?.inspector) setLayerVisibility(inspectorHitLayerIds, false);
+      }
+
+      function failInspectorLookup(lookupSequence) {
+        if (lookupSequence !== inspectorLookupSequence ||
+            lookupSequence !== activeInspectorLookupSequence) return;
+        activeInspectorLookupSequence = undefined;
+        inspectionOsmFeatures = [];
+        inspectionOsmFailed = true;
+        inspectionOsmQueried = true;
+        inspectionOsmLoading = false;
+        if (metadata?.inspector) setLayerVisibility(inspectorHitLayerIds, false);
+        renderClickedPlaces();
       }
 
       function createServiceControls() {
@@ -1855,6 +2410,86 @@
           ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
         addBelowBaseLabels(transitLayer("detail-transit-station", 15,
           ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
+      }
+
+      function discardInspectorLayers() {
+        // Retire the generation before MapLibre cancellation/removal can
+        // synchronously emit a final event for it.
+        const discardedSourceId = inspectorSourceId;
+        inspectorSourceId = undefined;
+        inspectorHitLayerIds.forEach(layerId => {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+        });
+        if (discardedSourceId && map.getSource(discardedSourceId)) {
+          map.removeSource(discardedSourceId);
+        }
+        // pmtiles.Protocol memoizes a PMTiles reader (including its rejected
+        // header promise) by the archive's plain HTTP(S) URL. Removing the
+        // MapLibre source does not clear that entry, so evict exactly this
+        // optional inspector archive before a retry. Basemap, details, places,
+        // and accessibility archives remain warm.
+        if (metadata?.inspector) {
+          pmtilesProtocol.tiles.delete(new URL(metadata.inspector.file, location.href).href);
+        }
+        inspectorLayersReady = false;
+        inspectorSourceNeedsReset = false;
+      }
+
+      // Creating a PMTiles vector source opens the archive even while all of
+      // its layers are hidden. Keep the source absent until a user explicitly
+      // inspects at the archive's native zoom; ordinary startup and panning
+      // therefore have no inspector request at all.
+      function ensureInspectorLayers() {
+        const inspector = metadata.inspector;
+        if (!inspector) return false;
+        if (inspectorSourceNeedsReset) discardInspectorLayers();
+        if (inspectorLayersReady) return true;
+        try {
+          inspectorSourceId = `inspector-${++inspectorSourceSerial}`;
+          map.addSource(inspectorSourceId, {
+            type: "vector",
+            url: `pmtiles://${new URL(inspector.file, location.href).href}`
+          });
+          const common = {
+            source: inspectorSourceId,
+            minzoom: inspector.min_data_zoom,
+            layout: { visibility: "none" }
+          };
+          map.addLayer({
+            ...common,
+            id: "inspector-hit-areas",
+            type: "fill",
+            "source-layer": inspector.layers.areas,
+            paint: { "fill-color": "#000000", "fill-opacity": 0, "fill-antialias": false }
+          });
+          map.addLayer({
+            ...common,
+            id: "inspector-hit-routes",
+            type: "line",
+            "source-layer": inspector.layers.routes,
+            paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 1 }
+          });
+          map.addLayer({
+            ...common,
+            id: "inspector-hit-lines",
+            type: "line",
+            "source-layer": inspector.layers.lines,
+            paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 1 }
+          });
+          map.addLayer({
+            ...common,
+            id: "inspector-hit-points",
+            type: "circle",
+            "source-layer": inspector.layers.points,
+            paint: { "circle-color": "#000000", "circle-opacity": 0, "circle-radius": 1 }
+          });
+          inspectorLayersReady = true;
+          return true;
+        } catch (error) {
+          discardInspectorLayers();
+          console.warn("inspector source initialization failed", error);
+          return false;
+        }
       }
 
       function addPlaceLayers() {
@@ -2337,8 +2972,17 @@
         // tiles at its MVT-quantized coordinate: resolve the original catalog
         // coordinate first, which is also what #place restores after reload.
         const approximateOrigin = { lng: coordinates[0], lat: coordinates[1] };
+        invalidateInspectorLookup();
         inspectionPlaceId = placeId;
         inspectionMarkerFeatures = [markerFeature];
+        inspectionOsmFeatures = [];
+        inspectionPlaceCardFeatures = [];
+        inspectionOsmLoading = false;
+        inspectionOsmFailed = false;
+        inspectionOsmQueried = false;
+        requestedInspectionOsmId = map.getZoom() >= (metadata.inspector?.min_data_zoom ?? Infinity)
+          ? osmIdentity(markerFeature.properties) : undefined;
+        inspectionOsmId = requestedInspectionOsmId;
         inspectionOrigin = approximateOrigin;
         inspectionPending = true;
         const sequence = ++inspectSequence;
@@ -2351,11 +2995,16 @@
           .then(placeCatalog => {
             if (sequence !== inspectSequence) return;
             const canonicalMarker = catalogMarkerFeature(placeId, placeCatalog);
+            canonicalMarker.properties = {
+              ...markerFeature.properties,
+              ...canonicalMarker.properties
+            };
             const [lng, lat] = canonicalMarker.geometry.coordinates;
             inspectionMarkerFeatures = [canonicalMarker];
             inspectionOrigin = { lng, lat };
             inspectionPending = false;
             inspectLocation(inspectionOrigin);
+            lookupInspector(inspectionOrigin, inspectSequence, false);
           })
           .catch(error => {
             if (sequence === inspectSequence) rejectSharedInspection(error);
@@ -2391,32 +3040,382 @@
           .filter(Boolean);
       }
 
+      const osmFactGroups = {
+        status: ["status", "access", "foot_access", "wheelchair"],
+        trail: [
+          "highway", "route", "network", "ref", "surface", "smoothness", "tracktype",
+          "trail_visibility", "sac_scale", "mtb:scale", "incline", "width", "lit", "ford",
+          "bridge", "tunnel", "foot", "bicycle", "horse"
+        ],
+        practical: [
+          "opening_hours", "fee", "seasonal", "drinking_water", "shelter_type", "toilets",
+          "toilets:wheelchair", "amenity", "tourism", "information", "ele"
+        ],
+        contact: [
+          "addr:street", "addr:housenumber", "addr:city", "addr:postcode", "website",
+          "contact:website", "phone", "contact:phone", "email", "contact:email"
+        ]
+      };
+      const osmInternalProperties = new Set([
+        "osm_type", "osm_id", "category", "kind", "rank", "marker_minzoom", "label_minzoom",
+        "place_id", "place_index", "service", "source_geometry", "int_name"
+      ]);
+      const osmLabels = {
+        lt: {
+          status: "Būsena", access: "Patekimas", foot_access: "Pėsčiomis", wheelchair: "Neįgaliojo vežimėliu",
+          highway: "Kelio rūšis", route: "Maršrutas", network: "Tinklas", ref: "Numeris",
+          surface: "Danga", smoothness: "Dangos kokybė", tracktype: "Miško / lauko kelias",
+          trail_visibility: "Tako matomumas", sac_scale: "Žygio sudėtingumas",
+          "mtb:scale": "MTB sudėtingumas", incline: "Nuolydis", width: "Plotis", lit: "Apšviesta",
+          ford: "Brasta", bridge: "Tiltas", tunnel: "Tunelis", foot: "Pėsčiomis",
+          bicycle: "Dviračiu", horse: "Žirgu", opening_hours: "Darbo laikas", fee: "Mokama",
+          seasonal: "Sezoninis", drinking_water: "Geriamasis vanduo", shelter_type: "Pastogė",
+          toilets: "Tualetai", "toilets:wheelchair": "Pritaikyti tualetai", amenity: "Paslauga",
+          tourism: "Turizmas", information: "Informacija", ele: "Aukštis", website: "Svetainė",
+          "contact:website": "Svetainė", phone: "Telefonas", "contact:phone": "Telefonas",
+          email: "El. paštas", "contact:email": "El. paštas", description: "Aprašymas"
+        },
+        en: {
+          status: "Status", access: "Access", foot_access: "On foot", wheelchair: "Wheelchair",
+          highway: "Path or road", route: "Route", network: "Network", ref: "Reference",
+          surface: "Surface", smoothness: "Surface quality", tracktype: "Track grade",
+          trail_visibility: "Trail visibility", sac_scale: "Hiking difficulty",
+          "mtb:scale": "MTB difficulty", incline: "Incline", width: "Width", lit: "Lit",
+          ford: "Ford", bridge: "Bridge", tunnel: "Tunnel", foot: "On foot",
+          bicycle: "By bicycle", horse: "On horseback", opening_hours: "Opening hours", fee: "Fee",
+          seasonal: "Seasonal", drinking_water: "Drinking water", shelter_type: "Shelter",
+          toilets: "Toilets", "toilets:wheelchair": "Accessible toilets", amenity: "Amenity",
+          tourism: "Tourism", information: "Information", ele: "Elevation", website: "Website",
+          "contact:website": "Website", phone: "Phone", "contact:phone": "Phone",
+          email: "Email", "contact:email": "Email", description: "Description"
+        }
+      };
+      const osmCategoryLabels = {
+        lt: {
+          tourism: "Turizmo objektas", amenity: "Paslauga ar patogumas",
+          historic: "Istorinis objektas", natural: "Gamtos objektas",
+          leisure: "Laisvalaikio vieta", landuse: "Teritorija", transport: "Kelias ar takas",
+          crossing: "Pervaža ar perėja", protected: "Saugoma teritorija",
+          water: "Vandens objektas", barrier: "Užtvara", emergency: "Pagalba nelaimėje",
+          man_made: "Infrastruktūros objektas", place: "Vietovė",
+          healthcare: "Sveikatos priežiūra", transit: "Viešasis transportas",
+          retail: "Parduotuvė", business: "Verslas ar paslauga", building: "Pastatas",
+          address: "Adresas", route: "Žygių maršrutas"
+        },
+        en: {
+          tourism: "Tourist place", amenity: "Service or amenity", historic: "Historic place",
+          natural: "Natural feature", leisure: "Leisure place", landuse: "Area",
+          transport: "Road or path", crossing: "Crossing", protected: "Protected area",
+          water: "Water feature", barrier: "Barrier",
+          emergency: "Emergency facility", man_made: "Infrastructure", place: "Locality",
+          healthcare: "Healthcare", transit: "Public transport", retail: "Shop",
+          business: "Business or service", building: "Building", address: "Address",
+          route: "Hiking route"
+        }
+      };
+
+      // Normalized values are part of our inspector schema, not prose from
+      // OSM. Always present them in the selected UI language; common boolean
+      // values receive the same treatment wherever they occur.
+      const osmNormalizedValueLabels = {
+        lt: {
+          active: "Veikia", abandoned: "Apleistas", closed: "Uždarytas",
+          construction: "Statomas", removed: "Pašalintas", disused: "Nebenaudojamas",
+          proposed: "Siūlomas", allowed: "Leidžiama", permissive: "Savininkas leidžia",
+          prohibited: "Draudžiama", restricted: "Ribojama", conditional: "Taikomos sąlygos",
+          unknown: "Nežinoma", yes: "Taip", no: "Ne", true: "Taip", false: "Ne"
+        },
+        en: {
+          active: "Active", abandoned: "Abandoned", closed: "Closed",
+          construction: "Under construction", removed: "Removed", disused: "Disused",
+          proposed: "Proposed", allowed: "Allowed", permissive: "Permissive",
+          prohibited: "Prohibited", restricted: "Restricted", conditional: "Conditional",
+          unknown: "Unknown", yes: "Yes", no: "No", true: "Yes", false: "No"
+        }
+      };
+      const normalizedOsmKeys = new Set(["status", "foot_access"]);
+      const osmKindLabels = {
+        lt: {
+          crossing: "Perėja", level_crossing: "Geležinkelio pervaža",
+          protected_area: "Saugoma teritorija", riverbank: "Upės krantas"
+        },
+        en: {
+          crossing: "Crossing", level_crossing: "Railway crossing",
+          protected_area: "Protected area", riverbank: "Riverbank"
+        }
+      };
+
+      function readableOsmValue(value, key) {
+        return String(value).split(";").map(part => {
+          const clean = part.trim();
+          const normalized = clean.toLowerCase();
+          const isBoolean = ["yes", "no", "true", "false", "unknown"].includes(normalized);
+          if (normalizedOsmKeys.has(key) || isBoolean) {
+            const label = osmNormalizedValueLabels[lang][normalized];
+            if (label) return label;
+          }
+          return clean.replaceAll("_", " ");
+        }).join(", ");
+      }
+
+      function localizedOsmProperty(properties, key) {
+        const order = lang === "en" ? [`${key}:en`, key, `${key}:lt`] : [`${key}:lt`, key, `${key}:en`];
+        return order.map(candidate => properties[candidate]).find(Boolean);
+      }
+
+      function osmObjectLabel(properties) {
+        return localizedOsmProperty(properties, "name") || properties.int_name || properties.brand || properties.operator ||
+          readableOsmValue(properties.kind || t("unnamedObject"));
+      }
+
+      function osmCategoryLabel(properties) {
+        const value = properties.category;
+        const category = osmCategoryLabels[lang][value] || t("osmObject");
+        const kind = properties.kind &&
+          (osmKindLabels[lang][properties.kind] || readableOsmValue(properties.kind));
+        return kind ? `${category} · ${kind}` : category;
+      }
+
+      function safeExternalUrl(value) {
+        if (!value) return undefined;
+        try {
+          const url = new URL(String(value));
+          return ["http:", "https:"].includes(url.protocol) ? url.href : undefined;
+        } catch (_error) {
+          return undefined;
+        }
+      }
+
+      function osmUrl(identity) {
+        if (!osmSharePattern.test(identity || "")) return undefined;
+        const type = { n: "node", w: "way", r: "relation" }[identity[0]];
+        return `https://www.openstreetmap.org/${type}/${identity.slice(1)}`;
+      }
+
+      function mergeInspectionCandidates() {
+        const merged = new Map();
+        [...inspectionPlaceCardFeatures, ...inspectionOsmFeatures].forEach((feature, index) => {
+          const identity = osmIdentity(feature.properties) ||
+            (feature.properties.place_id ? `place:${feature.properties.place_id}` : `anonymous:${index}`);
+          const prior = merged.get(identity);
+          if (prior) {
+            prior.properties = { ...prior.properties, ...feature.properties };
+            prior._inspectorPriority = Math.min(prior._inspectorPriority ?? 99, feature._inspectorPriority ?? 99);
+          } else {
+            merged.set(identity, { ...feature, properties: { ...feature.properties } });
+          }
+        });
+        return [...merged.entries()].map(([identity, feature]) => ({ identity, feature }))
+          .sort((left, right) =>
+            (left.feature._inspectorPriority ?? -1) - (right.feature._inspectorPriority ?? -1) ||
+            osmObjectLabel(left.feature.properties).localeCompare(osmObjectLabel(right.feature.properties), uiLocale()) ||
+            left.identity.localeCompare(right.identity)
+          );
+      }
+
+      function appendOsmFact(parent, label, value, key) {
+        if (value === undefined || value === null || value === "") return;
+        const row = document.createElement("p");
+        row.className = "osm-fact";
+        const heading = document.createElement("span");
+        heading.className = "osm-fact-label";
+        heading.textContent = `${label}: `;
+        row.append(heading, document.createTextNode(readableOsmValue(value, key)));
+        parent.append(row);
+      }
+
+      function appendOsmGroup(card, properties, titleKey, keys) {
+        const present = keys.filter(key => properties[key] !== undefined && properties[key] !== "");
+        if (!present.length) return;
+        const heading = document.createElement("h4");
+        heading.textContent = t(titleKey);
+        const facts = document.createElement("div");
+        facts.className = "osm-facts";
+        present.forEach(key => appendOsmFact(
+          facts, osmLabels[lang][key] || readableOsmValue(key), properties[key], key
+        ));
+        card.append(heading, facts);
+      }
+
+      function hasTransitTimetableCaveat(properties) {
+        if (properties.category === "crossing") return false;
+        const railwayCrossing = ["crossing", "level_crossing"].includes(properties.railway);
+        return !!properties.public_transport || properties.category === "transit" ||
+          (!!properties.railway && !railwayCrossing);
+      }
+
+      function renderOsmObject(candidate) {
+        const properties = candidate.feature.properties;
+        const card = document.createElement("div");
+        card.className = "osm-object-card";
+        const heading = document.createElement("h4");
+        heading.textContent = osmObjectLabel(properties);
+        const kind = document.createElement("p");
+        kind.className = "destination-kind";
+        kind.textContent = osmCategoryLabel(properties);
+        card.append(heading, kind);
+        appendOsmGroup(card, properties, "statusLabel", osmFactGroups.status);
+        appendOsmGroup(card, properties, "trailLabel", osmFactGroups.trail);
+        appendOsmGroup(card, properties, "practicalLabel", osmFactGroups.practical);
+
+        const address = [
+          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
+          properties["addr:city"], properties["addr:postcode"]
+        ].filter(Boolean).join(", ");
+        const phone = properties.phone || properties["contact:phone"];
+        const email = properties.email || properties["contact:email"];
+        if (address || phone || email) {
+          const title = document.createElement("h4");
+          title.textContent = t("contactLabel");
+          const facts = document.createElement("div");
+          facts.className = "osm-facts";
+          appendOsmFact(facts, t("addressLabel"), address);
+          appendOsmFact(facts, t("phone"), phone);
+          appendOsmFact(facts, t("email"), email);
+          card.append(title, facts);
+        }
+        if (hasTransitTimetableCaveat(properties)) {
+          const caveat = document.createElement("p");
+          caveat.className = "destination-kind";
+          caveat.textContent = t("transitCaveat");
+          card.append(caveat);
+        }
+
+        const used = new Set(Object.values(osmFactGroups).flat());
+        ["name", "name:lt", "name:en", "description", "description:lt", "description:en"].forEach(key => used.add(key));
+        const moreKeys = Object.keys(properties).filter(key =>
+          !used.has(key) && !osmInternalProperties.has(key) && properties[key] !== ""
+        ).sort();
+        const description = localizedOsmProperty(properties, "description");
+        if (description || moreKeys.length) {
+          const details = document.createElement("details");
+          details.className = "osm-object-more";
+          const summary = document.createElement("summary");
+          summary.textContent = t("moreInformation");
+          details.append(summary);
+          if (description) appendOsmFact(details, osmLabels[lang].description, description);
+          moreKeys.forEach(key => appendOsmFact(details, osmLabels[lang][key] || readableOsmValue(key), properties[key]));
+          card.append(details);
+        }
+
+        const links = document.createElement("div");
+        links.className = "osm-object-links";
+        const addLink = (href, label) => {
+          if (!href) return;
+          const link = document.createElement("a");
+          link.href = href;
+          if (href.startsWith("http")) {
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+          }
+          link.textContent = label;
+          links.append(link);
+        };
+        addLink(osmUrl(osmIdentity(properties)), t("openInOsm"));
+        addLink(safeExternalUrl(properties.website || properties["contact:website"]), t("website"));
+        if (phone && /^[+0-9(). -]{3,}$/.test(phone)) {
+          addLink(`tel:${phone.replaceAll(/[^+0-9]/g, "")}`, `${t("phone")}: ${phone}`);
+        }
+        if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          addLink(`mailto:${email}`, `${t("email")}: ${email}`);
+        }
+        if (links.childElementCount) card.append(links);
+        return card;
+      }
+
       function renderClickedPlaces(features) {
+        if (features !== undefined) inspectionPlaceCardFeatures = features;
         const root = document.getElementById("clicked-place");
+        root.setAttribute("aria-busy", String(inspectionOsmLoading));
         root.replaceChildren();
-        if (!features.length) return;
-        const card = document.createElement("section");
-        card.className = "clicked-place";
+        const candidates = mergeInspectionCandidates();
+        const canZoomToInspect = !!inspectionOrigin && !!metadata?.inspector &&
+          map.getZoom() < metadata.inspector.min_data_zoom &&
+          !inspectionOsmLoading && !inspectionOsmQueried && !inspectionOsmFailed;
+        if (!candidates.length && !inspectionOsmLoading && !inspectionOsmFailed &&
+            !inspectionOsmQueried && !requestedInspectionOsmId && !canZoomToInspect) return;
+        const section = document.createElement("section");
+        section.className = "clicked-place";
         const title = document.createElement("h3");
-        title.textContent = t("selectedPlaces", features.length);
-        card.append(title);
-        const chips = document.createElement("div");
-        chips.className = "place-chips";
-        for (const feature of features) {
-          const properties = feature.properties;
-          const chip = document.createElement("span");
-          chip.className = "place-chip";
-          chip.style.setProperty("--service-color", serviceStyles[properties.service]?.color || "#64748b");
-          chip.textContent = `${properties.name || properties.brand || t("unnamed")} · ${kindLabel(properties.kind)}`;
-          chips.append(chip);
+        title.textContent = t("mapObjectsTitle");
+        section.append(title);
+        if (inspectionOsmLoading) {
+          const loading = document.createElement("p");
+          loading.textContent = t("loadingMapObjects");
+          section.append(loading);
         }
-        card.append(chips);
-        for (const value of placeDetailValues(features[0].properties)) {
-          const paragraph = document.createElement("p");
-          paragraph.textContent = value;
-          card.append(paragraph);
+        if (canZoomToInspect) {
+          const prompt = document.createElement("p");
+          prompt.className = "destination-kind";
+          prompt.textContent = t("zoomToInspect");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "osm-inspect-zoom";
+          button.textContent = t("zoomToInspectButton");
+          button.addEventListener("click", () => {
+            if (inspectionOrigin) lookupInspector(inspectionOrigin, inspectSequence, true);
+          });
+          section.append(prompt, button);
         }
-        root.append(card);
+        if (!candidates.length && inspectionOsmLoading) {
+          root.append(section);
+          return;
+        }
+        if (!candidates.length) {
+          if (canZoomToInspect) {
+            root.append(section);
+            return;
+          }
+          const empty = document.createElement("p");
+          empty.className = "destination-kind";
+          empty.textContent = inspectionOsmFailed ? t("inspectorUnavailable") :
+            requestedInspectionOsmId ? t("objectUnavailable") : t("noMapObjects");
+          section.append(empty);
+          root.append(section);
+          return;
+        }
+
+        const validActive = candidates.some(candidate => candidate.identity === inspectionOsmId);
+        const requested = candidates.find(candidate => candidate.identity === requestedInspectionOsmId);
+        const active = validActive
+          ? candidates.find(candidate => candidate.identity === inspectionOsmId)
+          : requested || candidates[0];
+        if (!requestedInspectionOsmId || requested) {
+          inspectionOsmId = osmSharePattern.test(active.identity) ? active.identity : undefined;
+        }
+        const summary = document.createElement("p");
+        summary.className = "destination-kind";
+        summary.textContent = t("objectsHere", candidates.length);
+        section.append(summary);
+        if (requestedInspectionOsmId && !requested && !inspectionOsmLoading) {
+          const unavailable = document.createElement("p");
+          unavailable.className = "destination-kind";
+          unavailable.textContent = t("objectUnavailable");
+          section.append(unavailable);
+        }
+        if (candidates.length > 1) {
+          const choices = document.createElement("div");
+          choices.className = "osm-choice-list";
+          choices.setAttribute("role", "group");
+          choices.setAttribute("aria-label", t("objectsHere", candidates.length));
+          candidates.forEach(candidate => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "osm-choice";
+            button.setAttribute("aria-pressed", String(candidate.identity === active.identity));
+            button.textContent = osmObjectLabel(candidate.feature.properties);
+            button.addEventListener("click", () => {
+              inspectionOsmId = osmSharePattern.test(candidate.identity) ? candidate.identity : undefined;
+              requestedInspectionOsmId = inspectionOsmId;
+              if (inspectionOrigin) updateInspectionHash(inspectionOrigin);
+              renderClickedPlaces();
+            });
+            choices.append(button);
+          });
+          section.append(choices);
+        }
+        section.append(renderOsmObject(active));
+        root.append(section);
       }
 
       function destinationRecordsForRequirements(requirements) {
@@ -2645,13 +3644,16 @@
         if (!dialog.open) dialog.showModal();
       }
 
-      function centerSharedInspection(lngLat, sequence) {
+      function centerSharedInspection(lngLat, sequence, forceInspector = false) {
         map.once("idle", () => {
-          if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
+          if (sequence !== inspectSequence) return;
+          inspectLocation(lngLat, true, sequence);
+          lookupInspector(lngLat, sequence, forceInspector);
         });
         map.easeTo({
           center: lngLat,
-          zoom: Math.max(map.getZoom(), inspectZoom),
+          zoom: Math.max(map.getZoom(), forceInspector
+            ? (metadata.inspector?.min_data_zoom ?? inspectZoom) : inspectZoom),
           duration: 450
         });
       }
@@ -2677,6 +3679,120 @@
         // nearest marker, so only the canonical selected place is labelled.
         return dedupeFeatures(features.sort((left, right) => distance(left) - distance(right)))
           .slice(0, 1);
+      }
+
+      function pointSegmentDistance(point, left, right) {
+        const dx = right.x - left.x;
+        const dy = right.y - left.y;
+        if (dx === 0 && dy === 0) return Math.hypot(point.x - left.x, point.y - left.y);
+        const position = Math.max(0, Math.min(1,
+          ((point.x - left.x) * dx + (point.y - left.y) * dy) / (dx * dx + dy * dy)
+        ));
+        return Math.hypot(point.x - (left.x + position * dx), point.y - (left.y + position * dy));
+      }
+
+      function lineFeatureDistance(point, geometry) {
+        let best = Infinity;
+        const visit = coordinates => {
+          if (!Array.isArray(coordinates) || !coordinates.length) return;
+          if (Array.isArray(coordinates[0]) && typeof coordinates[0][0] === "number") {
+            for (let index = 1; index < coordinates.length; index += 1) {
+              best = Math.min(best, pointSegmentDistance(
+                point, map.project(coordinates[index - 1]), map.project(coordinates[index])
+              ));
+            }
+            return;
+          }
+          coordinates.forEach(visit);
+        };
+        visit(geometry.coordinates);
+        return best;
+      }
+
+      function inspectorFeaturesAt(lngLat) {
+        const point = map.project(lngLat);
+        const pointPadding = coarsePointerMedia.matches ? 20 : 12;
+        const linePadding = coarsePointerMedia.matches ? 14 : 8;
+        const box = padding => [
+          [point.x - padding, point.y - padding],
+          [point.x + padding, point.y + padding]
+        ];
+        const areas = map.queryRenderedFeatures(point, { layers: ["inspector-hit-areas"] })
+          .map(feature => {
+            const rank = Number(feature.properties.rank || 0);
+            return { ...feature, _inspectorPriority: 200 + (Number.isFinite(rank) ? rank : 0) };
+          });
+        const points = map.queryRenderedFeatures(box(pointPadding), { layers: ["inspector-hit-points"] })
+          .map(feature => {
+            const projected = map.project(feature.geometry.coordinates);
+            return { ...feature, _inspectorPriority: Math.hypot(projected.x - point.x, projected.y - point.y) };
+          })
+          .filter(feature => feature._inspectorPriority <= pointPadding);
+        const lineLayers = ["inspector-hit-lines", "inspector-hit-routes"];
+        const lines = map.queryRenderedFeatures(box(linePadding), { layers: lineLayers })
+          .map(feature => {
+            const distance = lineFeatureDistance(point, feature.geometry);
+            const routePenalty = feature.layer.id === "inspector-hit-routes" ? 140 : 100;
+            return { ...feature, _inspectorDistance: distance, _inspectorPriority: routePenalty + distance };
+          })
+          .filter(feature => feature._inspectorDistance <= linePadding);
+        const merged = new Map();
+        [...points, ...lines, ...areas].forEach(feature => {
+          const identity = osmIdentity(feature.properties);
+          if (!identity) return;
+          const prior = merged.get(identity);
+          if (!prior) {
+            merged.set(identity, feature);
+          } else {
+            prior.properties = { ...prior.properties, ...feature.properties };
+            prior._inspectorPriority = Math.min(prior._inspectorPriority, feature._inspectorPriority);
+          }
+        });
+        return [...merged.values()].sort((left, right) =>
+          left._inspectorPriority - right._inspectorPriority ||
+          osmIdentity(left.properties).localeCompare(osmIdentity(right.properties))
+        );
+      }
+
+      function lookupInspector(lngLat, sequence, forceZoom = false) {
+        if (!metadata.inspector) return;
+        const lookupSequence = ++inspectorLookupSequence;
+        const minzoom = metadata.inspector.min_data_zoom;
+        if (map.getZoom() < minzoom) {
+          activeInspectorLookupSequence = undefined;
+          setLayerVisibility(inspectorHitLayerIds, false);
+          if (!forceZoom) return;
+          inspectionOsmLoading = true;
+          renderClickedPlaces();
+          map.once("idle", () => {
+            if (sequence === inspectSequence && lookupSequence === inspectorLookupSequence) {
+              lookupInspector(lngLat, sequence, false);
+            }
+          });
+          map.easeTo({ center: lngLat, zoom: minzoom, offset: inspectionOffset(), duration: 450 });
+          return;
+        }
+        activeInspectorLookupSequence = lookupSequence;
+        inspectionOsmFailed = false;
+        inspectionOsmQueried = false;
+        inspectionOsmLoading = true;
+        renderClickedPlaces();
+        if (!ensureInspectorLayers()) {
+          failInspectorLookup(lookupSequence);
+          return;
+        }
+        setLayerVisibility(inspectorHitLayerIds, true);
+        map.once("idle", () => {
+          if (sequence !== inspectSequence || lookupSequence !== inspectorLookupSequence ||
+              lookupSequence !== activeInspectorLookupSequence) return;
+          activeInspectorLookupSequence = undefined;
+          inspectionOsmFeatures = inspectorFeaturesAt(lngLat);
+          inspectionOsmQueried = true;
+          inspectionOsmLoading = false;
+          setLayerVisibility(inspectorHitLayerIds, false);
+          renderClickedPlaces();
+          if (inspectionOrigin) updateInspectionHash(inspectionOrigin);
+        });
       }
 
       function inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence) {
@@ -2728,8 +3844,16 @@
         inspectionOrigin = undefined;
         inspectionPlaceId = undefined;
         inspectionMarkerFeatures = undefined;
+        inspectionOsmFeatures = [];
+        inspectionOsmId = undefined;
+        requestedInspectionOsmId = undefined;
+        inspectionOsmLoading = false;
+        inspectionOsmFailed = false;
+        inspectionOsmQueried = false;
+        inspectionPlaceCardFeatures = [];
         inspectionPending = false;
         inspectSequence += 1;
+        invalidateInspectorLookup();
         locationMarker?.remove();
         setLayerVisibility(
           [...destinationRecords.values()].map(record => record.destinationLayer),
@@ -2752,7 +3876,9 @@
             rejectSharedInspection(new Error(t("errInvalidPlace", placeValue)));
             return;
           }
+          let sharedOsm;
           try {
+            sharedOsm = parseSharedOsm(parameters);
             applySharedInspectionFilters(parameters);
           } catch (error) {
             rejectSharedInspection(error);
@@ -2762,9 +3888,17 @@
           closeDialogForHashRestore(dialog);
           clearTimeout(viewHashTimer);
           const sequence = ++inspectSequence;
+          invalidateInspectorLookup();
           inspectionOrigin = undefined;
           inspectionPlaceId = placeValue;
           inspectionMarkerFeatures = undefined;
+          inspectionOsmFeatures = [];
+          inspectionOsmId = sharedOsm;
+          requestedInspectionOsmId = sharedOsm;
+          inspectionOsmLoading = false;
+          inspectionOsmFailed = false;
+          inspectionOsmQueried = false;
+          inspectionPlaceCardFeatures = [];
           inspectionPending = true;
           refreshMap();
           renderCatalogLoading();
@@ -2778,7 +3912,7 @@
               inspectionOrigin = { lng, lat };
               inspectionPending = false;
               renderInspectionLoading(inspectionOrigin, true);
-              centerSharedInspection(inspectionOrigin, sequence);
+              centerSharedInspection(inspectionOrigin, sequence, !!sharedOsm);
             })
             .catch(error => {
               if (sequence === inspectSequence) rejectSharedInspection(error);
@@ -2802,7 +3936,9 @@
             rejectSharedInspection(new Error(t("errOutsideBounds")));
             return;
           }
+          let sharedOsm;
           try {
+            sharedOsm = parseSharedOsm(parameters);
             applySharedInspectionFilters(parameters);
           } catch (error) {
             rejectSharedInspection(error);
@@ -2812,20 +3948,30 @@
           closeDialogForHashRestore(dialog);
           clearTimeout(viewHashTimer);
           const sequence = ++inspectSequence;
+          invalidateInspectorLookup();
           inspectionOrigin = undefined;
           inspectionPlaceId = undefined;
           inspectionMarkerFeatures = [];
+          inspectionOsmFeatures = [];
+          inspectionOsmId = sharedOsm;
+          requestedInspectionOsmId = sharedOsm;
+          inspectionOsmLoading = false;
+          inspectionOsmFailed = false;
+          inspectionOsmQueried = false;
+          inspectionPlaceCardFeatures = [];
           inspectionPending = false;
           refreshMap();
           inspectionOrigin = lngLat;
           renderInspectionLoading(inspectionOrigin, true);
-          centerSharedInspection(inspectionOrigin, sequence);
+          centerSharedInspection(inspectionOrigin, sequence, !!sharedOsm);
           return;
         }
         // View-only hash: restore requirements, view mode, language, and
         // camera; no inspect dialog. Same validate-then-apply order as the
         // at= path.
         try {
+          const sharedOsm = parseSharedOsm(parameters);
+          if (sharedOsm) throw new Error(t("errInvalidOsm", sharedOsm));
           const sharedMode = parseSharedViewMode(parameters);
           const sharedLang = parseSharedLang(parameters);
           const sharedRequirements = parameters.get("requirements");
@@ -2842,8 +3988,16 @@
         inspectionOrigin = undefined;
         inspectionPlaceId = undefined;
         inspectionMarkerFeatures = undefined;
+        inspectionOsmFeatures = [];
+        inspectionOsmId = undefined;
+        requestedInspectionOsmId = undefined;
+        inspectionOsmLoading = false;
+        inspectionOsmFailed = false;
+        inspectionOsmQueried = false;
+        inspectionPlaceCardFeatures = [];
         inspectionPending = false;
         inspectSequence += 1;
+        invalidateInspectorLookup();
         locationMarker?.remove();
         const view = parameters.get("view")?.split(",").map(Number);
         if (view && view.length === 3 && view.every(Number.isFinite)) {
@@ -2876,10 +4030,15 @@
         // attribution control ignores unused sources).
         map.getSource(baseSource).attribution = snapshotAttribution();
         createServiceControls();
+        cameraPanelMeasureKey = undefined;
         addAccessNetwork();
         addDetailLayers();
         addPlaceLayers();
         const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+        cameraCoverageBounds = metadata.bbox;
+        // Retain the exact coverage as public maxBounds (the geolocation
+        // control uses getMaxBounds), while transformConstrain above owns the
+        // camera-centre behavior synchronously.
         map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
         // Desktop with the panel open: pad the country fit so central
         // Lithuania is not hidden under the overlay. Only this initial fit —
@@ -2960,8 +4119,16 @@
           inspectionOrigin = undefined;
           inspectionPlaceId = undefined;
           inspectionMarkerFeatures = undefined;
+          inspectionOsmFeatures = [];
+          inspectionOsmId = undefined;
+          requestedInspectionOsmId = undefined;
+          inspectionOsmLoading = false;
+          inspectionOsmFailed = false;
+          inspectionOsmQueried = false;
+          inspectionPlaceCardFeatures = [];
           inspectionPending = false;
           inspectSequence += 1;
+          invalidateInspectorLookup();
           locationMarker?.remove();
           setLayerVisibility(
             [...destinationRecords.values()].map(record => record.destinationLayer),
@@ -2975,12 +4142,27 @@
           scheduleViewHash();
         });
         map.on("click", event => {
+          // The device-location marker is a status indicator, not a map
+          // feature. Clicking it must never open the OSM/accessibility modal
+          // or serialize that device fix as an inspected #at coordinate.
+          if (event.originalEvent?.target?.closest?.(
+            ".maplibregl-user-location-dot, .maplibregl-user-location-accuracy-circle"
+          )) return;
           const markerFeature = markerFeaturesAt(event.point)[0];
           if (!markerFeature) {
             inspectionPlaceId = undefined;
             inspectionMarkerFeatures = [];
+            inspectionOsmFeatures = [];
+            inspectionOsmId = undefined;
+            requestedInspectionOsmId = undefined;
+            inspectionOsmLoading = false;
+            inspectionOsmFailed = false;
+            inspectionOsmQueried = false;
+            inspectionPlaceCardFeatures = [];
             inspectionPending = false;
-            inspectLocation(event.lngLat);
+            const sequence = ++inspectSequence;
+            inspectLocation(event.lngLat, true, sequence);
+            lookupInspector(event.lngLat, sequence, false);
             return;
           }
           inspectPlaceMarker(markerFeature);
@@ -3036,7 +4218,12 @@
           });
           map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
         }
-        map.on("moveend", scheduleViewHash);
+        map.on("moveend", event => {
+          // MapLibre tags camera updates made by GeolocateControl. The active
+          // privacy guard also covers background tracking and any queued
+          // callback from an earlier device-follow transition.
+          if (!event.geolocateSource) scheduleViewHash();
+        });
         window.addEventListener("hashchange", () => {
           // replaceState never fires hashchange, but stay safe against
           // user edits that match our last write.

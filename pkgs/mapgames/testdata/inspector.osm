@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="mapgames-inspector-fixture">
+  <bounds minlat="54.99" minlon="24.99" maxlat="55.02" maxlon="25.02"/>
+
+  <node id="101" lat="55.0000" lon="25.0000" version="1">
+    <tag k="tourism" v="viewpoint"/>
+    <tag k="name" v="Hill view"/>
+    <tag k="foot" v="permissive"/>
+    <tag k="ele" v="188"/>
+  </node>
+  <node id="102" lat="55.0010" lon="25.0010" version="1">
+    <tag k="disused:amenity" v="toilets"/>
+    <tag k="name" v="Old toilets"/>
+  </node>
+  <node id="103" lat="55.0020" lon="25.0020" version="1">
+    <tag k="amenity" v="cafe"/>
+    <tag k="access" v="customers"/>
+    <tag k="opening_hours" v="Sa-Su 10:00-18:00"/>
+  </node>
+  <!-- City context is liberal but remains behind an explicit retail allowlist. -->
+  <node id="104" lat="55.0030" lon="25.0030" version="1">
+    <tag k="shop" v="clothes"/>
+    <tag k="name" v="Allowed clothes shop"/>
+  </node>
+
+  <!-- Conditional access must be normalized at the applicable foot scope. -->
+  <node id="105" lat="55.0032" lon="25.0032" version="1">
+    <tag k="barrier" v="lift_gate"/>
+    <tag k="access:conditional" v="private @ (23:00-08:00)"/>
+  </node>
+  <node id="106" lat="55.0034" lon="25.0034" version="1">
+    <tag k="barrier" v="gate"/>
+    <tag k="access" v="no"/>
+    <tag k="access:conditional" v="yes @ (sunrise-sunset)"/>
+    <tag k="locked" v="yes"/>
+  </node>
+  <node id="107" lat="55.0036" lon="25.0036" version="1">
+    <tag k="amenity" v="bench"/>
+    <tag k="foot" v="yes"/>
+    <tag k="access:conditional" v="no @ (22:00-06:00)"/>
+  </node>
+  <node id="108" lat="55.0038" lon="25.0038" version="1">
+    <tag k="barrier" v="gate"/>
+    <tag k="access:conditional" v="no @ (23:00-08:00)"/>
+  </node>
+  <node id="124" lat="55.0039" lon="25.0039" version="1">
+    <tag k="amenity" v="shelter"/>
+    <tag k="foot" v="yes"/>
+    <tag k="foot:conditional" v="no @ (22:00-06:00)"/>
+  </node>
+
+  <!-- A descriptive lifecycle key is not object-wide state. -->
+  <node id="109" lat="55.0040" lon="25.0040" version="1">
+    <tag k="amenity" v="cafe"/>
+    <tag k="construction" v="house"/>
+  </node>
+
+  <!-- Every supported lifecycle prefix is admitted, copied, and normalized. -->
+  <node id="110" lat="55.0042" lon="25.0042" version="1"><tag k="abandoned:shop" v="books"/></node>
+  <node id="111" lat="55.0044" lon="25.0044" version="1"><tag k="closed:amenity" v="bank"/></node>
+  <node id="112" lat="55.0046" lon="25.0046" version="1"><tag k="construction:tourism" v="hotel"/></node>
+  <node id="113" lat="55.0048" lon="25.0048" version="1"><tag k="demolished:building" v="house"/></node>
+  <node id="114" lat="55.0050" lon="25.0050" version="1"><tag k="destroyed:historic" v="castle"/></node>
+  <node id="115" lat="55.0052" lon="25.0052" version="1"><tag k="disused:office" v="company"/></node>
+  <node id="116" lat="55.0054" lon="25.0054" version="1"><tag k="proposed:leisure" v="park"/></node>
+  <node id="117" lat="55.0056" lon="25.0056" version="1"><tag k="razed:building" v="church"/></node>
+  <node id="118" lat="55.0058" lon="25.0058" version="1">
+    <tag k="removed:barrier" v="gate"/>
+    <tag k="locked" v="yes"/>
+  </node>
+
+  <!-- Small but valuable hiker/tourist categories and crossing safety tags. -->
+  <node id="119" lat="55.0060" lon="25.0060" version="1"><tag k="amenity" v="fountain"/></node>
+  <node id="120" lat="55.0062" lon="25.0062" version="1"><tag k="man_made" v="water_tower"/></node>
+  <node id="121" lat="55.0064" lon="25.0064" version="1"><tag k="historic" v="yes"/></node>
+  <node id="122" lat="55.0066" lon="25.0066" version="1">
+    <tag k="railway" v="level_crossing"/>
+    <tag k="crossing:barrier" v="yes"/>
+    <tag k="crossing:signals" v="yes"/>
+    <tag k="tactile_paving" v="no"/>
+  </node>
+  <node id="123" lat="55.0068" lon="25.0068" version="1">
+    <tag k="highway" v="crossing"/>
+    <tag k="crossing:markings" v="zebra"/>
+    <tag k="crossing:island" v="yes"/>
+  </node>
+
+  <!-- Unmapped unconditional access values are unknown, never conditional. -->
+  <node id="125" lat="55.0070" lon="25.0080" version="1">
+    <tag k="amenity" v="cafe"/>
+    <tag k="access" v="unknown"/>
+  </node>
+  <node id="126" lat="55.0072" lon="25.0082" version="1">
+    <tag k="amenity" v="bench"/>
+    <tag k="foot" v="discouraged"/>
+  </node>
+
+  <!-- Boolean lifecycle tags describe the whole selected object. -->
+  <node id="127" lat="55.0074" lon="25.0084" version="1">
+    <tag k="amenity" v="cafe"/>
+    <tag k="disused" v="yes"/>
+  </node>
+  <node id="128" lat="55.0076" lon="25.0086" version="1">
+    <tag k="tourism" v="museum"/>
+    <tag k="abandoned" v="true"/>
+  </node>
+  <node id="129" lat="55.0078" lon="25.0088" version="1">
+    <tag k="natural" v="peak"/>
+    <tag k="proposed" v="1"/>
+  </node>
+  <node id="130" lat="55.0080" lon="25.0090" version="1">
+    <tag k="shop" v="books"/>
+    <tag k="closed" v="no"/>
+  </node>
+  <node id="131" lat="55.0082" lon="25.0092" version="1">
+    <tag k="highway" v="construction"/>
+    <tag k="construction" v="crossing"/>
+  </node>
+  <node id="132" lat="55.0084" lon="25.0094" version="1">
+    <tag k="disused:railway" v="level_crossing"/>
+    <tag k="crossing:signals" v="yes"/>
+  </node>
+
+  <!-- Explicit negatives guard against accidental whole-key admission. -->
+  <node id="190" lat="55.0070" lon="25.0070" version="1"><tag k="shop" v="unsupported_fixture_value"/></node>
+  <node id="191" lat="55.0072" lon="25.0072" version="1"><tag k="disused:shop" v="unsupported_fixture_value"/></node>
+  <node id="192" lat="55.0074" lon="25.0074" version="1"><tag k="boundary" v="administrative"/></node>
+
+  <node id="231" lat="55.0160" lon="25.0000" version="1"/>
+  <node id="232" lat="55.0170" lon="25.0020" version="1"/>
+  <node id="233" lat="55.0180" lon="25.0040" version="1"/>
+  <node id="241" lat="55.0160" lon="25.0060" version="1"/>
+  <node id="242" lat="55.0160" lon="25.0090" version="1"/>
+  <node id="243" lat="55.0190" lon="25.0090" version="1"/>
+  <node id="244" lat="55.0190" lon="25.0060" version="1"/>
+
+  <node id="201" lat="55.0040" lon="25.0000" version="1"/>
+  <node id="202" lat="55.0050" lon="25.0020" version="1"/>
+  <node id="203" lat="55.0060" lon="25.0040" version="1"/>
+  <way id="301" version="1">
+    <nd ref="201"/><nd ref="202"/><nd ref="203"/>
+    <tag k="highway" v="path"/>
+    <tag k="name" v="Private trail"/>
+    <tag k="foot" v="private"/>
+    <tag k="surface" v="ground"/>
+    <tag k="tracktype" v="grade2"/>
+    <tag k="trail_visibility" v="intermediate"/>
+  </way>
+
+  <node id="211" lat="55.0080" lon="25.0000" version="1"/>
+  <node id="212" lat="55.0080" lon="25.0030" version="1"/>
+  <node id="213" lat="55.0110" lon="25.0030" version="1"/>
+  <node id="214" lat="55.0110" lon="25.0000" version="1"/>
+  <way id="302" version="1">
+    <nd ref="211"/><nd ref="212"/><nd ref="213"/><nd ref="214"/><nd ref="211"/>
+    <tag k="leisure" v="nature_reserve"/>
+    <tag k="name" v="Walkers reserve"/>
+    <tag k="access" v="yes"/>
+  </way>
+
+  <!-- Lifecycle values on the semantic key expose their intended road kind. -->
+  <way id="304" version="1">
+    <nd ref="231"/><nd ref="232"/>
+    <tag k="highway" v="construction"/>
+    <tag k="construction" v="primary"/>
+  </way>
+  <way id="305" version="1">
+    <nd ref="232"/><nd ref="233"/>
+    <tag k="highway" v="proposed"/>
+    <tag k="proposed" v="path"/>
+  </way>
+  <way id="306" version="1">
+    <nd ref="231"/><nd ref="233"/>
+    <tag k="highway" v="steps"/>
+    <tag k="step_count" v="87"/>
+  </way>
+
+  <!-- Protected boundaries are useful in the modal without a visible overlay. -->
+  <way id="307" version="1">
+    <nd ref="241"/><nd ref="242"/><nd ref="243"/><nd ref="244"/><nd ref="241"/>
+    <tag k="boundary" v="protected_area"/>
+    <tag k="protect_class" v="5"/>
+    <tag k="protection_title" v="Landscape reserve"/>
+  </way>
+  <way id="308" version="1">
+    <nd ref="241"/><nd ref="242"/><nd ref="243"/><nd ref="244"/><nd ref="241"/>
+    <tag k="waterway" v="riverbank"/>
+    <tag k="name" v="Fixture riverbank"/>
+  </way>
+
+  <!-- Relation-tagged multipolygon must retain relation identity and area. -->
+  <node id="221" lat="55.0120" lon="25.0050" version="1"/>
+  <node id="222" lat="55.0120" lon="25.0080" version="1"/>
+  <node id="223" lat="55.0150" lon="25.0080" version="1"/>
+  <node id="224" lat="55.0150" lon="25.0050" version="1"/>
+  <way id="303" version="1">
+    <nd ref="221"/><nd ref="222"/><nd ref="223"/><nd ref="224"/><nd ref="221"/>
+  </way>
+  <relation id="401" version="1">
+    <member type="way" ref="303" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+    <tag k="tourism" v="camp_site"/>
+    <tag k="name" v="Relation camp"/>
+    <tag k="fee" v="yes"/>
+  </relation>
+
+  <!-- Route member geometry is emitted as one relation-owned multilinestring. -->
+  <relation id="402" version="1">
+    <member type="way" ref="301" role=""/>
+    <tag k="type" v="route"/>
+    <tag k="route" v="hiking"/>
+    <tag k="network" v="lwn"/>
+    <tag k="ref" v="MG1"/>
+    <tag k="name" v="Mapgames walk"/>
+    <tag k="osmc:symbol" v="red:white:red_bar"/>
+  </relation>
+  <relation id="403" version="1">
+    <member type="way" ref="304" role=""/>
+    <tag k="type" v="route"/>
+    <tag k="proposed:route" v="hiking"/>
+    <tag k="name" v="Future walk"/>
+  </relation>
+  <relation id="404" version="1">
+    <member type="way" ref="301" role=""/>
+    <tag k="type" v="route"/>
+    <tag k="route" v="walking"/>
+    <tag k="destroyed" v="1"/>
+    <tag k="name" v="Former walk"/>
+  </relation>
+</osm>

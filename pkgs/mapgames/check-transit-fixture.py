@@ -45,7 +45,11 @@ def main() -> None:
     area = by_name["Area canonical"][0]
     assert area["kind"] == "terminal" and area["display_tier"] == 15
     assert area["mode_bus"] == 1 and area["mode_trolleybus"] == 1 and area["mode_tram"] == 1
+    assert area["platform_count"] == 1 and "mode_ferry" not in area
     assert area["ref"] == "R42"
+    assert "Disabled relation member" not in by_name
+    assert "Disabled stop area" not in by_name and "Must not resurrect" not in by_name
+    assert len(by_name["Malformed survivor"]) == 1
     assert len(by_name["Central"]) == 1 and by_name["Central"][0]["platform_count"] == 1
     assert by_name["Multimodal"][0]["display_tier"] == 16
     assert by_name["Multimodal"][0]["mode_bus"] == 1 and by_name["Multimodal"][0]["mode_tram"] == 1

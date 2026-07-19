@@ -354,6 +354,9 @@ def main() -> None:
     assert not any(
         feature.get("name") == "Lifecycle-prefixed recycling" for feature in micros
     ), "lifecycle-prefixed micro utility was emitted"
+    assert not any(
+        feature.get("name") == "Non-potable tap" for feature in micros
+    ), "drinking_water=no was incorrectly presented as potable water"
     assert any(
         feature.get("name") == "False-lifecycle restaurant"
         and feature.get("class") == "food"

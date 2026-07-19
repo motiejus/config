@@ -220,7 +220,9 @@ local function classify_micro()
     return "emergency_entrance", "emergency_ward_entrance"
   end
   if amenity == "toilets" then return "toilets", amenity end
-  if amenity == "drinking_water" then return "drinking_water", amenity end
+  if amenity == "drinking_water" and Find("drinking_water") ~= "no" then
+    return "drinking_water", amenity
+  end
   if Find("drinking_water") == "yes" and
       (amenity == "fountain" or man_made == "water_tap") then
     return "drinking_water", man_made ~= "" and man_made or amenity

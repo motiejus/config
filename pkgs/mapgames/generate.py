@@ -26,6 +26,8 @@ TILE_MAX_ZOOM = 14
 # the same point set below the archive's maximum zoom only duplicates data;
 # one canonical z14 tile pyramid supplies every displayed zoom.
 PLACE_TILE_MIN_ZOOM = TILE_MAX_ZOOM
+INSPECTOR_MIN_ZOOM = 15
+INSPECTOR_MAX_ZOOM = 16
 # Low-zoom fast-path (docs/lowzoom-fastpath.md): coarsen.py always builds a
 # z10-grid skeleton. Serving that same artifact through z13 avoids the raw
 # network's severe mobile draw cost at z11-13 without changing its grid or
@@ -401,6 +403,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--basemap-process", type=Path, required=True)
     parser.add_argument("--detail-config", type=Path, required=True)
     parser.add_argument("--detail-process", type=Path, required=True)
+    parser.add_argument("--inspector-config", type=Path, required=True)
+    parser.add_argument("--inspector-process", type=Path, required=True)
     parser.add_argument("--transit-tool", type=Path, required=True)
     parser.add_argument("--geojson-process", type=Path, required=True)
     parser.add_argument("--pmtiles-cli-version", required=True)
@@ -649,13 +653,35 @@ def main() -> None:
     ]
     detail_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
     run("build high-zoom building and address detail", detail_command)
-    # tilemaker writes a valid but unclustered archive whose first z15 lookup
-    # can require a multi-megabyte leaf-directory range. Reorder only this
-    # new, unusually high-cardinality archive in place; the established
-    # basemap/access/destination archives are already acceptably laid out.
+    # tilemaker writes valid but unclustered high-zoom archives whose first
+    # z15 lookup can require a multi-megabyte leaf-directory range. Reorder
+    # these in place; the established basemap/access/destination archives are
+    # already acceptably laid out.
     run(
         "cluster high-zoom detail PMTiles",
         ["pmtiles", "cluster", output / "details.pmtiles"],
+    )
+
+    inspector_command = [
+        "tilemaker",
+        "--input",
+        args.pbf,
+        "--output",
+        output / "inspector.pmtiles",
+        "--config",
+        args.inspector_config,
+        "--process",
+        args.inspector_process,
+        "--threads",
+        args.concurrency,
+    ]
+    inspector_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
+    run("build on-demand OSM inspector", inspector_command)
+    # The inspector has the same high-cardinality z15-16 shape as details.
+    # Cluster it before publication so first-click tile reads stay bounded.
+    run(
+        "cluster high-zoom inspector PMTiles",
+        ["pmtiles", "cluster", output / "inspector.pmtiles"],
     )
 
     with timed("prepare service locations"):
@@ -1015,6 +1041,53 @@ def main() -> None:
                 "source": "valhalla_expansion_edges",
                 "tile_max_zoom": TILE_MAX_ZOOM,
                 "visual_smoothing": False,
+            },
+            "inspector": {
+                # tilemaker 3.1 does not retain filemetadata.attribution in its
+                # PMTiles JSON. The inspector is never used as a standalone
+                # map; the enclosing basemap always displays osm_attribution.
+                "attribution_policy": "enclosing_map_osm_attribution",
+                "description": (
+                    "High-zoom OpenStreetMap geometries and carefully selected tags; "
+                    "loaded only for an explicit inspection"
+                ),
+                "attributes": {
+                    "category": "normalized_feature_family",
+                    "foot_access": [
+                        "allowed",
+                        "permissive",
+                        "restricted",
+                        "prohibited",
+                        "conditional",
+                        "unknown",
+                    ],
+                    "kind": "selected_source_tag_value",
+                    "osm_id": "exact_decimal_string",
+                    "osm_type": ["node", "way", "relation"],
+                    "source_tags": "sparse_verbatim_explicit_allowlist",
+                    "status": [
+                        "active",
+                        "abandoned",
+                        "closed",
+                        "construction",
+                        "disused",
+                        "proposed",
+                        "removed",
+                    ],
+                },
+                "file": "inspector.pmtiles",
+                "format": "PMTiles v3 with Mapbox Vector Tiles",
+                "layers": {
+                    "points": "inspect_points",
+                    "lines": "inspect_lines",
+                    "areas": "inspect_areas",
+                    "routes": "hiking_routes",
+                },
+                "max_data_zoom": INSPECTOR_MAX_ZOOM,
+                "min_data_zoom": INSPECTOR_MIN_ZOOM,
+                "pmtiles_cli_version": args.pmtiles_cli_version,
+                "schema_version": 3,
+                "tilemaker_version": args.tilemaker_version,
             },
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
             "osm_source": args.osm_source_url,
