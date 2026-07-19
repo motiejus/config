@@ -27,12 +27,12 @@ TILE_MAX_ZOOM = 14
 # one canonical z14 tile pyramid supplies every displayed zoom.
 PLACE_TILE_MIN_ZOOM = TILE_MAX_ZOOM
 # Low-zoom fast-path (docs/lowzoom-fastpath.md): coarsen.py always builds a
-# z10-grid skeleton. Serving that same artifact through z12 avoids the raw
-# network's severe mobile draw cost at z11-12 without changing its grid or
-# regeneration algorithm; raw reachable routing edges begin at z13.
+# z10-grid skeleton. Serving that same artifact through z13 avoids the raw
+# network's severe mobile draw cost at z11-13 without changing its grid or
+# regeneration algorithm; raw reachable routing edges begin at z14.
 COARSE_GRID_ZOOM = 10
 SKELETON_SIMPLIFY_BELOW = COARSE_GRID_ZOOM + 1
-COARSE_MAX_ZOOM = 12
+COARSE_MAX_ZOOM = 13
 RAW_NETWORK_MIN_ZOOM = COARSE_MAX_ZOOM + 1
 # One MVT coordinate unit (tile extent 4096) at zoom z spans
 # 360 / (4096 * 2**z) projected degrees — the grid every vertex is rounded
@@ -41,11 +41,11 @@ RAW_NETWORK_MIN_ZOOM = COARSE_MAX_ZOOM + 1
 # in the pinned 3.1.0), and both that scaling (ratio 2) and the coordinate
 # unit double per zoom step down, so anchoring the level to one coordinate
 # unit at COARSE_GRID_ZOOM makes the effective tolerance exactly one
-# coordinate unit at every simplified zoom. The overzoomed z11-12 skeleton
+# coordinate unit at every simplified zoom. The overzoomed z11-13 skeleton
 # needs no further tilemaker simplification.
 NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2**COARSE_GRID_ZOOM)
 # Low-zoom fast-path (docs/lowzoom-fastpath.md, owner-selected Variant B):
-# the z10-encoder-grid skeleton serves z8-12, and the section 4.6
+# the z10-encoder-grid skeleton serves z8-13, and the section 4.6
 # short-chain-filtered subset (chains of z10-grid length >= N_drop kept)
 # serves z6-7. GRID_ZOOM is fixed at 10 for both (coarser grids measured
 # exhausted, section 4.6); N_drop = 64 grid units (~350 m ground) is the
@@ -153,11 +153,12 @@ PLACE_SOURCE_COLUMNS = (
     "shop",
     "source_geometry",
 )
-# The inspect dialog needs only these human-facing fields plus the point
-# coordinates. Keep its catalog separate from the tilemaker GeoJSON: shipping
-# the latter exposed every OSM tag and made the browser parse several MiB on
-# the first inspection. Entries are stored in place_index order, so the array
-# position is the lookup key already carried by the destination tiles.
+# The inspect dialog needs only these human-facing fields, point coordinates,
+# service identity, and a stable share ID. Keep its catalog separate from the
+# tilemaker GeoJSON: shipping the latter exposed every OSM tag and made the
+# browser parse several MiB on the first inspection. Entries are stored in
+# place_index order, so the array position remains the compact lookup key
+# carried by destination tiles; URLs use place_id instead.
 PLACE_CATALOG_COLUMNS = (
     "addr:city",
     "addr:housenumber",
@@ -169,6 +170,8 @@ PLACE_CATALOG_COLUMNS = (
     "name",
     "opening_hours",
     "phone",
+    "place_id",
+    "service",
 )
 
 
@@ -285,11 +288,11 @@ def edge_dump_filename(route: dict) -> str:
 def network_tile_config(work: Path) -> dict:
     # Three config layers, one MVT source-layer `network` via write_to
     # (docs/lowzoom-fastpath.md sections 2.3 and 4.6, Variant B): the raw
-    # reachable routing edges at inspection zooms z13-14, the coarsen.py
-    # z10-grid skeleton at z8-12, and its short-chain-filtered subset at
+    # reachable routing edges at inspection zoom z14, the coarsen.py
+    # z10-grid skeleton at z8-13, and its short-chain-filtered subset at
     # z6-7. Zoom-scaled generalization on the skeleton layers is bounded by
     # the tile encoder's coordinate grid (one MVT unit per generalized zoom,
-    # z6-10; z11-12 overzoom that grid without further simplification; see
+    # z6-10; z11-13 overzoom that grid without further simplification; see
     # NETWORK_SIMPLIFY_LEVEL). The raw layer ships unsimplified.
     source_columns = sorted((*REQUIREMENT_KEYS, "g"))
     skeleton_simplify = {
@@ -696,7 +699,7 @@ def main() -> None:
     )
 
     # Low-zoom fast-path (docs/lowzoom-fastpath.md section 2.2): derive the
-    # encoder-grid skeleton (z8-12 tiles) and the Variant-B short-chain-
+    # encoder-grid skeleton (z8-13 tiles) and the Variant-B short-chain-
     # filtered subset (z6-7 tiles) from the merged network. Both are work/
     # intermediates, never published, exactly like network.geojson.
     run(

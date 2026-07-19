@@ -526,15 +526,15 @@
       maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
       // Palette per docs/unified-access-layer.md §3.3 (CVD-safe, light
-      // basemap): Okabe-Ito service hues; markers darken the same hue (the
-      // darkest band step of each ramp).
+      // basemap): Okabe-Ito service hues; markers use independent dark
+      // variants of the same identifying hue (they are not band steps).
       const serviceStyles = {
         // White text fails WCAG AA on the first three Okabe-Ito hues
         // (2.25:1, 3.87:1, and 3.42:1 respectively). Keep the identifying
         // hues, but pair each pressed preset with a foreground that is at
         // least 4.5:1; fuel is the one hue on which white remains clearer.
         coffee: { color: "#E69F00", marker: "#8A5F00", foreground: "#0f172a" },
-        hospital: { color: "#D55E00", marker: "#B95200", foreground: "#0f172a" },
+        hospital: { color: "#D55E00", marker: "#AD4A00", foreground: "#0f172a" },
         supermarket: { color: "#009E73", marker: "#00664A", foreground: "#0f172a" },
         fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
       };
@@ -553,6 +553,7 @@
       // Intersection ink: outside every service hue, hue-free hence
       // CVD-neutral, maximal contrast on the light basemap (§3.3).
       const intersectInk = "#172033";
+      const intersectOpacity = 0.95;
       // The old #8a93a3 at 35% composited to only 1.41:1 against white and
       // was effectively lost among pale roads and landcover. This darker
       // neutral at 90% is still subordinate to intersectInk, but reaches
@@ -600,18 +601,21 @@
       // many", not "which ones", so keep it deliberately outside every
       // service hue: one purple sequence, lighter -> darker with count. This
       // also remains ordered under color-vision deficiencies because the
-      // primary cue is monotonic lightness. Every color, after the map's 0.9
-      // alpha blend, reaches at least 3:1 against white.
+      // primary cue is monotonic lightness. The four-count palette keeps at
+      // least 0.10 OKLab distance between adjacent counts; every color, after
+      // the map's alpha blend, reaches at least 3:1 against the light-basemap
+      // reference fills used for the band-ramp checks.
       //
       // N cannot exceed four because the UI selects at most one preset per
       // service. Keeping all cardinalities explicit prevents interpolation
       // or selection-order changes from silently swapping meanings again.
       const scorePalettes = Object.freeze({
-        1: Object.freeze(["#4B166E"]),
-        2: Object.freeze(["#80509C", "#4B166E"]),
-        3: Object.freeze(["#80509C", "#663287", "#4B166E"]),
-        4: Object.freeze(["#80509C", "#72408F", "#60277F", "#4B166E"])
+        1: Object.freeze(["#22062F"]),
+        2: Object.freeze(["#775A89", "#22062F"]),
+        3: Object.freeze(["#775A89", "#4B2F5B", "#22062F"]),
+        4: Object.freeze(["#775A89", "#593D6A", "#3C214C", "#22062F"])
       });
+      const scoreOpacity = 0.9;
 
       function scoreRamp(count) {
         const palette = scorePalettes[count];
@@ -778,6 +782,7 @@
           lookupFailed: "Nepavyko įkelti vietų duomenų. Išvada apie pasiekiamumą nedaroma.",
           lookupUnavailable: "nepavyko pasiekti vietų paieškos duomenų",
           errOutsideBounds: "bendrinama vieta yra už žemėlapio aprėpties ribų",
+          errInvalidPlace: value => `netinkama bendrinama vieta: ${value}`,
           errInvalidRequirement: item => `netinkama nuorodos sąlyga: ${item}`,
           errInvalidMode: mode => `netinkamas nuorodos rodinys: ${mode}`,
           errInvalidLang: value => `netinkama nuorodos kalba: ${value}`,
@@ -856,6 +861,7 @@
           lookupFailed: "Destination lookup data failed to load. No availability conclusion was made.",
           lookupUnavailable: "destination lookup data is unavailable",
           errOutsideBounds: "shared location is outside the coverage bounds",
+          errInvalidPlace: value => `invalid shared place: ${value}`,
           errInvalidRequirement: item => `invalid shared requirement: ${item}`,
           errInvalidMode: mode => `invalid shared view mode: ${mode}`,
           errInvalidLang: value => `invalid shared language: ${value}`,
@@ -987,6 +993,10 @@
 
       window.addEventListener("error", event => reportMapError(event.error ?? event.message));
 
+      const mobileMedia = matchMedia(
+        "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
+      );
+      const coarsePointerMedia = matchMedia("(pointer: coarse)");
       const map = new maplibregl.Map({
         container: "map",
         style: mapStyle,
@@ -1001,7 +1011,11 @@
         touchPitch: false,
         pitchWithRotate: false,
         fadeDuration: 0,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        // Raw access geometry is fragment-heavy at street zooms. Compact
+        // and touch layouts cap HiDPI rendering at 1.25; full-size desktop
+        // keeps the sharper 1.5 cap.
+        pixelRatio: Math.min(window.devicePixelRatio || 1,
+          mobileMedia.matches || coarsePointerMedia.matches ? 1.25 : 1.5),
         maxTileCacheZoomLevels: 1
       });
       const destinationSourceIds = new Set();
@@ -1025,18 +1039,17 @@
       // Stored view-mode *preference* (§3.2); rendering always goes through
       // effectiveViewMode(), and coercion never overwrites this value.
       let viewMode = "intersect";
-      const mobileMedia = matchMedia(
-        "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
-      );
       const hoverMedia = matchMedia("(hover: hover) and (pointer: fine)");
       const mapPanel = document.querySelector(".map-panel");
       let metadata;
       let inspectionOrigin;
-      // Rendered destination dots captured at click time (before any
-      // auto-zoom moves the camera), so the place card always reflects the
-      // dot the user actually aimed at. undefined = no click capture (hash
-      // restore); an empty array is a real "nothing was near the click".
+      // A place inspection owns one stable catalog identity and rendered (or
+      // catalog-restored) marker. Arbitrary-point inspections use neither.
+      // Keeping the distinction explicit makes #place reproducible while
+      // #at remains an exact coordinate test.
+      let inspectionPlaceId;
       let inspectionMarkerFeatures;
+      let inspectionPending = false;
       let inspectSequence = 0;
       let locationMarker;
       let placeCatalogPromise;
@@ -1161,7 +1174,10 @@
       }
 
       function inspectionHash(lngLat) {
-        return `#at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}` +
+        const origin = inspectionPlaceId === undefined
+          ? `at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}`
+          : `place=${encodeURIComponent(inspectionPlaceId)}`;
+        return `#${origin}` +
           `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}`;
       }
 
@@ -1185,9 +1201,10 @@
       let viewHashTimer;
 
       function updateViewHash() {
-        // The inspect-share hash (#at=...) owns the URL while a location is
-        // inspected; view state fills it the rest of the time.
-        if (!metadata || inspectionOrigin || document.getElementById("location-dialog").open) {
+        // The inspect-share hash (#at=... or #place=...) owns the URL while a
+        // location is inspected; view state fills it the rest of the time.
+        if (!metadata || inspectionPending || inspectionOrigin ||
+            document.getElementById("location-dialog").open) {
           return;
         }
         const center = map.getCenter();
@@ -1568,12 +1585,19 @@
               // Start compact and slightly translucent, then reach the full
               // street-level marker at z16 as viewport density drops. The
               // padded hit test below stays independent of these visuals.
+              // A shared circle keeps dense views quiet; the clicked chip
+              // supplies the textual service identity. If at-a-glance service
+              // classification becomes a requirement, use distinct service
+              // glyphs rather than stacking more paint around these dots.
               "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.25, 15, 3, 16, 4],
               "circle-color": "#fffaf1",
               "circle-opacity": ["interpolate", ["linear"], ["zoom"], 14, .72, 15, .86, 16, .94],
               "circle-stroke-color": serviceStyles[service.id].marker,
-              "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, .8, 15, 1.1, 16, 1.4],
-              "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 14, .82, 15, .92, 16, 1]
+              // Service identity must survive pale roads, parks and the
+              // translucent marker fill at the dense z14 reveal. Every
+              // service stroke is >=3:1 on those fills when fully opaque.
+              "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, 1, 15, 1.2, 16, 1.5],
+              "circle-stroke-opacity": 1
             }
           });
           placeLayerIds.push(layerId);
@@ -1700,7 +1724,7 @@
           // context layer under the all-filtered intersect layer.
           return {
             uc: meetsSome ? withAlpha(contextGray, contextOpacity) : "rgba(0,0,0,0)",
-            mc: meetsAll ? withAlpha(intersectInk, 0.95) : "rgba(0,0,0,0)"
+            mc: meetsAll ? withAlpha(intersectInk, intersectOpacity) : "rgba(0,0,0,0)"
           };
         });
         setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections), corridorWidthCapPx));
@@ -1712,7 +1736,7 @@
           const score = selections.reduce((sum, selection) =>
             sum + (groupReachable(attributes, selection) ? 1 : 0), 0);
           if (score < 1) return hiddenGroupState;
-          return { uc: "rgba(0,0,0,0)", mc: withAlpha(ramp[score - 1], 0.9) };
+          return { uc: "rgba(0,0,0,0)", mc: withAlpha(ramp[score - 1], scoreOpacity) };
         });
         setAccessLineWidth(corridorLineWidth(combinedCorridorMode(selections), corridorWidthCapPx));
       }
@@ -1764,12 +1788,18 @@
           )));
         } else if (mode === "intersect") {
           title.textContent = t("legendSelectedTitle");
-          row.append(legendItem(intersectInk, t("legendMeetsAll", selections.length)));
+          row.append(legendItem(
+            withAlpha(intersectInk, intersectOpacity),
+            t("legendMeetsAll", selections.length)
+          ));
           row.append(legendItem(withAlpha(contextGray, contextOpacity), t("legendMeetsSome")));
         } else {
           title.textContent = t("legendScoreTitle", selections.length);
           scoreRamp(selections.length).forEach((color, index) =>
-            row.append(legendItem(color, t("legendScoreItem", index + 1, selections.length))));
+            row.append(legendItem(
+              withAlpha(color, scoreOpacity),
+              t("legendScoreItem", index + 1, selections.length)
+            )));
         }
         legend.append(title, row);
       }
@@ -1810,10 +1840,14 @@
             .map(band => withAlpha(band.color, bandOpacity));
           summary.append(summaryChip(t("chipBands"), `linear-gradient(90deg, ${colors.join(", ")})`));
         } else if (mode === "intersect") {
-          summary.append(summaryChip(t("chipAll", selections.length), intersectInk));
+          summary.append(summaryChip(
+            t("chipAll", selections.length),
+            withAlpha(intersectInk, intersectOpacity)
+          ));
         } else {
           summary.append(summaryChip(t("chipScore"),
-            `linear-gradient(90deg, ${scoreRamp(selections.length).join(", ")})`));
+            `linear-gradient(90deg, ${scoreRamp(selections.length)
+              .map(color => withAlpha(color, scoreOpacity)).join(", ")})`));
         }
         // With a single bands selection the travel mode and threshold ARE
         // the map, so surface them on the chip itself; multi-selection
@@ -1954,7 +1988,18 @@
               if (!Array.isArray(destinations)) {
                 throw new Error(`${metadata.places.catalog_file}: expected an array`);
               }
-              return destinations;
+              const indexByPlaceId = new Map();
+              destinations.forEach((destination, placeIndex) => {
+                const placeId = destination?.place_id;
+                if (typeof placeId !== "string" || !placeId.length) {
+                  throw new Error(`${metadata.places.catalog_file}: place ${placeIndex} has no place_id`);
+                }
+                if (indexByPlaceId.has(placeId)) {
+                  throw new Error(`${metadata.places.catalog_file}: duplicate place_id ${placeId}`);
+                }
+                indexByPlaceId.set(placeId, placeIndex);
+              });
+              return { destinations, indexByPlaceId };
             })
             .catch(error => {
               placeCatalogPromise = undefined;
@@ -1962,6 +2007,67 @@
             });
         }
         return placeCatalogPromise;
+      }
+
+      function catalogMarkerFeature(placeId, placeCatalog) {
+        const placeIndex = placeCatalog.indexByPlaceId.get(placeId);
+        const destination = placeCatalog.destinations[placeIndex];
+        const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
+        if (placeIndex === undefined || !destination ||
+            !metadata.services.some(service => service.id === destination.service) ||
+            !Number.isFinite(destination.lon) || !Number.isFinite(destination.lat) ||
+            destination.lon < minLon || destination.lon > maxLon ||
+            destination.lat < minLat || destination.lat > maxLat) {
+          throw new Error(t("errInvalidPlace", placeId));
+        }
+        return {
+          type: "Feature",
+          id: `place:${placeIndex}`,
+          geometry: { type: "Point", coordinates: [destination.lon, destination.lat] },
+          properties: { ...destination, place_index: placeIndex }
+        };
+      }
+
+      function inspectPlaceMarker(markerFeature) {
+        const placeIndex = Number(markerFeature.properties.place_index);
+        const placeId = markerFeature.properties.place_id;
+        const coordinates = markerFeature.geometry.coordinates;
+        if (!Number.isSafeInteger(placeIndex) || placeIndex < 0 ||
+            typeof placeId !== "string" || !placeId.length ||
+            !Array.isArray(coordinates) || coordinates.length < 2 ||
+            !coordinates.slice(0, 2).every(Number.isFinite)) {
+          rejectSharedInspection(new Error(t("errInvalidPlace", placeId)));
+          return;
+        }
+
+        // The tile feature is available synchronously, so acknowledge the
+        // tap and label the selected place immediately. Do not query verdict
+        // tiles at its MVT-quantized coordinate: resolve the original catalog
+        // coordinate first, which is also what #place restores after reload.
+        const approximateOrigin = { lng: coordinates[0], lat: coordinates[1] };
+        inspectionPlaceId = placeId;
+        inspectionMarkerFeatures = [markerFeature];
+        inspectionOrigin = approximateOrigin;
+        inspectionPending = true;
+        const sequence = ++inspectSequence;
+        renderInspectionLoading(approximateOrigin, true);
+        setLayerVisibility(
+          [...destinationRecords.values()].map(record => record.destinationLayer),
+          false
+        );
+        loadPlaceCatalog()
+          .then(placeCatalog => {
+            if (sequence !== inspectSequence) return;
+            const canonicalMarker = catalogMarkerFeature(placeId, placeCatalog);
+            const [lng, lat] = canonicalMarker.geometry.coordinates;
+            inspectionMarkerFeatures = [canonicalMarker];
+            inspectionOrigin = { lng, lat };
+            inspectionPending = false;
+            inspectLocation(inspectionOrigin);
+          })
+          .catch(error => {
+            if (sequence === inspectSequence) rejectSharedInspection(error);
+          });
       }
 
       function featureKey(feature) {
@@ -2053,12 +2159,10 @@
             byService.get(properties.service).set(placeId, destination);
           });
         });
-        // The clicked origin can be a POI several metres off its snapped
-        // routing edge. In that case the road-corridor point test misses the
-        // POI itself and used to report "not found" directly beneath its
-        // selected-place card. Count only the nearest hit-tested dot for its
-        // own active service: additional dots in the padded click box remain
-        // ordinary nearby context and cannot create extra passes.
+        // A #place inspection uses the primary marker's coordinates as the
+        // one origin for every service. Its own service is therefore a true
+        // zero-distance destination even when Valhalla snapped that POI to a
+        // routing edge outside the narrow rendered hit corridor.
         const primaryMarker = markerFeatures[0];
         const primaryService = primaryMarker?.properties.service;
         if (primaryMarker && byService.has(primaryService)) {
@@ -2236,13 +2340,35 @@
         if (!dialog.open) dialog.showModal();
       }
 
-      // A destination dot renders as a ~5px-radius circle; requiring a
-      // pixel-exact hit made real clicks (and every finger tap) miss it, so
-      // the place card silently never appeared. Query a padded box instead —
-      // clickability is decoupled from the visual dot size — and order hits
-      // nearest-first so the primary card is the dot the user aimed at. The
-      // access verdict is untouched: it stays an exact-point test.
-      const dotHitPadding = matchMedia("(pointer: coarse)").matches ? 14 : 9;
+      function renderCatalogLoading() {
+        locationMarker?.remove();
+        document.getElementById("location-coordinates").textContent = "";
+        document.getElementById("clicked-place").replaceChildren();
+        document.getElementById("intersection-summary").textContent = t("loadingDetails");
+        const results = document.getElementById("location-results");
+        results.replaceChildren();
+        results.setAttribute("aria-busy", "true");
+        document.getElementById("map-status").textContent = t("loadingDetails");
+        const dialog = document.getElementById("location-dialog");
+        if (!dialog.open) dialog.showModal();
+      }
+
+      function centerSharedInspection(lngLat, sequence) {
+        map.once("idle", () => {
+          if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
+        });
+        map.easeTo({
+          center: lngLat,
+          zoom: Math.max(map.getZoom(), inspectZoom),
+          duration: 450
+        });
+      }
+
+      // A destination dot renders as a small circle; query a padded box so it
+      // remains practical to tap, then keep only the nearest marker. A marker
+      // click becomes a canonical #place inspection at that marker's exact
+      // coordinates; an ordinary map click remains an exact #at inspection.
+      const dotHitPadding = coarsePointerMedia.matches ? 14 : 9;
 
       function markerFeaturesAt(point) {
         const layers = placeLayerIds.filter(id => map.getLayer(id));
@@ -2255,30 +2381,27 @@
           const projected = map.project(feature.geometry.coordinates);
           return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
         };
-        // At low zooms the padded box spans hundreds of meters; keep the
-        // card to the nearest few dots instead of flooding it with chips.
+        // Duplicate buffered-tile copies are removed before choosing the one
+        // nearest marker, so only the canonical selected place is labelled.
         return dedupeFeatures(features.sort((left, right) => distance(left) - distance(right)))
-          .slice(0, 6);
+          .slice(0, 1);
       }
 
       function inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence) {
         const point = map.project(lngLat);
-        // Click-time capture wins: after the below-inspectZoom auto-zoom the
-        // re-projected point is many pixels off the aimed-at dot, so a
-        // post-settle query would lose it. The fallback query serves the
-        // hash-restore path, where there was no click to capture.
-        const markerFeatures = inspectionMarkerFeatures ?? markerFeaturesAt(point);
-        inspectionMarkerFeatures = markerFeatures;
+        const markerFeatures = inspectionMarkerFeatures ?? [];
         const destinationFeatures = destinationLayerIds.length
           ? map.queryRenderedFeatures(point, { layers: destinationLayerIds })
           : [];
         const catalogPromise = markerFeatures.length || destinationFeatures.length
           ? loadPlaceCatalog()
-          : Promise.resolve([]);
+          : Promise.resolve({ destinations: [] });
         catalogPromise
           .then(placeCatalog => {
             if (sequence === inspectSequence) {
-              renderLocationResults(lngLat, markerFeatures, destinationFeatures, placeCatalog);
+              renderLocationResults(
+                lngLat, markerFeatures, destinationFeatures, placeCatalog.destinations
+              );
             }
           })
           .catch(error => {
@@ -2289,46 +2412,122 @@
           });
       }
 
+      function applySharedInspectionFilters(parameters) {
+        // Validate mode and language before requirements; the requirements
+        // parser itself validates fully before mutating any service state.
+        const sharedMode = parseSharedViewMode(parameters);
+        const sharedLang = parseSharedLang(parameters);
+        const sharedRequirements = parameters.get("requirements");
+        if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
+        if (sharedMode !== null) viewMode = sharedMode;
+        applyLanguage(sharedLang ?? "lt");
+      }
+
+      let suppressedDialogCloses = 0;
+
+      function closeDialogForHashRestore(dialog) {
+        if (!dialog.open) return;
+        suppressedDialogCloses += 1;
+        dialog.close();
+      }
+
+      function rejectSharedInspection(error) {
+        reportMapError(error);
+        inspectionOrigin = undefined;
+        inspectionPlaceId = undefined;
+        inspectionMarkerFeatures = undefined;
+        inspectionPending = false;
+        inspectSequence += 1;
+        locationMarker?.remove();
+        setLayerVisibility(
+          [...destinationRecords.values()].map(record => record.destinationLayer),
+          false
+        );
+        const dialog = document.getElementById("location-dialog");
+        closeDialogForHashRestore(dialog);
+      }
+
       function applyLocationHash() {
         const parameters = new URLSearchParams(location.hash.slice(1));
-        const coordinates = parameters.get("at")?.split(",");
-        if (coordinates && coordinates.length === 2) {
-          // Inspect-share link: same behavior and hash format as always.
+        const atValue = parameters.get("at");
+        const placeValue = parameters.get("place");
+        if (atValue !== null && placeValue !== null) {
+          rejectSharedInspection(new Error(t("errInvalidPlace", placeValue)));
+          return;
+        }
+        if (placeValue !== null) {
+          if (!placeValue.length) {
+            rejectSharedInspection(new Error(t("errInvalidPlace", placeValue)));
+            return;
+          }
+          try {
+            applySharedInspectionFilters(parameters);
+          } catch (error) {
+            rejectSharedInspection(error);
+            return;
+          }
+          const dialog = document.getElementById("location-dialog");
+          closeDialogForHashRestore(dialog);
+          clearTimeout(viewHashTimer);
+          const sequence = ++inspectSequence;
+          inspectionOrigin = undefined;
+          inspectionPlaceId = placeValue;
+          inspectionMarkerFeatures = undefined;
+          inspectionPending = true;
+          refreshMap();
+          renderCatalogLoading();
+          loadPlaceCatalog()
+            .then(placeCatalog => {
+              if (sequence !== inspectSequence) return;
+              const markerFeature = catalogMarkerFeature(placeValue, placeCatalog);
+              const [lng, lat] = markerFeature.geometry.coordinates;
+              inspectionPlaceId = placeValue;
+              inspectionMarkerFeatures = [markerFeature];
+              inspectionOrigin = { lng, lat };
+              inspectionPending = false;
+              renderInspectionLoading(inspectionOrigin, true);
+              centerSharedInspection(inspectionOrigin, sequence);
+            })
+            .catch(error => {
+              if (sequence === inspectSequence) rejectSharedInspection(error);
+            });
+          return;
+        }
+        const coordinates = atValue?.split(",");
+        if (atValue !== null) {
+          if (coordinates.length !== 2) {
+            rejectSharedInspection(new Error(t("errOutsideBounds")));
+            return;
+          }
+          // An arbitrary shared point stays an exact-coordinate inspection;
+          // it never acquires a nearby marker merely because the current
+          // camera happens to render one.
           const lngLat = { lng: Number(coordinates[0]), lat: Number(coordinates[1]) };
           const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
           if (!Number.isFinite(lngLat.lng) || !Number.isFinite(lngLat.lat) ||
               lngLat.lng < minLon || lngLat.lng > maxLon ||
               lngLat.lat < minLat || lngLat.lat > maxLat) {
-            reportMapError(new Error(t("errOutsideBounds")));
+            rejectSharedInspection(new Error(t("errOutsideBounds")));
             return;
           }
           try {
-            // Validate the mode and language before applying the
-            // requirements (applySharedRequirements itself validates fully
-            // before mutating), so a bad hash applies nothing at all.
-            const sharedMode = parseSharedViewMode(parameters);
-            const sharedLang = parseSharedLang(parameters);
-            const sharedRequirements = parameters.get("requirements");
-            if (sharedRequirements !== null) applySharedRequirements(sharedRequirements);
-            if (sharedMode !== null) viewMode = sharedMode;
-            applyLanguage(sharedLang ?? "lt");
+            applySharedInspectionFilters(parameters);
           } catch (error) {
-            reportMapError(error);
+            rejectSharedInspection(error);
             return;
           }
-          refreshMap();
+          const dialog = document.getElementById("location-dialog");
+          closeDialogForHashRestore(dialog);
+          clearTimeout(viewHashTimer);
           const sequence = ++inspectSequence;
-          // Claim the URL immediately so debounced view-hash writes cannot
-          // clobber the share hash while the camera settles;
-          // inspectLocation re-establishes this origin itself.
+          inspectionOrigin = undefined;
+          inspectionPlaceId = undefined;
+          inspectionMarkerFeatures = [];
+          inspectionPending = false;
+          refreshMap();
           inspectionOrigin = lngLat;
-          // A hash-driven inspection had no click; drop any stale capture so
-          // the shared location gets its own post-settle dot query.
-          inspectionMarkerFeatures = undefined;
-          map.jumpTo({ center: lngLat, zoom: Math.max(map.getZoom(), inspectZoom) });
-          map.once("idle", () => {
-            if (sequence === inspectSequence) inspectLocation(lngLat, true, sequence);
-          });
+          renderInspectionLoading(inspectionOrigin, true);
+          centerSharedInspection(inspectionOrigin, sequence);
           return;
         }
         // View-only hash: restore requirements, view mode, language, and
@@ -2346,7 +2545,14 @@
           return;
         }
         const dialog = document.getElementById("location-dialog");
-        if (dialog.open) dialog.close();
+        closeDialogForHashRestore(dialog);
+        clearTimeout(viewHashTimer);
+        inspectionOrigin = undefined;
+        inspectionPlaceId = undefined;
+        inspectionMarkerFeatures = undefined;
+        inspectionPending = false;
+        inspectSequence += 1;
+        locationMarker?.remove();
         const view = parameters.get("view")?.split(",").map(Number);
         if (view && view.length === 3 && view.every(Number.isFinite)) {
           // Validate like the at= path: a mangled coordinate (e.g. a
@@ -2454,9 +2660,16 @@
           dialogPressOnBackdrop = false;
         });
         document.getElementById("location-dialog").addEventListener("close", () => {
+          if (suppressedDialogCloses > 0) {
+            suppressedDialogCloses -= 1;
+            return;
+          }
           inspectionOrigin = undefined;
+          inspectionPlaceId = undefined;
           inspectionMarkerFeatures = undefined;
+          inspectionPending = false;
           inspectSequence += 1;
+          locationMarker?.remove();
           setLayerVisibility(
             [...destinationRecords.values()].map(record => record.destinationLayer),
             false
@@ -2469,8 +2682,15 @@
           scheduleViewHash();
         });
         map.on("click", event => {
-          inspectionMarkerFeatures = markerFeaturesAt(event.point);
-          inspectLocation(event.lngLat);
+          const markerFeature = markerFeaturesAt(event.point)[0];
+          if (!markerFeature) {
+            inspectionPlaceId = undefined;
+            inspectionMarkerFeatures = [];
+            inspectionPending = false;
+            inspectLocation(event.lngLat);
+            return;
+          }
+          inspectPlaceMarker(markerFeature);
         });
         // Fine-pointer cursor affordances: the default pan hand on plain
         // basemap, a pointer over the clickable things — destination dots

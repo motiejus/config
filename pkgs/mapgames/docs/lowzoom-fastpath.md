@@ -15,12 +15,21 @@ is specified normatively here, so an implementer does not need them.
 
 **Current serving handoff (2026-07-19):** the measured design below landed,
 then mobile frame profiling found raw access geometry to be the dominant
-z11–12 pan cost. The current config therefore serves the same fixed z10-grid
-skeleton through z12 and starts raw geometry at z13. `COARSE_GRID_ZOOM = 10`
-remains the coarsen.py algorithm/grid; `COARSE_MAX_ZOOM = 12` is an
+z11–13 pan cost. The current config therefore serves the same fixed z10-grid
+skeleton through z13 and starts raw geometry at z14. `COARSE_GRID_ZOOM = 10`
+remains the coarsen.py algorithm/grid; `COARSE_MAX_ZOOM = 13` is an
 independent tile-serving boundary. Historical measurements and the original
 z10→z11 handoff discussion below are retained as experiment evidence, not a
 description of the current handoff.
+
+At z13 one fixed z10 grid unit occupies one CSS pixel. The deliberately
+adversarial §2.1 bound is therefore 3.4 px at the top of the serving band;
+ordinary input quantization is at most 0.7 px diagonally and the other error
+terms only align on contrived geometry. A dense-Vilnius mobile A/B against
+raw z13 retained the same street-level reading, while the skeleton increased
+delivered animation frames by 2.5×. That measured pan gain justifies the
+one-zoom extension; z14 returns to raw geometry before individual place
+inspection.
 
 **Owner's goal (verbatim):** "what can we do to make the low-zoom levels map
 lossy, but load quickly for each combos? We _can_ make this visually lossless
@@ -284,7 +293,7 @@ at z11–12):
       "minzoom": 11, "maxzoom": 14,
       "source": str(work / "network.geojson"),
       "source_columns": sorted((*REQUIREMENT_KEYS, "g")),
-      # no simplify keys: z11-14 ship raw geometry, as today
+      # original proposal: z11-14 shipped raw geometry
     },
     "network_lowzoom": {               # encoder-grid skeleton
       "minzoom": TILE_MIN_ZOOM, "maxzoom": 10,
@@ -722,11 +731,13 @@ current main (4-band hospital) and served locally beside the current build:
 
 ---
 
-## 8. What this does NOT change
+## 8. Original proposal scope (historical)
 
-Raw z11–14 tiles (inspection zooms), the merge tool and its §1.3 algorithm
-and gates (except one added integer property at emission), destination
-lookup tiles and the whole inspect flow, the places pipeline, the basemap,
-the view-mode/legend/URL model, palettes, and the requirement schema. The
-published artifact set is unchanged (one `access.pmtiles`); no new published
-files.
+At the time of the measured proposal, it did not change raw z11–14 tiles, the
+merge tool and its §1.3 algorithm and gates (except one added integer property
+at emission), destination lookup tiles, the inspect flow, places pipeline,
+basemap, view-mode/legend/URL model, palettes, requirement schema, or published
+artifact set. Current-tree follow-ups described at the top of this record now
+serve the skeleton through z13; separate UX follow-ups changed the inspect
+loading/catalog flow and palettes and added `place-catalog.json`. This section
+records the experiment boundary, not the current deployed artifact contract.

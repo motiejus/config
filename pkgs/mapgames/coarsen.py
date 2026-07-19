@@ -16,7 +16,7 @@ midpoint bisection, chain the per-(group, tile) segment graph with a fully
 deterministic two-phase walk, and drop exactly-collinear interior points
 (integer cross/dot test, zero displacement).
 
-The generated geometry stays on that fixed z10 grid when served at z11-12;
+The generated geometry stays on that fixed z10 grid when served at z11-13;
 those zooms overzoom the skeleton rather than changing this algorithm's grid.
 
 Single-threaded by design: determinism for free (section 2.2). Integer

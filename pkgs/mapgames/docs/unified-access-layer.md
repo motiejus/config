@@ -278,9 +278,12 @@ the generated JSON/PMTiles artifacts (the GeoJSON lives in `work/`, not
 
 The same publication rule now applies to `places.geojson`: it is a tilemaker
 input in `work/`, not a browser API. `places.pmtiles` remains the rendered-dot
-archive. Human-facing place details are projected into
+archive, with one canonical z14 pyramid that MapLibre overzooms at higher
+street zooms; it carries no duplicated z9–13 point pyramids. Human-facing
+place details are projected into
 `place-catalog.json`, an array in global `place_index` order containing only
-name/brand/kind, address, opening-hours, phone, and point-coordinate fields.
+stable `place_id`, service/name/brand/kind, address, opening-hours, phone, and
+point-coordinate fields.
 Destination lookup tiles already carry those integer indexes, so the dialog
 does not need the full GeoJSON wrappers or unrelated OSM tags.
 
@@ -307,27 +310,35 @@ does not need the full GeoJSON wrappers or unrelated OSM tags.
   "file": "places.pmtiles",
   "catalog_file": "place-catalog.json",
   "layer": "places",
-  "min_data_zoom": 9, "max_data_zoom": 14
+  "min_data_zoom": 14, "max_data_zoom": 14
 }
 ```
 
 The current low-zoom fast path supersedes that original single-layer config:
-the raw source serves z13–14, while a fixed z10-grid skeleton writes to the
-same MVT layer at z6–12. See `docs/lowzoom-fastpath.md`; the grid zoom and the
+the raw source serves z14, while a fixed z10-grid skeleton writes to the
+same MVT layer at z6–13. See `docs/lowzoom-fastpath.md`; the grid zoom and the
 raw/skeleton serving handoff are intentionally separate constants.
 
 `services` (labels, presets, place_count) is unchanged — the front-end
 requirements model keys off it.
 
-**Migration/compat:** none needed across versions. index.html and the data are
-one derivation (`www` wraps `data` in default.nix) and deploy atomically; the
-front-end consumes only same-build metadata. Destination inspect tiles keep
+**Migration/compat:** index.html and the data are one derivation (`www` wraps
+`data` in default.nix) and deploy atomically, so tile/catalog indexes always
+come from the same build. Shared marker links use stable place IDs rather than
+those build-local indexes, so a later catalog reorder cannot retarget a link.
+Destination inspect tiles keep
 their names, layer names (`destination_layer_name()`), and schema
 (`DESTINATION_SOURCE_COLUMNS`), so the geographic verdict path is unchanged.
 The current dialog opens a loading state immediately, fetches
 `metadata.places.catalog_file` only when a rendered marker or passing
 destination needs details, and indexes the returned array with the tile's
-`place_index`/`lookup_ids` values.
+`place_index`/`lookup_ids` values. A padded dot click selects only the nearest
+marker, then snaps the one inspection origin (all service lookups, displayed
+coordinates, and sharing state) to that catalog place. It shares the
+URL-encoded stable identity as `#place=<place_id>` and resolves it through a
+catalog-wide, duplicate-rejecting identity lookup on restore. A removed place
+therefore fails closed instead of silently opening another marker. An ordinary
+map point shares separately as exact `#at=<lon>,<lat>`.
 
 ### 2.3 Simplification per zoom (visually lossless only)
 
@@ -344,8 +355,8 @@ Visvalingam tolerance at or below the tile's coordinate quantization step
 cannot produce displacement meaningfully beyond what encoding already
 introduces. Concretely:
 
-- z13–14: raw geometry.
-- z11–12: the fixed z10-grid skeleton, overzoomed without further tilemaker
+- z14: raw geometry.
+- z11–13: the fixed z10-grid skeleton, overzoomed without further tilemaker
   simplification.
 - z6–10: the same skeleton, with effective tolerance = exactly one MVT
   coordinate unit at each zoom.
@@ -494,7 +505,12 @@ N = |R| ∈ 1..4 (one requirement per service, §3.2).
 
 Replace `serviceStyles` base hues with the Okabe-Ito subset (committed):
 coffee `#E69F00`, hospital `#D55E00`, supermarket `#009E73`, fuel `#0072B2`.
-Marker (`circle-stroke-color`) variants: darken the same hue.
+Marker (`circle-stroke-color`) variants independently darken the same hue;
+they are not entries in the time-band ramps. The intentionally quiet dots
+share one circle shape, with textual service identity provided by the clicked
+place chip. If the product later requires at-a-glance service classification,
+use distinct service glyphs instead of adding concentric strokes that would
+restore the dense-view clutter.
 
 - Band ramps: discrete lightness steps within each service hue, darkest =
   smallest minutes. The steps are intentionally wider than the original
@@ -507,14 +523,23 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   hospital 15/30/45/60 → `#350900 / #5B1900 / #842C00 / #B04700`;
   supermarket 10/20 → `#003D2C / #006D50` (drive-10 single band `#006D50`);
   fuel 10/20 → `#002D49 / #005E90`.
-- Intersection: ink `#172033` — outside every service hue, maximal contrast on
-  the light Protomaps flavor, hue-free hence CVD-neutral.
+- Intersection: ink `#172033` at 0.95 opacity — outside every service hue,
+  maximal contrast on the light Protomaps flavor, hue-free hence CVD-neutral.
 - Score: an identity-neutral single-hue purple sequence, light→dark with
   count, explicitly tabulated for N=1..4. It deliberately avoids every
   service hue: with green supermarket and blue fuel selected, a green/blue
   score ramp misleadingly reads as *which* service is reachable rather than
   *how many*. Monotonic lightness preserves the order under color-vision
-  deficiencies; the explicit tables keep legend and paint meanings fixed.
+  deficiencies; the explicit tables keep legend and paint meanings fixed:
+  N=1 → `#22062F`; N=2 → `#775A89 / #22062F`; N=3 →
+  `#775A89 / #4B2F5B / #22062F`; N=4 →
+  `#775A89 / #593D6A / #3C214C / #22062F`. Score strokes render at 0.9
+  opacity. The N=4 adjacent OKLab distances are 0.105/0.107/0.105, and every
+  rendered step retains at least 3:1 contrast against the white, paper,
+  forest, wetland, and road reference fills.
+- Map paint, expanded legend swatches, and collapsed-summary swatches use the
+  same RGBA values for bands, intersection, context, and score; opacity must
+  not be dropped when rendering either legend.
 - All bands render at 0.9 opacity. The old 0.5 drive-outer exception made the
   most geographically widespread band nearly disappear on pale landcover and
   made its opaque legend swatch misrepresent the map; the ordered lightness
@@ -542,10 +567,12 @@ Marker (`circle-stroke-color`) variants: darken the same hue.
   (existing `setPanelCollapsed(false)` path). Chip row participates in the
   existing `ResizeObserver`/`--mobile-panel-height` layout math — no new
   layout mechanism.
-- **Inspect dialog:** unchanged (destination layers, `queryRenderedFeatures`,
-  place catalog, pass/fail cards). The dialog's per-requirement verdicts are
-  the ground truth the map views visualize; keep them in lockstep by deriving
-  both from `activeRequirements()` + `selectedPreset()` as today.
+- **Inspect dialog:** destination layers and `queryRenderedFeatures` remain the
+  geographic verdict path. The current dialog opens its loading state at click
+  time and resolves human-facing details through the compact catalog. Its
+  per-requirement verdicts are the ground truth the map views visualize; keep
+  them in lockstep by deriving both from `activeRequirements()` +
+  `selectedPreset()` as today.
 - **URL state:** extend the hash with `&mode=bands|intersect|score` (the
   `view=` hash key already carries the camera in the view-state hash, so the
   view mode travels under `mode=`): `inspectionHash()` appends it;
@@ -580,9 +607,10 @@ membership across the 5 routes: {1 route: 52k, 2: 67k, 3: 35k, 4: 25k, all 5:
 **Full Lithuania** (`lt-full/generated/`): access pmtiles 220.6 + 863.7 +
 428.2 + 188.7 + 788.0 MB = **2.49 GB**; coverage geojson intermediates
 **295 MB** (hospital 932k pieces / 4.19M points, fuel 902k/3.88M);
-destinations pmtiles 2.30 GB; basemap 176 MB; places PMTiles ~5 MB. The
-current compact `place-catalog.json` is also published (about 0.8 MB
-uncompressed for the 4,398-place snapshot), while `places.geojson` remains a
+destinations pmtiles 2.30 GB; basemap 176 MB; places PMTiles ~0.55 MB. The
+current compact `place-catalog.json` is also published (about 1.0 MB
+uncompressed for the 4,398-place snapshot, including stable share IDs), while
+`places.geojson` remains a
 build intermediate. Deployed set
 (current tree — coverage geojsons are `work/` intermediates and not
 published): ≈ **4.97 GB** — acceptable under the new budget.
@@ -961,7 +989,7 @@ policy.
    tile-size deltas reported as information only.
    *Reviewer checks:* tolerance actually bounded by the MVT quantization step
    (extent-4096 coordinate unit) at each zoom for
-   lat 54–56°; z13+ untouched; mechanism matches what the pinned tilemaker
+   lat 54–56°; raw z14 untouched; mechanism matches what the pinned tilemaker
    implements (R6 resolved with evidence).
 
 Steps 1–2 land immediately (independent of the rest). Steps 3–4 and 5–6 are
