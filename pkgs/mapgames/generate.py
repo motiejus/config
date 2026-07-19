@@ -976,7 +976,7 @@ def main() -> None:
                     "transit_platform_count": "canonicalized_source_members",
                     "transit_ref": "short_explicit_ref_only",
                     "transit_marker_min_zoom": {
-                        "named_stop_station_or_terminal": 15,
+                        "named_transit_feature": 15,
                         "unnamed_stop": 18,
                     },
                     "transit_label_min_zoom": {
