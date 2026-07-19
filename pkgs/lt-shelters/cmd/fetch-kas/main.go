@@ -1,0 +1,19 @@
+package main
+
+import (
+	"net/http"
+	"os"
+	"time"
+
+	"git.jakstys.lt/motiejus/config/pkgs/lt-shelters/internal/fetchjsonl"
+)
+
+const (
+	url         = "https://get.data.gov.lt/datasets/gov/pagd/kas/KAS/:format/jsonl"
+	datasetType = "datasets/gov/pagd/kas/KAS"
+)
+
+func main() {
+	client := &http.Client{Timeout: 5 * time.Minute}
+	os.Exit(fetchjsonl.Main(client, url, datasetType, 2000, os.Args, os.Stderr))
+}

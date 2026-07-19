@@ -92,6 +92,7 @@
           _: super:
           rec {
             gamja = super.callPackage ./pkgs/gamja.nix { };
+            lt-shelters = super.callPackage ./pkgs/lt-shelters { };
             weather = super.callPackage ./pkgs/weather { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
@@ -375,6 +376,7 @@
         packages.x86_64-linux = {
           inherit (pkgs)
             mapgames
+            lt-shelters
             weather
             gamja
             chronoctl

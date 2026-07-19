@@ -13,6 +13,7 @@
     ./immich
     ./ipxe
     ./jakstpub
+    ./lt-shelters
     ./matrix-synapse
     ./minidlna
     ./node_exporter

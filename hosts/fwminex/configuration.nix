@@ -370,6 +370,7 @@ in
           hosts."fwminex.jakst.vpn".publicKey
         ];
       };
+      lt-shelters.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
 

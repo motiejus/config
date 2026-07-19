@@ -306,8 +306,7 @@ let
 
     passthru = {
       inherit data;
-      inherit (data) lithuaniaPbf;
-      tests = data.tests;
+      inherit (data) lithuaniaPbf tests;
     };
 
     meta = {
