@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Encoder-grid skeleton of the unified access network for z6-10 tiles.
+"""Encoder-grid skeleton of the unified access network for z6-12 tiles.
 
 Implements docs/lowzoom-fastpath.md section 2.2 (normative), plus the
 Variant-B short-chain filter of section 4.6. Input is the merge tool's
@@ -15,6 +15,9 @@ segments, split segments at z10 tile boundaries by recursive integer
 midpoint bisection, chain the per-(group, tile) segment graph with a fully
 deterministic two-phase walk, and drop exactly-collinear interior points
 (integer cross/dot test, zero displacement).
+
+The generated geometry stays on that fixed z10 grid when served at z11-12;
+those zooms overzoom the skeleton rather than changing this algorithm's grid.
 
 Single-threaded by design: determinism for free (section 2.2). Integer
 arithmetic everywhere except the fixed latp/inv_latp formulas.

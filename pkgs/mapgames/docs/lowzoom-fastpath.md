@@ -1,6 +1,6 @@
 # Low-zoom performance fast-path for the unified access network
 
-Design only — nothing here is implemented. Companion to
+Design and measurement record for the implemented low-zoom fast path. Companion to
 `pkgs/mapgames/docs/unified-access-layer.md` (referenced below as "the T3
 doc"); terminology (piece, requirement, attribute map, band) is inherited from
 it. Repo state: config @ 90e2a388055b. All measurements in this document were
@@ -12,6 +12,15 @@ committed `generate.py` tile config. Measurement scripts (PMTiles v3 + MVT
 decoder, per-zoom stats, per-combo stats, occupancy raster diff, coarsening
 prototypes) live in `scratchpad/lowzoom-exp/`; every algorithm they implement
 is specified normatively here, so an implementer does not need them.
+
+**Current serving handoff (2026-07-19):** the measured design below landed,
+then mobile frame profiling found raw access geometry to be the dominant
+z11–12 pan cost. The current config therefore serves the same fixed z10-grid
+skeleton through z12 and starts raw geometry at z13. `COARSE_GRID_ZOOM = 10`
+remains the coarsen.py algorithm/grid; `COARSE_MAX_ZOOM = 12` is an
+independent tile-serving boundary. Historical measurements and the original
+z10→z11 handoff discussion below are retained as experiment evidence, not a
+description of the current handoff.
 
 **Owner's goal (verbatim):** "what can we do to make the low-zoom levels map
 lossy, but load quickly for each combos? We _can_ make this visually lossless

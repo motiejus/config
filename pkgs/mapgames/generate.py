@@ -26,33 +26,41 @@ TILE_MAX_ZOOM = 14
 # the same point set below the archive's maximum zoom only duplicates data;
 # one canonical z14 tile pyramid supplies every displayed zoom.
 PLACE_TILE_MIN_ZOOM = TILE_MAX_ZOOM
-# Raw network minzoom (docs/lowzoom-fastpath.md section 2.3): z6-10 serve
-# the coarsen.py encoder-grid skeleton; the raw reachable routing edges
-# serve the inspection zooms z11-14 only. The value doubles as the anchor
-# for NETWORK_SIMPLIFY_LEVEL below.
-LOW_ZOOM_GENERALIZATION_BELOW = 11
+# Low-zoom fast-path (docs/lowzoom-fastpath.md): coarsen.py always builds a
+# z10-grid skeleton. Serving that same artifact through z12 avoids the raw
+# network's severe mobile draw cost at z11-12 without changing its grid or
+# regeneration algorithm; raw reachable routing edges begin at z13.
+COARSE_GRID_ZOOM = 10
+SKELETON_SIMPLIFY_BELOW = COARSE_GRID_ZOOM + 1
+COARSE_MAX_ZOOM = 12
+RAW_NETWORK_MIN_ZOOM = COARSE_MAX_ZOOM + 1
 # One MVT coordinate unit (tile extent 4096) at zoom z spans
 # 360 / (4096 * 2**z) projected degrees — the grid every vertex is rounded
 # to when the tile is encoded. Tilemaker scales the configured level by
 # simplify_ratio**((simplify_below - 1) - z) at zoom z (tile_worker.cpp:438
 # in the pinned 3.1.0), and both that scaling (ratio 2) and the coordinate
 # unit double per zoom step down, so anchoring the level to one coordinate
-# unit at LOW_ZOOM_GENERALIZATION_BELOW - 1 makes the effective tolerance
-# exactly one coordinate unit at every generalized zoom.
-NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2 ** (LOW_ZOOM_GENERALIZATION_BELOW - 1))
+# unit at COARSE_GRID_ZOOM makes the effective tolerance exactly one
+# coordinate unit at every simplified zoom. The overzoomed z11-12 skeleton
+# needs no further tilemaker simplification.
+NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2**COARSE_GRID_ZOOM)
 # Low-zoom fast-path (docs/lowzoom-fastpath.md, owner-selected Variant B):
-# the z10-encoder-grid skeleton serves z8-10, and the section 4.6
+# the z10-encoder-grid skeleton serves z8-12, and the section 4.6
 # short-chain-filtered subset (chains of z10-grid length >= N_drop kept)
 # serves z6-7. GRID_ZOOM is fixed at 10 for both (coarser grids measured
 # exhausted, section 4.6); N_drop = 64 grid units (~350 m ground) is the
 # owner-accepted comparison value.
-# Must equal coarsen.py's GRID_ZOOM literal (the grid the skeleton is
-# actually built on); changing LOW_ZOOM_GENERALIZATION_BELOW alone would
-# silently desync the advertised metadata grid_zoom from the real grid.
-COARSE_GRID_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
-COARSE_MAX_ZOOM = LOW_ZOOM_GENERALIZATION_BELOW - 1
+# COARSE_GRID_ZOOM must equal coarsen.py's GRID_ZOOM literal (the grid the
+# skeleton is actually built on). Keep the grid independent of the serving
+# handoff: changing COARSE_MAX_ZOOM must never silently change coarsen.py.
 VARIANT_B_MAX_ZOOM = 7
 VARIANT_B_N_DROP = 64
+
+assert COARSE_GRID_ZOOM == 10, "must match coarsen.py GRID_ZOOM"
+assert SKELETON_SIMPLIFY_BELOW == COARSE_GRID_ZOOM + 1
+assert VARIANT_B_MAX_ZOOM < COARSE_GRID_ZOOM <= COARSE_MAX_ZOOM
+assert RAW_NETWORK_MIN_ZOOM == COARSE_MAX_ZOOM + 1
+assert RAW_NETWORK_MIN_ZOOM <= TILE_MAX_ZOOM
 
 SERVICE_SPECS = (
     {
@@ -277,14 +285,15 @@ def edge_dump_filename(route: dict) -> str:
 def network_tile_config(work: Path) -> dict:
     # Three config layers, one MVT source-layer `network` via write_to
     # (docs/lowzoom-fastpath.md sections 2.3 and 4.6, Variant B): the raw
-    # reachable routing edges at the inspection zooms z11-14, the coarsen.py
-    # encoder-grid skeleton at z8-10, and its short-chain-filtered subset at
+    # reachable routing edges at inspection zooms z13-14, the coarsen.py
+    # z10-grid skeleton at z8-12, and its short-chain-filtered subset at
     # z6-7. Zoom-scaled generalization on the skeleton layers is bounded by
     # the tile encoder's coordinate grid (one MVT unit per generalized zoom,
-    # z6-10; see NETWORK_SIMPLIFY_LEVEL); the raw layer ships unsimplified.
+    # z6-10; z11-12 overzoom that grid without further simplification; see
+    # NETWORK_SIMPLIFY_LEVEL). The raw layer ships unsimplified.
     source_columns = sorted((*REQUIREMENT_KEYS, "g"))
     skeleton_simplify = {
-        "simplify_below": LOW_ZOOM_GENERALIZATION_BELOW,
+        "simplify_below": SKELETON_SIMPLIFY_BELOW,
         "simplify_level": NETWORK_SIMPLIFY_LEVEL,
         "simplify_ratio": 2.0,
         "simplify_algorithm": "visvalingam",
@@ -292,7 +301,7 @@ def network_tile_config(work: Path) -> dict:
     return {
         "layers": {
             "network": {
-                "minzoom": LOW_ZOOM_GENERALIZATION_BELOW,
+                "minzoom": RAW_NETWORK_MIN_ZOOM,
                 "maxzoom": TILE_MAX_ZOOM,
                 "source": str(work / "network.geojson"),
                 "source_columns": source_columns,
@@ -687,7 +696,7 @@ def main() -> None:
     )
 
     # Low-zoom fast-path (docs/lowzoom-fastpath.md section 2.2): derive the
-    # encoder-grid skeleton (z8-10 tiles) and the Variant-B short-chain-
+    # encoder-grid skeleton (z8-12 tiles) and the Variant-B short-chain-
     # filtered subset (z6-7 tiles) from the merged network. Both are work/
     # intermediates, never published, exactly like network.geojson.
     run(
@@ -834,8 +843,9 @@ def main() -> None:
                 "groups": access_groups,
                 "layer": "network",
                 # Informational (docs/lowzoom-fastpath.md section 2.3):
-                # z6-max_zoom tiles carry the grid_zoom encoder-grid
-                # skeleton; the raw edges begin one zoom above.
+                # z6-max_zoom tiles carry the fixed grid_zoom encoder-grid
+                # skeleton; the raw edges begin one zoom above. Grid and
+                # serving handoff are intentionally independent.
                 "lowzoom": {
                     "grid_zoom": COARSE_GRID_ZOOM,
                     "max_zoom": COARSE_MAX_ZOOM,
@@ -875,7 +885,7 @@ def main() -> None:
             "generated_at_osm_timestamp": osm_timestamp,
             "geometry": {
                 "corridor_buffer_meters": CORRIDOR_BUFFER_METERS,
-                "low_zoom_generalization_below": LOW_ZOOM_GENERALIZATION_BELOW,
+                "low_zoom_generalization_below": RAW_NETWORK_MIN_ZOOM,
                 "representation": "client_stroked_lines",
                 "source": "valhalla_expansion_edges",
                 "tile_max_zoom": TILE_MAX_ZOOM,

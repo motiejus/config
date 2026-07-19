@@ -311,6 +311,11 @@ does not need the full GeoJSON wrappers or unrelated OSM tags.
 }
 ```
 
+The current low-zoom fast path supersedes that original single-layer config:
+the raw source serves z13–14, while a fixed z10-grid skeleton writes to the
+same MVT layer at z6–12. See `docs/lowzoom-fastpath.md`; the grid zoom and the
+raw/skeleton serving handoff are intentionally separate constants.
+
 `services` (labels, presets, place_count) is unchanged — the front-end
 requirements model keys off it.
 
@@ -339,8 +344,11 @@ Visvalingam tolerance at or below the tile's coordinate quantization step
 cannot produce displacement meaningfully beyond what encoding already
 introduces. Concretely:
 
-- z11–14: raw geometry (these are the inspection zooms).
-- z6–10: effective tolerance = exactly one MVT coordinate unit at each zoom.
+- z13–14: raw geometry.
+- z11–12: the fixed z10-grid skeleton, overzoomed without further tilemaker
+  simplification.
+- z6–10: the same skeleton, with effective tolerance = exactly one MVT
+  coordinate unit at each zoom.
   Mechanism (R6 resolved against the pinned 3.1.0 source): tilemaker scales
   the configured level per zoom —
   `simplifyLevel *= pow(simplifyRatio, (simplifyBelow-1) - zoom)`
@@ -953,7 +961,7 @@ policy.
    tile-size deltas reported as information only.
    *Reviewer checks:* tolerance actually bounded by the MVT quantization step
    (extent-4096 coordinate unit) at each zoom for
-   lat 54–56°; z11+ untouched; mechanism matches what the pinned tilemaker
+   lat 54–56°; z13+ untouched; mechanism matches what the pinned tilemaker
    implements (R6 resolved with evidence).
 
 Steps 1–2 land immediately (independent of the rest). Steps 3–4 and 5–6 are

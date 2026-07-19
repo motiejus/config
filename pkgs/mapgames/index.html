@@ -565,8 +565,10 @@
       // view's context union, "access-main" renders bands / intersect ink /
       // score. Styling is per attribute-map group via feature-state — one
       // color key per layer (uc under, mc main), with the group's opacity
-      // folded into the color's alpha channel: line-opacity times
-      // line-color alpha is a single multiplier in the blend, and one
+      // folded into the color's alpha channel. A separate constant
+      // line-opacity gates whole unused layers so MapLibre can skip their
+      // draw call without changing layout buckets; when the gate is 1,
+      // line-opacity times line-color alpha is the blend multiplier. One
       // color binder per layer halves the paint-buffer re-uploads that
       // dominate switch latency (every data-driven paint property is a
       // separate per-vertex array uploaded on every feature-state change).
@@ -1026,6 +1028,7 @@
       const mobileMedia = matchMedia(
         "(max-width: 640px), (max-height: 520px) and (max-width: 950px)"
       );
+      const hoverMedia = matchMedia("(hover: hover) and (pointer: fine)");
       const mapPanel = document.querySelector(".map-panel");
       let metadata;
       let inspectionOrigin;
@@ -1496,9 +1499,12 @@
             paint: {
               "line-color": ["to-color",
                 ["coalesce", ["feature-state", `${prefix}c`], "rgba(0,0,0,0)"]],
-              // Constant: the per-group opacity rides in the state color's
-              // alpha (see accessLayerIds).
-              "line-opacity": 1,
+              // refreshMap enables only the layers used by the effective
+              // mode. A constant zero lets MapLibre's drawLine path return
+              // before touching the dense geometry; zero-duration
+              // transitions make that early-out immediate.
+              "line-opacity": 0,
+              "line-opacity-transition": { duration: 0, delay: 0 },
               // Plain (non-data-driven) zoom curve; refreshMap swaps it
               // per effective mode via setPaintProperty — cheap repaint,
               // no re-layout. These are the visible corridor layers, so the
@@ -1623,6 +1629,15 @@
 
       function setAccessLineWidth(width) {
         accessLayerIds.forEach(id => map.setPaintProperty(id, "line-width", width));
+      }
+
+      function setAccessLayerOpacities(mode) {
+        // Keep shared layout buckets intact: constant paint opacity zero is
+        // an immediate MapLibre draw early-out, unlike a visibility change
+        // which reparses layout. Context exists only in intersect; main
+        // exists in every non-empty effective view.
+        map.setPaintProperty("access-under", "line-opacity", mode === "intersect" ? 1 : 0);
+        map.setPaintProperty("access-main", "line-opacity", mode === null ? 0 : 1);
       }
 
       function combinedCorridorMode(selections) {
@@ -1817,6 +1832,7 @@
         const selections = selectionDetails();
         const mode = effectiveViewMode(selections.length);
         refreshViewSwitcher(mode, selections.length);
+        setAccessLayerOpacities(mode);
         // Per-group feature-state styling (lowzoom-fastpath §3.2): the
         // effective view is a pure function attribute map → (color,
         // opacity), pushed as N group states — a paint-buffer refresh over
@@ -2456,11 +2472,12 @@
           inspectionMarkerFeatures = markerFeaturesAt(event.point);
           inspectLocation(event.lngLat);
         });
-        // Cursor affordances: the default pan hand on plain basemap, a
-        // pointer over the clickable things — destination dots (same padded
-        // hit box as the click, so hover and click always agree) and
-        // rendered access-network segments. One mousemove handler, hit-tested
-        // at most once per animation frame, keeps panning jank-free.
+        // Fine-pointer cursor affordances: the default pan hand on plain
+        // basemap, a pointer over the clickable things — destination dots
+        // (same padded hit box as the click, so hover and click always agree)
+        // and rendered access-network segments. One mousemove handler, hit-tested
+        // at most once per animation frame. Touch/coarse-pointer devices
+        // cannot use hover, so they install no hit-test handler at all.
         //
         // In the L3 fast path both access layers stay permanently visible
         // with a constant ["has","g"] filter — a group's visibility rides in
@@ -2470,35 +2487,42 @@
         // a segment reads as clickable only when its group is actually
         // painted (non-transparent) in one of the access layers, the L3
         // equivalent of the old per-view visibility + reachable setFilter.
-        const groupRendered = group => {
-          const state = lastGroupStates && lastGroupStates[group];
-          return !!state && (state.uc !== "rgba(0,0,0,0)" || state.mc !== "rgba(0,0,0,0)");
-        };
-        const overRenderedSegment = point => {
-          const layers = accessLayerIds.filter(id => map.getLayer(id));
-          return layers.length > 0 &&
-            map.queryRenderedFeatures(point, { layers }).some(feature => groupRendered(feature.id));
-        };
-        let hoverPoint;
-        let hoverScheduled = false;
-        map.on("mousemove", event => {
-          // Keep the stock grab cursor and skip per-frame hit-tests while
-          // drag-panning.
-          if (event.originalEvent.buttons) {
-            map.getCanvas().style.cursor = "";
-            return;
-          }
-          hoverPoint = event.point;
-          if (hoverScheduled) return;
-          hoverScheduled = true;
-          requestAnimationFrame(() => {
-            hoverScheduled = false;
-            const overDot = markerFeaturesAt(hoverPoint).length > 0;
-            const overSegment = !overDot && overRenderedSegment(hoverPoint);
-            map.getCanvas().style.cursor = overDot || overSegment ? "pointer" : "";
+        if (hoverMedia.matches) {
+          const groupRendered = group => {
+            const state = lastGroupStates && lastGroupStates[group];
+            return !!state && (state.uc !== "rgba(0,0,0,0)" || state.mc !== "rgba(0,0,0,0)");
+          };
+          const overRenderedSegment = point => {
+            const layers = accessLayerIds.filter(id => map.getLayer(id));
+            return layers.length > 0 &&
+              map.queryRenderedFeatures(point, { layers }).some(feature => groupRendered(feature.id));
+          };
+          let hoverPoint;
+          let hoverScheduled = false;
+          map.on("mousemove", event => {
+            // Keep the stock grab cursor and skip per-frame hit-tests while
+            // drag-panning or while inertia/programmatic movement continues.
+            if (event.originalEvent.buttons || map.isMoving()) {
+              map.getCanvas().style.cursor = "";
+              return;
+            }
+            hoverPoint = event.point;
+            if (hoverScheduled) return;
+            hoverScheduled = true;
+            requestAnimationFrame(() => {
+              hoverScheduled = false;
+              // Movement can begin between the mousemove and this frame.
+              if (map.isMoving()) {
+                map.getCanvas().style.cursor = "";
+                return;
+              }
+              const overDot = markerFeaturesAt(hoverPoint).length > 0;
+              const overSegment = !overDot && overRenderedSegment(hoverPoint);
+              map.getCanvas().style.cursor = overDot || overSegment ? "pointer" : "";
+            });
           });
-        });
-        map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
+          map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
+        }
         map.on("moveend", scheduleViewHash);
         window.addEventListener("hashchange", () => {
           // replaceState never fires hashchange, but stay safe against
