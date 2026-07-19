@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -60,18 +61,34 @@ def main() -> None:
     assert '"text-anchor": "top",\n            "text-offset": [0, 0.9]' in index, (
         "transit text must be offset below its marker so ring/dot shape remains visible"
     )
-    assert 'const transitMarkerLayer = (id, tier, minzoom = tier)' in index
-    assert 'transitMarkerLayer("detail-transit-markers-17", 17, 16)' in index, (
-        "named local-stop markers must appear at z16 while retaining their z17 label tier"
+    policy_match = re.search(
+        r"const transitZoomPolicy = (\{.*?\n        \});", index, re.DOTALL
     )
-    assert 'transitLayer("detail-transit-local", 17,' in index, (
-        "local-stop labels must remain z17-only to avoid z16 text clutter"
-    )
+    assert policy_match, "transit zoom policy must remain explicit and machine-readable"
+    policy = json.loads(policy_match.group(1))
+    assert policy == {
+        "15": {"marker": 15, "label": 15},
+        "16": {"marker": 15, "label": 16},
+        "17": {"marker": 15, "label": 17},
+        "18": {"marker": 18, "label": 18},
+    }, "all named markers start at z15; labels stay tiered; unnamed markers stay z18"
+    assert "minzoom: transitZoomPolicy[tier].marker" in index
+    assert "minzoom: transitZoomPolicy[tier].label" in index
+    marker_tiers = {
+        int(tier) for tier in re.findall(r'transitMarkerLayer\("[^"]+", (\d+)\)', index)
+    }
+    label_tiers = {
+        int(tier) for tier in re.findall(r'transitLayer\("[^"]+", (\d+),', index)
+    }
+    assert marker_tiers == {15, 16, 17, 18}
+    assert label_tiers == {15, 16, 17}
     assert '"circle-color": "#fffaf1"' in index, (
         "all transit markers need a light centre that contrasts with dark road casings"
     )
-    assert '["station", "terminal"], 5, "halt", 4, 3.5]' in index
-    assert '["station", "terminal"], 2, 1.5]' in index
+    assert '15, ["match", ["get", "kind"],\n                ["station", "terminal"], 5, "halt", 3.5, 3]' in index
+    assert '16, ["match", ["get", "kind"],\n                ["station", "terminal"], 5, "halt", 4, 3.5]' in index
+    assert '["station", "terminal"], 2, "halt", 1.5, 1.25' in index
+    assert '["station", "terminal"], 2, "halt", 1.5, 1.5' in index
     print(f"transit fixture passed ({len(features)} canonical stops)")
 
 

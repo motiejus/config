@@ -1711,12 +1711,21 @@
           layout: commonLayout(poiTextField(), padding),
           paint: poiPaint
         });
+        // Marker visibility and label density are deliberately independent.
+        // Keep this JSON-shaped object simple: the transit fixture parses it
+        // as the authoritative policy for every source display tier.
+        const transitZoomPolicy = {
+          "15": { "marker": 15, "label": 15 },
+          "16": { "marker": 15, "label": 16 },
+          "17": { "marker": 15, "label": 17 },
+          "18": { "marker": 18, "label": 18 }
+        };
         const transitLayer = (id, tier, padding) => ({
           id,
           type: "symbol",
           source: "details",
           "source-layer": details.layers.transit_details,
-          minzoom: tier,
+          minzoom: transitZoomPolicy[tier].label,
           filter: ["==", ["get", "display_tier"], tier],
           layout: {
             ...commonLayout(transitTextField(), padding),
@@ -1725,23 +1734,29 @@
           },
           paint: { ...halo, "text-color": "#274f57" }
         });
-        const transitMarkerLayer = (id, tier, minzoom = tier) => ({
+        const transitMarkerLayer = (id, tier) => ({
           id,
           type: "circle",
           source: "details",
           "source-layer": details.layers.transit_details,
-          minzoom,
+          minzoom: transitZoomPolicy[tier].marker,
           filter: ["==", ["get", "display_tier"], tier],
           layout: { "circle-sort-key": ["get", "rank"] },
           paint: {
-            "circle-radius": ["match", ["get", "kind"],
-              ["station", "terminal"], 5, "halt", 4, 3.5],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"],
+              15, ["match", ["get", "kind"],
+                ["station", "terminal"], 5, "halt", 3.5, 3],
+              16, ["match", ["get", "kind"],
+                ["station", "terminal"], 5, "halt", 4, 3.5]],
             // Every marker needs a light centre: a solid teal local-stop dot
             // is almost indistinguishable from the basemap's dark road casing.
             "circle-color": "#fffaf1",
             "circle-stroke-color": "#274f57",
-            "circle-stroke-width": ["match", ["get", "kind"],
-              ["station", "terminal"], 2, 1.5],
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"],
+              15, ["match", ["get", "kind"],
+                ["station", "terminal"], 2, "halt", 1.5, 1.25],
+              16, ["match", ["get", "kind"],
+                ["station", "terminal"], 2, "halt", 1.5, 1.5]],
             "circle-opacity": 0.94,
             "circle-stroke-opacity": 1
           }
@@ -1799,11 +1814,12 @@
         });
         addBelowBaseLabels(poiLayer("detail-poi-micro", 18, 0.5));
         // Rings distinguish stations/terminals from progressively smaller
-        // halt and local-stop rings. Named local-stop markers begin at z16 so
-        // a city view is not dominated by the much larger ferry terminals;
-        // their labels remain z17-only. Unnamed platform markers remain z18.
+        // halt and local-stop rings. All named transit markers appear at z15,
+        // but their labels remain tiered at z15/z16/z17. This prevents ferry
+        // terminals being the only visible stops in a city overview without
+        // filling it with stop names. Unnamed platform markers remain z18.
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-18", 18));
-        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17, 16));
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-16", 16));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-15", 15));
         addBelowBaseLabels({
