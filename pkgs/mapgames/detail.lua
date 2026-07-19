@@ -6,8 +6,8 @@ node_keys = {
   "addr:housename", "addr:housename:en", "addr:housename:lt",
   "addr:housenumber", "amenity", "building", "club", "craft",
   "drinking_water", "emergency", "entrance=emergency", "healthcare", "historic",
-  "information", "leisure", "man_made=water_tap", "office", "recycling_type",
-  "shelter_type", "shop", "tourism"
+  "information", "leisure", "man_made=water_tap", "natural=tree", "office",
+  "recycling_type", "shelter_type", "shop", "tourism"
 }
 
 way_keys = {
@@ -85,7 +85,7 @@ local lifecycle_keys = {
 local lifecycle_scopes = {
   "amenity", "building", "club", "craft", "drinking_water", "emergency",
   "entrance", "healthcare", "historic", "information", "leisure", "man_made",
-  "office", "recycling_type", "shelter_type", "shop", "tourism"
+  "natural", "office", "recycling_type", "shelter_type", "shop", "tourism"
 }
 local lifecycle_values = values(lifecycle_keys)
 
@@ -243,6 +243,10 @@ local function classify_micro()
 end
 
 local function micro_rank(class)
+  -- Potable water is a safety-relevant walking utility, not merely dense
+  -- street furniture. Keep it ahead of ordinary POIs and encode it at z15;
+  -- the style still uses a restrained dot until z16.
+  if class == "drinking_water" then return 18 end
   if class == "defibrillator" then return 70 end
   if class == "emergency_entrance" then return 72 end
   if class == "life_ring" then return 74 end
@@ -259,23 +263,55 @@ local function set_micro_attributes(class, kind)
   if access ~= "" then Attribute("access", access) end
   Attribute("class", class)
   Attribute("kind", kind)
-  AttributeNumeric("display_tier", 18)
+  AttributeNumeric("display_tier", class == "drinking_water" and 15 or 18)
   AttributeNumeric("rank", micro_rank(class))
-  -- Micro detail is z18-only presentation encoded in real z16 source tiles.
-  MinZoom(16)
+  -- Potable water needs to be discoverable at trail/city overview scale.
+  -- Other micro detail remains z18-only presentation encoded in z16 tiles.
+  MinZoom(class == "drinking_water" and 15 or 16)
 end
 
 local function emit_micro_node(class, kind)
   if not class then return false end
-  Layer("micro_details", false)
+  Layer(class == "drinking_water" and "water_details" or "micro_details", false)
   set_micro_attributes(class, kind)
   return true
 end
 
 local function emit_micro_area(class, kind)
   if not class then return false end
-  LayerAsCentroid("micro_details")
+  LayerAsCentroid(class == "drinking_water" and "water_details" or "micro_details")
   set_micro_attributes(class, kind)
+  return true
+end
+
+-- Only genuinely point-like objects belong here. Lithuania has roughly 8k
+-- mapped benches and 89k mapped individual trees in this snapshot: benches
+-- are useful at z17, while the denser trees wait until z18 and are thinned by
+-- symbol collision in the renderer. Tree rows and wooded areas remain the
+-- basemap's job, rather than being flattened into misleading point icons.
+local function classify_street_detail()
+  if lifecycle_disabled() then return nil end
+  if Find("amenity") == "bench" and micro_access_allowed() then return "bench" end
+  if Find("natural") == "tree" then return "tree" end
+  return nil
+end
+
+local function emit_street_detail(class)
+  if not class then return false end
+  Layer("street_details", false)
+  Attribute("class", class)
+  if has_proper_name() then set_proper_names() end
+  if class == "bench" then
+    local access = normalized_access()
+    if access ~= "" then Attribute("access", access) end
+    AttributeNumeric("display_tier", 17)
+    AttributeNumeric("rank", 88)
+  else
+    AttributeNumeric("display_tier", 18)
+    AttributeNumeric("rank", 98)
+  end
+  -- Both tiers are encoded in real z16 tiles and revealed by style on overzoom.
+  MinZoom(16)
   return true
 end
 
@@ -379,7 +415,11 @@ function node_function()
     local micro_class, micro_kind = classify_micro()
     emitted_micro = emit_micro_node(micro_class, micro_kind)
   end
-  local has_semantic_feature = emitted_poi or emitted_micro
+  local emitted_street_detail = false
+  if not emitted_poi and not emitted_micro then
+    emitted_street_detail = emit_street_detail(classify_street_detail())
+  end
+  local has_semantic_feature = emitted_poi or emitted_micro or emitted_street_detail
   emit_node_building(has_semantic_feature or lifecycle_disabled(), has_semantic_feature)
 end
 

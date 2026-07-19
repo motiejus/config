@@ -112,7 +112,10 @@ def decode_detail_features(database: Path) -> list[dict]:
         for number, wire, layer in protobuf_fields(tile):
             if number == 3 and wire == 2:
                 name, features = decode_layer(layer)
-                if name in ("building_details", "poi_details", "micro_details"):
+                if name in (
+                    "building_details", "poi_details", "micro_details", "transit_details",
+                    "street_details", "water_details",
+                ):
                     for feature in features:
                         feature["_layer"] = name
                         feature["_tile"] = (zoom, column, row)
@@ -135,7 +138,26 @@ def main() -> None:
         pbf = temporary / "detail.osm.pbf"
         mbtiles = temporary / "detail.mbtiles"
         transit = temporary / "transit.geojson"
-        transit.write_text('{"type":"FeatureCollection","features":[]}\n', encoding="utf-8")
+        transit.write_text(
+            json.dumps({
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [25.005, 55.005]},
+                    "properties": {
+                        "display_tier": 16,
+                        "kind": "stop",
+                        "mode_bus": 1,
+                        "mode_count": 2,
+                        "mode_tram": 1,
+                        "name": "Tile multimodal fixture",
+                        "primary_mode": "tram",
+                        "rank": 28,
+                    },
+                }],
+            }) + "\n",
+            encoding="utf-8",
+        )
         config = json.loads(args.config.read_text(encoding="utf-8"))
         config["layers"]["transit_details"]["source"] = str(transit)
         config_path = temporary / "detail.json"
@@ -162,6 +184,15 @@ def main() -> None:
     buildings = [feature for feature in features if feature["_layer"] == "building_details"]
     pois = [feature for feature in features if feature["_layer"] == "poi_details"]
     micros = [feature for feature in features if feature["_layer"] == "micro_details"]
+    waters = [feature for feature in features if feature["_layer"] == "water_details"]
+    transits = [feature for feature in features if feature["_layer"] == "transit_details"]
+    street_details = [
+        feature for feature in features if feature["_layer"] == "street_details"
+    ]
+
+    assert transits and all(feature.get("mode_count") == 2 for feature in transits), (
+        "transit mode_count was dropped while encoding the vector tiles"
+    )
 
     assert any(
         feature.get("housenumber") == "42A" and feature.get("kind") == "address"
@@ -272,7 +303,6 @@ def main() -> None:
 
     expected_micro_classes = {
         "toilets",
-        "drinking_water",
         "bicycle_parking",
         "compressed_air",
         "shelter",
@@ -288,20 +318,37 @@ def main() -> None:
         f"{sorted({feature.get('class') for feature in micros})}"
     )
     assert all(feature.get("display_tier") == 18 for feature in micros), (
-        "micro detail escaped its z18-only display tier"
+        "ordinary micro detail escaped its z18 display tier"
     )
-    assert all(feature.get("_geometry_type") == 1 for feature in micros), (
+    assert waters and all(
+        feature.get("class") == "drinking_water" and feature.get("display_tier") == 15
+        for feature in waters
+    ), "dedicated water source contains a non-potable or wrongly tiered feature"
+    assert any(
+        feature.get("class") == "drinking_water" and feature["_tile"][0] == 15
+        for feature in waters
+    ), "potable water was not physically encoded in z15 source tiles"
+    assert any(
+        feature.get("class") == "drinking_water"
+        and feature.get("name") == "Public trail tap"
+        for feature in waters
+    ), "named potable water lost its proper name in the dedicated source"
+    assert not any(
+        feature["_tile"][0] == 15
+        for feature in micros
+    ), "ordinary micro detail escaped into z15 source tiles"
+    assert all(feature.get("_geometry_type") == 1 for feature in micros + waters), (
         "micro detail must remain point/centroid geometry"
     )
     assert any(
         feature.get("class") == "toilets" and "access" not in feature
-        for feature in micros
+        for feature in micros + waters
     ), "unknown toilet access was incorrectly presented as public"
     assert any(
         feature.get("class") == "toilets"
         and feature.get("name") == "Public WC"
         and feature.get("access") == "public"
-        for feature in micros
+        for feature in micros + waters
     ), "explicitly public toilet was lost or mis-normalized"
     assert not any(
         feature.get("name") in {
@@ -355,7 +402,7 @@ def main() -> None:
         feature.get("name") == "Lifecycle-prefixed recycling" for feature in micros
     ), "lifecycle-prefixed micro utility was emitted"
     assert not any(
-        feature.get("name") == "Non-potable tap" for feature in micros
+        feature.get("name") == "Non-potable tap" for feature in micros + waters
     ), "drinking_water=no was incorrectly presented as potable water"
     assert any(
         feature.get("name") == "False-lifecycle restaurant"
@@ -405,6 +452,25 @@ def main() -> None:
         for feature in micros
     ), "relation-only micro area was lost"
 
+    assert {feature.get("class") for feature in street_details} == {"bench", "tree"}, (
+        f"street-detail fixture taxonomy mismatch: {street_details}"
+    )
+    assert any(
+        feature.get("class") == "bench" and feature.get("display_tier") == 17
+        for feature in street_details
+    ), "bench was not retained at its z17 presentation tier"
+    assert any(
+        feature.get("class") == "tree" and feature.get("display_tier") == 18
+        for feature in street_details
+    ), "individual tree was not delayed to z18"
+    assert all(feature.get("_geometry_type") == 1 for feature in street_details), (
+        "street detail must remain point geometry"
+    )
+    assert not any(
+        feature.get("name") in {"Private bench", "Removed tree"}
+        for feature in street_details
+    ), "restricted bench or lifecycle-disabled tree was emitted"
+
     index = args.index.read_text(encoding="utf-8")
     public_playground_color = (
         '["all", ["==", ["get", "class"], "playground"], '
@@ -415,21 +481,65 @@ def main() -> None:
         "playground color must require explicit public access; unknown/private/"
         "customer playgrounds stay neutral"
     )
+    assert '"icon-image": "school"' in index, (
+        "playgrounds need the shipped slide-and-swing pictogram, not a generic dot"
+    )
+    assert 'playgroundIconLayer("detail-playground-open-icons", 17, 16)' in index, (
+        "open/unknown playground icons must appear at z16 ahead of their names"
+    )
+    assert 'playgroundIconLayer("detail-playground-restricted-icons", 18, 18)' in index, (
+        "restricted playground icons must wait for the restriction label at z18"
+    )
+    assert 'streetIconLayer("detail-bench-icons", "bench", 17' in index, (
+        "recognizable bench sprite must appear from z17"
+    )
+    assert 'streetIconLayer("detail-tree-icons", "tree", 18, "park"' in index, (
+        "recognizable individual-tree sprite must remain z18-only"
+    )
+    street_icon_style = index[
+        index.index('addBelowBaseLabels(streetIconLayer("detail-tree-icons"'):
+        index.index('addBelowBaseLabels({\n          id: "detail-micro-names"')
+    ]
+    assert "icon-allow-overlap" not in street_icon_style, (
+        "dense bench/tree icons must remain collision-aware"
+    )
     assert index.count('id: "detail-micro-') == 2, "expected marker and optional-name micro layers"
     assert index.count('"source-layer": details.layers.micro_details') == 2, (
-        "both micro style layers must use the curated micro source"
+        "ordinary micro layers must use the curated micro source"
+    )
+    assert index.count('"source-layer": details.layers.water_details') == 3, (
+        "potable-water dot, badge, and optional name must use the dedicated source"
     )
     for marker in ("WC", "H₂O", "AED", "SOS", "DVIR.", "BIKE", "PAST.", "SHEL"):
         assert f'"{marker}"' in index, f"micro marker {marker} missing from style"
     micro_style = index[index.index('id: "detail-micro-names"'):index.index('addBelowBaseLabels(poiLayer("detail-poi-micro"')]
-    assert micro_style.count("minzoom: 18") == 2, "micro style must be absent below z18"
+    assert micro_style.count("minzoom: 18") == 3, (
+        "ordinary micro and optional water-name styles must be absent below z18"
+    )
     assert "text-allow-overlap" not in micro_style and "text-ignore-placement" not in micro_style, (
         "micro labels must remain collision-aware"
+    )
+    water_style = index[index.index('id: "detail-water-names"'):index.index("function discardInspectorLayers")]
+    assert 'minzoom: 15' in water_style and 'minzoom: 16' in water_style, (
+        "potable water needs a z15 dot and an explicit badge from z16"
+    )
+    assert water_style.count('["==", ["get", "class"], "drinking_water"]') == 2, (
+        "dedicated water layers must not style unrelated micro utilities"
+    )
+    assert '"text-allow-overlap": true' in water_style, (
+        "the compact H₂O badge must not disappear due to label collisions"
+    )
+    assert 'id: "detail-water-names"' in water_style and 'minzoom: 18' in water_style, (
+        "named potable water needs a collision-aware z18 label"
+    )
+    assert '["!=", ["get", "class"], "drinking_water"]' in micro_style, (
+        "potable water must not receive a duplicate generic micro marker"
     )
 
     print(
         f"detail fixture passed ({len(buildings)} building/address and "
-        f"{len(pois)} POI and {len(micros)} micro encoded feature copies)"
+        f"{len(pois)} POI, {len(micros)} micro, and "
+        f"{len(street_details)} street-detail encoded feature copies)"
     )
 
 

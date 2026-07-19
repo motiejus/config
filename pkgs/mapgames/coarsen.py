@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Encoder-grid skeleton of the unified access network for z6-12 tiles.
 
-Implements docs/lowzoom-fastpath.md section 2.2 (normative), plus the
-Variant-B short-chain filter of section 4.6. Input is the merge tool's
+Implements the skeleton algorithm in docs/lowzoom-fastpath.md, plus the
+short-chain-filtered z6-7 subset. Input is the merge tool's
 work/network.geojson (one Feature per attribute-map group, MultiLineString
 of pieces, each carrying its group index `g` = feature index in file
 order). Output is work/network-lowzoom.geojson: one LineString Feature per
@@ -19,13 +19,13 @@ deterministic two-phase walk, and drop exactly-collinear interior points
 The generated geometry stays on that fixed z10 grid when served at z11-13;
 those zooms overzoom the skeleton rather than changing this algorithm's grid.
 
-Single-threaded by design: determinism for free (section 2.2). Integer
+Single-threaded by design for deterministic ordering. Integer
 arithmetic everywhere except the fixed latp/inv_latp formulas.
 
-Variant B (--z67-out): a second artifact holding exactly the subset of
-Variant-A chains whose z10-grid length L (sum of Euclidean segment lengths
+The --z67-out option writes a second artifact holding exactly the subset of
+complete-skeleton chains whose z10-grid length L (sum of Euclidean segment lengths
 in grid units over the post-collinear-drop points, accumulated in emission
-order) satisfies L >= N_drop; order preserved, no re-ranking (section 4.6).
+order) satisfies L >= N_drop; order preserved, no re-ranking.
 """
 
 import argparse
@@ -37,7 +37,7 @@ import time
 GRID_ZOOM = 10
 EXTENT = 4096
 # One grid unit in (lon, latp) projected degrees — exactly the grid
-# tilemaker's encoder rounds to at z10 (section 2.2).
+# tilemaker's encoder rounds to at z10.
 UNIT = 360.0 / (EXTENT * (1 << GRID_ZOOM))
 
 
@@ -58,7 +58,7 @@ def tile_of(point: tuple[int, int]) -> tuple[int, int]:
 
 
 def split_at_tile_boundaries(a, b, out):
-    """Section 2.2 step 3: recursive integer midpoint bisection.
+    """Split a grid segment between tiles by recursive integer midpoint bisection.
 
     Emits (tile, segment) pairs, segment endpoints ordered
     lexicographically smaller first. Terminal cases: both endpoints share
@@ -81,7 +81,7 @@ def split_at_tile_boundaries(a, b, out):
 
 
 def chain_tile_segments(segments):
-    """Section 2.2 step 4: deterministic two-phase walk over the simple
+    """Deterministic two-phase walk over the simple
     graph of one (group, tile)'s grid segments. Yields chains (lists of
     grid points). Phase one starts at nodes of odd degree in ascending
     (x, y) order, phase two at remaining nodes (cycles) in ascending
@@ -112,7 +112,7 @@ def chain_tile_segments(segments):
 
 
 def drop_collinear(chain):
-    """Section 2.2 step 5: remove interior points where the integer cross
+    """Remove interior points where the integer cross
     product of the adjacent segments is 0 and the dot product is positive
     (strictly straight-through). The test runs against the last kept
     point, so runs of collinear points collapse in one pass."""
@@ -146,7 +146,7 @@ def feature_json(properties_json: str, chain) -> str:
 
 
 def grid_length(chain) -> float:
-    """Section 4.6: z10-grid length L — the sum of Euclidean segment
+    """Return z10-grid length L: the sum of Euclidean segment
     lengths in grid units, accumulated in emission order over the chain's
     post-collinear-drop points."""
     total = 0.0
@@ -161,14 +161,14 @@ def main() -> None:
     parser.add_argument("output", help="output work/network-lowzoom.geojson")
     parser.add_argument(
         "--z67-out",
-        help="also write the Variant-B z6-7 artifact (section 4.6): the "
+        help="also write the short-chain-filtered z6-7 artifact: the "
         "subset of chains with grid length L >= N_drop, order preserved",
     )
     parser.add_argument(
         "--n-drop",
         type=float,
         default=64.0,
-        help="Variant-B drop threshold in z10 grid units (default 64)",
+        help="z6-7 short-chain drop threshold in z10 grid units (default 64)",
     )
     args = parser.parse_args()
 
@@ -179,7 +179,7 @@ def main() -> None:
 
     # The merge tool is the single source of truth for `g` (= feature index
     # in emission order); assert the values are exactly 0..N-1 in file
-    # order and never assign our own (section 2.2).
+    # order and never assign our own.
     for index, feature in enumerate(features):
         g = feature["properties"].get("g")
         if g != index:
@@ -245,7 +245,7 @@ def main() -> None:
                 by_tile.setdefault(tile, set()).add(segment)
         total_segments += sum(len(segments) for segments in by_tile.values())
 
-        # Section 2.4 asks for emitted-property-maps == read-property-maps;
+        # Preserve the contract emitted-property-maps == read-property-maps;
         # measured 4-band data breaks the literal assert: groups whose whole
         # geometry is shorter than half a grid unit (~2.7 m at z10) quantize
         # to a single point and cannot emit a segment (lt-full 2026-07-18:
@@ -297,7 +297,7 @@ def main() -> None:
         handle.write("]}\n")
         handle.close()
 
-    # Attribute-model preservation assert (section 2.4): the set of
+    # Attribute-model preservation assert: the set of
     # distinct property maps emitted equals the set read.
     if emitted_property_maps != input_property_maps:
         missing = sorted(input_property_maps - emitted_property_maps)

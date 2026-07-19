@@ -53,12 +53,38 @@ def main() -> None:
     assert len(by_name["Central"]) == 1 and by_name["Central"][0]["platform_count"] == 1
     assert by_name["Multimodal"][0]["display_tier"] == 16
     assert by_name["Multimodal"][0]["mode_bus"] == 1 and by_name["Multimodal"][0]["mode_tram"] == 1
+    assert by_name["Multimodal"][0]["mode_count"] == 2
     assert "Disused" not in by_name
     assert "Razed" not in by_name and "Demolished" not in by_name
     assert len(by_name["Active despite false lifecycle"]) == 1
     assert len(unnamed) == 1 and unnamed[0]["display_tier"] == 18
     trolley = by_name["Trolley only"][0]
     assert trolley["mode_trolleybus"] == 1 and "mode_bus" not in trolley and trolley["primary_mode"] == "trolleybus"
+    assert trolley["mode_count"] == 1
+    subway = by_name["Subway only"][0]
+    assert subway["mode_subway"] == 1 and "mode_train" not in subway and subway["mode_count"] == 1
+    tagged_trolley = by_name["Tagged trolley only"][0]
+    assert tagged_trolley["mode_trolleybus"] == 1 and "mode_bus" not in tagged_trolley
+    assert by_name["Explicit bus no"][0]["mode_count"] == 0
+    assert "mode_bus" not in by_name["Explicit bus no"][0]
+    explicit_multi = by_name["Explicit bus and trolley"][0]
+    assert explicit_multi["mode_bus"] == 1 and explicit_multi["mode_trolleybus"] == 1
+    assert explicit_multi["mode_count"] == 2
+    relation_subway = by_name["Relation subway only"][0]
+    assert relation_subway["mode_subway"] == 1 and "mode_train" not in relation_subway
+    assert relation_subway["mode_count"] == 1 and relation_subway["primary_mode"] == "subway"
+    relation_no_train = by_name["Relation explicit train no"][0]
+    assert relation_no_train["mode_count"] == 0 and "mode_train" not in relation_no_train
+    assert "Generic subway member" not in by_name and "Generic no-train member" not in by_name
+    generic_anchor = by_name["Generic anchor first"][0]
+    explicit_anchor = by_name["Explicit anchor first"][0]
+    for clustered in (generic_anchor, explicit_anchor):
+        assert clustered["mode_count"] == 2
+        assert clustered["mode_train"] == 1 and clustered["mode_subway"] == 1
+    relation_no_wins = by_name["Relation no wins"][0]
+    assert relation_no_wins["mode_count"] == 1
+    assert relation_no_wins["mode_subway"] == 1 and "mode_train" not in relation_no_wins
+    assert "Contradictory member" not in by_name
     terminal = by_name["Bus Terminal"][0]
     assert terminal["kind"] == "terminal" and terminal["display_tier"] == 15 and terminal["ref"] == "T1"
     index = args.index.read_text(encoding="utf-8")
@@ -86,13 +112,24 @@ def main() -> None:
     }
     assert marker_tiers == {15, 16, 17, 18}
     assert label_tiers == {15, 16, 17}
-    assert '"circle-color": "#fffaf1"' in index, (
-        "all transit markers need a light centre that contrasts with dark road casings"
+    assert '"circle-color": "#075985"' in index and '"circle-stroke-color": "#fffaf1"' in index, (
+        "all transit markers need a strong transport disc and a contrasting rim"
     )
-    assert '15, ["match", ["get", "kind"],\n                ["station", "terminal"], 5, "halt", 3.5, 3]' in index
-    assert '16, ["match", ["get", "kind"],\n                ["station", "terminal"], 5, "halt", 4, 3.5]' in index
-    assert '["station", "terminal"], 2, "halt", 1.5, 1.25' in index
-    assert '["station", "terminal"], 2, "halt", 1.5, 1.5' in index
+    assert '15, ["match", ["get", "kind"],\n                ["station", "terminal"], 7, "halt", 5.5, 5]' in index
+    assert '16, ["match", ["get", "kind"],\n                ["station", "terminal"], 7.5, "halt", 6, 5.5]' in index
+    assert 'transitBadgeLayer("detail-transit-badges-named", 16' in index
+    assert 'transitBadgeLayer("detail-transit-badges-unnamed", 18' in index
+    assert '"text-allow-overlap": true' in index and '"text-ignore-placement": true' in index
+    assert '"symbol-sort-key": ["-", 0, ["get", "rank"]]' in index
+    assert index.index('transitBadgeLayer("detail-transit-badges-unnamed"') < index.index(
+        'transitBadgeLayer("detail-transit-badges-named"'
+    ), "named badges must paint after unnamed badges"
+    assert 'addImportantTransitLabel(transitLayer("detail-transit-station"' in index
+    assert 'addImportantTransitLabel(transitLayer("detail-transit-halt"' in index
+    assert '["roads_shields", "roads_labels_major", "pois"]' in index
+    assert 'return ["concat", mode, " · ", detailLocalizedField("name")];' in index
+    for code in ('"train", "TR"', '"tram", "T"', '"trolleybus", "TB"', '"bus", "B"'):
+        assert code in index, f"missing visible mode badge {code}"
     print(f"transit fixture passed ({len(features)} canonical stops)")
 
 

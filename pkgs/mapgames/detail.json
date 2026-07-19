@@ -12,13 +12,21 @@
       "minzoom": 16,
       "maxzoom": 16
     },
+    "water_details": {
+      "minzoom": 15,
+      "maxzoom": 16
+    },
+    "street_details": {
+      "minzoom": 16,
+      "maxzoom": 16
+    },
     "transit_details": {
       "minzoom": 15,
       "maxzoom": 16,
       "source_columns": [
         "display_tier", "kind", "mode_bus", "mode_ferry", "mode_subway",
-        "mode_train", "mode_tram", "mode_trolleybus", "name", "name:en", "name:lt",
-        "platform_count", "primary_mode", "rank", "ref"
+        "mode_train", "mode_tram", "mode_trolleybus", "mode_count", "name", "name:en",
+        "name:lt", "platform_count", "primary_mode", "rank", "ref"
       ]
     }
   },
@@ -29,8 +37,8 @@
     "include_ids": false,
     "combine_below": 16,
     "name": "Mapgames high-zoom everyday detail",
-    "version": "4.0.0",
-    "description": "Building/address labels, everyday POIs, playgrounds, public transport, and curated walking-scale utilities from OpenStreetMap",
+    "version": "4.1.0",
+    "description": "Building/address labels, everyday POIs, playgrounds, public transport, street furniture, individual trees, and curated walking-scale utilities from OpenStreetMap",
     "compress": "gzip",
     "filemetadata": {
       "tilejson": "3.0.0",

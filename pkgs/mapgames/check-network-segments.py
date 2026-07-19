@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Gate checker for the merge tool (unified-access-layer step 4).
+"""Gate checker for the unified access-network merge tool.
 
-Independently re-executes docs/unified-access-layer.md section 1.3 steps 0-3
-from the per-route edge-interval dumps alone — its own dump parsing, step-0
-geometry-string pre-merge across dumps, endpoint collection, 1e-12 first-wins
+Independently re-executes the merge tool's pre-slicing segmentation from the
+per-route edge-interval dumps alone — its own dump parsing, geometry-string
+pre-merge across dumps, endpoint collection, 1e-12 first-wins
 dedup, midpoint classification with the nesting abort, and coalescing — and
 compares the result for EXACT equality (bitwise-equal doubles, identical
 attribute maps, identical piece order) against the merge tool's
@@ -264,7 +264,7 @@ def main():
         return 1
     print(
         f"OK: {len(expected)} geometries, {expected_pieces} pieces:"
-        f" independent re-execution of steps 0-3 matches {args.debug_segments}"
+        f" independent segmentation matches {args.debug_segments}"
         f" exactly"
     )
     return 0

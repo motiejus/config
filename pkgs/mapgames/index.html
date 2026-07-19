@@ -620,8 +620,8 @@
       const pmtilesProtocol = new pmtiles.Protocol();
       maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
-      // Palette per docs/unified-access-layer.md §3.3 (CVD-safe, light
-      // basemap): Okabe-Ito service hues; markers use independent dark
+      // CVD-safe palette for the light basemap: Okabe-Ito service hues;
+      // markers use independent dark
       // variants of the same identifying hue (they are not band steps).
       const serviceStyles = {
         // White text fails WCAG AA on the first three Okabe-Ito hues
@@ -634,7 +634,7 @@
         fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
       };
       // Band ramps: discrete lightness steps of each service hue, darkest =
-      // smallest minutes (§3.3). The deliberately wide steps stay ordered
+      // smallest minutes. The deliberately wide steps stay ordered
       // under color-vision deficiencies and remain distinct on the light
       // basemap; keyed by the requirement keys of metadata.access_network.
       const bandRamps = {
@@ -646,7 +646,7 @@
       };
       const bandOpacity = 0.9;
       // Intersection ink: outside every service hue, hue-free hence
-      // CVD-neutral, maximal contrast on the light basemap (§3.3).
+      // CVD-neutral, maximal contrast on the light basemap.
       const intersectInk = "#172033";
       const intersectOpacity = 0.95;
       // The old #8a93a3 at 35% composited to only 1.41:1 against white and
@@ -657,7 +657,7 @@
       const contextGray = "#596579";
       const contextOpacity = 0.9;
       // Two permanent access layers over the one network source-layer
-      // (lowzoom-fastpath §3.2): "access-under" renders the intersect
+      // (unified-access-layer.md): "access-under" renders the intersect
       // view's context union, "access-main" renders bands / intersect ink /
       // score. Styling is per attribute-map group via feature-state — one
       // color key per layer (uc under, mc main), with the group's opacity
@@ -1526,7 +1526,10 @@
         "detail-building-poi-addresses",
         "detail-micro-names",
         "detail-micro-markers",
+        "detail-water-names",
         "detail-poi-micro",
+        "detail-transit-badges-named",
+        "detail-transit-badges-unnamed",
         "detail-transit-local",
         "detail-transit-halt",
         "detail-transit-station",
@@ -1536,7 +1539,7 @@
         "detail-building-names",
         "detail-poi-major"
       ];
-      // Stored view-mode *preference* (§3.2); rendering always goes through
+      // Stored view-mode *preference*; rendering always goes through
       // effectiveViewMode(), and coercion never overwrites this value.
       let viewMode = "intersect";
       const hoverMedia = matchMedia("(hover: hover) and (pointer: fine)");
@@ -1638,7 +1641,7 @@
       }
 
       // One entry per active requirement: at most one per service (N <= 4;
-      // supermarket walk/drive are alternatives via the single preset, §3.2).
+      // supermarket walk/drive are alternatives via the single preset).
       function selectionDetails() {
         return activeRequirements().map(service => {
           const preset = selectedPreset(service);
@@ -1653,7 +1656,7 @@
         return requirement;
       }
 
-      // Preference vs. effective mode (§3.2): |R|=0 renders nothing, |R|=1
+      // Preference vs. effective mode: |R|=0 renders nothing, |R|=1
       // is always bands, bands with |R|>=2 coerces to intersect — without
       // touching the stored preference, so toggling a second service on and
       // off round-trips bands -> intersect -> bands.
@@ -1672,7 +1675,7 @@
       }
 
       // The URL records the *effective* mode so shared links reproduce what
-      // the sharer saw (§3.4); with nothing selected there is no effective
+      // the sharer saw; with nothing selected there is no effective
       // mode and the parameter is omitted.
       function effectiveModeParam() {
         const mode = effectiveViewMode(activeRequirements().length);
@@ -1781,9 +1784,9 @@
         });
       }
 
-      // Shared-link view mode (§3.4). The `view` hash key already carries
+      // Shared-link view mode. The `view` hash key already carries
       // the camera, so the mode travels as `mode=`; absent means "derived
-      // default" (§3.2), keeping older shared links working unchanged.
+      // default", keeping older shared links working unchanged.
       // Validation is split from application so the caller can validate the
       // whole hash before mutating any state: an invalid mode must not leave
       // already-applied requirements behind without a refreshMap.
@@ -2070,7 +2073,7 @@
           type: "vector",
           url: `pmtiles://${new URL(network.file, location.href).href}`,
           attribution: snapshotAttribution(),
-          // Feature id = attribute-map group id (lowzoom-fastpath §3.2).
+          // Feature id = attribute-map group id (unified-access-layer.md).
           // Many features share one id by design; feature-state is an
           // id-keyed map consulted per feature.
           promoteId: { [network.layer]: "g" }
@@ -2185,7 +2188,37 @@
       }
 
       function transitTextField() {
-        return detailLocalizedField("name");
+        // Repeat a compact, recognizable mode code in the label. Full mode
+        // words would dominate z17 collision boxes, hiding the stop name that
+        // helps someone navigate. The inspector provides the full modes.
+        const mode = ["case",
+          [">", ["coalesce", ["get", "mode_count"], 0], 1],
+          lang === "en" ? "PT" : "VT",
+          ["match", ["get", "primary_mode"],
+            "train", lang === "en" ? "RAIL" : "TRAUK.",
+            "subway", "METRO",
+            "tram", "TRAM",
+            "trolleybus", lang === "en" ? "TBUS" : "TROL.",
+            "bus", lang === "en" ? "BUS" : "AUT.",
+            "ferry", lang === "en" ? "FERRY" : "KELT.",
+            lang === "en" ? "PT" : "VT"]
+        ];
+        return ["concat", mode, " · ", detailLocalizedField("name")];
+      }
+
+      function transitBadgeField() {
+        return ["case",
+          [">", ["coalesce", ["get", "mode_count"], 0], 1],
+          lang === "en" ? "PT" : "VT",
+          ["match", ["get", "primary_mode"],
+            "train", "TR",
+            "subway", "M",
+            "tram", "T",
+            "trolleybus", "TB",
+            "bus", "B",
+            "ferry", lang === "en" ? "F" : "K",
+            lang === "en" ? "PT" : "VT"]
+        ];
       }
 
       function microMarkerField() {
@@ -2214,7 +2247,9 @@
           map.setLayoutProperty(id, "text-field",
             id === "detail-micro-markers" ? microMarkerField() :
             id === "detail-micro-names" ? detailLocalizedField("name") :
+            id === "detail-water-names" ? detailLocalizedField("name") :
             id.startsWith("detail-poi-") ? poiTextField() :
+            id.startsWith("detail-transit-badges-") ? transitBadgeField() :
             id.startsWith("detail-transit-") ? transitTextField() :
             id === "detail-building-numbers" ? ["get", "housenumber"] : detailTextField());
         });
@@ -2230,6 +2265,15 @@
         const firstBaseLabel = map.getStyle().layers.find(layer => layer.type === "symbol")?.id;
         const addBelowBaseLabels = layer => firstBaseLabel
           ? map.addLayer(layer, firstBaseLabel)
+          : map.addLayer(layer);
+        // Important transit names may displace minor-road/address detail, but
+        // major-road shields/names and locality labels remain later and win.
+        // This gives stations a real chance to render without making every
+        // local-stop label overlap the street atlas.
+        const importantTransitBefore = ["roads_shields", "roads_labels_major", "pois"]
+          .find(id => map.getLayer(id));
+        const addImportantTransitLabel = layer => importantTransitBefore
+          ? map.addLayer(layer, importantTransitBefore)
           : map.addLayer(layer);
         const named = ["any",
           ["has", "name"], ["has", "name:lt"], ["has", "name:en"],
@@ -2266,6 +2310,40 @@
           layout: commonLayout(poiTextField(), padding),
           paint: poiPaint
         });
+        const streetIconLayer = (id, className, minzoom, image, size) => ({
+          id,
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.street_details,
+          minzoom,
+          filter: ["==", ["get", "class"], className],
+          layout: {
+            "icon-image": image,
+            "icon-size": size,
+            "icon-padding": 0,
+            "symbol-sort-key": ["get", "rank"]
+          }
+        });
+        const playgroundIconLayer = (id, tier, minzoom) => ({
+          id,
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.poi_details,
+          minzoom,
+          filter: ["all",
+            ["==", ["get", "class"], "playground"],
+            ["==", ["get", "display_tier"], tier]
+          ],
+          layout: {
+            // The upstream `school` sprite is specifically a slide-and-swing
+            // pictogram. Unlike a generic dot or colour, its shape identifies
+            // a playground even when the collision-aware name cannot fit.
+            "icon-image": "school",
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 16, 0.76, 18, 0.92],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true
+          }
+        });
         // Marker visibility and label density are deliberately independent.
         // Keep this JSON-shaped object simple: the transit fixture parses it
         // as the authoritative policy for every source display tier.
@@ -2300,20 +2378,46 @@
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"],
               15, ["match", ["get", "kind"],
-                ["station", "terminal"], 5, "halt", 3.5, 3],
+                ["station", "terminal"], 7, "halt", 5.5, 5],
               16, ["match", ["get", "kind"],
-                ["station", "terminal"], 5, "halt", 4, 3.5]],
-            // Every marker needs a light centre: a solid teal local-stop dot
-            // is almost indistinguishable from the basemap's dark road casing.
-            "circle-color": "#fffaf1",
-            "circle-stroke-color": "#274f57",
+                ["station", "terminal"], 7.5, "halt", 6, 5.5]],
+            // A consistent transport-blue disc reads as one category. Mode is
+            // encoded redundantly by letters from z16, never by color alone.
+            // The warm-white rim keeps the disc legible over roads and water.
+            "circle-color": "#075985",
+            "circle-stroke-color": "#fffaf1",
             "circle-stroke-width": ["interpolate", ["linear"], ["zoom"],
               15, ["match", ["get", "kind"],
-                ["station", "terminal"], 2, "halt", 1.5, 1.25],
+                ["station", "terminal"], 2, "halt", 1.75, 1.5],
               16, ["match", ["get", "kind"],
-                ["station", "terminal"], 2, "halt", 1.5, 1.5]],
-            "circle-opacity": 0.94,
+                ["station", "terminal"], 2, "halt", 1.75, 1.5]],
+            "circle-opacity": 0.98,
             "circle-stroke-opacity": 1
+          }
+        });
+        const transitBadgeLayer = (id, minzoom, filter) => ({
+          id,
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.transit_details,
+          minzoom,
+          filter,
+          layout: {
+            "text-field": transitBadgeField(),
+            "text-font": ["Noto Sans Medium"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 9],
+            "text-letter-spacing": -0.05,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+            // Badges deliberately overlap the basemap. MapLibre paints larger
+            // sort keys later, so negate rank: lower source rank (station =
+            // 12) is painted last and remains readable over local stops.
+            "symbol-sort-key": ["-", 0, ["get", "rank"]]
+          },
+          paint: {
+            "text-color": "#ffffff",
+            "text-halo-color": "rgba(7, 89, 133, 0.75)",
+            "text-halo-width": 0.35
           }
         });
         const microPaint = { ...halo, "text-color": "#4b4f56" };
@@ -2335,6 +2439,18 @@
             ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]),
           paint: { ...halo, "text-color": "#68625b" }
         });
+        // Destination-first hierarchy: an open/unknown-access playground is
+        // visible at z16, a bench at z17, and each much denser individual tree
+        // only at z18. Playground icons are sparse enough to remain persistent;
+        // bench/tree symbols stay collision-aware so rows of mapped objects do
+        // not cover paths, street names, or each other during mobile panning.
+        addBelowBaseLabels(streetIconLayer("detail-tree-icons", "tree", 18, "park", 0.76));
+        addBelowBaseLabels(streetIconLayer("detail-bench-icons", "bench", 17,
+          "bench", ["interpolate", ["linear"], ["zoom"], 17, 0.76, 18, 0.92]));
+        addBelowBaseLabels(playgroundIconLayer("detail-playground-open-icons", 17, 16));
+        // Restricted/customer playgrounds remain absent until their z18 text
+        // explicitly communicates that restriction.
+        addBelowBaseLabels(playgroundIconLayer("detail-playground-restricted-icons", 18, 18));
         // A compact neutral code remains useful when the optional proper name
         // cannot fit. Both layers are z18-only and lower priority than every
         // transit or basemap label; no category depends on color or sprites.
@@ -2355,11 +2471,28 @@
           paint: microPaint
         });
         addBelowBaseLabels({
+          id: "detail-water-names",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.water_details,
+          minzoom: 18,
+          filter: ["any", ["has", "name"], ["has", "name:lt"], ["has", "name:en"]],
+          layout: {
+            ...commonLayout(detailLocalizedField("name"), 1),
+            "text-size": 10.5,
+            "text-max-width": 9,
+            "text-anchor": "top",
+            "text-offset": [0, 1.15]
+          },
+          paint: microPaint
+        });
+        addBelowBaseLabels({
           id: "detail-micro-markers",
           type: "symbol",
           source: "details",
           "source-layer": details.layers.micro_details,
           minzoom: 18,
+          filter: ["!=", ["get", "class"], "drinking_water"],
           layout: {
             ...commonLayout(microMarkerField(), 1),
             "text-size": 9.5,
@@ -2377,6 +2510,13 @@
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-16", 16));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-15", 15));
+        // The badge is deliberately absent at z15: the larger blue discs are
+        // easy to find there, while letters become useful once a city block
+        // has enough room. Unnamed platforms retain the established z18 gate.
+        addBelowBaseLabels(transitBadgeLayer("detail-transit-badges-unnamed", 18,
+          ["==", ["get", "display_tier"], 18]));
+        addBelowBaseLabels(transitBadgeLayer("detail-transit-badges-named", 16,
+          ["<", ["get", "display_tier"], 18]));
         addBelowBaseLabels({
           id: "detail-building-numbers",
           type: "symbol",
@@ -2391,7 +2531,7 @@
           ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]));
         addBelowBaseLabels(transitLayer("detail-transit-local", 17,
           ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]));
-        addBelowBaseLabels(transitLayer("detail-transit-halt", 16,
+        addImportantTransitLabel(transitLayer("detail-transit-halt", 16,
           ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 0.75]));
         addBelowBaseLabels(poiLayer("detail-poi-neighborhood", 16,
           ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 0.75]));
@@ -2408,8 +2548,54 @@
         });
         addBelowBaseLabels(poiLayer("detail-poi-major", 15,
           ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
-        addBelowBaseLabels(transitLayer("detail-transit-station", 15,
+        addImportantTransitLabel(transitLayer("detail-transit-station", 15,
           ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
+
+        // Potable water is sparse and safety-relevant for walkers. Give it a
+        // small map-readable dot at z15, then an explicit H₂O badge at z16+.
+        // These two layers deliberately sit above basemap labels: the former
+        // micro-marker layer was collision-suppressed and could visibly fade
+        // in and out while panning. Names remain in their collision-aware z18
+        // layer, so this exception does not create label clutter. The dot and
+        // badge are language-neutral and intentionally absent from
+        // detailLayerIds, whose members have their text-field rewritten when
+        // the language changes.
+        map.addLayer({
+          id: "detail-water-dot",
+          type: "circle",
+          source: "details",
+          "source-layer": details.layers.water_details,
+          minzoom: 15,
+          filter: ["==", ["get", "class"], "drinking_water"],
+          paint: {
+            "circle-radius": ["step", ["zoom"], 3.5, 16, 8],
+            "circle-color": ["step", ["zoom"], "#1478a8", 16, "#edfaff"],
+            "circle-stroke-color": ["step", ["zoom"], "#fffdf7", 16, "#09658f"],
+            "circle-stroke-width": ["step", ["zoom"], 1.5, 16, 2],
+            "circle-opacity": 0.98,
+            "circle-stroke-opacity": 1
+          }
+        });
+        map.addLayer({
+          id: "detail-water-badge",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.water_details,
+          minzoom: 16,
+          filter: ["==", ["get", "class"], "drinking_water"],
+          layout: {
+            "text-field": "H₂O",
+            "text-font": ["Noto Sans Medium"],
+            "text-size": 9,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true
+          },
+          paint: {
+            "text-color": "#075675",
+            "text-halo-color": "rgba(237, 250, 255, 0.96)",
+            "text-halo-width": 0.5
+          }
+        });
       }
 
       function discardInspectorLayers() {
@@ -2544,7 +2730,7 @@
         });
       }
 
-      // Canonical reachability test (§1.1), evaluated in JS over a group's
+      // Canonical reachability test, evaluated in JS over a group's
       // attribute map (absent key = unreachable). The map never reads
       // attributes from tiles: groups ship in
       // metadata.access_network.groups, indexed by the tiles' `g`.
@@ -2620,7 +2806,7 @@
       }
 
       function styleBandsView(selections) {
-        // Bands is only effective with exactly one selection (§3.2).
+        // Bands is only effective with exactly one selection.
         const focus = selections[0];
         const bands = drawnBands(focus);
         const bandColor = new Map(bands.map(band => [band.minutes, band.color]));
@@ -2669,13 +2855,13 @@
       }
 
       function refreshViewSwitcher(mode, selectionCount) {
-        // §3.2: a single requirement always renders as bands, so the
+        // A single requirement always renders as bands, so the
         // switcher would be three dead buttons — hide the row entirely and
         // let the legend name the view. The stored viewMode preference is
         // untouched, so a second selection restores the previous choice.
         document.getElementById("view-switcher").hidden = selectionCount === 1;
         document.querySelectorAll("#view-switcher button").forEach(button => {
-          // §3.2: bands with two or more selections is the multi-service
+          // Bands with two or more selections is the multi-service
           // band compositing this rework removes — disabled, with a hint.
           const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
           button.disabled = bandsLocked;
@@ -2755,7 +2941,7 @@
         document.getElementById("map-status").textContent = selections.length
           ? t("statusSelected", selections.length)
           : t("statusNone");
-        // Collapsed-mobile legend (§3.4): a mode chip plus one mini-swatch
+        // Collapsed-mobile legend: a mode chip plus one mini-swatch
         // chip per active requirement; tapping the row expands the panel.
         summary.replaceChildren();
         if (!mode) {
@@ -2794,7 +2980,7 @@
         const mode = effectiveViewMode(selections.length);
         refreshViewSwitcher(mode, selections.length);
         setAccessLayerOpacities(mode);
-        // Per-group feature-state styling (lowzoom-fastpath §3.2): the
+        // Per-group feature-state styling (unified-access-layer.md): the
         // effective view is a pure function attribute map → (color,
         // opacity), pushed as N group states — a paint-buffer refresh over
         // loaded tiles; zero tile fetches, zero re-buckets.
@@ -2821,7 +3007,7 @@
           state.preset = `${defaultPreset.mode}:${defaultPreset.minutes}`;
         });
         const enable = id => { serviceState.get(id).enabled = true; };
-        // Quick views pick the matching view mode too (§3.4); "clear" keeps
+        // Quick views pick the matching view mode too; "clear" keeps
         // the stored preference.
         if (view === "coffee") {
           enable("coffee");
@@ -3192,9 +3378,76 @@
         return `https://www.openstreetmap.org/${type}/${identity.slice(1)}`;
       }
 
+      // The inspector archive intentionally remains broad: invisible hit
+      // geometry supports future use cases and must not change which visible
+      // map icons can be clicked. The nearby modal has a narrower job. Remove
+      // repetitive map texture while retaining navigation, safety, access,
+      // transit, destinations, and unusually informative contextual objects.
+      // This JSON-shaped policy is kept explicit for fixture review.
+      const nearbyModalPolicy = {
+        "always_hidden": {
+          "natural": ["tree", "tree_row"],
+          "amenity": ["bench", "waste_basket"]
+        },
+        "contextual_texture": {
+          "building": [
+            "apartments", "barn", "bungalow", "commercial", "construction", "detached", "dormitory",
+            "farm", "farm_auxiliary", "garage", "garages", "greenhouse", "hangar", "house",
+            "hut", "industrial", "office", "proposed", "residential", "retail", "roof",
+            "semidetached_house", "service", "shed", "static_caravan", "terrace", "warehouse", "yes"
+          ],
+          "landuse": ["farmland", "farmyard", "forest", "grass", "meadow", "orchard", "plant_nursery"],
+          "natural": ["grassland", "heath", "scrub", "wood"]
+        },
+        "context_statuses": ["abandoned", "closed", "construction", "disused"],
+        "context_keys": [
+          "name", "name:lt", "name:en", "int_name", "official_name", "alt_name",
+          "addr:housename", "addr:housenumber", "addr:street", "addr:place",
+          "description", "description:lt", "description:en", "brand", "operator", "ref",
+          "access", "access:conditional", "foot", "foot:conditional", "wheelchair",
+          "opening_hours", "fee", "seasonal", "website", "contact:website", "phone",
+          "contact:phone", "email", "contact:email", "wikidata", "wikipedia", "heritage",
+          "emergency", "healthcare", "historic", "tourism", "amenity", "leisure",
+          "public_transport", "railway", "highway", "barrier", "drinking_water",
+          "shelter_type", "toilets", "tactile_paving", "architect", "designation", "ele",
+          "start_date", "backcountry", "dog", "hiking", "intermittent", "tent", "winter_service"
+        ]
+      };
+
+      function hasUsefulNearbyContext(properties) {
+        if (nearbyModalPolicy.context_statuses.includes(properties.status)) return true;
+        if (properties.foot_access && properties.foot_access !== "unknown") return true;
+        return nearbyModalPolicy.context_keys.some(key =>
+          properties[key] !== undefined && properties[key] !== null && properties[key] !== ""
+        );
+      }
+
+      function isNearbyModalCandidate(feature) {
+        const properties = feature.properties || {};
+        // Check raw source tags as well as the normalized primary category: a
+        // memorial or tourist tag must not turn an individual tree into a
+        // modal candidate merely because it won inspector classification.
+        const hiddenBySourceTag = Object.entries(nearbyModalPolicy.always_hidden)
+          .some(([key, kinds]) => kinds.includes(properties[key]));
+        if (hiddenBySourceTag) return false;
+        const alwaysHidden = nearbyModalPolicy.always_hidden[properties.category] || [];
+        // Trees stay out even when named: individual-tree details are not part
+        // of this product's nearby-information contract.
+        if (alwaysHidden.includes(properties.kind)) return false;
+        const texture = nearbyModalPolicy.contextual_texture[properties.category] || [];
+        if (texture.includes(properties.kind)) {
+          return hasUsefulNearbyContext(properties);
+        }
+        return true;
+      }
+
       function mergeInspectionCandidates() {
         const merged = new Map();
-        [...inspectionPlaceCardFeatures, ...inspectionOsmFeatures].forEach((feature, index) => {
+        // Curated destination/place cards bypass the nearby filter. Only broad
+        // inspector hits are reduced, so service destinations and their richer
+        // cards can never disappear because of an OSM texture classification.
+        const nearbyOsmFeatures = inspectionOsmFeatures.filter(isNearbyModalCandidate);
+        [...inspectionPlaceCardFeatures, ...nearbyOsmFeatures].forEach((feature, index) => {
           const identity = osmIdentity(feature.properties) ||
             (feature.properties.place_id ? `place:${feature.properties.place_id}` : `anonymous:${index}`);
           const prior = merged.get(identity);
@@ -4067,7 +4320,7 @@
             refreshMap();
           })
         );
-        // Tapping the collapsed chip row opens the panel (§3.4). Expanding
+        // Tapping the collapsed chip row opens the panel. Expanding
         // hides the row itself, so hand focus to the toggle — a keyboard
         // user keeps a focus point that collapses the panel again.
         document.getElementById("panel-selection-summary").addEventListener("click", () => {

@@ -168,6 +168,10 @@ let
     ${python3}/bin/python ${./check-geolocation-ui.py} --index ${./index.html}
     touch "$out"
   '';
+  waterUiCheck = runCommand "mapgames-water-ui-check" { } ''
+    ${python3}/bin/python ${./check-water-ui.py} --index ${./index.html}
+    touch "$out"
+  '';
   data = stdenvNoCC.mkDerivation {
     pname = "mapgames-data";
     version = "260716";
@@ -241,6 +245,7 @@ let
         inspectorFixture = inspectorFixtureCheck;
         inspectorUi = inspectorUiCheck;
         transitFixture = transitFixtureCheck;
+        waterUi = waterUiCheck;
       };
     };
 

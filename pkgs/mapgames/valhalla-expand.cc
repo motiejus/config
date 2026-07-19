@@ -1379,14 +1379,14 @@ void write_destination_collection(const std::filesystem::path &path,
 }
 
 // ---------------------------------------------------------------------------
-// Merge tool (docs/unified-access-layer.md §1.3/§2.1, phasing step 4):
+// Merge tool (docs/unified-access-layer.md):
 // consumes the per-route edge-interval dumps and writes one edge-attributed
 // network.geojson. Single-threaded k-way merge over the numerically-sorted
-// dumps on the input side; whole-network resident by design (§2.1) — the
+// dumps on the input side; whole-network resident by design — the
 // geometry-string groups, the output canonical-string map, and the
 // attribute-map feature grouping all live in RAM before the first byte is
-// written. The step-4 gate measures peak RSS against the 8 GB spill
-// threshold.
+// written. Peak RSS must remain below the 8 GB spill threshold when this
+// implementation is profiled.
 
 // One requirement = one dump = one attribute key {service}_{mode}, derived
 // from the dump filename edges-<service>-<mode>.tsv. `minutes` is the
@@ -1399,7 +1399,7 @@ struct MergeRequirement {
   std::vector<int> minutes;
 };
 
-// Per canonical-geometry-string group (§1.3 step 0): the per-requirement,
+// Per canonical-geometry-string group: the per-requirement,
 // per-band-minute concatenated (then merged) interval lists of every dump
 // entry sharing this geometry.
 struct MergeGroup {
@@ -1409,7 +1409,7 @@ struct MergeGroup {
 
 using MergeGroups = std::map<std::string, MergeGroup>;
 
-// A classified, coalesced, not-yet-sliced piece (§1.3 steps 2-3). attr is
+// A classified, coalesced, not-yet-sliced piece. attr is
 // indexed like the requirement list; -1 = requirement absent (unreachable).
 struct MergePiece {
   double start;
@@ -1570,7 +1570,7 @@ std::string requirement_key_from_dump(const std::filesystem::path &path) {
   return key;
 }
 
-// §1.3 step 0: k-way merge the dumps by ascending uint64 key (asserting
+// K-way merge the dumps by ascending uint64 key (asserting
 // identical geometry text when the same key appears in several dumps), then
 // group every entry by its canonical geometry string — a dual-digitized
 // group's uint64 representative can differ per route, so the string is the
@@ -1603,7 +1603,7 @@ MergeGroups load_merge_groups(std::vector<MergeRequirement> &requirements) {
       break;
     }
     MergeDumpRecord &record = heads[best];
-    // Same key in several dumps must carry identical geometry (§2.1);
+    // Same key in several dumps must carry identical geometry;
     // equal-id records are adjacent in the k-way merge order.
     if (have_current && record.id == current_id &&
         record.geometry_text != current_geometry) {
@@ -1666,7 +1666,7 @@ MergeGroups load_merge_groups(std::vector<MergeRequirement> &requirements) {
   return groups;
 }
 
-// §1.3 steps 1-3 for one geometry group: endpoint union across every
+// For one geometry group: endpoint union across every
 // requirement's bands, 1e-12 first-wins dedup, midpoint classification with
 // the nesting abort, and coalescing of adjacent pieces with equal attribute
 // maps.
@@ -1745,7 +1745,7 @@ segment_group(const MergeGroup &group,
 
 // Serialized attribute map: JSON object with keys in requirement-list order.
 // The requirement list is sorted by key at startup, so this is sorted-keys
-// JSON — the deterministic grouping key of §1.3 step 7 (and the reason merge
+// JSON — the deterministic grouping key (and the reason merge
 // output cannot depend on dump argument order).
 std::string attribute_json(const std::vector<int> &attr,
                            const std::vector<MergeRequirement> &requirements) {
@@ -1773,7 +1773,7 @@ struct NetworkPiece {
 
 using NetworkPieces = std::map<std::string, NetworkPiece>;
 
-// §1.3 steps 4-6 for one group: slice the coalesced pieces against one
+// For one group: slice the coalesced pieces against one
 // shared LineMeasure, computing each boundary Point once and sharing it as
 // the last point of piece k and the first point of piece k+1 (naive
 // independent slice_line() calls per piece would regress the shared-junction
@@ -1876,14 +1876,14 @@ void slice_group(const Line &line, const std::vector<MergePiece> &pieces,
   }
 }
 
-// §1.3 step 7: group pieces by serialized attribute map, one Feature per
+// Group pieces by serialized attribute map, one Feature per
 // group, MultiLineString members in canonical-key order, features in
 // serialized-attribute-map order. Each feature additionally carries `g` =
 // its index in emission order (0..N-1 in file order) — the group id of the
-// low-zoom fast-path (docs/lowzoom-fastpath.md §2.2/§5 L1): the single
-// source of truth that coarsen.py carries through and that the planned L3
+// low-zoom fast-path (docs/lowzoom-fastpath.md): the single
+// source of truth that coarsen.py carries through and that the browser
 // metadata `groups` list is derived from. `g` is a per-build index; it must
-// never be persisted client-side across deploys (risk R-L5).
+// never be persisted client-side across deploys.
 void write_network_collection(const std::filesystem::path &path,
                               const NetworkPieces &pieces,
                               const std::vector<MergeRequirement> &requirements,
@@ -1925,10 +1925,10 @@ void write_network_collection(const std::filesystem::path &path,
   }
 }
 
-// --debug-segments: the pre-slicing segmentation table (§7 step 4) — the
+// --debug-segments: the pre-slicing segmentation table — the
 // classified, coalesced pieces in fraction space, keyed by canonical
-// geometry string, fractions as %.17g exact-round-trip doubles. The step-4
-// gate checker re-executes §1.3 steps 0-3 independently and compares this
+// geometry string, fractions as %.17g exact-round-trip doubles. The
+// independent checker re-executes the segmentation and compares this
 // table for exact equality.
 void write_debug_segments(
     const std::filesystem::path &path,

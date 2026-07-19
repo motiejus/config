@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Independent gate checker for coarsen.py (docs/lowzoom-fastpath.md §5 L1).
+"""Independent gate checker for the algorithm in docs/lowzoom-fastpath.md.
 
 Deliberately separate code: this file re-derives everything it verifies
-from the normative spec (§2.2/§4.6) and shares no functions with
+from the documented complete/filtered skeleton contract and shares no functions with
 coarsen.py. Checks, per attribute-map group:
 
 (i)   the multiset of undirected grid segments covered by the output
@@ -19,8 +19,8 @@ coarsen.py. Checks, per attribute-map group:
 (ii)  output attribute maps equal input attribute maps, including `g`,
       carried through verbatim.
 (iii) input `g` values are exactly 0..N-1 in file order.
-(iv)  with --z67 and --n-drop: the Variant-B artifact is exactly the
-      subset of Variant-A chains with grid length L >= N_drop, order
+(iv)  with --z67 and --n-drop: the filtered artifact is exactly the
+      subset of complete-skeleton chains with grid length L >= N_drop, order
       preserved.
 
 Usage:
@@ -58,7 +58,7 @@ def normalized(a: tuple[int, int], b: tuple[int, int]):
 
 
 def boundary_split(a, b, collect):
-    """Independent §2.2 step 3: integer midpoint bisection; unsplittable
+    """Independent midpoint bisection; unsplittable
     adjacent-tile residuals go whole to the lexicographically smaller
     tile."""
     stack = [(a, b)]
@@ -204,7 +204,7 @@ def check_variant_b(lowzoom_features, z67_path, n_drop):
             or a_feature["geometry"] != b_feature["geometry"]
         ):
             fail(
-                f"variant B: feature {position} differs from Variant-A "
+                f"filtered output: feature {position} differs from complete-skeleton "
                 f"feature {index} (order or content not preserved)"
             )
     print(

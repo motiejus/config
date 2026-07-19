@@ -21,6 +21,18 @@
   <node id="18" lat="55.0061" lon="25.0061" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Disabled relation member"/><tag k="ferry" v="yes"/><tag k="ref" v="BAD"/><tag k="disused" v="yes"/></node>
   <node id="19" lat="55.0290" lon="25.0290" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Must not resurrect"/><tag k="bus" v="yes"/></node>
   <node id="20" lat="55.0295" lon="25.0295" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Malformed survivor"/><tag k="bus" v="yes"/></node>
+  <node id="21" lat="55.0020" lon="25.0200" version="1"><tag k="railway" v="station"/><tag k="subway" v="yes"/><tag k="name" v="Subway only"/></node>
+  <node id="22" lat="55.0040" lon="25.0200" version="1"><tag k="highway" v="bus_stop"/><tag k="trolleybus" v="yes"/><tag k="name" v="Tagged trolley only"/></node>
+  <node id="23" lat="55.0080" lon="25.0200" version="1"><tag k="highway" v="bus_stop"/><tag k="bus" v="no"/><tag k="name" v="Explicit bus no"/></node>
+  <node id="24" lat="55.0120" lon="25.0200" version="1"><tag k="highway" v="bus_stop"/><tag k="bus" v="yes"/><tag k="trolleybus" v="yes"/><tag k="name" v="Explicit bus and trolley"/></node>
+  <node id="25" lat="55.0140" lon="25.0200" version="1"><tag k="railway" v="station"/><tag k="name" v="Generic subway member"/></node>
+  <node id="26" lat="55.0160" lon="25.0200" version="1"><tag k="railway" v="station"/><tag k="name" v="Generic no-train member"/></node>
+  <!-- Equal-kind display-anchor order must not change a cluster's modes. -->
+  <node id="27" lat="55.0180" lon="25.0100" version="1"><tag k="railway" v="station"/><tag k="name" v="Generic anchor first"/></node>
+  <node id="28" lat="55.0182" lon="25.0100" version="1"><tag k="railway" v="station"/><tag k="subway" v="yes"/><tag k="name" v="Generic anchor first"/></node>
+  <node id="29" lat="55.0200" lon="25.0100" version="1"><tag k="railway" v="station"/><tag k="subway" v="yes"/><tag k="name" v="Explicit anchor first"/></node>
+  <node id="30" lat="55.0202" lon="25.0100" version="1"><tag k="railway" v="station"/><tag k="name" v="Explicit anchor first"/></node>
+  <node id="31" lat="55.0180" lon="25.0200" version="1"><tag k="railway" v="station"/><tag k="train" v="yes"/><tag k="name" v="Contradictory member"/></node>
   <relation id="100" version="1">
     <member type="node" ref="5" role="platform"/><member type="node" ref="6" role="stop"/><member type="node" ref="18" role="platform"/>
     <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/><tag k="amenity" v="bus_station"/>
@@ -35,5 +47,20 @@
     <member type="node" ref="20" role="platform"/>
     <tag k="type" v="route"/><tag k="public_transport" v="stop_area"/>
     <tag k="name" v="Malformed unrelated relation"/><tag k="disused" v="yes"/>
+  </relation>
+  <relation id="103" version="1">
+    <member type="node" ref="25" role="stop"/>
+    <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/>
+    <tag k="name" v="Relation subway only"/><tag k="subway" v="yes"/>
+  </relation>
+  <relation id="104" version="1">
+    <member type="node" ref="26" role="stop"/>
+    <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/>
+    <tag k="name" v="Relation explicit train no"/><tag k="train" v="no"/>
+  </relation>
+  <relation id="105" version="1">
+    <member type="node" ref="31" role="stop"/>
+    <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/>
+    <tag k="name" v="Relation no wins"/><tag k="subway" v="yes"/><tag k="train" v="no"/>
   </relation>
 </osm>

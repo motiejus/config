@@ -91,21 +91,43 @@ def normalized_name(properties: dict) -> str:
     return " ".join(re.sub(r"[^\w]+", " ", value).split())
 
 
+def explicit_modes(properties: dict) -> tuple[set[str], set[str]]:
+    values = {
+        mode: str(properties.get(mode) or "").strip().lower()
+        for mode in MODE_PRIORITY
+    }
+    return (
+        {mode for mode, value in values.items() if value == "yes"},
+        {mode for mode, value in values.items() if value == "no"},
+    )
+
+
+def inferred_modes(properties: dict, explicit_no: set[str] | None = None) -> set[str]:
+    explicit_no = explicit_no or set()
+    inferred = set()
+    if "bus" not in explicit_no and (
+        properties.get("highway") == "bus_stop" or properties.get("amenity") == "bus_station"
+    ):
+        inferred.add("bus")
+    if "tram" not in explicit_no and properties.get("railway") == "tram_stop":
+        inferred.add("tram")
+    if "train" not in explicit_no and properties.get("railway") in ("station", "halt"):
+        inferred.add("train")
+    if "ferry" not in explicit_no and properties.get("amenity") == "ferry_terminal":
+        inferred.add("ferry")
+    return inferred
+
+
 def modes(properties: dict) -> set[str]:
-    result = set()
-    if properties.get("bus") == "yes" or properties.get("highway") == "bus_stop" or properties.get("amenity") == "bus_station":
-        result.add("bus")
-    if properties.get("trolleybus") == "yes":
-        result.add("trolleybus")
-    if properties.get("tram") == "yes" or properties.get("railway") == "tram_stop":
-        result.add("tram")
-    if properties.get("subway") == "yes":
-        result.add("subway")
-    if properties.get("train") == "yes" or properties.get("railway") in ("station", "halt"):
-        result.add("train")
-    if properties.get("ferry") == "yes" or properties.get("amenity") == "ferry_terminal":
-        result.add("ferry")
-    return result
+    explicit_yes, explicit_no = explicit_modes(properties)
+    if explicit_yes:
+        # A generic railway=station or highway=bus_stop describes the feature,
+        # not an additional service mode. Once an explicit mode is present,
+        # require every genuinely additional mode to be explicit too. Thus a
+        # subway station is not mislabeled train+subway and a trolleybus stop
+        # is not mislabeled bus+trolleybus.
+        return explicit_yes
+    return inferred_modes(properties, explicit_no)
 
 
 def candidate_kind(properties: dict) -> str | None:
@@ -154,12 +176,39 @@ def merge_names(primary: dict, members: list[dict]) -> dict:
 
 def canonical_feature(identity: str, primary: dict, members: list[dict], kind: str | None = None) -> dict:
     coordinates = primary.get("coordinates")
+    relation_primary = coordinates is None
     if coordinates is None:
         coordinates = (
             sum(member["coordinates"][0] for member in members) / len(members),
             sum(member["coordinates"][1] for member in members) / len(members),
         )
-    member_modes = modes(primary.get("properties", {})) | set().union(*(member["modes"] for member in members))
+    primary_properties = primary.get("properties", {})
+    if relation_primary:
+        primary_yes, primary_no = explicit_modes(primary_properties)
+        member_explicit = set()
+        member_fallback = set()
+        for member in members:
+            member_yes, member_no = explicit_modes(member["properties"])
+            member_explicit.update(member_yes)
+            if not member_yes:
+                member_fallback.update(inferred_modes(member["properties"], member_no))
+        if primary_yes:
+            # Stop-area mode tags describe the canonical facility. Preserve a
+            # genuinely additional mode explicitly declared by a member, but
+            # do not let generic railway/highway classification invent one.
+            member_modes = primary_yes | member_explicit
+        else:
+            member_modes = modes(primary_properties) | member_explicit | member_fallback
+        # A relation is the facility-level declaration, so its explicit `no`
+        # vetoes both generic inference and a contradictory member `yes`.
+        member_modes -= primary_no
+    else:
+        # Name/distance clusters do not have facility-level relation tags.
+        # Normalize every object locally, then union the results; choosing an
+        # equal-kind display anchor must never change the canonical modes.
+        member_modes = modes(primary_properties) | set().union(*(
+            modes(member["properties"]) for member in members
+        ))
     member_kinds = [member["kind"] for member in members if member["kind"] not in ("platform", "stop_position")]
     primary_kind = candidate_kind(primary.get("properties", {}))
     if primary_kind in KIND_PRIORITY:
@@ -169,6 +218,11 @@ def canonical_feature(identity: str, primary: dict, members: list[dict], kind: s
     properties["kind"] = resolved_kind
     properties["platform_count"] = sum(member["kind"] == "platform" for member in members)
     properties["primary_mode"] = next((mode for mode in MODE_PRIORITY if mode in member_modes), "")
+    # Keep the renderer from having to infer interchanges from every possible
+    # combination of mode_* flags. The individual flags remain authoritative
+    # (and available to the inspector); this compact count is presentation
+    # metadata for the visible badge and label only.
+    properties["mode_count"] = len(member_modes)
     for mode in MODE_PRIORITY:
         if mode in member_modes:
             properties[f"mode_{mode}"] = 1
@@ -276,7 +330,7 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
             continue
         candidates.append({
             "id": osm_key(feature.get("id")), "coordinates": coordinates, "properties": properties,
-            "kind": kind, "modes": modes(properties), "normalized_name": normalized_name(properties),
+            "kind": kind, "normalized_name": normalized_name(properties),
         })
     by_id = {candidate["id"]: candidate for candidate in candidates}
     consumed = set()

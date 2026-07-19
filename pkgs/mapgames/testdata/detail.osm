@@ -70,6 +70,23 @@
     <tag k="access" v="public"/>
   </node>
 
+  <!-- Street furniture and individual natural objects use a later density ramp. -->
+  <node id="40" lat="55.0080" lon="25.0040" version="1">
+    <tag k="amenity" v="bench"/><tag k="access" v="public"/>
+    <tag k="name" v="Riverside bench"/>
+  </node>
+  <node id="41" lat="55.0085" lon="25.0040" version="1">
+    <tag k="amenity" v="bench"/><tag k="access" v="private"/>
+    <tag k="name" v="Private bench"/>
+  </node>
+  <node id="42" lat="55.0090" lon="25.0040" version="1">
+    <tag k="natural" v="tree"/><tag k="name" v="Oak"/>
+  </node>
+  <node id="43" lat="55.0095" lon="25.0040" version="1">
+    <tag k="natural" v="tree"/><tag k="removed" v="yes"/>
+    <tag k="name" v="Removed tree"/>
+  </node>
+
   <!-- Brand/operator-only businesses exercise the final label fallbacks. -->
   <node id="26" lat="55.0080" lon="25.0030" version="1">
     <tag k="office" v="insurance"/>
@@ -129,6 +146,7 @@
   </node>
   <node id="1004" lat="54.9940" lon="24.9920" version="1">
     <tag k="man_made" v="water_tap"/><tag k="drinking_water" v="yes"/>
+    <tag k="name" v="Public trail tap"/>
   </node>
   <node id="1005" lat="54.9945" lon="24.9920" version="1">
     <tag k="amenity" v="bicycle_parking"/><tag k="access" v="public"/>

@@ -46,12 +46,11 @@ RAW_NETWORK_MIN_ZOOM = COARSE_MAX_ZOOM + 1
 # coordinate unit at every simplified zoom. The overzoomed z11-13 skeleton
 # needs no further tilemaker simplification.
 NETWORK_SIMPLIFY_LEVEL = 360 / (4096 * 2**COARSE_GRID_ZOOM)
-# Low-zoom fast-path (docs/lowzoom-fastpath.md, owner-selected Variant B):
-# the z10-encoder-grid skeleton serves z8-13, and the section 4.6
+# Low-zoom fast-path (docs/lowzoom-fastpath.md):
+# the z10-encoder-grid skeleton serves z8-13, and the
 # short-chain-filtered subset (chains of z10-grid length >= N_drop kept)
-# serves z6-7. GRID_ZOOM is fixed at 10 for both (coarser grids measured
-# exhausted, section 4.6); N_drop = 64 grid units (~350 m ground) is the
-# owner-accepted comparison value.
+# serves z6-7. GRID_ZOOM is fixed at 10 for both; N_drop = 64 grid units
+# (~350 m ground) is the accepted comparison value.
 # COARSE_GRID_ZOOM must equal coarsen.py's GRID_ZOOM literal (the grid the
 # skeleton is actually built on). Keep the grid independent of the serving
 # handoff: changing COARSE_MAX_ZOOM must never silently change coarsen.py.
@@ -109,10 +108,10 @@ def route_key(route: dict) -> str:
     return f"{route['service']}-{route['mode']}"
 
 
-# Attribute keys of the unified network layer (docs/unified-access-layer.md
-# section 1.1): one per requirement, `{service}_{mode}` with underscore.
+# Attribute keys of the unified network layer (docs/unified-access-layer.md):
+# one per requirement, `{service}_{mode}` with underscore.
 # valhalla-expand.cc derives the same keys from the edges-<service>-<mode>.tsv
-# dump filenames, so the two derivations (plus the step-3 checker's regex)
+# dump filenames, so the two derivations (plus the segment checker's regex)
 # stay lockstep only while every route key is exactly one lowercase word, one
 # dash, one lowercase word. Validate that grammar here at import time — the
 # check is static (module constants only), and failing before the expensive
@@ -289,7 +288,7 @@ def edge_dump_filename(route: dict) -> str:
 
 def network_tile_config(work: Path) -> dict:
     # Three config layers, one MVT source-layer `network` via write_to
-    # (docs/lowzoom-fastpath.md sections 2.3 and 4.6, Variant B): the raw
+    # (docs/lowzoom-fastpath.md): the raw
     # reachable routing edges at inspection zoom z14, the coarsen.py
     # z10-grid skeleton at z8-13, and its short-chain-filtered subset at
     # z6-7. Zoom-scaled generalization on the skeleton layers is bounded by
@@ -751,7 +750,7 @@ def main() -> None:
             place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
         routed_counts[key] = len(entries)
 
-    # Unified network (docs/unified-access-layer.md section 2.1): merge the
+    # Unified network (docs/unified-access-layer.md): merge the
     # per-route edge-interval dumps into one work/network.geojson. The helper
     # derives each dump's attribute key from its filename
     # (requirement_key_from_dump in valhalla-expand.cc: edges-<service>-<mode>
@@ -772,8 +771,8 @@ def main() -> None:
         ],
     )
 
-    # Low-zoom fast-path (docs/lowzoom-fastpath.md section 2.2): derive the
-    # encoder-grid skeleton (z8-13 tiles) and the Variant-B short-chain-
+    # Low-zoom fast-path (docs/lowzoom-fastpath.md): derive the
+    # encoder-grid skeleton (z8-13 tiles) and the short-chain-
     # filtered subset (z6-7 tiles) from the merged network. Both are work/
     # intermediates, never published, exactly like network.geojson.
     run(
@@ -864,7 +863,7 @@ def main() -> None:
         ],
     )
 
-    # Phase-B group table (docs/lowzoom-fastpath.md section 3.2): the
+    # Feature-state group table (docs/unified-access-layer.md): the
     # attribute map of every group, listed in `g` order, read back from
     # work/network.geojson — the same single source that feeds the tiles,
     # never a second derivation. R-L5: `g` is a per-build index and must
@@ -915,11 +914,11 @@ def main() -> None:
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 # Attribute map per group, indexed by the tiles' `g`
-                # property (feature-state styling, lowzoom-fastpath
-                # section 3.2). Per-build; never persist g across deploys.
+                # property (feature-state styling). Per-build; never persist
+                # g across deploys.
                 "groups": access_groups,
                 "layer": "network",
-                # Informational (docs/lowzoom-fastpath.md section 2.3):
+                # Informational (docs/lowzoom-fastpath.md):
                 # z6-max_zoom tiles carry the fixed grid_zoom encoder-grid
                 # skeleton; the raw edges begin one zoom above. Grid and
                 # serving handoff are intentionally independent.
@@ -995,10 +994,15 @@ def main() -> None:
                         "fountain",
                     ],
                     "micro_markers": "localized_code_like_text; never color_only",
+                    "drinking_water_marker_min_zoom": 15,
+                    "drinking_water_badge_min_zoom": 16,
                     "proper_name": ["name", "name:lt", "name:en"],
                     "rank": "lower_values_win_collisions",
+                    "street_class": ["bench", "tree"],
+                    "street_marker_min_zoom": {"bench": 17, "tree": 18},
                     "transit_kind": ["station", "halt", "terminal", "stop"],
                     "transit_modes": ["train", "subway", "tram", "trolleybus", "bus", "ferry"],
+                    "transit_mode_count": "number_of_distinct_detected_modes",
                     "transit_platform_count": "canonicalized_source_members",
                     "transit_ref": "short_explicit_ref_only",
                     "transit_marker_min_zoom": {
@@ -1019,7 +1023,9 @@ def main() -> None:
                     "building_details": "building_details",
                     "micro_details": "micro_details",
                     "poi_details": "poi_details",
+                    "street_details": "street_details",
                     "transit_details": "transit_details",
+                    "water_details": "water_details",
                 },
                 "max_data_zoom": 16,
                 "min_data_zoom": 15,
@@ -1028,7 +1034,10 @@ def main() -> None:
                     "source_zoom": 16,
                     "through_zoom": 18,
                 },
-                "schema_version": 4,
+                # Both water_details and street_details extend the prior v4
+                # detail schema; publish their combined contract as v6 rather
+                # than reusing either feature branch's independent v5 bump.
+                "schema_version": 6,
                 "pmtiles_cli_version": args.pmtiles_cli_version,
                 "tilemaker_version": args.tilemaker_version,
             },

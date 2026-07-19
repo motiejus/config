@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Independent checker for the edge-interval dump (unified-access-layer).
+"""Independent checker for the edge-interval dump (unified access network).
 
 Re-derives legacy-format coverage GeoJSON from edges-<route_key>.tsv alone —
-running the single-service degenerate case of the docs/unified-access-layer.md
-section 1.3 segmentation, including the mandatory step-0 geometry-string
+running the single-service degenerate case of the unified-access-layer.md
+segmentation contract, including the mandatory geometry-string
 pre-merge of dual-digitized edges — enforcing the dump invariants on the way
 (canonical geometry orientation, dual-digitization geometry consistency, band
 nesting). This is deliberately independent code: it shares no functions with
 valhalla-expand.cc, only its normative constants (1e-12 tolerances, 1e-7
 rounding, 0.01 m minimum length) and output format.
 
-The pipeline stopped writing coverage-<route_key>.geojson at step 7 of the
-design doc's phasing, so there is no in-tree reference to byte-compare by
+The pipeline no longer writes coverage-<route_key>.geojson, so there is no
+in-tree reference to byte-compare by
 default; the derivation itself is the check. Because the derived bytes are
 pure geometry (no uint64 edge ids, which are stable only within one graph
 build), --write-derived output from two different graph builds of the same
@@ -291,8 +291,7 @@ def parse_dump(path, minutes):
 
 
 def premerge_by_geometry(entries, minutes):
-    """Section 1.3 step 0: group dump entries by canonical geometry string,
-    concatenate per-band interval lists, re-merge per band."""
+    """Group by canonical geometry, concatenate bands, and re-merge each band."""
     groups = {}
     for geometry, bands in entries:
         forward = line_key(geometry)
@@ -313,10 +312,11 @@ def premerge_by_geometry(entries, minutes):
 
 
 def derive_coverage(groups, minutes, bounds):
-    """Sections 1.3 steps 1-3 degenerate to one service (the semantics of the
-    retired coverage_lines() writer): classify by first containing band,
-    coalesce runs, slice against one shared measure, clip, canonicalize,
-    min/max on collision."""
+    """Derive the retired single-service coverage representation.
+
+    Classify by first containing band, coalesce runs, slice against one shared
+    measure, clip, canonicalize, and take min/max on collision.
+    """
     result = {}
 
     def add_segment(line, cumulative, total, start, end, min_minutes, max_minutes):
