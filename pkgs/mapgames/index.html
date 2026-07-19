@@ -873,9 +873,9 @@
       const inspectZoom = 12;
       // Individual destinations are useful at street scale, but become a
       // noisy point cloud over whole cities. Delay the visual dots until a
-      // user can distinguish nearby streets and aim at a specific
-      // destination; MapLibre overzooms the canonical z14 source tiles.
-      const placeDisplayMinZoom = 16;
+      // user can distinguish nearby streets, then grow them gradually as
+      // density falls; MapLibre overzooms the canonical z14 source tiles.
+      const placeDisplayMinZoom = 14;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
@@ -1558,11 +1558,16 @@
             filter: ["==", ["get", "service"], service.id],
             layout: { visibility: "none" },
             paint: {
-              "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 14, 4],
+              // Vilnius can put hundreds of destinations in a z14 viewport.
+              // Start compact and slightly translucent, then reach the full
+              // street-level marker at z16 as viewport density drops. The
+              // padded hit test below stays independent of these visuals.
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.25, 15, 3, 16, 4],
               "circle-color": "#fffaf1",
-              "circle-opacity": .94,
+              "circle-opacity": ["interpolate", ["linear"], ["zoom"], 14, .72, 15, .86, 16, .94],
               "circle-stroke-color": serviceStyles[service.id].marker,
-              "circle-stroke-width": 1.4
+              "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 14, .8, 15, 1.1, 16, 1.4],
+              "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 14, .82, 15, .92, 16, 1]
             }
           });
           placeLayerIds.push(layerId);
