@@ -399,7 +399,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expansion-output-concurrency", type=int, required=True)
     parser.add_argument("--basemap-config", type=Path, required=True)
     parser.add_argument("--basemap-process", type=Path, required=True)
+    parser.add_argument("--detail-config", type=Path, required=True)
+    parser.add_argument("--detail-process", type=Path, required=True)
+    parser.add_argument("--transit-tool", type=Path, required=True)
     parser.add_argument("--geojson-process", type=Path, required=True)
+    parser.add_argument("--pmtiles-cli-version", required=True)
     parser.add_argument("--tilemaker-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
     parser.add_argument("--expansion-helper", type=Path, required=True)
@@ -609,6 +613,50 @@ def main() -> None:
     ]
     basemap_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
     run("build lean vector basemap", basemap_command)
+
+    transit_path = work / "transit-details.geojson"
+    run(
+        "canonicalize public transport stops",
+        [
+            sys.executable,
+            args.transit_tool,
+            "--bbox",
+            ",".join(str(value) for value in args.bbox),
+            "--input",
+            args.pbf,
+            "--output",
+            transit_path,
+            "--work",
+            work,
+        ],
+    )
+    detail_config = json.loads(args.detail_config.read_text(encoding="utf-8"))
+    detail_config["layers"]["transit_details"]["source"] = str(transit_path)
+    detail_config_path = work / "details.json"
+    write_json(detail_config_path, detail_config)
+    detail_command = [
+        "tilemaker",
+        "--input",
+        args.pbf,
+        "--output",
+        output / "details.pmtiles",
+        "--config",
+        detail_config_path,
+        "--process",
+        args.detail_process,
+        "--threads",
+        args.concurrency,
+    ]
+    detail_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
+    run("build high-zoom building and address detail", detail_command)
+    # tilemaker writes a valid but unclustered archive whose first z15 lookup
+    # can require a multi-megabyte leaf-directory range. Reorder only this
+    # new, unusually high-cardinality archive in place; the established
+    # basemap/access/destination archives are already acceptably laid out.
+    run(
+        "cluster high-zoom detail PMTiles",
+        ["pmtiles", "cluster", output / "details.pmtiles"],
+    )
 
     with timed("prepare service locations"):
         prepared = prepare_places(args, work, country)
@@ -882,6 +930,71 @@ def main() -> None:
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "max_data_zoom": 14,
                 "min_data_zoom": 4,
+                "tilemaker_version": args.tilemaker_version,
+            },
+            "details": {
+                "attributes": {
+                    "access": ["public", "private", "customers"],
+                    "classification": [
+                        "playground",
+                        "health",
+                        "education",
+                        "civic",
+                        "culture",
+                        "lodging",
+                        "food",
+                        "retail",
+                        "recreation",
+                        "religion",
+                        "tourism",
+                        "business",
+                        "service",
+                    ],
+                    "display_tier": [15, 16, 17, 18],
+                    "fallback_name": ["brand", "operator"],
+                    "house_name": ["housename", "housename:lt", "housename:en"],
+                    "house_number": "housenumber",
+                    "kind": "source_osm_subtype",
+                    "micro_class": [
+                        "toilets",
+                        "drinking_water",
+                        "bicycle_parking",
+                        "compressed_air",
+                        "shelter",
+                        "recycling",
+                        "information",
+                        "defibrillator",
+                        "life_ring",
+                        "emergency_entrance",
+                        "fountain",
+                    ],
+                    "micro_markers": "localized_code_like_text; never color_only",
+                    "proper_name": ["name", "name:lt", "name:en"],
+                    "rank": "lower_values_win_collisions",
+                    "transit_kind": ["station", "halt", "terminal", "stop"],
+                    "transit_modes": ["train", "subway", "tram", "trolleybus", "bus", "ferry"],
+                    "transit_platform_count": "canonicalized_source_members",
+                    "transit_ref": "short_explicit_ref_only",
+                },
+                "display_max_zoom": 18,
+                "display_min_zoom": 15,
+                "file": "details.pmtiles",
+                "format": "PMTiles v3 with Mapbox Vector Tiles",
+                "layers": {
+                    "building_details": "building_details",
+                    "micro_details": "micro_details",
+                    "poi_details": "poi_details",
+                    "transit_details": "transit_details",
+                },
+                "max_data_zoom": 16,
+                "min_data_zoom": 15,
+                "overzoom": {
+                    "from_zoom": 17,
+                    "source_zoom": 16,
+                    "through_zoom": 18,
+                },
+                "schema_version": 4,
+                "pmtiles_cli_version": args.pmtiles_cli_version,
                 "tilemaker_version": args.tilemaker_version,
             },
             "bbox": country_bbox,

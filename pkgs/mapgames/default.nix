@@ -9,6 +9,7 @@
   libtiff,
   osmium-tool,
   pkg-config,
+  pmtiles,
   python3,
   rapidjson,
   runCommand,
@@ -128,6 +129,24 @@ let
       printf '"%s"' "''${hash:0:32}" > "$file.etag"
     done
   '';
+  detailFixtureCheck = runCommand "mapgames-detail-fixture-check" { } ''
+    ${python3}/bin/python ${./check-detail-fixture.py} \
+      --config ${./detail.json} \
+      --fixture ${./testdata/detail.osm} \
+      --index ${./index.html} \
+      --osmium ${osmium-tool}/bin/osmium \
+      --process ${./detail.lua} \
+      --tilemaker ${tilemaker}/bin/tilemaker
+    touch "$out"
+  '';
+  transitFixtureCheck = runCommand "mapgames-transit-fixture-check" { } ''
+    ${python3}/bin/python ${./check-transit-fixture.py} \
+      --fixture ${./testdata/transit.osm} \
+      --index ${./index.html} \
+      --osmium ${osmium-tool}/bin/osmium \
+      --transit ${./transit.py}
+    touch "$out"
+  '';
   data = stdenvNoCC.mkDerivation {
     pname = "mapgames-data";
     version = "260716";
@@ -136,6 +155,7 @@ let
 
     nativeBuildInputs = [
       osmium-tool
+      pmtiles
       python
       tilemaker
       valhalla
@@ -164,7 +184,11 @@ let
         --expansion-output-concurrency "$mapgames_expansion_output_concurrency" \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
+        --detail-config ${./detail.json} \
+        --detail-process ${./detail.lua} \
+        --transit-tool ${./transit.py} \
         --geojson-process ${./geojson.lua} \
+        --pmtiles-cli-version ${lib.escapeShellArg pmtiles.version} \
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
         --expansion-helper ${valhallaExpandRunner} \
@@ -187,6 +211,8 @@ let
 
     passthru = {
       inherit bbox lithuaniaPbf;
+      tests.detailFixture = detailFixtureCheck;
+      tests.transitFixture = transitFixtureCheck;
     };
 
     meta = {
@@ -281,6 +307,7 @@ let
     passthru = {
       inherit data;
       inherit (data) lithuaniaPbf;
+      tests = data.tests;
     };
 
     meta = {
@@ -310,7 +337,10 @@ let
 in
 runCommand "${compressed.name}-etag"
   {
-    inherit (compressed)
+    # compressDrvWeb transforms the files but does not preserve custom
+    # passthru attributes. Keep the compressed payload below while carrying
+    # the web package identity/tests through the final etag wrapper.
+    inherit (www)
       meta
       passthru
       pname

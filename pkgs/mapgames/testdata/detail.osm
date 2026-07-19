@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="mapgames-detail-fixture">
+  <bounds minlat="54.99" minlon="24.99" maxlat="55.02" maxlon="25.02"/>
+
+  <!-- A closed address area without building=* must become kind=address. -->
+  <node id="1" lat="55.0000" lon="25.0000" version="1"/>
+  <node id="2" lat="55.0000" lon="25.0010" version="1"/>
+  <node id="3" lat="55.0010" lon="25.0010" version="1"/>
+  <node id="4" lat="55.0010" lon="25.0000" version="1"/>
+  <way id="100" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/>
+    <tag k="addr:housenumber" v="42A"/>
+  </way>
+
+  <!-- An open interpolation/range is metadata, never a label centroid. -->
+  <node id="5" lat="55.0040" lon="25.0040" version="1"/>
+  <node id="6" lat="55.0050" lon="25.0050" version="1"/>
+  <way id="200" version="1">
+    <nd ref="5"/><nd ref="6"/>
+    <tag k="addr:interpolation" v="odd"/>
+    <tag k="addr:housenumber" v="1-9"/>
+  </way>
+
+  <!-- Localized-only fields must survive even when the base tag is absent. -->
+  <node id="7" lat="55.0080" lon="25.0080" version="1">
+    <tag k="building" v="yes"/>
+    <tag k="name:en" v="English-only Hall"/>
+    <tag k="addr:housenumber" v="8"/>
+  </node>
+  <node id="8" lat="55.0100" lon="25.0100" version="1">
+    <tag k="addr:housename:lt" v="Tik lietuviškas namas"/>
+    <tag k="addr:housenumber" v="10"/>
+  </node>
+
+  <!-- Multi-tag POIs must emit one class using the declared precedence. -->
+  <node id="20" lat="55.0020" lon="25.0020" version="1">
+    <tag k="amenity" v="hospital"/>
+    <tag k="healthcare" v="hospital"/>
+    <tag k="building" v="yes"/>
+    <tag k="name:lt" v="Daugiaprofilė ligoninė"/>
+    <tag k="name:en" v="General Hospital"/>
+    <tag k="addr:housenumber" v="12"/>
+  </node>
+  <node id="21" lat="55.0030" lon="25.0030" version="1">
+    <tag k="tourism" v="hotel"/>
+    <tag k="amenity" v="restaurant"/>
+    <tag k="name" v="Hotel with dining"/>
+  </node>
+  <node id="22" lat="55.0040" lon="25.0030" version="1">
+    <tag k="amenity" v="fuel"/>
+    <tag k="shop" v="convenience"/>
+    <tag k="name" v="Fuel shop"/>
+  </node>
+
+  <!-- Every playground is useful, even without a proper OSM name. -->
+  <node id="23" lat="55.0050" lon="25.0030" version="1">
+    <tag k="leisure" v="playground"/>
+  </node>
+  <node id="24" lat="55.0060" lon="25.0030" version="1">
+    <tag k="leisure" v="playground"/>
+    <tag k="name" v="Residents' yard"/>
+    <tag k="access" v="private"/>
+  </node>
+  <node id="25" lat="55.0070" lon="25.0030" version="1">
+    <tag k="leisure" v="playground"/>
+    <tag k="access" v="customers"/>
+  </node>
+  <node id="29" lat="55.0075" lon="25.0030" version="1">
+    <tag k="leisure" v="playground"/>
+    <tag k="access" v="public"/>
+  </node>
+
+  <!-- Brand/operator-only businesses exercise the final label fallbacks. -->
+  <node id="26" lat="55.0080" lon="25.0030" version="1">
+    <tag k="office" v="insurance"/>
+    <tag k="brand" v="Brand-only office"/>
+  </node>
+  <node id="27" lat="55.0090" lon="25.0030" version="1">
+    <tag k="craft" v="carpenter"/>
+    <tag k="operator" v="Operator-only carpenter"/>
+  </node>
+
+  <!-- A normal multipolygon POI: semantic tags live on the relation only. -->
+  <node id="30" lat="55.0120" lon="25.0120" version="1"/>
+  <node id="31" lat="55.0120" lon="25.0130" version="1"/>
+  <node id="32" lat="55.0130" lon="25.0130" version="1"/>
+  <node id="33" lat="55.0130" lon="25.0120" version="1"/>
+  <way id="400" version="1">
+    <nd ref="30"/><nd ref="31"/><nd ref="32"/><nd ref="33"/><nd ref="30"/>
+  </way>
+  <relation id="500" version="1">
+    <member type="way" ref="400" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+    <tag k="tourism" v="museum"/>
+    <tag k="name" v="Relation museum"/>
+  </relation>
+
+  <!-- Defensive duplicate tagging sometimes survives on both relation/member. -->
+  <node id="34" lat="55.0140" lon="25.0140" version="1"/>
+  <node id="35" lat="55.0140" lon="25.0150" version="1"/>
+  <node id="36" lat="55.0150" lon="25.0150" version="1"/>
+  <node id="37" lat="55.0150" lon="25.0140" version="1"/>
+  <way id="410" version="1">
+    <nd ref="34"/><nd ref="35"/><nd ref="36"/><nd ref="37"/><nd ref="34"/>
+    <tag k="tourism" v="museum"/>
+    <tag k="name" v="Duplicate-tag museum"/>
+  </way>
+  <relation id="510" version="1">
+    <member type="way" ref="410" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+    <tag k="tourism" v="museum"/>
+    <tag k="name" v="Duplicate-tag museum"/>
+  </relation>
+
+  <!-- Curated z18 walking-scale utilities: one neutral coded marker each. -->
+  <node id="1000" lat="54.9920" lon="24.9920" version="1">
+    <tag k="amenity" v="toilets"/>
+  </node>
+  <node id="1001" lat="54.9925" lon="24.9920" version="1">
+    <tag k="amenity" v="toilets"/><tag k="access" v="public"/>
+    <tag k="name" v="Public WC"/>
+  </node>
+  <node id="1002" lat="54.9930" lon="24.9920" version="1">
+    <tag k="amenity" v="toilets"/><tag k="access" v="private"/>
+    <tag k="name" v="Private WC"/>
+  </node>
+  <node id="1003" lat="54.9935" lon="24.9920" version="1">
+    <tag k="amenity" v="drinking_water"/>
+  </node>
+  <node id="1004" lat="54.9940" lon="24.9920" version="1">
+    <tag k="man_made" v="water_tap"/><tag k="drinking_water" v="yes"/>
+  </node>
+  <node id="1005" lat="54.9945" lon="24.9920" version="1">
+    <tag k="amenity" v="bicycle_parking"/><tag k="access" v="public"/>
+  </node>
+  <node id="1006" lat="54.9950" lon="24.9920" version="1">
+    <tag k="amenity" v="compressed_air"/>
+  </node>
+  <node id="1007" lat="54.9955" lon="24.9920" version="1">
+    <tag k="amenity" v="shelter"/><tag k="shelter_type" v="picnic_shelter"/>
+  </node>
+  <node id="1008" lat="54.9960" lon="24.9920" version="1">
+    <tag k="amenity" v="shelter"/><tag k="shelter_type" v="public_transport"/>
+    <tag k="name" v="Transit shelter"/>
+  </node>
+  <node id="1009" lat="54.9965" lon="24.9920" version="1">
+    <tag k="amenity" v="shelter"/><tag k="name" v="Untyped shelter"/>
+  </node>
+  <node id="1010" lat="54.9970" lon="24.9920" version="1">
+    <tag k="amenity" v="recycling"/><tag k="recycling_type" v="centre"/>
+  </node>
+  <node id="1011" lat="54.9975" lon="24.9920" version="1">
+    <tag k="amenity" v="recycling"/><tag k="recycling_type" v="container"/>
+    <tag k="name" v="Recycling container"/>
+  </node>
+  <node id="1012" lat="54.9980" lon="24.9920" version="1">
+    <tag k="tourism" v="information"/><tag k="information" v="map"/>
+  </node>
+  <node id="1013" lat="54.9985" lon="24.9920" version="1">
+    <tag k="tourism" v="information"/><tag k="information" v="office"/>
+  </node>
+  <node id="1014" lat="54.9990" lon="24.9920" version="1">
+    <tag k="tourism" v="information"/><tag k="information" v="guidepost"/>
+  </node>
+  <node id="1015" lat="54.9995" lon="24.9920" version="1">
+    <tag k="tourism" v="information"/><tag k="information" v="board"/>
+    <tag k="name" v="Information board"/>
+  </node>
+  <node id="1016" lat="55.0000" lon="24.9920" version="1">
+    <tag k="emergency" v="defibrillator"/>
+  </node>
+  <node id="1017" lat="55.0005" lon="24.9920" version="1">
+    <tag k="emergency" v="life_ring"/>
+  </node>
+  <node id="1018" lat="55.0010" lon="24.9920" version="1">
+    <tag k="emergency" v="emergency_ward_entrance"/>
+  </node>
+  <node id="1019" lat="55.0015" lon="24.9920" version="1">
+    <tag k="entrance" v="emergency"/>
+  </node>
+  <node id="1020" lat="55.0020" lon="24.9920" version="1">
+    <tag k="amenity" v="fountain"/><tag k="name:lt" v="Vardinis fontanas"/>
+  </node>
+  <node id="1021" lat="55.0025" lon="24.9920" version="1">
+    <tag k="amenity" v="fountain"/>
+  </node>
+  <node id="1022" lat="55.0030" lon="24.9920" version="1">
+    <tag k="emergency" v="defibrillator"/><tag k="amenity" v="toilets"/>
+    <tag k="name" v="AED toilet"/>
+  </node>
+  <node id="1023" lat="55.0035" lon="24.9920" version="1">
+    <tag k="amenity" v="bicycle_parking"/><tag k="shop" v="bicycle"/>
+    <tag k="name" v="Named bicycle shop"/>
+  </node>
+  <node id="1024" lat="55.0040" lon="24.9920" version="1">
+    <tag k="amenity" v="bicycle_parking"/><tag k="shop" v="bicycle"/>
+  </node>
+  <node id="1025" lat="55.0045" lon="24.9920" version="1">
+    <tag k="amenity" v="toilets"/><tag k="building" v="yes"/>
+    <tag k="name" v="Named toilet building"/><tag k="addr:housenumber" v="99"/>
+  </node>
+  <node id="1026" lat="55.0047" lon="24.9920" version="1">
+    <tag k="amenity" v="bicycle_parking"/><tag k="access" v="residents"/>
+    <tag k="name" v="Residents bicycle parking"/>
+  </node>
+  <node id="1027" lat="55.0048" lon="24.9920" version="1">
+    <tag k="amenity" v="toilets"/><tag k="access" v="destination"/>
+    <tag k="name" v="Destination toilet"/>
+  </node>
+  <node id="1028" lat="55.0049" lon="24.9920" version="1">
+    <tag k="emergency" v="defibrillator"/><tag k="access" v="customers"/>
+    <tag k="name" v="Customer-only AED"/>
+  </node>
+  <node id="1029" lat="55.0050" lon="24.9930" version="1">
+    <tag k="amenity" v="restaurant"/><tag k="disused" v="yes"/>
+    <tag k="name" v="Disabled restaurant"/>
+  </node>
+  <node id="1030" lat="55.0052" lon="24.9930" version="1">
+    <tag k="amenity" v="toilets"/><tag k="abandoned" v="yes"/>
+    <tag k="name" v="Disabled toilet"/>
+  </node>
+  <node id="1031" lat="55.0054" lon="24.9930" version="1">
+    <tag k="amenity" v="restaurant"/><tag k="disused" v="no"/>
+    <tag k="name" v="False-lifecycle restaurant"/>
+  </node>
+  <node id="1032" lat="55.0056" lon="24.9930" version="1">
+    <tag k="amenity" v="toilets"/><tag k="construction" v="0"/>
+    <tag k="name" v="False-lifecycle toilet"/>
+  </node>
+  <node id="1033" lat="55.0058" lon="24.9930" version="1">
+    <tag k="amenity" v="restaurant"/><tag k="disused:amenity" v="restaurant"/>
+    <tag k="name" v="Lifecycle-prefixed restaurant"/>
+  </node>
+  <node id="1034" lat="55.0060" lon="24.9930" version="1">
+    <tag k="amenity" v="recycling"/><tag k="recycling_type" v="centre"/>
+    <tag k="disused:recycling_type" v="centre"/>
+    <tag k="name" v="Lifecycle-prefixed recycling"/>
+  </node>
+  <node id="1035" lat="55.0062" lon="24.9930" version="1">
+    <tag k="amenity" v="toilets"/><tag k="removed" v="false"/>
+    <tag k="name" v="False-literal toilet"/>
+  </node>
+  <node id="1036" lat="55.0064" lon="24.9930" version="1">
+    <tag k="building" v="yes"/><tag k="amenity" v="restaurant"/>
+    <tag k="disused" v="yes"/><tag k="name" v="Disabled building restaurant"/>
+    <tag k="addr:housenumber" v="101"/>
+  </node>
+  <node id="1037" lat="55.0066" lon="24.9930" version="1">
+    <tag k="building" v="demolished"/>
+    <tag k="name" v="Demolished named building"/>
+  </node>
+
+  <!-- Open rack geometry is retained as a representative centroid point. -->
+  <node id="2000" lat="55.0050" lon="24.9920" version="1"/>
+  <node id="2001" lat="55.0055" lon="24.9925" version="1"/>
+  <way id="2000" version="1">
+    <nd ref="2000"/><nd ref="2001"/>
+    <tag k="amenity" v="bicycle_parking"/><tag k="name" v="Open bicycle rack"/>
+  </way>
+
+  <!-- Relation-only recycling centre exercises centroid/relation handling. -->
+  <node id="2100" lat="55.0160" lon="25.0160" version="1"/>
+  <node id="2101" lat="55.0160" lon="25.0170" version="1"/>
+  <node id="2102" lat="55.0170" lon="25.0170" version="1"/>
+  <node id="2103" lat="55.0170" lon="25.0160" version="1"/>
+  <way id="2100" version="1">
+    <nd ref="2100"/><nd ref="2101"/><nd ref="2102"/><nd ref="2103"/><nd ref="2100"/>
+  </way>
+  <relation id="2100" version="1">
+    <member type="way" ref="2100" role="outer"/>
+    <tag k="type" v="multipolygon"/><tag k="amenity" v="recycling"/>
+    <tag k="recycling_type" v="centre"/><tag k="name" v="Relation recycling centre"/>
+  </relation>
+</osm>

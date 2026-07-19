@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="mapgames-transit-fixture">
+  <bounds minlat="54.99" minlon="24.99" maxlat="55.03" maxlon="25.03"/>
+  <node id="1" lat="55.0000" lon="25.0000" version="1"><tag k="public_transport" v="platform"/><tag k="highway" v="bus_stop"/><tag k="name" v="Opposite"/><tag k="ref" v="A"/></node>
+  <node id="2" lat="55.0002" lon="25.0000" version="1"><tag k="public_transport" v="platform"/><tag k="bus" v="yes"/><tag k="name" v="Opposite"/><tag k="ref" v="B"/></node>
+  <node id="3" lat="55.0001" lon="25.0000" version="1"><tag k="public_transport" v="stop_position"/><tag k="name" v="Opposite"/></node>
+  <node id="4" lat="55.0030" lon="25.0030" version="1"><tag k="public_transport" v="stop_position"/><tag k="name" v="Orphan"/><tag k="bus" v="yes"/></node>
+  <node id="5" lat="55.0060" lon="25.0060" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Member name"/><tag k="tram" v="yes"/></node>
+  <node id="6" lat="55.0062" lon="25.0060" version="1"><tag k="public_transport" v="stop_position"/><tag k="name" v="Member name"/></node>
+  <node id="7" lat="55.0100" lon="25.0100" version="1"><tag k="railway" v="station"/><tag k="name" v="Central"/><tag k="train" v="yes"/></node>
+  <node id="8" lat="55.0100" lon="25.0124" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Central"/><tag k="train" v="yes"/></node>
+  <node id="9" lat="55.0102" lon="25.0100" version="1"><tag k="public_transport" v="station"/><tag k="name" v="Central"/><tag k="train" v="yes"/></node>
+  <node id="10" lat="55.0140" lon="25.0140" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Multimodal"/><tag k="bus" v="yes"/><tag k="tram" v="yes"/></node>
+  <node id="11" lat="55.0160" lon="25.0160" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Disused"/><tag k="disused" v="yes"/></node>
+  <node id="12" lat="55.0180" lon="25.0180" version="1"><tag k="public_transport" v="platform"/><tag k="bus" v="yes"/></node>
+  <node id="13" lat="55.0200" lon="25.0200" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Trolley only"/><tag k="trolleybus" v="yes"/></node>
+  <node id="14" lat="55.0220" lon="25.0220" version="1"><tag k="amenity" v="bus_station"/><tag k="name:en" v="Bus Terminal"/><tag k="ref" v="T1"/></node>
+  <node id="15" lat="55.0240" lon="25.0240" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Active despite false lifecycle"/><tag k="disused" v="no"/></node>
+  <node id="16" lat="55.0260" lon="25.0260" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Razed"/><tag k="railway" v="razed"/></node>
+  <node id="17" lat="55.0280" lon="25.0280" version="1"><tag k="public_transport" v="platform"/><tag k="name" v="Demolished"/><tag k="demolished" v="yes"/></node>
+  <relation id="100" version="1">
+    <member type="node" ref="5" role="platform"/><member type="node" ref="6" role="stop"/>
+    <tag k="type" v="public_transport"/><tag k="public_transport" v="stop_area"/><tag k="amenity" v="bus_station"/>
+    <tag k="name" v="Area canonical"/><tag k="bus" v="yes"/><tag k="trolleybus" v="yes"/><tag k="ref" v="R42"/>
+  </relation>
+</osm>

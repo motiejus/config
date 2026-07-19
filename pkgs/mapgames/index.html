@@ -1036,6 +1036,20 @@
       const serviceState = new Map();
       const destinationRecords = new Map();
       const placeLayerIds = [];
+      const detailLayerIds = [
+        "detail-building-poi-addresses",
+        "detail-micro-names",
+        "detail-micro-markers",
+        "detail-poi-micro",
+        "detail-transit-local",
+        "detail-transit-halt",
+        "detail-transit-station",
+        "detail-building-numbers",
+        "detail-poi-local",
+        "detail-poi-neighborhood",
+        "detail-building-names",
+        "detail-poi-major"
+      ];
       // Stored view-mode *preference* (§3.2); rendering always goes through
       // effectiveViewMode(), and coercion never overwrites this value.
       let viewMode = "intersect";
@@ -1350,6 +1364,7 @@
         if (metadata) {
           updateServiceCardTexts();
           renderSummaryText();
+          updateDetailLanguage();
         }
         renderMapError();
       }
@@ -1489,6 +1504,13 @@
 
       function addAccessNetwork() {
         const network = metadata.access_network;
+        // Access is thematic context, never label ink. Insert it immediately
+        // below the first basemap symbol layer so road/place labels remain
+        // legible; high-zoom detail labels and service dots are added later.
+        const firstLabelLayer = map.getStyle().layers.find(layer => layer.type === "symbol")?.id;
+        const addBelowLabels = layer => firstLabelLayer
+          ? map.addLayer(layer, firstLabelLayer)
+          : map.addLayer(layer);
         map.addSource("access", {
           type: "vector",
           url: `pmtiles://${new URL(network.file, location.href).href}`,
@@ -1506,7 +1528,7 @@
         // every group at opacity 0, so nothing flashes.
         accessLayerIds.forEach(id => {
           const prefix = id === "access-under" ? "u" : "m";
-          map.addLayer({
+          addBelowLabels({
             id,
             type: "line",
             source: "access",
@@ -1563,6 +1585,258 @@
             destinationRecords.set(presetKey(tile.service, tile.mode, minutes), record);
           });
         });
+      }
+
+      function detailLocalizedField(property) {
+        return lang === "en"
+          ? ["coalesce", ["get", `${property}:en`], ["get", property], ["get", `${property}:lt`]]
+          : ["coalesce", ["get", `${property}:lt`], ["get", property], ["get", `${property}:en`]];
+      }
+
+      function detailTextField() {
+        const properName = detailLocalizedField("name");
+        const houseName = detailLocalizedField("housename");
+        const houseNumber = ["get", "housenumber"];
+        const primaryName = ["coalesce", properName, houseName];
+        const fallback = ["coalesce", properName, houseName, houseNumber];
+        const hasPrimaryName = ["any",
+          ["has", "name"], ["has", "name:lt"], ["has", "name:en"],
+          ["has", "housename"], ["has", "housename:lt"], ["has", "housename:en"]
+        ];
+        const combinedAtZ18 = ["case",
+          ["all", hasPrimaryName, ["has", "housenumber"]],
+          ["concat", primaryName, " · ", houseNumber],
+          fallback
+        ];
+        // z15-16: proper building names only. z17: strict proper name,
+        // house name, number priority. z18: retain that priority but append
+        // the number when a named building/address has one.
+        return ["step", ["zoom"], properName, 17, fallback, 18, combinedAtZ18];
+      }
+
+      function poiTextField() {
+        const label = ["coalesce", detailLocalizedField("name"), ["get", "brand"], ["get", "operator"]];
+        const restrictedSuffix = ["case",
+          ["==", ["get", "access"], "customers"], lang === "en" ? " · customers" : " · klientams",
+          ["==", ["get", "access"], "private"], lang === "en" ? " · private" : " · privati",
+          ""
+        ];
+        return ["case",
+          ["all", ["==", ["get", "class"], "playground"],
+            ["match", ["get", "access"], ["private", "customers"], true, false]],
+          ["concat", label, restrictedSuffix],
+          label
+        ];
+      }
+
+      function transitTextField() {
+        return detailLocalizedField("name");
+      }
+
+      function microMarkerField() {
+        const localized = lang === "en"
+          ? { bicycle_parking: "BIKE", compressed_air: "AIR", shelter: "SHEL", recycling: "REC", emergency_entrance: "ER", fountain: "FNT" }
+          : { bicycle_parking: "DVIR.", compressed_air: "ORAS", shelter: "PAST.", recycling: "RŪŠ.", emergency_entrance: "SKUB.", fountain: "FONT." };
+        return ["match", ["get", "class"],
+          "toilets", "WC",
+          "drinking_water", "H₂O",
+          "bicycle_parking", localized.bicycle_parking,
+          "compressed_air", localized.compressed_air,
+          "shelter", localized.shelter,
+          "recycling", localized.recycling,
+          "information", "i",
+          "defibrillator", "AED",
+          "life_ring", "SOS",
+          "emergency_entrance", localized.emergency_entrance,
+          "fountain", localized.fountain,
+          ""
+        ];
+      }
+
+      function updateDetailLanguage() {
+        detailLayerIds.forEach(id => {
+          if (!map.getLayer(id)) return;
+          map.setLayoutProperty(id, "text-field",
+            id === "detail-micro-markers" ? microMarkerField() :
+            id === "detail-micro-names" ? detailLocalizedField("name") :
+            id.startsWith("detail-poi-") ? poiTextField() :
+            id.startsWith("detail-transit-") ? transitTextField() :
+            id === "detail-building-numbers" ? ["get", "housenumber"] : detailTextField());
+        });
+      }
+
+      function addDetailLayers() {
+        const details = metadata.details;
+        map.addSource("details", {
+          type: "vector",
+          url: `pmtiles://${new URL(details.file, location.href).href}`
+        });
+
+        const firstBaseLabel = map.getStyle().layers.find(layer => layer.type === "symbol")?.id;
+        const addBelowBaseLabels = layer => firstBaseLabel
+          ? map.addLayer(layer, firstBaseLabel)
+          : map.addLayer(layer);
+        const named = ["any",
+          ["has", "name"], ["has", "name:lt"], ["has", "name:en"],
+          ["has", "housename"], ["has", "housename:lt"], ["has", "housename:en"]
+        ];
+        const commonLayout = (textField, padding) => ({
+          "text-field": textField,
+          "text-font": ["Noto Sans Medium"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10.5, 17, 10.5, 18, 11.5],
+          "text-max-width": 11,
+          "text-padding": padding,
+          "symbol-sort-key": ["get", "rank"]
+        });
+        const halo = {
+          "text-halo-color": "rgba(255, 252, 245, 0.94)",
+          "text-halo-width": 1.25,
+          "text-halo-blur": 0.2
+        };
+        const poiPaint = {
+          ...halo,
+          "text-color": ["case",
+            ["all", ["==", ["get", "class"], "playground"], ["==", ["get", "access"], "public"]],
+            "#2f6248",
+            "#3f4650"
+          ]
+        };
+        const poiLayer = (id, tier, padding) => ({
+          id,
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.poi_details,
+          minzoom: tier,
+          filter: ["==", ["get", "display_tier"], tier],
+          layout: commonLayout(poiTextField(), padding),
+          paint: poiPaint
+        });
+        const transitLayer = (id, tier, padding) => ({
+          id,
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.transit_details,
+          minzoom: tier,
+          filter: ["==", ["get", "display_tier"], tier],
+          layout: {
+            ...commonLayout(transitTextField(), padding),
+            "text-anchor": "top",
+            "text-offset": [0, 0.9]
+          },
+          paint: { ...halo, "text-color": "#274f57" }
+        });
+        const transitMarkerLayer = (id, tier) => ({
+          id,
+          type: "circle",
+          source: "details",
+          "source-layer": details.layers.transit_details,
+          minzoom: tier,
+          filter: ["==", ["get", "display_tier"], tier],
+          layout: { "circle-sort-key": ["get", "rank"] },
+          paint: {
+            "circle-radius": ["match", ["get", "kind"],
+              ["station", "terminal"], 5, "halt", 3.8, 2.6],
+            "circle-color": ["match", ["get", "kind"],
+              ["station", "terminal"], "#fffaf1", "#37676d"],
+            "circle-stroke-color": "#274f57",
+            "circle-stroke-width": ["match", ["get", "kind"],
+              ["station", "terminal"], 2, 1],
+            "circle-opacity": 0.94,
+            "circle-stroke-opacity": 1
+          }
+        });
+        const microPaint = { ...halo, "text-color": "#4b4f56" };
+
+        // MapLibre resolves cross-layer collisions from later style layers.
+        // Insert low to high priority, all before the first basemap symbol, so
+        // road/place labels always win while z18 can still be deliberately dense.
+        // A POI-tagged building keeps its explicit house name/number in the
+        // source. This lowest-priority layer makes that address eligible at
+        // z17+ without allowing it to displace the POI at the same centroid.
+        addBelowBaseLabels({
+          id: "detail-building-poi-addresses",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.building_details,
+          minzoom: 17,
+          filter: ["all", ["has", "has_poi"], ["any", named, ["has", "housenumber"]]],
+          layout: commonLayout(detailTextField(),
+            ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]),
+          paint: { ...halo, "text-color": "#68625b" }
+        });
+        // A compact neutral code remains useful when the optional proper name
+        // cannot fit. Both layers are z18-only and lower priority than every
+        // transit or basemap label; no category depends on color or sprites.
+        addBelowBaseLabels({
+          id: "detail-micro-names",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.micro_details,
+          minzoom: 18,
+          filter: ["any", ["has", "name"], ["has", "name:lt"], ["has", "name:en"]],
+          layout: {
+            ...commonLayout(detailLocalizedField("name"), 1),
+            "text-size": 10.5,
+            "text-max-width": 9,
+            "text-anchor": "top",
+            "text-offset": [0, 1.15]
+          },
+          paint: microPaint
+        });
+        addBelowBaseLabels({
+          id: "detail-micro-markers",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.micro_details,
+          minzoom: 18,
+          layout: {
+            ...commonLayout(microMarkerField(), 1),
+            "text-size": 9.5,
+            "text-max-width": 5
+          },
+          paint: microPaint
+        });
+        addBelowBaseLabels(poiLayer("detail-poi-micro", 18, 0.5));
+        // Rings distinguish stations/terminals; progressively smaller solid
+        // dots denote halts and local stops. Unnamed platform dots remain
+        // marker-only and cannot appear before their z18 display tier.
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-18", 18));
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17));
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-16", 16));
+        addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-15", 15));
+        addBelowBaseLabels({
+          id: "detail-building-numbers",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.building_details,
+          minzoom: 17,
+          filter: ["all", ["has", "housenumber"], ["!", named], ["!", ["has", "has_poi"]]],
+          layout: commonLayout(["get", "housenumber"], ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]),
+          paint: { ...halo, "text-color": "#68625b" }
+        });
+        addBelowBaseLabels(poiLayer("detail-poi-local", 17,
+          ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]));
+        addBelowBaseLabels(transitLayer("detail-transit-local", 17,
+          ["interpolate", ["linear"], ["zoom"], 17, 1.5, 18, 0.5]));
+        addBelowBaseLabels(transitLayer("detail-transit-halt", 16,
+          ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 0.75]));
+        addBelowBaseLabels(poiLayer("detail-poi-neighborhood", 16,
+          ["interpolate", ["linear"], ["zoom"], 16, 3, 18, 0.75]));
+        addBelowBaseLabels({
+          id: "detail-building-names",
+          type: "symbol",
+          source: "details",
+          "source-layer": details.layers.building_details,
+          minzoom: 15,
+          filter: ["all", named, ["!", ["has", "has_poi"]]],
+          layout: commonLayout(detailTextField(),
+            ["interpolate", ["linear"], ["zoom"], 15, 3, 17, 1.5, 18, 0.5]),
+          paint: { ...halo, "text-color": "#3d3934" }
+        });
+        addBelowBaseLabels(poiLayer("detail-poi-major", 15,
+          ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
+        addBelowBaseLabels(transitLayer("detail-transit-station", 15,
+          ["interpolate", ["linear"], ["zoom"], 15, 5, 18, 1]));
       }
 
       function addPlaceLayers() {
@@ -2585,6 +2859,7 @@
         map.getSource(baseSource).attribution = snapshotAttribution();
         createServiceControls();
         addAccessNetwork();
+        addDetailLayers();
         addPlaceLayers();
         const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
         map.setMaxBounds([[minLon, minLat], [maxLon, maxLat]]);
