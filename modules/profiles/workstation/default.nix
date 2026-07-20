@@ -70,6 +70,7 @@ in
         cppcheck
         wasmtime
         distrobox
+        playwright
         postgresql
         bubblewrap
         glabels-qt
