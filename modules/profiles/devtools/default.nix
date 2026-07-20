@@ -24,6 +24,7 @@
     cmake
     tokei
     caddy
+    nginx
     stagit
     bloaty
     skopeo
