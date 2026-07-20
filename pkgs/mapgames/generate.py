@@ -228,6 +228,24 @@ def decode_osmium_id(feature_id: object):
     return None, None
 
 
+# Object-level lifecycle booleans mark a destination as no longer in service.
+# These objects still exist for the inspector (inspector.lua marks them), but
+# they must never enter the routable place set: a route to a closed café is a
+# defect, not a feature. Keep this list in lockstep with inspector.lua's
+# lifecycle_keys so the two views agree on what "not current" means.
+LIFECYCLE_KEYS = (
+    "abandoned", "closed", "demolished", "destroyed",
+    "disused", "proposed", "razed", "removed",
+)
+
+
+def object_is_current(properties: dict) -> bool:
+    return not any(
+        str(properties.get(key, "")).strip().lower() in ("yes", "true", "1")
+        for key in LIFECYCLE_KEYS
+    )
+
+
 def services_for_properties(properties: dict) -> list[str]:
     services = []
     amenity = properties.get("amenity")
@@ -486,6 +504,11 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
         if not country.covers(point):
             continue
         source_properties = dict(source_feature.get("properties") or {})
+        # Lifecycle-inactive matches (disused=yes, abandoned=yes, …) are dropped
+        # here so they are neither routed nor drawn as a service marker. The
+        # inspector keeps and marks them; the routable layer must not.
+        if not object_is_current(source_properties):
+            continue
         osm_type, osm_id = decode_osmium_id(source_id)
         for service in services_for_properties(source_properties):
             place_id = f"{service}:{source_id}"
@@ -993,7 +1016,7 @@ def main() -> None:
                         "emergency_entrance",
                         "fountain",
                     ],
-                    "micro_markers": "localized_code_like_text; never color_only",
+                    "micro_markers": "shape_first_pictograms; never_color_only",
                     "drinking_water_marker_min_zoom": 15,
                     "drinking_water_badge_min_zoom": 16,
                     "proper_name": ["name", "name:lt", "name:en"],
@@ -1009,6 +1032,7 @@ def main() -> None:
                         "named_transit_feature": 15,
                         "unnamed_stop": 18,
                     },
+                    "transit_marker_semantics": "mode_specific_and_multimodal_pictograms; exact_modes_in_modal",
                     "transit_label_min_zoom": {
                         "station_or_terminal": 15,
                         "interchange_or_halt": 16,
@@ -1057,32 +1081,49 @@ def main() -> None:
                 # map; the enclosing basemap always displays osm_attribution.
                 "attribution_policy": "enclosing_map_osm_attribution",
                 "description": (
-                    "High-zoom OpenStreetMap geometries and carefully selected tags; "
-                    "loaded only for an explicit inspection"
+                    "High-zoom configured search-family destinations and road-direction "
+                    "geometry; loaded only for an explicit inspection"
                 ),
                 "attributes": {
-                    "category": "normalized_feature_family",
-                    "foot_access": [
-                        "allowed",
-                        "permissive",
-                        "restricted",
-                        "prohibited",
-                        "conditional",
-                        "unknown",
-                    ],
-                    "kind": "selected_source_tag_value",
-                    "osm_id": "exact_decimal_string",
-                    "osm_type": ["node", "way", "relation"],
-                    "source_tags": "sparse_verbatim_explicit_allowlist",
-                    "status": [
-                        "active",
-                        "abandoned",
-                        "closed",
-                        "construction",
-                        "disused",
-                        "proposed",
-                        "removed",
-                    ],
+                    "common": {
+                        "required": ["osm_type", "osm_id", "status"],
+                        "osm_id": "exact_decimal_string",
+                        "osm_type": ["node", "way", "relation"],
+                        "status": ["active", "abandoned", "closed", "disused", "proposed", "removed"],
+                        "optional_identity_tags": [
+                            "name", "name:lt", "name:en", "int_name", "official_name",
+                            "brand", "operator", "addr:city", "addr:housename",
+                            "addr:housenumber", "addr:place", "addr:postcode", "addr:street",
+                        ],
+                    },
+                    "destination": {
+                        "required": ["category", "kind", "search_service"],
+                        "search_service": ["coffee", "hospital", "supermarket", "fuel"],
+                        "kind": [
+                            "cafe", "restaurant", "coffee_shop", "hospital",
+                            "supermarket", "fuel",
+                        ],
+                        "optional_source_tags": [
+                            "amenity", "healthcare", "shop", "access", "foot", "wheelchair",
+                            "opening_hours", "cuisine", "phone", "contact:phone", "email",
+                            "contact:email", "website", "contact:website",
+                        ],
+                    },
+                    "road": {
+                        "required": {"category": "transport", "highway": "source value"},
+                        "kind": "highway source value",
+                        "highway": [
+                            "motorway", "motorway_link", "trunk", "trunk_link",
+                            "primary", "primary_link", "secondary", "secondary_link",
+                            "tertiary", "tertiary_link", "unclassified", "residential",
+                            "living_street", "service", "pedestrian", "track", "road",
+                            "path", "footway", "cycleway", "bridleway", "steps", "corridor",
+                        ],
+                        "optional_source_tags": [
+                            "access", "foot", "ref", "oneway", "destination",
+                            "destination:ref", "destination:street", "surface", "smoothness",
+                        ],
+                    },
                 },
                 "file": "inspector.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
@@ -1090,12 +1131,11 @@ def main() -> None:
                     "points": "inspect_points",
                     "lines": "inspect_lines",
                     "areas": "inspect_areas",
-                    "routes": "hiking_routes",
                 },
                 "max_data_zoom": INSPECTOR_MAX_ZOOM,
                 "min_data_zoom": INSPECTOR_MIN_ZOOM,
                 "pmtiles_cli_version": args.pmtiles_cli_version,
-                "schema_version": 3,
+                "schema_version": 4,
                 "tilemaker_version": args.tilemaker_version,
             },
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",

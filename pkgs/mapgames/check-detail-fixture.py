@@ -481,8 +481,15 @@ def main() -> None:
         "playground color must require explicit public access; unknown/private/"
         "customer playgrounds stay neutral"
     )
-    assert '"icon-image": "school"' in index, (
-        "playgrounds need the shipped slide-and-swing pictogram, not a generic dot"
+    assert '"icon-image": "mapgames-playground"' in index, (
+        "playgrounds need a dedicated swing-set pictogram, not the school sprite"
+    )
+    assert 'registerIcon("mapgames-playground"' in index
+    assert "if (!map.hasImage(name))" in index, (
+        "custom icon registration needs a synchronous runtime contract"
+    )
+    assert "The upstream `school` sprite" in index, (
+        "the semantically wrong pinned school artwork must stay documented"
     )
     assert 'playgroundIconLayer("detail-playground-open-icons", 17, 16)' in index, (
         "open/unknown playground icons must appear at z16 ahead of their names"
@@ -510,8 +517,24 @@ def main() -> None:
     assert index.count('"source-layer": details.layers.water_details') == 3, (
         "potable-water dot, badge, and optional name must use the dedicated source"
     )
-    for marker in ("WC", "H₂O", "AED", "SOS", "DVIR.", "BIKE", "PAST.", "SHEL"):
-        assert f'"{marker}"' in index, f"micro marker {marker} missing from style"
+    utility_icons = {
+        "toilets": "toilets",
+        "bicycle_parking": "mapgames-bicycle",
+        "compressed_air": "mapgames-air",
+        "shelter": "mapgames-shelter",
+        "recycling": "mapgames-recycling",
+        "information": "mapgames-information",
+        "defibrillator": "mapgames-aed",
+        "life_ring": "mapgames-life-ring",
+        "emergency_entrance": "mapgames-emergency",
+        "fountain": "mapgames-fountain",
+    }
+    for category, image in utility_icons.items():
+        assert f'"{category}", "{image}"' in index, (
+            f"micro utility {category} needs a recognizable shape-first icon"
+        )
+    for cryptic in ('"DVIR."', '"PAST."', '"SKUB."', '"TROL."', '"TBUS"'):
+        assert cryptic not in index, f"cryptic map abbreviation survived: {cryptic}"
     micro_style = index[index.index('id: "detail-micro-names"'):index.index('addBelowBaseLabels(poiLayer("detail-poi-micro"')]
     assert micro_style.count("minzoom: 18") == 3, (
         "ordinary micro and optional water-name styles must be absent below z18"
@@ -535,6 +558,58 @@ def main() -> None:
     assert '["!=", ["get", "class"], "drinking_water"]' in micro_style, (
         "potable water must not receive a duplicate generic micro marker"
     )
+
+    basemap_lua = (args.process.parent / "basemap.lua").read_text(encoding="utf-8")
+    assert 'amenity=bench' not in basemap_lua and 'Attribute("kind", "bench")' not in basemap_lua, (
+        "benches must have one owner (details.pmtiles), not duplicate basemap/detail icons"
+    )
+    basemap_json = json.loads((args.process.parent / "basemap.json").read_text(encoding="utf-8"))
+    assert "pois" not in basemap_json["layers"], (
+        "empty generic basemap POI source-layer must not survive after detail takes ownership"
+    )
+    assert 'baseLayers.findIndex(layer => layer.id === "pois")' in index
+    for service in ("coffee", "hospital", "supermarket", "fuel"):
+        assert f'"{service}", "mapgames-{service}"' in index, (
+            f"{service} service needs a non-colour silhouette at z16+"
+        )
+    assert index.count('id: "places-service-icons"') == 1
+    assert 'id: `places-${service.id}-icon`' not in index, (
+        "per-service icon layers make symbol-sort-key priority ineffective across services"
+    )
+    service_icon_style = index[index.index('id: "places-service-icons"'):index.index('function refreshControls')]
+    assert 'minzoom: 16' in service_icon_style
+    assert '"icon-allow-overlap": true' in service_icon_style
+    assert '"icon-ignore-placement": true' in service_icon_style
+    priority = index[index.index("const serviceIconPriority"):
+                     index.index("const inspectorHitLayerIds")]
+    assert priority.index("coffee: 10") < priority.index("supermarket: 20")
+    assert priority.index("supermarket: 20") < priority.index("fuel: 30")
+    assert priority.index("fuel: 30") < priority.index("hospital: 40"), (
+        "persistent service silhouettes need deterministic safety-first overpaint"
+    )
+    assert "...Object.entries(serviceIconPriority).flat(), 0" in service_icon_style, (
+        "symbol overpaint does not use the shared service priority"
+    )
+    assert '["in", ["get", "service"], ["literal", []]]' in service_icon_style
+    assert 'map.setFilter("places-service-icons",' in index
+    assert '["literal", enabledServices]' in index, (
+        "the combined icon filter must track precisely the enabled service set"
+    )
+    icon_hit = index[index.index("function serviceIconFeaturesAt"):
+                     index.index("function markerFeaturesAt")]
+    assert "map.getZoom() < 16" in icon_hit
+    assert "map.queryRenderedFeatures(point, options)" in icon_hit
+    assert "serviceIconPriority[right.properties.service]" in icon_hit
+    assert "edgePadding" in icon_hit, "the visible icon edge is not a practical target"
+    marker_hit = index[index.index("function markerFeaturesAt"):
+                       index.index("function closestPointOnSegment")]
+    assert marker_hit.index("serviceIconFeaturesAt(point)") < marker_hit.index("placeLayerIds.filter"), (
+        "a hidden underlying service circle can win before the visible top icon"
+    )
+    emergency_art = index[index.index('registerIcon("mapgames-emergency"'):index.index('registerIcon("mapgames-bicycle"')]
+    hospital_art = index[index.index('registerIcon("mapgames-hospital"'):index.index('registerIcon("mapgames-coffee"')]
+    assert "strokeRect" in emergency_art and "fillRect" not in emergency_art
+    assert "fillRect" in hospital_art, "emergency entrance and hospital must not share a red cross"
 
     print(
         f"detail fixture passed ({len(buildings)} building/address and "

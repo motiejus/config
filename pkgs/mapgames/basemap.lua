@@ -2,7 +2,10 @@
 -- feature comes from the Lithuania PBF. The earth polygon is the configured
 -- coverage bbox rectangle that generate.py writes before tilemaker runs.
 
-node_keys = { "place", "amenity=bench" }
+-- High-zoom street furniture belongs exclusively to details.pmtiles. Keeping
+-- benches here as well produced two independently collision-placed copies of
+-- the same icon at z17+, which could flicker as either archive won placement.
+node_keys = { "place" }
 way_keys = {
   "aeroway",
   "amenity",
@@ -44,17 +47,6 @@ function relation_scan_function()
 end
 
 function node_function()
-  if Find("amenity") == "bench" then
-    -- The vendored style's pois layer knows kind=bench (sprite icon included)
-    -- and gates display on the min_zoom attribute, so benches only appear on
-    -- overzoomed z17+ views while living in the z14 data tiles.
-    Layer("pois", false)
-    Attribute("kind", "bench")
-    AttributeNumeric("min_zoom", 17)
-    MinZoom(14)
-    return
-  end
-
   local place = Find("place")
   if place == "" then return end
 

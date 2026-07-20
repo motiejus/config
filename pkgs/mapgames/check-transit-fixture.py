@@ -112,24 +112,42 @@ def main() -> None:
     }
     assert marker_tiers == {15, 16, 17, 18}
     assert label_tiers == {15, 16, 17}
-    assert '"circle-color": "#075985"' in index and '"circle-stroke-color": "#fffaf1"' in index, (
-        "all transit markers need a strong transport disc and a contrasting rim"
+    assert '"icon-image": transitIconField()' in index
+    assert '"mapgames-transit-interchange"' in index
+    assert '"train", "train_station"' in index
+    assert '"subway", "mapgames-subway"' in index
+    assert '"tram", "mapgames-tram"' in index
+    assert '"trolleybus", "mapgames-trolleybus"' in index
+    assert '"bus", "mapgames-bus"' in index
+    assert '"ferry", "ferry_terminal"' in index
+    assert '"mapgames-transit-stop"' in index
+    icon_size = index[index.index("function transitIconSize"):
+                      index.index("function updateDetailLanguage")]
+    assert "24 / 19" in icon_size, (
+        "19px pinned train/ferry sprites are optically smaller than 24px custom artwork"
     )
-    assert '15, ["match", ["get", "kind"],\n                ["station", "terminal"], 7, "halt", 5.5, 5]' in index
-    assert '16, ["match", ["get", "kind"],\n                ["station", "terminal"], 7.5, "halt", 6, 5.5]' in index
-    assert 'transitBadgeLayer("detail-transit-badges-named", 16' in index
-    assert 'transitBadgeLayer("detail-transit-badges-unnamed", 18' in index
-    assert '"text-allow-overlap": true' in index and '"text-ignore-placement": true' in index
+    assert '["train", "ferry"], 24 / 19, 1' in icon_size
+    assert '"mode_count"' in icon_size, (
+        "the custom multi-mode icon must not receive pinned-atlas compensation"
+    )
+    assert "15, atZoom(0.9, 0.78, 0.72)" in icon_size
+    assert "17, atZoom(1.05, 0.94, 0.88)" in icon_size
+    assert 'return ["interpolate", ["linear"], ["zoom"],' in icon_size, (
+        "MapLibre requires zoom below a top-level step/interpolate expression"
+    )
+    assert 'return ["*", hierarchy' not in icon_size
+    assert '"icon-size": transitIconSize()' in index
+    assert '"icon-allow-overlap": true' in index and '"icon-ignore-placement": true' in index
     assert '"symbol-sort-key": ["-", 0, ["get", "rank"]]' in index
-    assert index.index('transitBadgeLayer("detail-transit-badges-unnamed"') < index.index(
-        'transitBadgeLayer("detail-transit-badges-named"'
-    ), "named badges must paint after unnamed badges"
+    assert "transitBadgeLayer" not in index and "transitBadgeField" not in index, (
+        "cryptic letter badges must not obscure the transport pictograms"
+    )
     assert 'addImportantTransitLabel(transitLayer("detail-transit-station"' in index
     assert 'addImportantTransitLabel(transitLayer("detail-transit-halt"' in index
-    assert '["roads_shields", "roads_labels_major", "pois"]' in index
-    assert 'return ["concat", mode, " · ", detailLocalizedField("name")];' in index
-    for code in ('"train", "TR"', '"tram", "T"', '"trolleybus", "TB"', '"bus", "B"'):
-        assert code in index, f"missing visible mode badge {code}"
+    assert '["roads_shields", "roads_labels_major"]' in index
+    assert 'return detailLocalizedField("name");' in index, (
+        "mode pictograms must not be repeated as wide text that suppresses stop names"
+    )
     print(f"transit fixture passed ({len(features)} canonical stops)")
 
 

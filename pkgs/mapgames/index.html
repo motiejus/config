@@ -669,6 +669,17 @@
       // dominate switch latency (every data-driven paint property is a
       // separate per-vertex array uploaded on every feature-state change).
       const accessLayerIds = ["access-under", "access-main"];
+      // A highlighted corridor is an invitation to inspect reachability, but
+      // a one-pixel line is an unreasonable pointer target. The tolerance is
+      // measured from the painted edge, grows for a coarse pointer, and stays
+      // bounded even if a future style makes the corridor wider. A near tie
+      // between distinct geometries is intentionally not resolved: around an
+      // intersection or two parallel roads the literal click is less
+      // surprising than silently choosing one street.
+      const roadSnapPolicy = {
+        "fine": { "off_ink_px": 7, "max_px": 12, "ambiguity_px": 3, "resnap_max_px": 48 },
+        "coarse": { "off_ink_px": 12, "max_px": 18, "ambiguity_px": 4, "resnap_max_px": 64 }
+      };
       // State every group takes when it draws nothing under the current
       // selection (and, via the paint expressions' coalesce defaults, the
       // effective state of every group before the first refreshMap()).
@@ -773,7 +784,7 @@
         lt: {
           cafe: "Kavinė",
           restaurant: "Restoranas",
-          coffee_shop: "Kavinė",
+          coffee_shop: "Kavos parduotuvė",
           hospital: "Ligoninė",
           supermarket: "Prekybos centras",
           fuel: "Degalinė"
@@ -874,6 +885,8 @@
           zoomToInspect: "Priartinkite, kad patikrintumėte netoliese esančius žemėlapio objektus.",
           zoomToInspectButton: "Priartinti ir patikrinti",
           website: "Svetainė",
+          wikipedia: "Vikipedija",
+          wikidata: "Wikidata",
           phone: "Telefonas",
           email: "El. paštas",
           errInvalidOsm: value => `netinkamas bendrinamas OpenStreetMap objektas: ${value}`,
@@ -998,6 +1011,8 @@
           zoomToInspect: "Zoom in to inspect nearby map objects.",
           zoomToInspectButton: "Zoom in and inspect",
           website: "Website",
+          wikipedia: "Wikipedia",
+          wikidata: "Wikidata",
           phone: "Phone",
           email: "Email",
           errInvalidOsm: value => `invalid shared OpenStreetMap object: ${value}`,
@@ -1067,6 +1082,13 @@
       const buildingsLayer = baseLayers.find(layer => layer.id === "buildings");
       if (buildingsLayer) delete buildingsLayer.filter;
       else console.warn("vendored basemap style has no buildings layer; skipping filter removal");
+      // The lean basemap no longer owns any point-of-interest features:
+      // benches and all other walking detail come from details.pmtiles. Drop
+      // the generic upstream POI layer instead of retaining a dead icon match
+      // (which also names sprites, such as `townhall`, absent from this pinned
+      // atlas). Every visible pictogram below consequently has one data owner.
+      const basemapPoiIndex = baseLayers.findIndex(layer => layer.id === "pois");
+      if (basemapPoiIndex >= 0) baseLayers.splice(basemapPoiIndex, 1);
       // The flavor fades landcover out by z7, expecting separate landuse
       // fills to take over; this lean schema keeps all natural cover
       // (forest/wetland/grassland/farmland/urban) in the landcover layer
@@ -1289,6 +1311,18 @@
           mobileMedia.matches || coarsePointerMedia.matches ? 1.25 : 1.5),
         maxTileCacheZoomLevels: 1
       });
+      // A touch/pen click is often delivered by MapLibre as a synthesized
+      // MouseEvent with no pointerType. Retain the real pointerdown modality
+      // only long enough to associate it with that click; this prevents a
+      // stale touch from enlarging later mouse targets on hybrid devices.
+      const pointerModalityMaxAgeMs = 1500;
+      let recentPointerModality;
+      map.getCanvas().addEventListener("pointerdown", event => {
+        recentPointerModality = {
+          coarse: event.pointerType === "touch" || event.pointerType === "pen",
+          capturedAt: performance.now()
+        };
+      }, { passive: true });
       const destinationSourceIds = new Set();
       const failedDestinationSources = new Set();
       // Tile objects are stable across their request/error lifecycle. Tagging
@@ -1516,20 +1550,26 @@
       const serviceState = new Map();
       const destinationRecords = new Map();
       const placeLayerIds = [];
+      const serviceIconLayerId = "places-service-icons";
+      // One ordering owns both symbol overpaint and click resolution. A
+      // collocated icon must therefore open the service whose silhouette the
+      // user can actually see, with safety-critical destinations on top.
+      const serviceIconPriority = {
+        coffee: 10,
+        supermarket: 20,
+        fuel: 30,
+        hospital: 40
+      };
       const inspectorHitLayerIds = [
         "inspector-hit-areas",
-        "inspector-hit-routes",
         "inspector-hit-lines",
         "inspector-hit-points"
       ];
       const detailLayerIds = [
         "detail-building-poi-addresses",
         "detail-micro-names",
-        "detail-micro-markers",
         "detail-water-names",
         "detail-poi-micro",
-        "detail-transit-badges-named",
-        "detail-transit-badges-unnamed",
         "detail-transit-local",
         "detail-transit-halt",
         "detail-transit-station",
@@ -1564,6 +1604,7 @@
       let inspectionPlaceCardFeatures = [];
       let inspectorLookupSequence = 0;
       let inspectionPending = false;
+      let inspectionPrefersRoad = false;
       let inspectSequence = 0;
       let locationMarker;
       let placeCatalogPromise;
@@ -1707,8 +1748,31 @@
         return value ?? undefined;
       }
 
+      function parseSharedInspectionIntent(parameters, sharedOsm, originKind) {
+        const intent = parameters.get("inspect");
+        if (intent === null) return false;
+        // Road direction is an explicit interaction mode, not a property to
+        // infer from any nearby/shared OSM object. It is valid only for the
+        // way selected by a coordinate inspection created from a road snap.
+        if (intent !== "road" || originKind !== "at" || !sharedOsm?.startsWith("w")) {
+          throw new Error(t("errInvalidOsm", `${sharedOsm ?? ""}:${intent}`));
+        }
+        return true;
+      }
+
       function osmParam() {
         return inspectionOsmId ? `&osm=${inspectionOsmId}` : "";
+      }
+
+      function inspectionIntentParam() {
+        if (!inspectionPrefersRoad || !inspectionOsmId) return "";
+        const selectedRoad = inspectionOsmFeatures.some(feature =>
+          osmIdentity(feature.properties) === inspectionOsmId &&
+          isRoadDirectionCandidate(feature.properties, true)
+        );
+        const restoringSelectedRoad = requestedInspectionOsmId === inspectionOsmId &&
+          inspectionOsmId.startsWith("w") && !inspectionOsmQueried;
+        return selectedRoad || restoringSelectedRoad ? "&inspect=road" : "";
       }
 
       function inspectionHash(lngLat) {
@@ -1716,7 +1780,8 @@
           ? `at=${lngLat.lng.toFixed(6)},${lngLat.lat.toFixed(6)}`
           : `place=${encodeURIComponent(inspectionPlaceId)}`;
         return `#${origin}` +
-          `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}${osmParam()}`;
+          `&requirements=${requirementsParam()}${effectiveModeParam()}${langParam()}${osmParam()}` +
+          inspectionIntentParam();
       }
 
       let lastWrittenHash = "";
@@ -1953,6 +2018,7 @@
         inspectionOsmFailed = true;
         inspectionOsmQueried = true;
         inspectionOsmLoading = false;
+        inspectionPrefersRoad = false;
         if (metadata?.inspector) setLayerVisibility(inspectorHitLayerIds, false);
         renderClickedPlaces();
       }
@@ -2038,16 +2104,41 @@
       // still preserved by the invisible destination hit layers below.
       const corridorWidthCapPx = 6;
 
-      function corridorLineWidth(mode, maxWidthPx = Infinity) {
+      function corridorLineWidthStops(mode, maxWidthPx) {
         const bufferMeters = metadata.geometry.corridor_buffer_meters[mode];
         const latitude = (metadata.bbox[1] + metadata.bbox[3]) / 2;
         const latitudeScale = Math.max(Math.cos(latitude * Math.PI / 180), .01);
         const stops = [];
         for (let zoom = 6; zoom <= 18; zoom += 2) {
-          // MapLibre's zoom-zero world is 512 CSS pixels wide.
           const metersPerPixel = 78_271.516964 * latitudeScale / (2 ** zoom);
-          stops.push(zoom, Math.min(maxWidthPx, Math.max(1.25, 2 * bufferMeters / metersPerPixel)));
+          stops.push({
+            zoom,
+            width: Math.min(maxWidthPx, Math.max(1.25, 2 * bufferMeters / metersPerPixel))
+          });
         }
+        return stops;
+      }
+
+      function corridorLineWidthAtZoom(mode, zoom, maxWidthPx = corridorWidthCapPx) {
+        const stops = corridorLineWidthStops(mode, maxWidthPx);
+        if (zoom <= stops[0].zoom) return stops[0].width;
+        if (zoom >= stops[stops.length - 1].zoom) return stops[stops.length - 1].width;
+        const upperIndex = stops.findIndex(stop => stop.zoom >= zoom);
+        const left = stops[upperIndex - 1];
+        const right = stops[upperIndex];
+        // This is MapLibre's exponential interpolation (base 2), evaluated
+        // from the exact same stops used in the paint expression below. In
+        // particular, fractional zooms around the 6px cap must not receive a
+        // hit target based on a different mathematical curve.
+        const span = right.zoom - left.zoom;
+        const position = zoom - left.zoom;
+        const factor = (2 ** position - 1) / (2 ** span - 1);
+        return left.width + (right.width - left.width) * factor;
+      }
+
+      function corridorLineWidth(mode, maxWidthPx = Infinity) {
+        const stops = corridorLineWidthStops(mode, maxWidthPx)
+          .flatMap(stop => [stop.zoom, stop.width]);
         return ["interpolate", ["exponential", 2], ["zoom"], ...stops];
       }
 
@@ -2188,68 +2279,58 @@
       }
 
       function transitTextField() {
-        // Repeat a compact, recognizable mode code in the label. Full mode
-        // words would dominate z17 collision boxes, hiding the stop name that
-        // helps someone navigate. The inspector provides the full modes.
-        const mode = ["case",
-          [">", ["coalesce", ["get", "mode_count"], 0], 1],
-          lang === "en" ? "PT" : "VT",
-          ["match", ["get", "primary_mode"],
-            "train", lang === "en" ? "RAIL" : "TRAUK.",
-            "subway", "METRO",
-            "tram", "TRAM",
-            "trolleybus", lang === "en" ? "TBUS" : "TROL.",
-            "bus", lang === "en" ? "BUS" : "AUT.",
-            "ferry", lang === "en" ? "FERRY" : "KELT.",
-            lang === "en" ? "PT" : "VT"]
-        ];
-        return ["concat", mode, " · ", detailLocalizedField("name")];
+        // The pictogram carries the category. Repeating a full mode word here
+        // makes every collision box substantially wider in dense centres and
+        // suppresses the stop name—the part people actually navigate by.
+        // Exact bus/tram/train combinations remain liberal in the modal.
+        return detailLocalizedField("name");
       }
 
-      function transitBadgeField() {
+      function transitIconField() {
+        // A multi-mode interchange must not masquerade as whichever mode won
+        // canonicalization. Every remaining mode gets a distinct silhouette;
+        // exact combinations and refs stay in the liberal modal.
         return ["case",
           [">", ["coalesce", ["get", "mode_count"], 0], 1],
-          lang === "en" ? "PT" : "VT",
+          "mapgames-transit-interchange",
           ["match", ["get", "primary_mode"],
-            "train", "TR",
-            "subway", "M",
-            "tram", "T",
-            "trolleybus", "TB",
-            "bus", "B",
-            "ferry", lang === "en" ? "F" : "K",
-            lang === "en" ? "PT" : "VT"]
+            "train", "train_station",
+            "subway", "mapgames-subway",
+            "tram", "mapgames-tram",
+            "trolleybus", "mapgames-trolleybus",
+            "bus", "mapgames-bus",
+            "ferry", "ferry_terminal",
+            "mapgames-transit-stop"]
         ];
       }
 
-      function microMarkerField() {
-        const localized = lang === "en"
-          ? { bicycle_parking: "BIKE", compressed_air: "AIR", shelter: "SHEL", recycling: "REC", emergency_entrance: "ER", fountain: "FNT" }
-          : { bicycle_parking: "DVIR.", compressed_air: "ORAS", shelter: "PAST.", recycling: "RŪŠ.", emergency_entrance: "SKUB.", fountain: "FONT." };
-        return ["match", ["get", "class"],
-          "toilets", "WC",
-          "drinking_water", "H₂O",
-          "bicycle_parking", localized.bicycle_parking,
-          "compressed_air", localized.compressed_air,
-          "shelter", localized.shelter,
-          "recycling", localized.recycling,
-          "information", "i",
-          "defibrillator", "AED",
-          "life_ring", "SOS",
-          "emergency_entrance", localized.emergency_entrance,
-          "fountain", localized.fountain,
-          ""
+      function transitIconSize() {
+        // The pinned train/ferry atlas artwork occupies 19 logical pixels;
+        // custom transit silhouettes occupy the full 24px canvas. Normalize
+        // their optical footprint before applying the kind hierarchy.
+        const pinnedAtlasCompensation = ["case",
+          [">", ["coalesce", ["get", "mode_count"], 0], 1], 1,
+          ["match", ["get", "primary_mode"], ["train", "ferry"], 24 / 19, 1]
         ];
+        const atZoom = (station, halt, local) => ["*",
+          ["match", ["get", "kind"], ["station", "terminal"], station, "halt", halt, local],
+          pinnedAtlasCompensation
+        ];
+        // MapLibre requires a zoom expression to be the direct input of a
+        // top-level step/interpolate expression. Fold data-driven optical
+        // compensation into each stop rather than wrapping this expression.
+        return ["interpolate", ["linear"], ["zoom"],
+          15, atZoom(0.9, 0.78, 0.72),
+          17, atZoom(1.05, 0.94, 0.88)];
       }
 
       function updateDetailLanguage() {
         detailLayerIds.forEach(id => {
           if (!map.getLayer(id)) return;
           map.setLayoutProperty(id, "text-field",
-            id === "detail-micro-markers" ? microMarkerField() :
             id === "detail-micro-names" ? detailLocalizedField("name") :
             id === "detail-water-names" ? detailLocalizedField("name") :
             id.startsWith("detail-poi-") ? poiTextField() :
-            id.startsWith("detail-transit-badges-") ? transitBadgeField() :
             id.startsWith("detail-transit-") ? transitTextField() :
             id === "detail-building-numbers" ? ["get", "housenumber"] : detailTextField());
         });
@@ -2262,6 +2343,140 @@
           url: `pmtiles://${new URL(details.file, location.href).href}`
         });
 
+        // The shipped atlas intentionally stays small. Register the few
+        // walking-scale pictograms it does not contain as deterministic 24px
+        // canvas artwork. Every icon has a warm-white backing, dark outline,
+        // and a distinct silhouette, so meaning never depends on colour.
+        const registerIcon = (name, ink, draw) => {
+          const scale = 2;
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 24 * scale;
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error(`canvas unavailable while creating icon ${name}`);
+          context.scale(scale, scale);
+          context.fillStyle = "rgba(255,250,241,0.96)";
+          context.strokeStyle = "rgba(255,250,241,0.98)";
+          context.lineWidth = 3.5;
+          context.beginPath(); context.arc(12, 12, 9.7, 0, Math.PI * 2);
+          context.fill(); context.stroke();
+          context.strokeStyle = ink;
+          context.fillStyle = ink;
+          context.lineWidth = 1.8;
+          context.lineCap = "round";
+          context.lineJoin = "round";
+          draw(context);
+          map.addImage(name, context.getImageData(0, 0, canvas.width, canvas.height),
+            { pixelRatio: scale });
+          if (!map.hasImage(name)) throw new Error(`failed to register icon ${name}`);
+        };
+        const line = (c, points, close = false) => {
+          c.beginPath();
+          points.forEach(([x, y], index) => index ? c.lineTo(x, y) : c.moveTo(x, y));
+          if (close) c.closePath();
+          c.stroke();
+        };
+        registerIcon("mapgames-playground", "#286044", c => {
+          line(c, [[6,18],[8.5,6],[15.5,6],[18,18]]);
+          line(c, [[7.5,8],[16.5,8]]);
+          line(c, [[10,8],[10,14],[12,14]]);
+          line(c, [[14,8],[14,14],[16,14]]);
+        });
+        registerIcon("mapgames-aed", "#9f1239", c => {
+          c.beginPath(); c.moveTo(12,18); c.bezierCurveTo(4,13,5,7,9,7);
+          c.bezierCurveTo(11,7,12,9,12,9); c.bezierCurveTo(12,9,13,7,15,7);
+          c.bezierCurveTo(19,7,20,13,12,18); c.stroke();
+          line(c, [[13,8],[10.5,12],[13,12],[11,16]]);
+        });
+        registerIcon("mapgames-life-ring", "#b91c1c", c => {
+          c.beginPath(); c.arc(12,12,6.3,0,Math.PI*2); c.stroke();
+          c.beginPath(); c.arc(12,12,2.8,0,Math.PI*2); c.stroke();
+          line(c, [[7.5,7.5],[9.8,9.8]]); line(c, [[14.2,14.2],[16.5,16.5]]);
+          line(c, [[16.5,7.5],[14.2,9.8]]); line(c, [[9.8,14.2],[7.5,16.5]]);
+        });
+        registerIcon("mapgames-emergency", "#b91c1c", c => {
+          // Door and inward arrow: intentionally not the hospital cross.
+          c.strokeRect(10,6,7,12); c.beginPath(); c.arc(15,12,0.8,0,Math.PI*2); c.fill();
+          line(c, [[5,12],[12.5,12]]); line(c, [[9.5,9],[12.5,12],[9.5,15]]);
+        });
+        registerIcon("mapgames-bicycle", "#334155", c => {
+          c.beginPath(); c.arc(7.5,15.5,3,0,Math.PI*2); c.stroke();
+          c.beginPath(); c.arc(16.5,15.5,3,0,Math.PI*2); c.stroke();
+          line(c, [[7.5,15.5],[10,10],[14,15.5],[7.5,15.5],[11.5,15.5],[14.5,9]]);
+          line(c, [[9.5,9],[12,9]]); line(c, [[14,8],[16,8]]);
+        });
+        registerIcon("mapgames-air", "#334155", c => {
+          c.beginPath(); c.arc(10,10,4,Math.PI,0); c.stroke();
+          line(c, [[6,10],[6,17],[14,17],[14,10]]); line(c, [[10,10],[12,8]]);
+          line(c, [[14,13],[18,13],[18,17]]);
+        });
+        registerIcon("mapgames-shelter", "#334155", c => {
+          line(c, [[5,11],[12,6],[19,11]]); line(c, [[7,10],[7,18],[17,18],[17,10]]);
+          line(c, [[9,15],[15,15]]); line(c, [[10,15],[10,18],[14,18],[14,15]]);
+        });
+        registerIcon("mapgames-recycling", "#286044", c => {
+          line(c, [[11,6],[14,6],[16,9]]); line(c, [[16,9],[13.5,9],[15,11]]);
+          line(c, [[18,13],[16.5,16],[13.5,16]]); line(c, [[13.5,16],[15,14],[12.5,14]]);
+          line(c, [[9.5,17],[6.5,15.5],[8,12.5]]); line(c, [[8,12.5],[8.5,15],[10,13]]);
+        });
+        registerIcon("mapgames-information", "#075985", c => {
+          c.beginPath(); c.arc(12,7.5,1.2,0,Math.PI*2); c.fill();
+          line(c, [[12,11],[12,17]]);
+        });
+        registerIcon("mapgames-fountain", "#075985", c => {
+          c.beginPath(); c.arc(12,9,4.5,Math.PI,0); c.stroke();
+          line(c, [[12,9],[12,16]]); line(c, [[7,17],[17,17]]);
+          c.beginPath(); c.arc(12,6.5,1,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-hospital", "#9f1239", c => {
+          c.fillRect(10,6,4,12); c.fillRect(6,10,12,4);
+        });
+        registerIcon("mapgames-coffee", "#7c4a03", c => {
+          line(c, [[7,9],[7,16],[15,16],[15,9],[7,9]]);
+          c.beginPath(); c.arc(16,12,3,Math.PI*1.5,Math.PI*.5); c.stroke();
+          line(c, [[9,6],[9,8]]); line(c, [[13,6],[13,8]]);
+        });
+        registerIcon("mapgames-supermarket", "#00664a", c => {
+          line(c, [[6,7],[8,7],[9.5,14],[17,14],[18,9],[9,9]]);
+          c.beginPath(); c.arc(11,17,1.2,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(16,17,1.2,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-fuel", "#004e7a", c => {
+          c.strokeRect(7,6,7,12); c.strokeRect(8.5,8,4,3);
+          line(c, [[14,9],[17,10],[17,16]]); c.beginPath(); c.arc(17,17,1,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-bus", "#075985", c => {
+          c.strokeRect(6,7,12,9); c.strokeRect(8,9,8,3);
+          c.beginPath(); c.arc(9,17,1.5,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(15,17,1.5,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-trolleybus", "#075985", c => {
+          c.strokeRect(6,9,12,7); line(c, [[8,9],[10,5],[15,5],[17,9]]);
+          line(c, [[8,12],[16,12]]);
+          c.beginPath(); c.arc(9,17,1.4,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(15,17,1.4,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-tram", "#075985", c => {
+          line(c, [[9,7],[12,4],[15,7]]); c.strokeRect(7,7,10,9);
+          line(c, [[9,10],[15,10]]); line(c, [[8,19],[10,16]]); line(c, [[16,19],[14,16]]);
+          c.beginPath(); c.arc(10,14,1,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(14,14,1,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-subway", "#075985", c => {
+          c.beginPath(); c.arc(12,12,7,Math.PI,0); c.stroke();
+          c.strokeRect(8,9,8,7); line(c, [[9,19],[11,16]]); line(c, [[15,19],[13,16]]);
+          c.beginPath(); c.arc(10.5,13.5,1,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(13.5,13.5,1,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-transit-interchange", "#075985", c => {
+          line(c, [[6,9],[17,9],[14,6]]); line(c, [[18,15],[7,15],[10,18]]);
+          c.beginPath(); c.arc(6,9,1.3,0,Math.PI*2); c.fill();
+          c.beginPath(); c.arc(18,15,1.3,0,Math.PI*2); c.fill();
+        });
+        registerIcon("mapgames-transit-stop", "#075985", c => {
+          line(c, [[10,18],[14,18]]); line(c, [[12,18],[12,11]]);
+          c.beginPath(); c.arc(12,8,3,0,Math.PI*2); c.stroke();
+        });
+
         const firstBaseLabel = map.getStyle().layers.find(layer => layer.type === "symbol")?.id;
         const addBelowBaseLabels = layer => firstBaseLabel
           ? map.addLayer(layer, firstBaseLabel)
@@ -2270,7 +2485,7 @@
         // major-road shields/names and locality labels remain later and win.
         // This gives stations a real chance to render without making every
         // local-stop label overlap the street atlas.
-        const importantTransitBefore = ["roads_shields", "roads_labels_major", "pois"]
+        const importantTransitBefore = ["roads_shields", "roads_labels_major"]
           .find(id => map.getLayer(id));
         const addImportantTransitLabel = layer => importantTransitBefore
           ? map.addLayer(layer, importantTransitBefore)
@@ -2335,10 +2550,9 @@
             ["==", ["get", "display_tier"], tier]
           ],
           layout: {
-            // The upstream `school` sprite is specifically a slide-and-swing
-            // pictogram. Unlike a generic dot or colour, its shape identifies
-            // a playground even when the collision-aware name cannot fit.
-            "icon-image": "school",
+            // A dedicated swing-set silhouette. The upstream `school` sprite
+            // is crossed classroom tools and was not a playground icon.
+            "icon-image": "mapgames-playground",
             "icon-size": ["interpolate", ["linear"], ["zoom"], 16, 0.76, 18, 0.92],
             "icon-allow-overlap": true,
             "icon-ignore-placement": true
@@ -2369,55 +2583,17 @@
         });
         const transitMarkerLayer = (id, tier) => ({
           id,
-          type: "circle",
+          type: "symbol",
           source: "details",
           "source-layer": details.layers.transit_details,
           minzoom: transitZoomPolicy[tier].marker,
           filter: ["==", ["get", "display_tier"], tier],
-          layout: { "circle-sort-key": ["get", "rank"] },
-          paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"],
-              15, ["match", ["get", "kind"],
-                ["station", "terminal"], 7, "halt", 5.5, 5],
-              16, ["match", ["get", "kind"],
-                ["station", "terminal"], 7.5, "halt", 6, 5.5]],
-            // A consistent transport-blue disc reads as one category. Mode is
-            // encoded redundantly by letters from z16, never by color alone.
-            // The warm-white rim keeps the disc legible over roads and water.
-            "circle-color": "#075985",
-            "circle-stroke-color": "#fffaf1",
-            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"],
-              15, ["match", ["get", "kind"],
-                ["station", "terminal"], 2, "halt", 1.75, 1.5],
-              16, ["match", ["get", "kind"],
-                ["station", "terminal"], 2, "halt", 1.75, 1.5]],
-            "circle-opacity": 0.98,
-            "circle-stroke-opacity": 1
-          }
-        });
-        const transitBadgeLayer = (id, minzoom, filter) => ({
-          id,
-          type: "symbol",
-          source: "details",
-          "source-layer": details.layers.transit_details,
-          minzoom,
-          filter,
           layout: {
-            "text-field": transitBadgeField(),
-            "text-font": ["Noto Sans Medium"],
-            "text-size": ["interpolate", ["linear"], ["zoom"], 16, 8, 18, 9],
-            "text-letter-spacing": -0.05,
-            "text-allow-overlap": true,
-            "text-ignore-placement": true,
-            // Badges deliberately overlap the basemap. MapLibre paints larger
-            // sort keys later, so negate rank: lower source rank (station =
-            // 12) is painted last and remains readable over local stops.
+            "icon-image": transitIconField(),
+            "icon-size": transitIconSize(),
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
             "symbol-sort-key": ["-", 0, ["get", "rank"]]
-          },
-          paint: {
-            "text-color": "#ffffff",
-            "text-halo-color": "rgba(7, 89, 133, 0.75)",
-            "text-halo-width": 0.35
           }
         });
         const microPaint = { ...halo, "text-color": "#4b4f56" };
@@ -2444,16 +2620,15 @@
         // only at z18. Playground icons are sparse enough to remain persistent;
         // bench/tree symbols stay collision-aware so rows of mapped objects do
         // not cover paths, street names, or each other during mobile panning.
-        addBelowBaseLabels(streetIconLayer("detail-tree-icons", "tree", 18, "park", 0.76));
+        addBelowBaseLabels(streetIconLayer("detail-tree-icons", "tree", 18, "park", 0.84));
         addBelowBaseLabels(streetIconLayer("detail-bench-icons", "bench", 17,
           "bench", ["interpolate", ["linear"], ["zoom"], 17, 0.76, 18, 0.92]));
         addBelowBaseLabels(playgroundIconLayer("detail-playground-open-icons", 17, 16));
         // Restricted/customer playgrounds remain absent until their z18 text
         // explicitly communicates that restriction.
         addBelowBaseLabels(playgroundIconLayer("detail-playground-restricted-icons", 18, 18));
-        // A compact neutral code remains useful when the optional proper name
-        // cannot fit. Both layers are z18-only and lower priority than every
-        // transit or basemap label; no category depends on color or sprites.
+        // Shape-first utility symbols remain legible in both languages and do
+        // not ask a visitor to decode DVIR./PAST./SKUB. abbreviations.
         addBelowBaseLabels({
           id: "detail-micro-names",
           type: "symbol",
@@ -2494,15 +2669,26 @@
           minzoom: 18,
           filter: ["!=", ["get", "class"], "drinking_water"],
           layout: {
-            ...commonLayout(microMarkerField(), 1),
-            "text-size": 9.5,
-            "text-max-width": 5
-          },
-          paint: microPaint
+            "icon-image": ["match", ["get", "class"],
+              "toilets", "toilets",
+              "bicycle_parking", "mapgames-bicycle",
+              "compressed_air", "mapgames-air",
+              "shelter", "mapgames-shelter",
+              "recycling", "mapgames-recycling",
+              "information", "mapgames-information",
+              "defibrillator", "mapgames-aed",
+              "life_ring", "mapgames-life-ring",
+              "emergency_entrance", "mapgames-emergency",
+              "fountain", "mapgames-fountain",
+              "mapgames-information"],
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 18, 0.84, 19, 0.96],
+            "icon-padding": 1,
+            "symbol-sort-key": ["get", "rank"]
+          }
         });
         addBelowBaseLabels(poiLayer("detail-poi-micro", 18, 0.5));
-        // Rings distinguish stations/terminals from progressively smaller
-        // halt and local-stop rings. All named transit markers appear at z15,
+        // Larger pictograms distinguish stations/terminals from progressively
+        // smaller halt and local-stop symbols. All named markers appear at z15,
         // but their labels remain tiered at z15/z16/z17. This prevents ferry
         // terminals being the only visible stops in a city overview without
         // filling it with stop names. Unnamed platform markers remain z18.
@@ -2510,13 +2696,6 @@
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-17", 17));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-16", 16));
         addBelowBaseLabels(transitMarkerLayer("detail-transit-markers-15", 15));
-        // The badge is deliberately absent at z15: the larger blue discs are
-        // easy to find there, while letters become useful once a city block
-        // has enough room. Unnamed platforms retain the established z18 gate.
-        addBelowBaseLabels(transitBadgeLayer("detail-transit-badges-unnamed", 18,
-          ["==", ["get", "display_tier"], 18]));
-        addBelowBaseLabels(transitBadgeLayer("detail-transit-badges-named", 16,
-          ["<", ["get", "display_tier"], 18]));
         addBelowBaseLabels({
           id: "detail-building-numbers",
           type: "symbol",
@@ -2650,13 +2829,6 @@
           });
           map.addLayer({
             ...common,
-            id: "inspector-hit-routes",
-            type: "line",
-            "source-layer": inspector.layers.routes,
-            paint: { "line-color": "#000000", "line-opacity": 0, "line-width": 1 }
-          });
-          map.addLayer({
-            ...common,
             id: "inspector-hit-lines",
             type: "line",
             "source-layer": inspector.layers.lines,
@@ -2714,6 +2886,38 @@
             }
           });
           placeLayerIds.push(layerId);
+        });
+        // At the deliberately dense z14–15 overview, compact colored rings
+        // remain the least obstructive option and the open filter names their
+        // category. From z16 onward, add an actual category silhouette so a
+        // destination never depends on hue recognition alone.
+        map.addLayer({
+          id: "places-service-icons",
+          type: "symbol",
+          source: "places",
+          "source-layer": metadata.places.layer,
+          minzoom: 16,
+          // refreshMap replaces this empty enabled-service set. Keeping all
+          // service pictograms in one bucket is essential: symbol-sort-key
+          // cannot resolve priority across separate style layers.
+          filter: ["in", ["get", "service"], ["literal", []]],
+          layout: {
+            "icon-image": ["match", ["get", "service"],
+              "coffee", "mapgames-coffee",
+              "hospital", "mapgames-hospital",
+              "supermarket", "mapgames-supermarket",
+              "fuel", "mapgames-fuel",
+              "mapgames-information"],
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 16, 0.7, 18, 0.86],
+            // A collision must not turn a known destination back into a
+            // color-only ring. The compact 17px z16 artwork does not reserve
+            // space or evict street labels; exact overlaps resolve in a fixed
+            // safety/usefulness order with the highest key painted last.
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            "symbol-sort-key": ["match", ["get", "service"],
+              ...Object.entries(serviceIconPriority).flat(), 0]
+          }
         });
       }
 
@@ -2994,6 +3198,11 @@
           const state = serviceState.get(service.id);
           setLayerVisibility([`places-${service.id}`], state.enabled);
         });
+        const enabledServices = metadata.services
+          .filter(service => serviceState.get(service.id).enabled)
+          .map(service => service.id);
+        map.setFilter("places-service-icons",
+          ["in", ["get", "service"], ["literal", enabledServices]]);
         updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
         else scheduleViewHash();
@@ -3055,40 +3264,41 @@
           meta.className = "destination-kind";
           const distance = haversineMeters(origin, destination);
           meta.textContent = t("destinationMeta", kindLabel(destination.kind), formatKm(distance));
-          // Each destination expands in place to its place-card details —
-          // one tap to open, one tap back to the list; the catalog entry
-          // already carries every human-facing field rendered here.
-          const details = document.createElement("details");
-          details.className = "destination-details";
-          const summary = document.createElement("summary");
-          summary.append(label, document.createElement("br"), meta);
-          details.append(summary);
-          details.addEventListener("toggle", () => {
-            if (!details.open || details.dataset.loaded) return;
-            details.dataset.loaded = "true";
+          const values = placeDetailValues(destination);
+          let placeBody;
+          if (values.length) {
+            // Only show a disclosure affordance when it can reveal useful
+            // facts. A dead “no details” expansion made dense result lists
+            // feel broken and added no information.
+            const details = document.createElement("details");
+            details.className = "destination-details";
+            const summary = document.createElement("summary");
+            summary.append(label, document.createElement("br"), meta);
+            details.append(summary);
+            details.addEventListener("toggle", () => {
+              if (!details.open || details.dataset.loaded) return;
+              details.dataset.loaded = "true";
+              const card = document.createElement("div");
+              card.className = "destination-place-card";
+              values.forEach(([factLabel, value, key]) =>
+                appendOsmFact(card, factLabel, value, key)
+              );
+              details.append(card);
+            });
+            placeBody = details;
+          } else {
             const card = document.createElement("div");
-            card.className = "destination-place-card";
-            const values = placeDetailValues(destination);
-            for (const value of values) {
-              const paragraph = document.createElement("p");
-              paragraph.textContent = value;
-              card.append(paragraph);
-            }
-            if (!values.length) {
-              const paragraph = document.createElement("p");
-              paragraph.className = "destination-kind";
-              paragraph.textContent = t("noPlaceDetails");
-              card.append(paragraph);
-            }
-            details.append(card);
-          });
+            card.className = "destination-details";
+            card.append(label, document.createElement("br"), meta);
+            placeBody = card;
+          }
           const link = document.createElement("a");
           link.className = "route-link";
           link.href = valhallaRouteUrl(origin, destination, mode);
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           link.textContent = t("liveRoute");
-          item.append(details, link);
+          item.append(placeBody, link);
           list.append(item);
         });
         return list;
@@ -3142,6 +3352,7 @@
       }
 
       function inspectPlaceMarker(markerFeature) {
+        inspectionPrefersRoad = false;
         const placeIndex = Number(markerFeature.properties.place_index);
         const placeId = markerFeature.properties.place_id;
         const coordinates = markerFeature.geometry.coordinates;
@@ -3218,62 +3429,130 @@
       // inspect dialog.
       function placeDetailValues(properties) {
         const address = [
-          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
+          [properties["addr:street"] || properties["addr:place"], properties["addr:housenumber"]]
+            .filter(Boolean).join(" "),
           properties["addr:city"],
           properties["addr:postcode"]
         ].filter(Boolean).join(", ");
-        return [address, properties.opening_hours, properties.phone || properties["contact:phone"]]
-          .filter(Boolean);
+        return [
+          [t("addressLabel"), address],
+          [osmLabels[lang].opening_hours, properties.opening_hours, "opening_hours"],
+          [t("phone"), properties.phone || properties["contact:phone"]]
+        ].filter(([_label, value]) => value);
       }
 
       const osmFactGroups = {
-        status: ["status", "access", "foot_access", "wheelchair"],
+        // These are presentation fields, not a dump of every OSM tag carried
+        // by inspector.pmtiles. In particular, category source tags (amenity,
+        // highway, …) are already expressed by the friendly object subtitle.
+        status: [
+          "status", "access", "access:conditional", "foot", "foot:conditional",
+          "wheelchair", "locked"
+        ],
         trail: [
-          "highway", "route", "network", "ref", "surface", "smoothness", "tracktype",
-          "trail_visibility", "sac_scale", "mtb:scale", "incline", "width", "lit", "ford",
-          "bridge", "tunnel", "foot", "bicycle", "horse"
+          "network", "ref", "destination", "destination:ref", "destination:street", "oneway",
+          "surface", "smoothness", "tracktype", "covered",
+          "trail_visibility", "sac_scale", "mtb:scale", "mtb:scale:uphill", "incline", "width", "lit", "ford",
+          "bridge", "tunnel", "bicycle", "horse", "step_count",
+          "crossing", "crossing:barrier", "crossing:island", "crossing:light",
+          "crossing:markings", "crossing:signals", "crossing_ref", "kerb", "tactile_paving",
+          "traffic_signals:sound", "traffic_signals:vibration", "button_operated",
+          "flashing_lights", "osmc:symbol", "route_marker", "symbol", "hiking"
         ],
         practical: [
           "opening_hours", "fee", "seasonal", "drinking_water", "shelter_type", "toilets",
-          "toilets:wheelchair", "amenity", "tourism", "information", "ele"
+          "toilets:wheelchair", "ele", "capacity", "charge", "internet_access", "cuisine",
+          "diet:halal", "diet:kosher", "diet:vegan", "diet:vegetarian", "religion",
+          "denomination", "sport", "supervised", "artwork_type", "artist_name", "heritage",
+          "information", "board_type", "map_type", "guide_type", "start_date", "official_name",
+          "alt_name", "architect", "designation", "protection_title", "protect_class",
+          "intermittent", "backcountry", "tent", "dog", "winter_service", "colour",
+          "social_facility", "brand", "operator", "transit_modes"
         ],
         contact: [
           "addr:street", "addr:housenumber", "addr:city", "addr:postcode", "website",
           "contact:website", "phone", "contact:phone", "email", "contact:email"
         ]
       };
-      const osmInternalProperties = new Set([
-        "osm_type", "osm_id", "category", "kind", "rank", "marker_minzoom", "label_minzoom",
-        "place_id", "place_index", "service", "source_geometry", "int_name"
-      ]);
       const osmLabels = {
         lt: {
-          status: "Būsena", access: "Patekimas", foot_access: "Pėsčiomis", wheelchair: "Neįgaliojo vežimėliu",
+          status: "Būsena", access: "Patekimas", foot: "Pėsčiomis", wheelchair: "Neįgaliojo vežimėliu",
           highway: "Kelio rūšis", route: "Maršrutas", network: "Tinklas", ref: "Numeris",
           surface: "Danga", smoothness: "Dangos kokybė", tracktype: "Miško / lauko kelias",
           trail_visibility: "Tako matomumas", sac_scale: "Žygio sudėtingumas",
           "mtb:scale": "MTB sudėtingumas", incline: "Nuolydis", width: "Plotis", lit: "Apšviesta",
-          ford: "Brasta", bridge: "Tiltas", tunnel: "Tunelis", foot: "Pėsčiomis",
-          bicycle: "Dviračiu", horse: "Žirgu", opening_hours: "Darbo laikas", fee: "Mokama",
+          "mtb:scale:uphill": "MTB įkalnės sudėtingumas", covered: "Po stogu",
+          ford: "Brasta", bridge: "Tiltas", tunnel: "Tunelis", bicycle: "Dviračiu",
+          horse: "Žirgu", oneway: "Eismo kryptis", destination: "Kryptis",
+          "destination:ref": "Krypties kelio numeris", "destination:street": "Krypties gatvė",
+          opening_hours: "Darbo laikas", fee: "Mokama",
           seasonal: "Sezoninis", drinking_water: "Geriamasis vanduo", shelter_type: "Pastogė",
           toilets: "Tualetai", "toilets:wheelchair": "Pritaikyti tualetai", amenity: "Paslauga",
           tourism: "Turizmas", information: "Informacija", ele: "Aukštis", website: "Svetainė",
           "contact:website": "Svetainė", phone: "Telefonas", "contact:phone": "Telefonas",
-          email: "El. paštas", "contact:email": "El. paštas", description: "Aprašymas"
+          email: "El. paštas", "contact:email": "El. paštas", description: "Aprašymas",
+          "access:conditional": "Patekimo sąlygos", "foot:conditional": "Pėsčiųjų patekimo sąlygos",
+          locked: "Rakinama", step_count: "Pakopų skaičius", crossing: "Perėjos tipas",
+          "crossing:barrier": "Pervažos užtvaras", "crossing:island": "Saugumo salelė",
+          "crossing:light": "Apšvietimas", "crossing:markings": "Ženklinimas",
+          "crossing:signals": "Signalai", crossing_ref: "Perėjos žymėjimas", kerb: "Bortelis",
+          tactile_paving: "Taktilinis grindinys", "traffic_signals:sound": "Garsinis signalas",
+          "traffic_signals:vibration": "Vibruojantis signalas", button_operated: "Mygtuku valdoma",
+          flashing_lights: "Mirksintys signalai", capacity: "Vietų skaičius", charge: "Kaina",
+          internet_access: "Internetas", cuisine: "Virtuvė", "diet:halal": "Halal",
+          "diet:kosher": "Košerinis maistas", "diet:vegan": "Veganiškas maistas",
+          "diet:vegetarian": "Vegetariškas maistas", religion: "Religija",
+          denomination: "Konfesija", sport: "Sportas", supervised: "Prižiūrima",
+          artwork_type: "Kūrinio tipas", artist_name: "Autorius", heritage: "Paveldo statusas",
+          board_type: "Stendo tipas", map_type: "Žemėlapio tipas", guide_type: "Gido tipas",
+          start_date: "Pastatyta / pradėta", official_name: "Oficialus pavadinimas",
+          designation: "Oficialus statusas",
+          protection_title: "Apsaugos statusas", protect_class: "Apsaugos klasė",
+          "osmc:symbol": "Žygio žymėjimas", route_marker: "Maršruto žymeklis",
+          symbol: "Simbolis", hiking: "Žygiams", alt_name: "Kitas pavadinimas",
+          architect: "Architektas", intermittent: "Ne visada yra vandens",
+          backcountry: "Atoki vieta", tent: "Palapinės", dog: "Su šunimis",
+          winter_service: "Prižiūrima žiemą", colour: "Spalva", social_facility: "Socialinė paslauga",
+          brand: "Prekės ženklas", operator: "Valdytojas", transit_modes: "Transportas"
         },
         en: {
-          status: "Status", access: "Access", foot_access: "On foot", wheelchair: "Wheelchair",
+          status: "Status", access: "Access", foot: "On foot", wheelchair: "Wheelchair",
           highway: "Path or road", route: "Route", network: "Network", ref: "Reference",
           surface: "Surface", smoothness: "Surface quality", tracktype: "Track grade",
           trail_visibility: "Trail visibility", sac_scale: "Hiking difficulty",
           "mtb:scale": "MTB difficulty", incline: "Incline", width: "Width", lit: "Lit",
-          ford: "Ford", bridge: "Bridge", tunnel: "Tunnel", foot: "On foot",
-          bicycle: "By bicycle", horse: "On horseback", opening_hours: "Opening hours", fee: "Fee",
+          "mtb:scale:uphill": "Uphill MTB difficulty", covered: "Covered",
+          ford: "Ford", bridge: "Bridge", tunnel: "Tunnel", bicycle: "By bicycle",
+          horse: "On horseback", oneway: "Traffic direction", destination: "Signed destination",
+          "destination:ref": "Destination road reference", "destination:street": "Destination street",
+          opening_hours: "Opening hours", fee: "Fee",
           seasonal: "Seasonal", drinking_water: "Drinking water", shelter_type: "Shelter",
           toilets: "Toilets", "toilets:wheelchair": "Accessible toilets", amenity: "Amenity",
           tourism: "Tourism", information: "Information", ele: "Elevation", website: "Website",
           "contact:website": "Website", phone: "Phone", "contact:phone": "Phone",
-          email: "Email", "contact:email": "Email", description: "Description"
+          email: "Email", "contact:email": "Email", description: "Description",
+          "access:conditional": "Access conditions", "foot:conditional": "Pedestrian access conditions",
+          locked: "Locked", step_count: "Number of steps", crossing: "Crossing type",
+          "crossing:barrier": "Railway barrier", "crossing:island": "Refuge island",
+          "crossing:light": "Lighting", "crossing:markings": "Markings",
+          "crossing:signals": "Signals", crossing_ref: "Crossing marking", kerb: "Kerb",
+          tactile_paving: "Tactile paving", "traffic_signals:sound": "Audible signal",
+          "traffic_signals:vibration": "Vibrating signal", button_operated: "Button operated",
+          flashing_lights: "Flashing signals", capacity: "Capacity", charge: "Charge",
+          internet_access: "Internet access", cuisine: "Cuisine", "diet:halal": "Halal",
+          "diet:kosher": "Kosher", "diet:vegan": "Vegan", "diet:vegetarian": "Vegetarian",
+          religion: "Religion", denomination: "Denomination", sport: "Sport",
+          supervised: "Supervised", artwork_type: "Artwork type", artist_name: "Artist",
+          heritage: "Heritage status", board_type: "Information board", map_type: "Map type",
+          guide_type: "Guide type", start_date: "Built / started", official_name: "Official name",
+          designation: "Official designation",
+          protection_title: "Protection status", protect_class: "Protection class",
+          "osmc:symbol": "Trail marking", route_marker: "Route marker", symbol: "Symbol",
+          hiking: "Hiking", alt_name: "Alternative name", architect: "Architect",
+          intermittent: "Intermittent", backcountry: "Backcountry", tent: "Tents",
+          dog: "Dogs", winter_service: "Winter service", colour: "Colour",
+          social_facility: "Social service", brand: "Brand", operator: "Operator",
+          transit_modes: "Transport modes"
         }
       };
       const osmCategoryLabels = {
@@ -3319,15 +3598,95 @@
           unknown: "Unknown", yes: "Yes", no: "No", true: "Yes", false: "No"
         }
       };
-      const normalizedOsmKeys = new Set(["status", "foot_access"]);
+      const normalizedOsmKeys = new Set(["status"]);
       const osmKindLabels = {
         lt: {
           crossing: "Perėja", level_crossing: "Geležinkelio pervaža",
-          protected_area: "Saugoma teritorija", riverbank: "Upės krantas"
+          protected_area: "Saugoma teritorija", riverbank: "Upės krantas",
+          motorway: "Automagistralė", trunk: "Magistralinis kelias", primary: "Pagrindinis kelias",
+          motorway_link: "Automagistralės jungtis", trunk_link: "Magistralinio kelio jungtis",
+          primary_link: "Pagrindinio kelio jungtis", secondary_link: "Krašto kelio jungtis",
+          tertiary_link: "Vietinio kelio jungtis",
+          secondary: "Krašto kelias", tertiary: "Vietinis kelias", residential: "Gyvenamoji gatvė",
+          living_street: "Gyvenamoji zona", service: "Privažiavimo kelias", unclassified: "Vietinis kelias",
+          track: "Miško ar lauko kelias", path: "Takas", footway: "Pėsčiųjų takas",
+          cycleway: "Dviračių takas", bridleway: "Raitelių takas", steps: "Laiptai",
+          pedestrian: "Pėsčiųjų zona", trailhead: "Tako pradžia", elevator: "Liftas",
+          drinking_water: "Geriamasis vanduo", toilets: "Tualetai", shelter: "Pastogė",
+          picnic_table: "Pikniko stalas", bicycle_parking: "Dviračių stovai", parking: "Automobilių stovėjimo aikštelė",
+          parking_entrance: "Įvažiavimas į stovėjimo aikštelę", atm: "Bankomatas", bank: "Bankas",
+          bicycle_rental: "Dviračių nuoma", bicycle_repair_station: "Dviračių remonto stotelė",
+          fuel: "Degalinė", library: "Biblioteka", post_office: "Paštas", post_box: "Pašto dėžutė",
+          marketplace: "Turgavietė", townhall: "Savivaldybė", community_centre: "Bendruomenės centras",
+          school: "Mokykla", university: "Universitetas", college: "Kolegija", kindergarten: "Darželis",
+          theatre: "Teatras", cinema: "Kino teatras", pharmacy: "Vaistinė",
+          hospital: "Ligoninė", clinic: "Klinika", doctors: "Gydytojai", dentist: "Odontologas",
+          police: "Policija", first_aid: "Pirmoji pagalba", defibrillator: "Defibriliatorius",
+          playground: "Žaidimų aikštelė", park: "Parkas", garden: "Sodas", nature_reserve: "Gamtos rezervatas",
+          picnic_site: "Pikniko vieta", viewpoint: "Apžvalgos vieta", information: "Turizmo informacija",
+          museum: "Muziejus", artwork: "Meno kūrinys", attraction: "Lankytina vieta",
+          camp_site: "Stovyklavietė", alpine_hut: "Kalnų trobelė", wilderness_hut: "Atoki trobelė",
+          peak: "Viršūnė", spring: "Šaltinis", cave_entrance: "Įėjimas į urvą", beach: "Paplūdimys",
+          rock: "Uola", stone: "Akmuo", saddle: "Balnakalnė", cliff: "Skardis", water: "Vandens telkinys",
+          stream: "Upelis", river: "Upė", waterfall: "Krioklys", rapids: "Slenksčiai", weir: "Užtvanka",
+          gate: "Vartai", stile: "Perlipimo tvorelė", kissing_gate: "Pėsčiųjų varteliai",
+          cycle_barrier: "Dviračių užtvara", bollard: "Stulpelis", lift_gate: "Pakeliamas užtvaras",
+          platform: "Stotelės platforma", stop_position: "Transporto sustojimo vieta",
+          station: "Stotis", halt: "Stotelė", bus_station: "Autobusų stotis",
+          stop_area: "Viešojo transporto mazgas", subway_entrance: "Metro įėjimas",
+          ferry_terminal: "Keltų terminalas", tram_stop: "Tramvajaus stotelė",
+          restaurant: "Restoranas", cafe: "Kavinė", bar: "Baras", fast_food: "Greitasis maistas", pub: "Aludė",
+          supermarket: "Prekybos centras", convenience: "Maisto prekių parduotuvė", hotel: "Viešbutis",
+          bakery: "Kepykla", books: "Knygynas", clothes: "Drabužių parduotuvė",
+          bicycle: "Dviračių parduotuvė", butcher: "Mėsinė", electronics: "Elektronikos parduotuvė",
+          hardware: "Ūkinių prekių parduotuvė", outdoor: "Turizmo prekių parduotuvė",
+          hostel: "Nakvynės namai", guest_house: "Svečių namai", address: "Adresas",
+          hiking: "Žygių maršrutas", foot: "Pėsčiųjų maršrutas", walking: "Pasivaikščiojimo maršrutas",
+          castle: "Pilis", monument: "Paminklas", memorial: "Memorialas", ruins: "Griuvėsiai",
+          place_of_worship: "Maldos namai", cemetery: "Kapinės", fountain: "Fontanas"
         },
         en: {
           crossing: "Crossing", level_crossing: "Railway crossing",
-          protected_area: "Protected area", riverbank: "Riverbank"
+          protected_area: "Protected area", riverbank: "Riverbank",
+          motorway: "Motorway", trunk: "Trunk road", primary: "Primary road", secondary: "Secondary road",
+          motorway_link: "Motorway link", trunk_link: "Trunk-road link", primary_link: "Primary-road link",
+          secondary_link: "Secondary-road link", tertiary_link: "Tertiary-road link",
+          tertiary: "Tertiary road", residential: "Residential street", living_street: "Living street",
+          service: "Service road", unclassified: "Local road", track: "Track", path: "Path",
+          footway: "Footway", cycleway: "Cycleway", bridleway: "Bridleway", steps: "Steps",
+          pedestrian: "Pedestrian area", trailhead: "Trailhead", elevator: "Elevator",
+          drinking_water: "Drinking water", toilets: "Toilets", shelter: "Shelter",
+          picnic_table: "Picnic table", bicycle_parking: "Bicycle parking", parking: "Parking",
+          parking_entrance: "Parking entrance", atm: "ATM", pharmacy: "Pharmacy", hospital: "Hospital",
+          clinic: "Clinic", doctors: "Doctors", dentist: "Dentist", police: "Police",
+          first_aid: "First aid", defibrillator: "Defibrillator", playground: "Playground", park: "Park",
+          garden: "Garden", nature_reserve: "Nature reserve", picnic_site: "Picnic site",
+          viewpoint: "Viewpoint", information: "Visitor information", museum: "Museum", artwork: "Artwork",
+          attraction: "Attraction", camp_site: "Campsite", alpine_hut: "Alpine hut",
+          wilderness_hut: "Wilderness hut", peak: "Peak", spring: "Spring", cave_entrance: "Cave entrance",
+          beach: "Beach", rock: "Rock", stone: "Stone", saddle: "Saddle", cliff: "Cliff",
+          water: "Water body", stream: "Stream", river: "River", waterfall: "Waterfall",
+          rapids: "Rapids", weir: "Weir", gate: "Gate", stile: "Stile", kissing_gate: "Kissing gate",
+          cycle_barrier: "Cycle barrier", bollard: "Bollard", lift_gate: "Lift gate",
+          platform: "Transit platform", stop_position: "Transit stop position", station: "Station",
+          halt: "Halt", bus_station: "Bus station", stop_area: "Transit interchange",
+          subway_entrance: "Subway entrance", ferry_terminal: "Ferry terminal", tram_stop: "Tram stop",
+          restaurant: "Restaurant", cafe: "Café", fast_food: "Fast food", pub: "Pub",
+          supermarket: "Supermarket", convenience: "Convenience store", hotel: "Hotel", hostel: "Hostel",
+          guest_house: "Guest house", address: "Address", hiking: "Hiking route", foot: "Foot route",
+          walking: "Walking route"
+        }
+      };
+
+      const osmOnewayLabels = {
+        lt: {
+          yes: "Viena kryptimi — OSM linijos kryptimi", "1": "Viena kryptimi — OSM linijos kryptimi",
+          "-1": "Viena kryptimi — prieš OSM linijos kryptį", no: "Abiem kryptimis",
+          reversible: "Kryptis kinta"
+        },
+        en: {
+          yes: "One way — forward along the OSM line", "1": "One way — forward along the OSM line",
+          "-1": "One way — reverse to the OSM line", no: "Two way", reversible: "Reversible direction"
         }
       };
 
@@ -3335,6 +3694,9 @@
         return String(value).split(";").map(part => {
           const clean = part.trim();
           const normalized = clean.toLowerCase();
+          if (key === "oneway" && osmOnewayLabels[lang][normalized]) {
+            return osmOnewayLabels[lang][normalized];
+          }
           const isBoolean = ["yes", "no", "true", "false", "unknown"].includes(normalized);
           if (normalizedOsmKeys.has(key) || isBoolean) {
             const label = osmNormalizedValueLabels[lang][normalized];
@@ -3349,17 +3711,37 @@
         return order.map(candidate => properties[candidate]).find(Boolean);
       }
 
+      // A lifecycle-inactive object is still worth inspecting, but its title
+      // must say so: routing deliberately drops these (generate.py), and an
+      // unmarked "Café" that no longer exists is worse than no card at all.
+      function lifecycleTitleSuffix(properties) {
+        const status = String(properties.status || "").trim().toLowerCase();
+        if (!status || status === "active") return "";
+        const label = osmNormalizedValueLabels[lang][status] || status;
+        return ` (${label.toLowerCase()})`;
+      }
+
       function osmObjectLabel(properties) {
-        return localizedOsmProperty(properties, "name") || properties.int_name || properties.brand || properties.operator ||
-          readableOsmValue(properties.kind || t("unnamedObject"));
+        const address = [properties["addr:street"] || properties["addr:place"], properties["addr:housenumber"]]
+          .filter(Boolean).join(" ");
+        const fallbackKind = localizedOsmKind(properties.kind);
+        const base = localizedOsmProperty(properties, "name") || properties.int_name ||
+          localizedOsmProperty(properties, "addr:housename") || properties.official_name || properties.brand ||
+          properties.operator || address || fallbackKind || t("unnamedObject");
+        return base + lifecycleTitleSuffix(properties);
       }
 
       function osmCategoryLabel(properties) {
         const value = properties.category;
         const category = osmCategoryLabels[lang][value] || t("osmObject");
-        const kind = properties.kind &&
-          (osmKindLabels[lang][properties.kind] || readableOsmValue(properties.kind));
+        const kind = localizedOsmKind(properties.kind);
         return kind ? `${category} · ${kind}` : category;
+      }
+
+      function localizedOsmKind(kind) {
+        if (!kind || ["yes", "address"].includes(kind)) return undefined;
+        return kindLabelTables[lang][kind] || osmKindLabels[lang][kind] ||
+          (lang === "en" ? readableOsmValue(kind) : undefined);
       }
 
       function safeExternalUrl(value) {
@@ -3378,67 +3760,50 @@
         return `https://www.openstreetmap.org/${type}/${identity.slice(1)}`;
       }
 
-      // The inspector archive intentionally remains broad: invisible hit
-      // geometry supports future use cases and must not change which visible
-      // map icons can be clicked. The nearby modal has a narrower job. Remove
-      // repetitive map texture while retaining navigation, safety, access,
-      // transit, destinations, and unusually informative contextual objects.
-      // This JSON-shaped policy is kept explicit for fixture review.
-      const nearbyModalPolicy = {
-        "always_hidden": {
-          "natural": ["tree", "tree_row"],
-          "amenity": ["bench", "waste_basket"]
-        },
-        "contextual_texture": {
-          "building": [
-            "apartments", "barn", "bungalow", "commercial", "construction", "detached", "dormitory",
-            "farm", "farm_auxiliary", "garage", "garages", "greenhouse", "hangar", "house",
-            "hut", "industrial", "office", "proposed", "residential", "retail", "roof",
-            "semidetached_house", "service", "shed", "static_caravan", "terrace", "warehouse", "yes"
-          ],
-          "landuse": ["farmland", "farmyard", "forest", "grass", "meadow", "orchard", "plant_nursery"],
-          "natural": ["grassland", "heath", "scrub", "wood"]
-        },
-        "context_statuses": ["abandoned", "closed", "construction", "disused"],
-        "context_keys": [
-          "name", "name:lt", "name:en", "int_name", "official_name", "alt_name",
-          "addr:housename", "addr:housenumber", "addr:street", "addr:place",
-          "description", "description:lt", "description:en", "brand", "operator", "ref",
-          "access", "access:conditional", "foot", "foot:conditional", "wheelchair",
-          "opening_hours", "fee", "seasonal", "website", "contact:website", "phone",
-          "contact:phone", "email", "contact:email", "wikidata", "wikipedia", "heritage",
-          "emergency", "healthcare", "historic", "tourism", "amenity", "leisure",
-          "public_transport", "railway", "highway", "barrier", "drinking_water",
-          "shelter_type", "toilets", "tactile_paving", "architect", "designation", "ele",
-          "start_date", "backcountry", "dog", "hiking", "intermittent", "tent", "winter_service"
-        ]
-      };
-
-      function hasUsefulNearbyContext(properties) {
-        if (nearbyModalPolicy.context_statuses.includes(properties.status)) return true;
-        if (properties.foot_access && properties.foot_access !== "unknown") return true;
-        return nearbyModalPolicy.context_keys.some(key =>
-          properties[key] !== undefined && properties[key] !== null && properties[key] !== ""
-        );
+      function wikipediaUrl(value) {
+        const match = String(value || "").match(/^([a-z][a-z0-9-]{1,11}):(.+)$/i);
+        return match
+          ? `https://${match[1].toLowerCase()}.wikipedia.org/wiki/${encodeURIComponent(match[2].replaceAll(" ", "_"))}`
+          : undefined;
       }
 
-      function isNearbyModalCandidate(feature) {
-        const properties = feature.properties || {};
-        // Check raw source tags as well as the normalized primary category: a
-        // memorial or tourist tag must not turn an individual tree into a
-        // modal candidate merely because it won inspector classification.
-        const hiddenBySourceTag = Object.entries(nearbyModalPolicy.always_hidden)
-          .some(([key, kinds]) => kinds.includes(properties[key]));
-        if (hiddenBySourceTag) return false;
-        const alwaysHidden = nearbyModalPolicy.always_hidden[properties.category] || [];
-        // Trees stay out even when named: individual-tree details are not part
-        // of this product's nearby-information contract.
-        if (alwaysHidden.includes(properties.kind)) return false;
-        const texture = nearbyModalPolicy.contextual_texture[properties.category] || [];
-        if (texture.includes(properties.kind)) {
-          return hasUsefulNearbyContext(properties);
-        }
-        return true;
+      function wikidataUrl(value) {
+        return /^Q[1-9][0-9]*$/.test(String(value || ""))
+          ? `https://www.wikidata.org/wiki/${value}` : undefined;
+      }
+
+      // Ordinary OSM cards deliberately mirror the four search datasets in
+      // generate.py. This is an exact source-tag contract: similarly named or
+      // nearby OSM objects do not broaden it.
+      function searchDestinationService(properties) {
+        if (["cafe", "restaurant"].includes(properties.amenity) || properties.shop === "coffee") return "coffee";
+        if (properties.amenity === "hospital" || properties.healthcare === "hospital") return "hospital";
+        if (properties.shop === "supermarket") return "supermarket";
+        if (properties.amenity === "fuel") return "fuel";
+        return undefined;
+      }
+
+      function isSearchDestinationCandidate(properties) {
+        return !!searchDestinationService(properties);
+      }
+
+      const roadDirectionFactKeys = [
+        "ref", "destination", "destination:ref", "destination:street", "oneway",
+        "surface", "smoothness", "access", "foot"
+      ];
+      const roadDirectionHighways = new Set([
+        "motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link",
+        "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified",
+        "residential", "living_street", "service", "pedestrian", "track", "road",
+        "path", "footway", "cycleway", "bridleway", "steps", "corridor"
+      ]);
+
+      // Reserved for the explicit highlighted-road snap interaction. Ordinary
+      // inspection never passes this opt-in and therefore never shows a road.
+      function isRoadDirectionCandidate(properties, explicitRoadSnap = false) {
+        return explicitRoadSnap && properties.category === "transport" &&
+          roadDirectionHighways.has(properties.highway) && properties.area !== "yes" &&
+          properties.status !== "removed" && properties.status !== "proposed";
       }
 
       function mergeInspectionCandidates() {
@@ -3446,7 +3811,11 @@
         // Curated destination/place cards bypass the nearby filter. Only broad
         // inspector hits are reduced, so service destinations and their richer
         // cards can never disappear because of an OSM texture classification.
-        const nearbyOsmFeatures = inspectionOsmFeatures.filter(isNearbyModalCandidate);
+        const nearbyOsmFeatures = inspectionOsmFeatures.filter(feature => {
+          const properties = feature.properties || {};
+          return isSearchDestinationCandidate(properties) ||
+            isRoadDirectionCandidate(properties, inspectionPrefersRoad);
+        });
         [...inspectionPlaceCardFeatures, ...nearbyOsmFeatures].forEach((feature, index) => {
           const identity = osmIdentity(feature.properties) ||
             (feature.properties.place_id ? `place:${feature.properties.place_id}` : `anonymous:${index}`);
@@ -3477,15 +3846,43 @@
         parent.append(row);
       }
 
+      function meaningfulOsmFact(properties, key) {
+        if (key === "transit_modes") {
+          const modeLabels = {
+            lt: { bus: "autobusas", trolleybus: "troleibusas", tram: "tramvajus", subway: "metro", train: "traukinys", ferry: "keltas" },
+            en: { bus: "bus", trolleybus: "trolleybus", tram: "tram", subway: "subway", train: "train", ferry: "ferry" }
+          };
+          const modes = Object.keys(modeLabels.en).filter(mode =>
+            String(properties[`mode_${mode}`] ?? properties[mode] ?? "").toLowerCase() === "yes" ||
+            Number(properties[`mode_${mode}`]) === 1 || properties.primary_mode === mode
+          );
+          return modes.length ? modes.map(mode => modeLabels[lang][mode]).join(", ") : undefined;
+        }
+        const value = properties[key];
+        if (value === undefined || value === null || value === "") return undefined;
+        const normalized = String(value).trim().toLowerCase();
+        // Synthetic defaults are useful for filtering, not useful prose.
+        if (key === "status" && normalized === "active") return undefined;
+        if (key === "wheelchair" && normalized === "unknown") return undefined;
+        if (key === "official_name" && value === localizedOsmProperty(properties, "name")) return undefined;
+        if (key === "brand" || key === "operator") {
+          const primary = localizedOsmProperty(properties, "name") || properties.official_name ||
+            localizedOsmProperty(properties, "addr:housename");
+          if (!primary || value === primary || (key === "operator" && value === properties.brand)) return undefined;
+        }
+        return value;
+      }
+
       function appendOsmGroup(card, properties, titleKey, keys) {
-        const present = keys.filter(key => properties[key] !== undefined && properties[key] !== "");
+        const present = keys.map(key => [key, meaningfulOsmFact(properties, key)])
+          .filter(([_key, value]) => value !== undefined);
         if (!present.length) return;
         const heading = document.createElement("h4");
         heading.textContent = t(titleKey);
         const facts = document.createElement("div");
         facts.className = "osm-facts";
-        present.forEach(key => appendOsmFact(
-          facts, osmLabels[lang][key] || readableOsmValue(key), properties[key], key
+        present.forEach(([key, value]) => appendOsmFact(
+          facts, osmLabels[lang][key] || readableOsmValue(key), value, key
         ));
         card.append(heading, facts);
       }
@@ -3497,7 +3894,7 @@
           (!!properties.railway && !railwayCrossing);
       }
 
-      function renderOsmObject(candidate) {
+      function renderOsmObject(candidate, renderingMode = "destination") {
         const properties = candidate.feature.properties;
         const card = document.createElement("div");
         card.className = "osm-object-card";
@@ -3507,17 +3904,21 @@
         kind.className = "destination-kind";
         kind.textContent = osmCategoryLabel(properties);
         card.append(heading, kind);
-        appendOsmGroup(card, properties, "statusLabel", osmFactGroups.status);
-        appendOsmGroup(card, properties, "trailLabel", osmFactGroups.trail);
-        appendOsmGroup(card, properties, "practicalLabel", osmFactGroups.practical);
+        if (renderingMode === "road-direction") {
+          appendOsmGroup(card, properties, "trailLabel", roadDirectionFactKeys);
+        } else {
+          appendOsmGroup(card, properties, "statusLabel", osmFactGroups.status);
+          appendOsmGroup(card, properties, "practicalLabel", osmFactGroups.practical);
+        }
 
         const address = [
-          [properties["addr:street"], properties["addr:housenumber"]].filter(Boolean).join(" "),
+          [properties["addr:street"] || properties["addr:place"], properties["addr:housenumber"]]
+            .filter(Boolean).join(" "),
           properties["addr:city"], properties["addr:postcode"]
         ].filter(Boolean).join(", ");
         const phone = properties.phone || properties["contact:phone"];
         const email = properties.email || properties["contact:email"];
-        if (address || phone || email) {
+        if (renderingMode !== "road-direction" && (address || phone || email)) {
           const title = document.createElement("h4");
           title.textContent = t("contactLabel");
           const facts = document.createElement("div");
@@ -3527,27 +3928,21 @@
           appendOsmFact(facts, t("email"), email);
           card.append(title, facts);
         }
-        if (hasTransitTimetableCaveat(properties)) {
+        if (renderingMode !== "road-direction" && hasTransitTimetableCaveat(properties)) {
           const caveat = document.createElement("p");
           caveat.className = "destination-kind";
           caveat.textContent = t("transitCaveat");
           card.append(caveat);
         }
 
-        const used = new Set(Object.values(osmFactGroups).flat());
-        ["name", "name:lt", "name:en", "description", "description:lt", "description:en"].forEach(key => used.add(key));
-        const moreKeys = Object.keys(properties).filter(key =>
-          !used.has(key) && !osmInternalProperties.has(key) && properties[key] !== ""
-        ).sort();
         const description = localizedOsmProperty(properties, "description");
-        if (description || moreKeys.length) {
+        if (description) {
           const details = document.createElement("details");
           details.className = "osm-object-more";
           const summary = document.createElement("summary");
           summary.textContent = t("moreInformation");
           details.append(summary);
           if (description) appendOsmFact(details, osmLabels[lang].description, description);
-          moreKeys.forEach(key => appendOsmFact(details, osmLabels[lang][key] || readableOsmValue(key), properties[key]));
           card.append(details);
         }
 
@@ -3565,7 +3960,10 @@
           links.append(link);
         };
         addLink(osmUrl(osmIdentity(properties)), t("openInOsm"));
-        addLink(safeExternalUrl(properties.website || properties["contact:website"]), t("website"));
+        addLink([properties.website, properties["contact:website"]]
+          .map(safeExternalUrl).find(Boolean), t("website"));
+        addLink(wikipediaUrl(properties.wikipedia), t("wikipedia"));
+        addLink(wikidataUrl(properties.wikidata), t("wikidata"));
         if (phone && /^[+0-9(). -]{3,}$/.test(phone)) {
           addLink(`tel:${phone.replaceAll(/[^+0-9]/g, "")}`, `${t("phone")}: ${phone}`);
         }
@@ -3667,7 +4065,10 @@
           });
           section.append(choices);
         }
-        section.append(renderOsmObject(active));
+        const renderingMode = inspectionPrefersRoad &&
+          isRoadDirectionCandidate(active.feature.properties, true)
+          ? "road-direction" : "destination";
+        section.append(renderOsmObject(active, renderingMode));
         root.append(section);
       }
 
@@ -3781,6 +4182,54 @@
         results.setAttribute("aria-busy", "false");
         const dialog = document.getElementById("location-dialog");
         if (!dialog.open) dialog.showModal();
+      }
+
+      function commitArbitraryInspection(lngLat, sequence, preferRoad) {
+        inspectionPending = false;
+        inspectionPrefersRoad = preferRoad;
+        inspectLocation(lngLat, true, sequence);
+        lookupInspector(lngLat, sequence, false);
+      }
+
+      function inspectRoadAtRawResolution(literalLngLat, initialHit, sequence, coarse) {
+        const rawZoom = metadata.access_network.max_data_zoom;
+        if (map.getZoom() >= rawZoom) {
+          commitArbitraryInspection(initialHit.lngLat, sequence, true);
+          return;
+        }
+
+        // z6–13 access lines are an intentionally generalized grid skeleton.
+        // They are good enough to recognize the user's road intent, but not
+        // to become a shareable/routable coordinate. A loading shell gives
+        // immediate feedback without placing a marker or writing the hash.
+        const startZoom = map.getZoom();
+        const policy = roadSnapPolicy[coarse ? "coarse" : "fine"];
+        const resnapTolerance = Math.min(
+          policy.resnap_max_px,
+          initialHit.tolerance * (2 ** (rawZoom - startZoom))
+        );
+        inspectionOrigin = undefined;
+        inspectionPending = true;
+        renderCatalogLoading();
+        document.getElementById("map-status").textContent = t("zoomingIn");
+        map.once("idle", () => {
+          if (sequence !== inspectSequence) return;
+          const rawHit = accessRoadOriginAt(map.project(literalLngLat), {
+            coarse,
+            tolerance_px: resnapTolerance
+          });
+          // `g` is only a shared reachability-attribute bucket, never road
+          // identity. Compare every painted raw edge near the literal tap; if
+          // none wins unambiguously, preserve the literal coordinate.
+          const resolved = rawHit?.lngLat || literalLngLat;
+          commitArbitraryInspection(resolved, sequence, !!rawHit);
+        });
+        map.easeTo({
+          center: literalLngLat,
+          zoom: rawZoom,
+          offset: inspectionOffset(),
+          duration: 450
+        });
       }
 
       function inspectLocation(lngLat, updateHash = true, sequence = ++inspectSequence) {
@@ -3917,7 +4366,35 @@
       // coordinates; an ordinary map click remains an exact #at inspection.
       const dotHitPadding = coarsePointerMedia.matches ? 14 : 9;
 
+      function serviceIconFeaturesAt(point) {
+        if (map.getZoom() < 16 || !map.getLayer(serviceIconLayerId)) return [];
+        const edgePadding = coarsePointerMedia.matches ? 3 : 2;
+        const options = { layers: [serviceIconLayerId] };
+        // Query the painted silhouette first. The tiny fallback box catches
+        // its antialiased outer edge without inheriting the much larger dot
+        // affordance used at z14–15.
+        const exact = map.queryRenderedFeatures(point, options);
+        const features = exact.length ? exact : map.queryRenderedFeatures([
+          [point.x - edgePadding, point.y - edgePadding],
+          [point.x + edgePadding, point.y + edgePadding]
+        ], options);
+        const distance = feature => {
+          const projected = map.project(feature.geometry.coordinates);
+          return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
+        };
+        return dedupeFeatures(features.sort((left, right) =>
+          (serviceIconPriority[right.properties.service] ?? 0) -
+            (serviceIconPriority[left.properties.service] ?? 0) ||
+          distance(left) - distance(right)
+        )).slice(0, 1);
+      }
+
       function markerFeaturesAt(point) {
+        // At z16+ the top-painted category silhouette is the interaction
+        // target. This prevents a hidden collocated circle from opening a
+        // different service than the icon under the pointer.
+        const iconFeatures = serviceIconFeaturesAt(point);
+        if (iconFeatures.length) return iconFeatures;
         const layers = placeLayerIds.filter(id => map.getLayer(id));
         if (!layers.length) return [];
         const features = map.queryRenderedFeatures([
@@ -3934,25 +4411,39 @@
           .slice(0, 1);
       }
 
-      function pointSegmentDistance(point, left, right) {
+      function closestPointOnSegment(point, left, right) {
         const dx = right.x - left.x;
         const dy = right.y - left.y;
-        if (dx === 0 && dy === 0) return Math.hypot(point.x - left.x, point.y - left.y);
-        const position = Math.max(0, Math.min(1,
-          ((point.x - left.x) * dx + (point.y - left.y) * dy) / (dx * dx + dy * dy)
+        const denominator = dx * dx + dy * dy;
+        const position = denominator === 0 ? 0 : Math.max(0, Math.min(1,
+          ((point.x - left.x) * dx + (point.y - left.y) * dy) / denominator
         ));
-        return Math.hypot(point.x - (left.x + position * dx), point.y - (left.y + position * dy));
+        const projected = {
+          x: left.x + position * dx,
+          y: left.y + position * dy
+        };
+        const length = Math.sqrt(denominator);
+        return {
+          distance: Math.hypot(point.x - projected.x, point.y - projected.y),
+          projected,
+          direction: length ? { x: dx / length, y: dy / length } : { x: 0, y: 0 }
+        };
       }
 
-      function lineFeatureDistance(point, geometry) {
-        let best = Infinity;
+      function pointSegmentDistance(point, left, right) {
+        return closestPointOnSegment(point, left, right).distance;
+      }
+
+      function closestPointOnLineFeature(point, geometry) {
+        let best = { distance: Infinity };
         const visit = coordinates => {
           if (!Array.isArray(coordinates) || !coordinates.length) return;
           if (Array.isArray(coordinates[0]) && typeof coordinates[0][0] === "number") {
             for (let index = 1; index < coordinates.length; index += 1) {
-              best = Math.min(best, pointSegmentDistance(
+              const candidate = closestPointOnSegment(
                 point, map.project(coordinates[index - 1]), map.project(coordinates[index])
-              ));
+              );
+              if (candidate.distance < best.distance) best = candidate;
             }
             return;
           }
@@ -3962,7 +4453,105 @@
         return best;
       }
 
-      function inspectorFeaturesAt(lngLat) {
+      function lineFeatureDistance(point, geometry) {
+        return closestPointOnLineFeature(point, geometry).distance;
+      }
+
+      function nonTransparent(color) {
+        return !!color && color !== "rgba(0,0,0,0)";
+      }
+
+      function accessFeatureIsPainted(feature) {
+        const state = lastGroupStates && lastGroupStates[feature.id];
+        if (!state) return false;
+        if (feature.layer.id === "access-main") return nonTransparent(state.mc);
+        // A meets-all segment exists in both intersection layers. Ignore its
+        // underlay copy so it cannot manufacture an ambiguous tie with itself.
+        return nonTransparent(state.uc) && !nonTransparent(state.mc);
+      }
+
+      function activeCorridorMode() {
+        const selections = selectionDetails();
+        if (!selections.length) return undefined;
+        return selections.length === 1
+          ? selections[0].preset.mode
+          : combinedCorridorMode(selections);
+      }
+
+      function semanticFeatureAt(point) {
+        // Exact rendered destinations are resolved before this function.
+        // Protect the rest of the deliberately visible semantic foreground
+        // (detail icons/text) from a nearby road's forgiving hit box. The lean
+        // basemap owns no POI layer, so details are the only foreground here.
+        const layers = map.getStyle().layers.filter(layer =>
+          map.getLayer(layer.id) && layer.source === "details" &&
+            ["symbol", "circle"].includes(layer.type)
+        ).map(layer => layer.id);
+        return layers.length > 0 && map.queryRenderedFeatures(point, { layers }).length > 0;
+      }
+
+      function interactionIsCoarse(originalEvent) {
+        if (originalEvent?.pointerType) {
+          return originalEvent.pointerType === "touch" || originalEvent.pointerType === "pen";
+        }
+        if (originalEvent?.sourceCapabilities?.firesTouchEvents === true) return true;
+        if (recentPointerModality &&
+            performance.now() - recentPointerModality.capturedAt <= pointerModalityMaxAgeMs) {
+          return recentPointerModality.coarse;
+        }
+        return coarsePointerMedia.matches;
+      }
+
+      function accessRoadOriginAt(point, options = {}) {
+        const corridorMode = activeCorridorMode();
+        if (!corridorMode) return undefined;
+        const policy = roadSnapPolicy[options.coarse ? "coarse" : "fine"];
+        const paintedWidth = corridorLineWidthAtZoom(corridorMode, map.getZoom());
+        const ordinaryTolerance = Math.min(
+          policy.max_px, paintedWidth / 2 + policy.off_ink_px
+        );
+        const tolerance = options.tolerance_px === undefined
+          ? ordinaryTolerance
+          : Math.min(policy.resnap_max_px, Math.max(ordinaryTolerance, options.tolerance_px));
+        const layers = accessLayerIds.filter(id => map.getLayer(id));
+        if (!layers.length) return undefined;
+        const box = [
+          [point.x - tolerance, point.y - tolerance],
+          [point.x + tolerance, point.y + tolerance]
+        ];
+        const candidates = map.queryRenderedFeatures(box, { layers })
+          .filter(accessFeatureIsPainted)
+          .map(feature => ({
+            ...closestPointOnLineFeature(point, feature.geometry),
+            key: `${feature.id}:${JSON.stringify(feature.geometry.coordinates)}`
+          }))
+          .filter(candidate => candidate.distance <= tolerance)
+          .sort((left, right) => left.distance - right.distance || left.key.localeCompare(right.key));
+        if (!candidates.length) return undefined;
+        const nearest = candidates[0];
+        // Tile-buffer copies and collinear pieces meeting at a vertex are one
+        // apparent road. A separated closest point or a materially different
+        // tangent denotes a genuinely competing road/intersection.
+        const ambiguous = candidates.slice(1).some(candidate => {
+          if (candidate.distance - nearest.distance > policy.ambiguity_px) return false;
+          const separation = Math.hypot(
+            candidate.projected.x - nearest.projected.x,
+            candidate.projected.y - nearest.projected.y
+          );
+          const cross = Math.abs(
+            candidate.direction.x * nearest.direction.y -
+            candidate.direction.y * nearest.direction.x
+          );
+          return separation > 1 || cross > 0.2;
+        });
+        return ambiguous ? undefined : {
+          lngLat: map.unproject(nearest.projected),
+          distance: nearest.distance,
+          tolerance
+        };
+      }
+
+      function inspectorFeaturesAt(lngLat, preferRoad = false) {
         const point = map.project(lngLat);
         const pointPadding = coarsePointerMedia.matches ? 20 : 12;
         const linePadding = coarsePointerMedia.matches ? 14 : 8;
@@ -3981,12 +4570,13 @@
             return { ...feature, _inspectorPriority: Math.hypot(projected.x - point.x, projected.y - point.y) };
           })
           .filter(feature => feature._inspectorPriority <= pointPadding);
-        const lineLayers = ["inspector-hit-lines", "inspector-hit-routes"];
+        const lineLayers = ["inspector-hit-lines"];
         const lines = map.queryRenderedFeatures(box(linePadding), { layers: lineLayers })
           .map(feature => {
             const distance = lineFeatureDistance(point, feature.geometry);
-            const routePenalty = feature.layer.id === "inspector-hit-routes" ? 140 : 100;
-            return { ...feature, _inspectorDistance: distance, _inspectorPriority: routePenalty + distance };
+            const isRoad = isRoadDirectionCandidate(feature.properties, preferRoad);
+            const linePriority = isRoad ? -100 : 100;
+            return { ...feature, _inspectorDistance: distance, _inspectorPriority: linePriority + distance };
           })
           .filter(feature => feature._inspectorDistance <= linePadding);
         const merged = new Map();
@@ -4039,8 +4629,12 @@
           if (sequence !== inspectSequence || lookupSequence !== inspectorLookupSequence ||
               lookupSequence !== activeInspectorLookupSequence) return;
           activeInspectorLookupSequence = undefined;
-          inspectionOsmFeatures = inspectorFeaturesAt(lngLat);
+          inspectionOsmFeatures = inspectorFeaturesAt(lngLat, inspectionPrefersRoad);
           inspectionOsmQueried = true;
+          if (inspectionPrefersRoad && !inspectionOsmFeatures.some(feature =>
+            isRoadDirectionCandidate(feature.properties, true) &&
+            (!requestedInspectionOsmId || osmIdentity(feature.properties) === requestedInspectionOsmId)
+          )) inspectionPrefersRoad = false;
           inspectionOsmLoading = false;
           setLayerVisibility(inspectorHitLayerIds, false);
           renderClickedPlaces();
@@ -4105,6 +4699,7 @@
         inspectionOsmQueried = false;
         inspectionPlaceCardFeatures = [];
         inspectionPending = false;
+        inspectionPrefersRoad = false;
         inspectSequence += 1;
         invalidateInspectorLookup();
         locationMarker?.remove();
@@ -4117,6 +4712,10 @@
       }
 
       function applyLocationHash() {
+        // A shared coordinate is literal. Road preference is restored only
+        // from the validated inspect=road contract emitted by a snapped-road
+        // selection; it is never inferred from an arbitrary nearby way.
+        inspectionPrefersRoad = false;
         const parameters = new URLSearchParams(location.hash.slice(1));
         const atValue = parameters.get("at");
         const placeValue = parameters.get("place");
@@ -4132,6 +4731,7 @@
           let sharedOsm;
           try {
             sharedOsm = parseSharedOsm(parameters);
+            parseSharedInspectionIntent(parameters, sharedOsm, "place");
             applySharedInspectionFilters(parameters);
           } catch (error) {
             rejectSharedInspection(error);
@@ -4190,8 +4790,10 @@
             return;
           }
           let sharedOsm;
+          let sharedRoadIntent;
           try {
             sharedOsm = parseSharedOsm(parameters);
+            sharedRoadIntent = parseSharedInspectionIntent(parameters, sharedOsm, "at");
             applySharedInspectionFilters(parameters);
           } catch (error) {
             rejectSharedInspection(error);
@@ -4213,6 +4815,7 @@
           inspectionOsmQueried = false;
           inspectionPlaceCardFeatures = [];
           inspectionPending = false;
+          inspectionPrefersRoad = sharedRoadIntent;
           refreshMap();
           inspectionOrigin = lngLat;
           renderInspectionLoading(inspectionOrigin, true);
@@ -4224,6 +4827,7 @@
         // at= path.
         try {
           const sharedOsm = parseSharedOsm(parameters);
+          parseSharedInspectionIntent(parameters, sharedOsm, "view");
           if (sharedOsm) throw new Error(t("errInvalidOsm", sharedOsm));
           const sharedMode = parseSharedViewMode(parameters);
           const sharedLang = parseSharedLang(parameters);
@@ -4380,6 +4984,7 @@
           inspectionOsmQueried = false;
           inspectionPlaceCardFeatures = [];
           inspectionPending = false;
+          inspectionPrefersRoad = false;
           inspectSequence += 1;
           invalidateInspectorLookup();
           locationMarker?.remove();
@@ -4413,11 +5018,20 @@
             inspectionOsmQueried = false;
             inspectionPlaceCardFeatures = [];
             inspectionPending = false;
+            inspectionPrefersRoad = false;
+            const coarse = interactionIsCoarse(event.originalEvent);
+            const roadHit = semanticFeatureAt(event.point)
+              ? undefined
+              : accessRoadOriginAt(event.point, { coarse });
             const sequence = ++inspectSequence;
-            inspectLocation(event.lngLat, true, sequence);
-            lookupInspector(event.lngLat, sequence, false);
+            if (roadHit) {
+              inspectRoadAtRawResolution(event.lngLat, roadHit, sequence, coarse);
+            } else {
+              commitArbitraryInspection(event.lngLat, sequence, false);
+            }
             return;
           }
+          inspectionPrefersRoad = false;
           inspectPlaceMarker(markerFeature);
         });
         // Fine-pointer cursor affordances: the default pan hand on plain
@@ -4436,14 +5050,10 @@
         // painted (non-transparent) in one of the access layers, the L3
         // equivalent of the old per-view visibility + reachable setFilter.
         if (hoverMedia.matches) {
-          const groupRendered = group => {
-            const state = lastGroupStates && lastGroupStates[group];
-            return !!state && (state.uc !== "rgba(0,0,0,0)" || state.mc !== "rgba(0,0,0,0)");
-          };
           const overRenderedSegment = point => {
             const layers = accessLayerIds.filter(id => map.getLayer(id));
             return layers.length > 0 &&
-              map.queryRenderedFeatures(point, { layers }).some(feature => groupRendered(feature.id));
+              map.queryRenderedFeatures(point, { layers }).some(accessFeatureIsPainted);
           };
           let hoverPoint;
           let hoverScheduled = false;

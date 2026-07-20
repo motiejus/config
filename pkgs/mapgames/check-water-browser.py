@@ -28,7 +28,14 @@ class Page:
         self.serial = 0
         self.call("Page.enable")
         self.call("Page.navigate", {"url": url})
-        self.wait_for("globalThis.map?.isStyleLoaded() && !!map.getLayer('detail-water-badge')")
+        # A top-level `const map` lives in the page's global lexical scope,
+        # not as a mutable `globalThis.map` property. DevTools evaluation can
+        # read that binding directly; do not make production map state public
+        # merely to support this manual contract test.
+        self.wait_for(
+            "typeof map !== 'undefined' && map.isStyleLoaded() && "
+            "!!map.getLayer('detail-water-badge')"
+        )
 
     def call(self, method: str, params=None):
         self.serial += 1

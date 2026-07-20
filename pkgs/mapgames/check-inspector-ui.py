@@ -21,7 +21,7 @@ def main() -> None:
     # until an explicit native-zoom lookup.
     require(source, 'url: `pmtiles://${new URL(inspector.file, location.href).href}`',
             "inspector PMTiles source is missing")
-    assert source.count('id: "inspector-hit-') == 4, "expected four geometry-specific hit layers"
+    assert source.count('id: "inspector-hit-') == 3, "expected three geometry-specific hit layers"
     inspector_layers = source[source.index("function ensureInspectorLayers"):
                               source.index("function addPlaceLayers")]
     assert inspector_layers.count('layout: { visibility: "none" }') == 1
@@ -86,6 +86,12 @@ def main() -> None:
     require(source, ": `place=${encodeURIComponent(inspectionPlaceId)}`",
             "legacy place hashes are no longer preserved")
     require(source, "${langParam()}${osmParam()}", "osm selection is missing from inspect hashes")
+    intent = source[source.index("function parseSharedInspectionIntent"):
+                    source.index("function inspectionHash")]
+    require(intent, 'intent !== "road" || originKind !== "at" || !sharedOsm?.startsWith("w")',
+            "shared road intent is not constrained to an at= way selection")
+    require(intent, 'return selectedRoad || restoringSelectedRoad ? "&inspect=road" : "";',
+            "validated road direction intent does not survive a hash round trip")
     require(source, "centerSharedInspection(inspectionOrigin, sequence, !!sharedOsm)",
             "explicit OSM restores do not request inspector zoom")
 
@@ -150,8 +156,12 @@ def main() -> None:
         assert normalized_tables.count(f'{value}:') == 2, f"missing bilingual normalized value: {value}"
     require(source, 'const category = osmCategoryLabels[lang][value] || t("osmObject");',
             "unknown categories expose raw schema values")
-    require(source, '(osmKindLabels[lang][properties.kind] || readableOsmValue(properties.kind))',
-            "named inspector objects hide their specific OSM kind")
+    require(source, "const kind = localizedOsmKind(properties.kind);",
+            "named inspector objects hide their localized specific OSM kind")
+    require(source, "return kindLabelTables[lang][kind] || osmKindLabels[lang][kind] ||",
+            "search destination subtypes lack the same localized fallback as catalog cards")
+    require(source, 'coffee_shop: "Kavos parduotuvė"',
+            "Lithuanian fallback collapses a coffee shop into a generic cafe")
     for kind in ("crossing", "level_crossing", "protected_area", "riverbank"):
         assert source.count(f'{kind}:') >= 2, f"missing bilingual inspector kind: {kind}"
     require(source, 'const railwayCrossing = ["crossing", "level_crossing"].includes(properties.railway);',
@@ -161,92 +171,52 @@ def main() -> None:
     require(source, '(!!properties.railway && !railwayCrossing)',
             "railway crossings still receive the timetable caveat")
 
-    # Broad inspector tiles keep clickable geometry, while the nearby modal
-    # removes only known map texture. The policy is deliberately data-shaped
-    # so additions receive an explicit taxonomy review.
-    policy_match = re.search(
-        r"const nearbyModalPolicy = (\{.*?\n      \});", source, re.DOTALL
-    )
-    assert policy_match, "nearby modal policy must remain explicit and machine-readable"
-    policy = json.loads(policy_match.group(1))
-    assert policy["always_hidden"] == {
-        "natural": ["tree", "tree_row"],
-        "amenity": ["bench", "waste_basket"],
-    }
-    assert policy["contextual_texture"] == {
-        "building": [
-            "apartments", "barn", "bungalow", "commercial", "construction", "detached", "dormitory",
-            "farm", "farm_auxiliary", "garage", "garages", "greenhouse", "hangar", "house",
-            "hut", "industrial", "office", "proposed", "residential", "retail", "roof",
-            "semidetached_house", "service", "shed", "static_caravan", "terrace", "warehouse", "yes",
-        ],
-        "landuse": ["farmland", "farmyard", "forest", "grass", "meadow", "orchard", "plant_nursery"],
-        "natural": ["grassland", "heath", "scrub", "wood"],
-    }
-    assert policy["context_statuses"] == ["abandoned", "closed", "construction", "disused"]
-    assert not ({"transit", "crossing", "barrier", "emergency", "transport", "address", "leisure"}
-                & set(policy["contextual_texture"])), "useful modal categories became texture"
-    context_keys = set(policy["context_keys"])
-    for key in (
-        "name", "addr:housenumber", "access", "foot:conditional", "wheelchair",
-        "emergency", "public_transport", "railway", "drinking_water", "tactile_paving",
+    # Ordinary cards exactly mirror generate.py's four search predicates.
+    destination_predicate = source[source.index("function searchDestinationService"):
+                                   source.index("function isSearchDestinationCandidate")]
+    for fragment in (
+        '["cafe", "restaurant"].includes(properties.amenity)',
+        'properties.shop === "coffee"', 'properties.amenity === "hospital"',
+        'properties.healthcare === "hospital"', 'properties.shop === "supermarket"',
+        'properties.amenity === "fuel"',
     ):
-        assert key in context_keys, f"nearby context loses useful key {key}"
-    require(source, "inspectionOsmFeatures.filter(isNearbyModalCandidate)",
-            "broad inspector hits are not filtered before modal rendering")
+        assert fragment in destination_predicate
+    candidate_predicate = source[source.index("function isSearchDestinationCandidate"):
+                                 source.index("const roadDirectionFactKeys")]
+    assert "status" not in candidate_predicate, (
+        "a generated search destination is rejected because of lifecycle metadata"
+    )
+    merge = source[source.index("function mergeInspectionCandidates"):
+                   source.index("function appendOsmFact")]
+    require(merge, "isSearchDestinationCandidate(properties)",
+            "ordinary inspection is not restricted to search destinations")
+    require(merge, "isRoadDirectionCandidate(properties, inspectionPrefersRoad)",
+            "explicit road snaps cannot retain a direction candidate")
+    require(source, "function isRoadDirectionCandidate(properties, explicitRoadSnap = false)",
+            "explicit road-snap integration predicate is missing")
+    road_guard = source[source.index("const roadDirectionHighways"):
+                        source.index("function mergeInspectionCandidates")]
+    for highway in ("residential", "service", "track", "path", "footway", "steps"):
+        assert f'"{highway}"' in road_guard
+    for nonroad in ("platform", "rest_area", "services"):
+        assert f'"{nonroad}"' not in road_guard
+    require(road_guard, 'properties.area !== "yes"', "area highways can become direction cards")
+    require(source, 'renderingMode === "road-direction"',
+            "road direction facts have no explicitly scoped renderer mode")
+    for fact in ("oneway", "destination", "destination:ref", "destination:street", "surface", "foot"):
+        assert fact in source[source.index("const roadDirectionFactKeys"):
+                              source.index("function isRoadDirectionCandidate")]
     require(source, "[...inspectionPlaceCardFeatures, ...nearbyOsmFeatures]",
-            "curated place and destination cards are accidentally filtered")
-    require(source, "if (nearbyModalPolicy.context_statuses.includes(properties.status)) return true;",
-            "non-active contextual hazards are hidden")
-    require(source, 'if (properties.foot_access && properties.foot_access !== "unknown") return true;',
-            "access-relevant contextual features are hidden")
-    require(source, ".some(([key, kinds]) => kinds.includes(properties[key]))",
-            "a secondary tag can make individual trees or benches escape filtering")
-    assert source.index("if (hiddenBySourceTag) return false;") < source.index(
-        "if (alwaysHidden.includes(properties.kind)) return false;"
-    ), "raw tree/bench tags are checked after normalized classification"
-    assert source.index("if (alwaysHidden.includes(properties.kind)) return false;") < source.index(
-        'return hasUsefulNearbyContext(properties);'
-    ), "named trees or benches can escape the unconditional suppression rule"
-
-    def nearby_candidate(properties: dict) -> bool:
-        hidden_by_source = any(
-            properties.get(key) in kinds
-            for key, kinds in policy["always_hidden"].items()
-        )
-        if hidden_by_source:
-            return False
-        if properties.get("kind") in policy["always_hidden"].get(
-            properties.get("category"), []
-        ):
-            return False
-        texture = policy["contextual_texture"].get(properties.get("category"), [])
-        if properties.get("kind") not in texture:
-            return True
-        if properties.get("status") in policy["context_statuses"]:
-            return True
-        if properties.get("foot_access") not in (None, "", "unknown"):
-            return True
-        return any(properties.get(key) not in (None, "") for key in context_keys)
-
-    cases = [
-        ({"category": "natural", "kind": "tree", "name": "Named tree"}, False),
-        ({"category": "historic", "kind": "memorial", "natural": "tree"}, False),
-        ({"category": "amenity", "kind": "bench", "status": "disused"}, False),
-        ({"category": "leisure", "kind": "playground"}, True),
-        ({"category": "emergency", "kind": "defibrillator"}, True),
-        ({"category": "transit", "kind": "platform"}, True),
-        ({"category": "amenity", "kind": "drinking_water"}, True),
-        ({"category": "natural", "kind": "stone"}, True),
-        ({"category": "building", "kind": "commercial"}, False),
-        ({"category": "building", "kind": "commercial", "name": "Arcade"}, True),
-        ({"category": "natural", "kind": "wood", "foot_access": "restricted"}, True),
-        ({"category": "landuse", "kind": "farmland", "status": "active"}, False),
-    ]
-    for properties, expected in cases:
-        assert nearby_candidate(properties) is expected, (
-            f"unexpected nearby policy for {properties}: wanted {expected}"
-        )
+            "curated place cards are accidentally filtered")
+    rendered = source[source.index("function renderClickedPlaces"):
+                      source.index("function destinationRecordsForRequirements")]
+    require(rendered, "inspectionPrefersRoad &&",
+            "ordinary and snapped modal rendering do not have separate state")
+    require(rendered, 'isRoadDirectionCandidate(active.feature.properties, true)',
+            "road-only facts are not gated on the active explicit road candidate")
+    require(rendered, '? "road-direction" : "destination";',
+            "ordinary service cards can use the road-only renderer")
+    assert "nearbyModalPolicy" not in source and "isNearbyModalCandidate" not in source
 
     print("inspector UI contract passed")
 

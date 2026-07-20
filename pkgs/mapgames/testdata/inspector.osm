@@ -120,8 +120,24 @@
     <tag k="disused:railway" v="level_crossing"/>
     <tag k="crossing:signals" v="yes"/>
   </node>
+  <node id="133" lat="55.0086" lon="25.0096" version="1">
+    <tag k="public_transport" v="platform"/>
+    <tag k="bus" v="yes"/>
+    <tag k="trolleybus" v="yes"/>
+    <tag k="tram" v="no"/>
+  </node>
 
   <!-- Explicit negatives guard against accidental whole-key admission. -->
+  <node id="140" lat="55.0090" lon="25.0010" version="1"><tag k="amenity" v="restaurant"/><tag k="name" v="Restaurant"/></node>
+  <node id="141" lat="55.0092" lon="25.0012" version="1"><tag k="shop" v="coffee"/><tag k="name" v="Coffee shop"/></node>
+  <node id="142" lat="55.0094" lon="25.0014" version="1"><tag k="amenity" v="hospital"/><tag k="name" v="Hospital"/></node>
+  <node id="143" lat="55.0096" lon="25.0016" version="1"><tag k="healthcare" v="hospital"/><tag k="name" v="Healthcare hospital"/></node>
+  <node id="144" lat="55.0098" lon="25.0018" version="1"><tag k="shop" v="supermarket"/><tag k="name" v="Supermarket"/></node>
+  <node id="145" lat="55.0100" lon="25.0020" version="1"><tag k="amenity" v="fuel"/><tag k="name" v="Fuel"/></node>
+  <node id="146" lat="55.0102" lon="25.0022" version="1"><tag k="shop" v="cafe"/></node>
+  <node id="147" lat="55.0104" lon="25.0024" version="1"><tag k="amenity" v="coffee"/></node>
+  <node id="148" lat="55.0106" lon="25.0026" version="1"><tag k="amenity" v="clinic"/></node>
+  <node id="149" lat="55.0108" lon="25.0028" version="1"><tag k="shop" v="convenience"/></node>
   <node id="190" lat="55.0070" lon="25.0070" version="1"><tag k="shop" v="unsupported_fixture_value"/></node>
   <node id="191" lat="55.0072" lon="25.0072" version="1"><tag k="disused:shop" v="unsupported_fixture_value"/></node>
   <node id="192" lat="55.0074" lon="25.0074" version="1"><tag k="boundary" v="administrative"/></node>
@@ -145,6 +161,10 @@
     <tag k="surface" v="ground"/>
     <tag k="tracktype" v="grade2"/>
     <tag k="trail_visibility" v="intermediate"/>
+    <tag k="oneway" v="yes"/>
+    <tag k="destination" v="Old town"/>
+    <tag k="destination:ref" v="A1"/>
+    <tag k="destination:street" v="Main Street"/>
   </way>
 
   <node id="211" lat="55.0080" lon="25.0000" version="1"/>
@@ -173,6 +193,36 @@
     <nd ref="231"/><nd ref="233"/>
     <tag k="highway" v="steps"/>
     <tag k="step_count" v="87"/>
+  </way>
+  <way id="309" version="1">
+    <nd ref="231"/><nd ref="232"/>
+    <tag k="amenity" v="cafe"/>
+  </way>
+  <way id="310" version="1">
+    <nd ref="232"/><nd ref="233"/>
+    <tag k="highway" v="disused"/>
+  </way>
+  <way id="311" version="1">
+    <nd ref="231"/><nd ref="233"/>
+    <tag k="highway" v="residential"/>
+    <tag k="removed" v="yes"/>
+  </way>
+  <way id="312" version="1">
+    <nd ref="231"/><nd ref="232"/>
+    <tag k="highway" v="platform"/>
+  </way>
+  <way id="313" version="1">
+    <nd ref="232"/><nd ref="233"/>
+    <tag k="highway" v="rest_area"/>
+  </way>
+  <way id="314" version="1">
+    <nd ref="231"/><nd ref="233"/>
+    <tag k="highway" v="future_unknown_value"/>
+  </way>
+  <way id="315" version="1">
+    <nd ref="241"/><nd ref="242"/><nd ref="243"/><nd ref="244"/><nd ref="241"/>
+    <tag k="highway" v="residential"/>
+    <tag k="area" v="yes"/>
   </way>
 
   <!-- Protected boundaries are useful in the modal without a visible overlay. -->

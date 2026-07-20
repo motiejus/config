@@ -18,7 +18,7 @@ the visible tile byte ranges with HTTP Range requests.
 | `lithuania.pmtiles` | OSM basemap | z4–14 | Source is created at startup; current viewport tiles are read immediately; z15–18 overzoom z14 |
 | `access.pmtiles` | One edge-attributed reachable network for every service/mode/threshold | z6–14 | Source is created at startup; visible viewport tiles are read from z6; z15–18 overzoom z14 |
 | `details.pmtiles` | Curated labels and markers for ordinary map reading, including dedicated potable-water and high-zoom street-detail layers | z15–16 | Source is created at startup; tile payload begins at z15; z17–18 overzoom z16 |
-| `inspector.pmtiles` | Broad OSM geometry and selected useful tags for the click modal | z15–16 | Source does not exist until an explicit inspection at z15+; z17–18 overzoom z16 |
+| `inspector.pmtiles` | Configured coffee/hospital/supermarket/fuel matches plus road-direction geometry | z15–16 | Lazy at z15+; road lines are reserved for explicit highlighted-road snapping |
 | `places.pmtiles` | Point markers for configured service destinations | z14 only | Source is created at startup; enabled-service tiles begin at z14 and overzoom above it |
 | `place-catalog.json` | Compact original coordinates and human-facing fields for service destinations | — | Lazy: fetched only when an inspection needs named destination records or a shared `#place` is restored |
 | `destinations-<service>-<mode>.pmtiles` | Invisible hit corridors mapping a clicked reachable edge to destination catalog indexes | z12–14 | Sources are registered at startup but layers remain hidden; selected layers read tiles only while evaluating a click at z12+; z15–18 overzoom z14 |
@@ -42,7 +42,6 @@ meaningful with the `access.pmtiles` and metadata from the same output.
 | `landuse` | z9–14 | detailed land use |
 | `infrastructure` | z11–14 | selected named infrastructure |
 | `buildings` | z13–14 | building footprints |
-| `pois` | z14 | the small basemap POI subset |
 
 ### Access and destination lookup
 
@@ -84,21 +83,34 @@ coverage rendering.
 | `poi_details` | z15–16 | named everyday POIs and all playgrounds, classified and tiered |
 | `transit_details` | z15–16 | canonical public-transport stops/stations, primary and per-mode flags, distinct `mode_count`, refs and tiers |
 | `water_details` | z15–16 | verified potable-water points, with persistent marker from z15 and H₂O badge from z16 |
-| `micro_details` | z16 | other curated walking-scale utilities such as toilets, AEDs, shelters and information |
-| `street_details` | z16 | bench points revealed from z17 and individual-tree points revealed at z18 |
+| `micro_details` | z16 | other curated walking-scale utilities such as toilets, AEDs, shelters and information; shape-first pictograms appear at z18 |
+| `street_details` | z16 | bench points revealed from z17 and individual-tree points revealed at z18; these are the sole owners of those icons |
 
 `display_tier` is a presentation decision, not necessarily a native tile
 zoom. A z17 or z18 feature is encoded in a real z16 tile and revealed only at
-that display zoom. The client deliberately keeps this archive narrower than
-the inspector: map ink is curated; the modal is liberal.
+that display zoom. The inspector is separately narrow interaction data, not a
+general OSM tag browser.
 
 ### OSM inspector
 
-`inspector.pmtiles` contains `inspect_points`, `inspect_lines`,
-`inspect_areas`, and `hiking_routes`, all at z15–16. It preserves exact OSM
-object identity plus a sparse allowlist of practical, access, lifecycle,
-outdoor, civic, business, tourism, and contact tags. It is intentionally the
-largest high-zoom archive and intentionally lazy.
+`inspector.pmtiles` contains `inspect_points`, `inspect_lines`, and
+`inspect_areas` at z15–16. Points and areas match exactly the four search
+families in `generate.py`, selected by their configured source tags. Unlike the
+routable place layer, the inspector keeps lifecycle-inactive matches (a
+`disused`/`abandoned`/`closed`/`removed`/`proposed` café is still inspectable):
+`status` carries the real lifecycle word, and the client appends it to the card
+title. The routable place set (`prepare_places`) drops those same objects, so a
+closed destination is marked on the map but never routed. Lines retain only
+an explicit allowlist of usable linear road/path values; `area=yes`,
+highway-tagged facilities, lifecycle values, and unknown highway values are
+excluded (a road that is not a live edge can never back a routable access
+edge). Lines carry identity, access, surface, and signed-direction fields for
+explicit highlighted-road snapping. Ordinary inspection never turns those lines
+into cards.
+
+A snapped-road share uses `#at=…&osm=w…&inspect=road`. The final parameter is
+accepted only for a way-qualified OSM identity on an `at` inspection and is
+revalidated against the inspector tile before direction facts are shown.
 
 A normal click below z15 does not create this source or download any part of
 the archive. The modal can offer a separate action that moves to z15; only
@@ -122,9 +134,9 @@ The distinction between **source setup** and **tile payload** matters:
    Only the selected service/mode/preset layers become visible for one load,
    then they are hidden again. If they identify destinations,
    `place-catalog.json` is fetched once and cached as a browser promise.
-5. The inspector has a stricter boundary: the source itself is not registered
-   until explicit z15+ inspection. Closing a modal does not imply the browser
-   forgets already cached ranges.
+5. The inspector source itself is not registered until explicit z15+
+   inspection. Closing a modal does not imply the browser forgets already
+   cached ranges.
 
 MapLibre requests glyph PBF ranges only for characters it needs and loads the
 light sprite atlas used by the active style. The many shipped font-range files

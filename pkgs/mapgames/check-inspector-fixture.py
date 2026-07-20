@@ -2,6 +2,7 @@
 
 import argparse
 import gzip
+import re
 import sqlite3
 import struct
 import subprocess
@@ -42,12 +43,12 @@ def protobuf_fields(data: bytes):
 
 
 def packed_varints(data: bytes) -> list[int]:
-    values = []
+    result = []
     offset = 0
     while offset < len(data):
         value, offset = read_varint(data, offset)
-        values.append(value)
-    return values
+        result.append(value)
+    return result
 
 
 def decode_value(data: bytes):
@@ -77,7 +78,6 @@ def decode_layer(data: bytes) -> tuple[str, list[dict]]:
             keys.append(value.decode("utf-8"))
         elif number == 4 and wire == 2:
             values.append(decode_value(value))
-
     features = []
     for encoded in encoded_features:
         indexes = []
@@ -87,7 +87,6 @@ def decode_layer(data: bytes) -> tuple[str, list[dict]]:
                 indexes.extend(packed_varints(value))
             elif number == 3 and wire == 0:
                 geometry_type = value
-        assert len(indexes) % 2 == 0
         feature = {
             keys[indexes[index]]: values[indexes[index + 1]]
             for index in range(0, len(indexes), 2)
@@ -112,17 +111,12 @@ def decode_features(database: Path) -> tuple[list[dict], set[int]]:
             if number != 3 or wire != 2:
                 continue
             name, layer_features = decode_layer(layer)
-            if name not in {"inspect_points", "inspect_lines", "inspect_areas", "hiking_routes"}:
+            if name not in {"inspect_points", "inspect_lines", "inspect_areas"}:
                 continue
             for feature in layer_features:
                 feature["_layer"] = name
                 features.append(feature)
     return features, zooms
-
-
-def read_metadata(database: Path) -> dict[str, str]:
-    with sqlite3.connect(database) as connection:
-        return dict(connection.execute("SELECT name, value FROM metadata").fetchall())
 
 
 def one(features: list[dict], layer: str, osm_type: str, osm_id: str) -> dict:
@@ -133,9 +127,7 @@ def one(features: list[dict], layer: str, osm_type: str, osm_id: str) -> dict:
         and feature.get("osm_id") == osm_id
     ]
     assert matches, f"missing {layer} {osm_type}/{osm_id}"
-    assert all(isinstance(feature["osm_id"], str) for feature in matches), (
-        f"osm_id for {osm_type}/{osm_id} was not encoded as an exact string"
-    )
+    assert all(isinstance(feature["osm_id"], str) for feature in matches)
     return matches[0]
 
 
@@ -156,173 +148,108 @@ def main() -> None:
     parser.add_argument("--process", type=Path, default=package / "inspector.lua")
     parser.add_argument("--tilemaker", default="tilemaker")
     args = parser.parse_args()
-
+    process_source = args.process.read_text(encoding="utf-8")
+    for lifecycle_value in (
+        "abandoned", "closed", "demolished", "destroyed", "disused", "proposed", "razed", "removed"
+    ):
+        assert f"{lifecycle_value} = true" in process_source
+    expected_highways = {
+        "motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link",
+        "secondary", "secondary_link", "tertiary", "tertiary_link", "unclassified",
+        "residential", "living_street", "service", "pedestrian", "track", "road",
+        "path", "footway", "cycleway", "bridleway", "steps", "corridor",
+    }
+    lua_allowlist = process_source[process_source.index("local usable_highways"):
+                                   process_source.index("local function current_object")]
+    assert set(re.findall(r"\b([a-z_]+) = true", lua_allowlist)) == expected_highways
+    index_source = (args.process.parent / "index.html").read_text(encoding="utf-8")
+    client_allowlist = index_source[index_source.index("const roadDirectionHighways"):
+                                    index_source.index("function isRoadDirectionCandidate")]
+    assert set(re.findall(r'"([a-z_]+)"', client_allowlist)) == expected_highways, (
+        "tile and client road-direction allowlists have drifted"
+    )
     with tempfile.TemporaryDirectory(prefix="mapgames-inspector-fixture-") as temporary:
         temporary = Path(temporary)
         pbf = temporary / "inspector.osm.pbf"
         mbtiles = temporary / "inspector.mbtiles"
         subprocess.run([args.osmium, "cat", args.fixture, "-o", pbf], check=True)
-        subprocess.run(
-            [
-                args.tilemaker,
-                "--quiet",
-                "--input", pbf,
-                "--output", mbtiles,
-                "--config", args.config,
-                "--process", args.process,
-                "--bbox", "24.99,54.99,25.02,55.02",
-                "--threads", "2",
-            ],
-            check=True,
-        )
+        subprocess.run([
+            args.tilemaker, "--quiet", "--input", pbf, "--output", mbtiles,
+            "--config", args.config, "--process", args.process,
+            "--bbox", "24.99,54.99,25.02,55.02", "--threads", "2",
+        ], check=True)
         features, zooms = decode_features(mbtiles)
-        metadata = read_metadata(mbtiles)
+        with sqlite3.connect(mbtiles) as connection:
+            metadata = dict(connection.execute("SELECT name, value FROM metadata").fetchall())
 
-    assert zooms == {15, 16}, f"inspector archive was not native z15-16: {zooms}"
-    assert metadata.get("description", "").startswith("High-zoom OpenStreetMap geometries")
-    for scope in ("practical", "accessibility", "outdoor", "civic", "business", "tourism"):
-        assert scope in metadata["description"], f"inspector description omits {scope} coverage"
-
-    point = one(features, "inspect_points", "node", "101")
-    assert point["_geometry_type"] == 1
-    assert point.get("category") == "tourism" and point.get("kind") == "viewpoint"
-    assert point.get("foot_access") == "permissive" and point.get("ele") == "188"
-
-    disused = one(features, "inspect_points", "node", "102")
-    assert disused.get("category") == "amenity" and disused.get("kind") == "toilets"
-    assert disused.get("status") == "disused"
-
-    cafe = one(features, "inspect_points", "node", "103")
-    assert cafe.get("foot_access") == "restricted"
-    assert cafe.get("opening_hours") == "Sa-Su 10:00-18:00"
-    shop = one(features, "inspect_points", "node", "104")
-    assert shop.get("category") == "retail" and shop.get("kind") == "clothes"
-
-    conditional_only = one(features, "inspect_points", "node", "105")
-    assert conditional_only.get("foot_access") == "conditional"
-    denied_with_exception = one(features, "inspect_points", "node", "106")
-    assert denied_with_exception.get("foot_access") == "conditional"
-    assert denied_with_exception.get("locked") == "yes"
-    foot_overrides_generic = one(features, "inspect_points", "node", "107")
-    assert foot_overrides_generic.get("foot_access") == "allowed"
-    night_restriction = one(features, "inspect_points", "node", "108")
-    assert night_restriction.get("foot_access") == "conditional"
-    foot_conditional = one(features, "inspect_points", "node", "124")
-    assert foot_conditional.get("foot_access") == "conditional"
-
-    unrelated_lifecycle = one(features, "inspect_points", "node", "109")
-    assert unrelated_lifecycle.get("kind") == "cafe"
-    assert unrelated_lifecycle.get("status") == "active"
-
-    lifecycle_cases = {
-        "110": ("retail", "books", "abandoned", "abandoned:shop"),
-        "111": ("amenity", "bank", "closed", "closed:amenity"),
-        "112": ("tourism", "hotel", "construction", "construction:tourism"),
-        "113": ("building", "house", "removed", "demolished:building"),
-        "114": ("historic", "castle", "removed", "destroyed:historic"),
-        "115": ("business", "company", "disused", "disused:office"),
-        "116": ("leisure", "park", "proposed", "proposed:leisure"),
-        "117": ("building", "church", "removed", "razed:building"),
-        "118": ("barrier", "gate", "removed", "removed:barrier"),
+    assert zooms == {15, 16}
+    assert "configured search-family destinations" in metadata.get("description", "")
+    expected_destinations = {
+        "103": ("coffee", "cafe"), "127": ("coffee", "cafe"),
+        "140": ("coffee", "restaurant"), "141": ("coffee", "coffee_shop"),
+        "142": ("hospital", "hospital"), "143": ("hospital", "hospital"),
+        "144": ("supermarket", "supermarket"), "145": ("fuel", "fuel"),
     }
-    for osm_id, (category, kind, status, source_key) in lifecycle_cases.items():
-        lifecycle = one(features, "inspect_points", "node", osm_id)
-        assert (lifecycle.get("category"), lifecycle.get("kind"), lifecycle.get("status")) == (
-            category, kind, status
-        )
-        assert lifecycle.get(source_key) == kind, f"missing copied lifecycle key {source_key}"
-    assert one(features, "inspect_points", "node", "118").get("locked") == "yes"
-
-    assert one(features, "inspect_points", "node", "119").get("kind") == "fountain"
-    assert one(features, "inspect_points", "node", "120").get("kind") == "water_tower"
-    assert one(features, "inspect_points", "node", "121").get("kind") == "yes"
-    rail_crossing = one(features, "inspect_points", "node", "122")
-    assert rail_crossing.get("category") == "crossing"
-    assert rail_crossing.get("kind") == "level_crossing"
-    assert rail_crossing.get("crossing:barrier") == "yes"
-    assert rail_crossing.get("crossing:signals") == "yes"
-    assert rail_crossing.get("tactile_paving") == "no"
-    road_crossing = one(features, "inspect_points", "node", "123")
-    assert road_crossing.get("category") == "crossing" and road_crossing.get("kind") == "crossing"
-    assert road_crossing.get("crossing:markings") == "zebra"
-    assert road_crossing.get("crossing:island") == "yes"
-
-    assert one(features, "inspect_points", "node", "125").get("foot_access") == "unknown"
-    assert one(features, "inspect_points", "node", "126").get("foot_access") == "unknown"
-    object_lifecycle_cases = {
-        "127": "disused",
-        "128": "abandoned",
-        "129": "proposed",
-        "130": "active",
-    }
-    for osm_id, status in object_lifecycle_cases.items():
-        assert one(features, "inspect_points", "node", osm_id).get("status") == status
-
-    construction_crossing = one(features, "inspect_points", "node", "131")
-    assert construction_crossing.get("category") == "crossing"
-    assert construction_crossing.get("kind") == "crossing"
-    assert construction_crossing.get("status") == "construction"
-    disused_rail_crossing = one(features, "inspect_points", "node", "132")
-    assert disused_rail_crossing.get("category") == "crossing"
-    assert disused_rail_crossing.get("kind") == "level_crossing"
-    assert disused_rail_crossing.get("status") == "disused"
-
-    absent(features, "node", "190")
-    absent(features, "node", "191")
-    absent(features, "node", "192")
-
-    path = one(features, "inspect_lines", "way", "301")
-    assert path["_geometry_type"] == 2
-    assert path.get("category") == "transport" and path.get("kind") == "path"
-    assert path.get("foot_access") == "restricted"
-    assert path.get("surface") == "ground"
-    assert path.get("tracktype") == "grade2"
-    assert path.get("trail_visibility") == "intermediate"
-
-    area = one(features, "inspect_areas", "way", "302")
-    assert area["_geometry_type"] == 3
-    assert area.get("category") == "leisure" and area.get("kind") == "nature_reserve"
-    assert area.get("foot_access") == "allowed"
-
-    construction_road = one(features, "inspect_lines", "way", "304")
-    assert construction_road.get("kind") == "primary"
-    assert construction_road.get("status") == "construction"
-    proposed_road = one(features, "inspect_lines", "way", "305")
-    assert proposed_road.get("kind") == "path"
-    assert proposed_road.get("status") == "proposed"
+    for osm_id, (service, kind) in expected_destinations.items():
+        destination = one(features, "inspect_points", "node", osm_id)
+        assert destination.get("search_service") == service
+        assert destination.get("kind") == kind
+    # A disused café is still inspectable but must carry its real lifecycle
+    # status so the client can mark it; ordinary matches stay "active".
+    assert one(features, "inspect_points", "node", "127").get("status") == "disused", (
+        "a lifecycle-inactive destination must be marked, not silently active"
+    )
+    assert one(features, "inspect_points", "node", "103").get("status") == "active"
+    for osm_id in ("119", "120", "122", "123", "133", "146", "147", "148", "149", "190"):
+        absent(features, "node", osm_id)
+    road = one(features, "inspect_lines", "way", "301")
+    assert road.get("category") == "transport" and road.get("highway") == "path"
+    assert road.get("oneway") == "yes" and road.get("destination") == "Old town"
+    assert road.get("foot") == "private" and road.get("surface") == "ground"
     steps = one(features, "inspect_lines", "way", "306")
-    assert steps.get("kind") == "steps" and steps.get("step_count") == "87"
-
-    protected = one(features, "inspect_areas", "way", "307")
-    assert protected.get("category") == "protected" and protected.get("kind") == "protected_area"
-    assert protected.get("protect_class") == "5"
-    assert protected.get("protection_title") == "Landscape reserve"
-
-    riverbank = one(features, "inspect_areas", "way", "308")
-    assert riverbank.get("category") == "water" and riverbank.get("kind") == "riverbank"
-    assert riverbank["_geometry_type"] == 3
-
-    relation_area = one(features, "inspect_areas", "relation", "401")
-    assert relation_area["_geometry_type"] == 3
-    assert relation_area.get("kind") == "camp_site" and relation_area.get("fee") == "yes"
-
-    route = one(features, "hiking_routes", "relation", "402")
-    assert route["_geometry_type"] == 2
-    assert route.get("category") == "route" and route.get("kind") == "hiking"
-    assert route.get("network") == "lwn" and route.get("ref") == "MG1"
-    assert route.get("osmc:symbol") == "red:white:red_bar"
-
-    future_route = one(features, "hiking_routes", "relation", "403")
-    assert future_route.get("kind") == "hiking" and future_route.get("status") == "proposed"
-    assert future_route.get("proposed:route") == "hiking"
-
-    former_route = one(features, "hiking_routes", "relation", "404")
-    assert former_route.get("kind") == "walking" and former_route.get("status") == "removed"
-
-    assert {feature["_layer"] for feature in features} == {
-        "inspect_points", "inspect_lines", "inspect_areas", "hiking_routes"
+    assert steps.get("highway") == "steps" and steps.get("kind") == "steps"
+    for osm_id in ("304", "305", "309", "310", "311", "312", "313", "314", "315"):
+        absent(features, "way", osm_id)
+    assert {feature["_layer"] for feature in features} <= {
+        "inspect_points", "inspect_lines", "inspect_areas"
     }
-    print(f"inspector fixture OK ({len(features)} encoded tile features)")
+    assert all(
+        feature.get("search_service") in {"coffee", "hospital", "supermarket", "fuel"}
+        or feature.get("category") == "transport"
+        for feature in features
+    )
+    generate_source = (args.process.parent / "generate.py").read_text(encoding="utf-8")
+    inspector_metadata = generate_source[generate_source.index('"inspector": {'):
+                                         generate_source.index('"osm_attribution"')]
+    assert '"schema_version": 4' in inspector_metadata
+    assert '"status": ["active", "abandoned", "closed", "disused", "proposed", "removed"]' in inspector_metadata
+    assert '"search_service": ["coffee", "hospital", "supermarket", "fuel"]' in inspector_metadata
+    assert '"cafe", "restaurant", "coffee_shop", "hospital"' in inspector_metadata
+    assert '"path", "footway", "cycleway", "bridleway", "steps", "corridor"' in inspector_metadata
+    assert '"destination": {' in inspector_metadata and '"road": {' in inspector_metadata
+    assert '"foot_access"' not in inspector_metadata, (
+        "metadata advertises a normalized field that the narrow inspector never emits"
+    )
+    # Routing must drop the same lifecycle-inactive objects the inspector marks,
+    # and the two lifecycle vocabularies must not drift apart.
+    assert "if not object_is_current(source_properties):" in generate_source, (
+        "lifecycle-inactive destinations must be excluded from the routable place set"
+    )
+    generate_lifecycle = set(re.findall(
+        r'"([a-z]+)"',
+        generate_source[generate_source.index("LIFECYCLE_KEYS = ("):
+                        generate_source.index("def object_is_current")],
+    ))
+    lua_lifecycle = set(re.findall(
+        r'"([a-z]+)"',
+        process_source[process_source.index("local lifecycle_keys = {"):
+                       process_source.index("local former_highways")],
+    ))
+    assert generate_lifecycle == lua_lifecycle == {
+        "abandoned", "closed", "demolished", "destroyed",
+        "disused", "proposed", "razed", "removed",
+    }, "routing and inspector lifecycle vocabularies have drifted"
+    print(f"narrow inspector fixture OK ({len(features)} encoded tile features)")
 
 
 if __name__ == "__main__":

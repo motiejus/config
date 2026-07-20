@@ -160,6 +160,10 @@ let
     ${python3}/bin/python ${./check-inspector-ui.py} --index ${./index.html}
     touch "$out"
   '';
+  roadHitUiCheck = runCommand "mapgames-road-hit-ui-check" { } ''
+    ${python3}/bin/python ${./check-road-hit-ui.py} --index ${./index.html}
+    touch "$out"
+  '';
   cameraBoundsCheck = runCommand "mapgames-camera-bounds-check" { } ''
     ${python3}/bin/python ${./check-camera-bounds.py} --index ${./index.html}
     touch "$out"
@@ -244,6 +248,7 @@ let
         geolocationUi = geolocationUiCheck;
         inspectorFixture = inspectorFixtureCheck;
         inspectorUi = inspectorUiCheck;
+        roadHitUi = roadHitUiCheck;
         transitFixture = transitFixtureCheck;
         waterUi = waterUiCheck;
       };
@@ -331,6 +336,21 @@ let
         vendor-basemap-assets/fonts/"Noto Sans Regular" \
         "$out/assets/fonts/"
       cp vendor-basemap-assets/sprites/v4/light* "$out/assets/sprites/"
+      # Style construction relies on these exact pinned pictograms at both
+      # device pixel ratios. Fail the derivation here instead of rendering an
+      # unexplained blank marker when an upstream atlas changes.
+      for sprite in \
+        "$out/assets/sprites/light.json" \
+        "$out/assets/sprites/light@2x.json"; do
+        jq -e '
+          has("arrow") and has("bench") and has("park") and has("toilets") and
+          has("train_station") and has("ferry_terminal") and
+          has("capital") and has("townspot") and
+          has("generic_shield-1char") and has("generic_shield-2char") and
+          has("generic_shield-3char") and has("generic_shield-4char") and
+          has("generic_shield-5char")
+        ' "$sprite" >/dev/null
+      done
       cp vendor-basemap-assets/fonts/OFL.txt "$out/LICENSE.fonts-OFL"
       cp vendor-basemap-assets/README.md "$out/LICENSE.basemap-assets-README"
       ${writeEtags}

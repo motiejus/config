@@ -21,10 +21,6 @@
       "simplify_below": 13,
       "simplify_level": 0.0001
     },
-    "pois": {
-      "minzoom": 14,
-      "maxzoom": 14
-    },
     "landuse": {
       "minzoom": 9,
       "maxzoom": 14,
