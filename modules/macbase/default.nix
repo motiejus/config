@@ -141,12 +141,10 @@ in
         programs.ssh = {
           enable = true;
           enableDefaultConfig = false;
-          matchBlocks."*" = {
-            identityFile = [ "~/.ssh/id_ed25519" ];
-            extraOptions = {
-              AddKeysToAgent = "yes";
-              UseKeychain = "yes";
-            };
+          settings."*" = {
+            IdentityFile = [ "~/.ssh/id_ed25519" ];
+            AddKeysToAgent = "yes";
+            UseKeychain = "yes";
           };
         };
       };

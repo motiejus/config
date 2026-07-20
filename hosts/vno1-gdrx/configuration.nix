@@ -149,7 +149,7 @@ in
   programs.steam.enable = true;
 
   environment.systemPackages = with pkgs; [
-    prismlauncher
+    pkgs-unstable.codex
   ];
 
   powerManagement.cpuFreqGovernor = "powersave";
