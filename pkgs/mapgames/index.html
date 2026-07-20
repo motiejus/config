@@ -14,6 +14,7 @@
     <script src="assets/maplibre-gl-csp.js"></script>
     <script src="assets/pmtiles.js"></script>
     <script src="assets/basemaps.js"></script>
+    <script src="assets/review-ui-state.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -142,6 +143,15 @@
       .legend-row { display: flex; flex-wrap: wrap; gap: .35rem .8rem; }
       .legend-item { display: inline-flex; align-items: center; gap: .3rem; }
       .legend-item.active { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: .15rem; }
+      .inspect-center {
+        min-height: 2.75rem;
+        padding: .35rem .6rem;
+        border: 1px solid var(--border);
+        border-radius: .4rem;
+        color: inherit;
+        background: #ffffff;
+        cursor: pointer;
+      }
       .legend-swatch {
         width: 1.15rem;
         height: .6rem;
@@ -220,6 +230,10 @@
         border-radius: 50%;
         background: white;
         cursor: pointer;
+      }
+      #marker-choice-dialog .dialog-close {
+        width: 2.75rem;
+        height: 2.75rem;
       }
       .intersection-summary {
         margin: .75rem 0;
@@ -407,7 +421,7 @@
         }
         .map-panel[data-collapsed="true"] .panel-selection-summary:hover { color: var(--ink); }
       }
-      @media (pointer: coarse) {
+      @media (any-pointer: coarse) {
         .quick-actions button,
         .view-switcher button,
         .preset-choices button,
@@ -598,6 +612,7 @@
         <div class="access-legend" id="access-legend" hidden></div>
         <div class="service-list" id="service-list"></div>
         <p class="status" id="map-status" aria-live="polite">Įkeliamas žemėlapis…</p>
+        <button class="inspect-center" id="inspect-map-center" type="button">Tikrinti žemėlapio centrą</button>
         <button class="panel-done" id="panel-done" type="button">Rodyti žemėlapį</button>
       </div>
     </section>
@@ -613,6 +628,17 @@
       <p class="intersection-summary" id="intersection-summary" aria-live="polite"></p>
       <div class="result-list" id="location-results" aria-live="polite" aria-busy="false"></div>
       <div id="clicked-place" aria-live="polite" aria-busy="false"></div>
+    </dialog>
+
+    <dialog id="marker-choice-dialog" aria-labelledby="marker-choice-dialog-title">
+      <div class="dialog-header">
+        <div>
+          <h2 id="marker-choice-dialog-title">Pasirinkite vietą</h2>
+          <p id="marker-choice-dialog-hint"></p>
+        </div>
+        <button class="dialog-close" id="marker-choice-dialog-close" type="button" aria-label="Užverti">×</button>
+      </div>
+      <div class="osm-choice-list" id="marker-choice-list" role="group"></div>
     </dialog>
 
     <script>
@@ -804,6 +830,7 @@
       }
 
       function presetLabel(preset) {
+        if (preset.minutes === 0) return t("iconsOnly");
         const mode = preset.mode === "walk"
           ? (lang === "lt" ? "pėsčiomis" : "walk")
           : (lang === "lt" ? "automobiliu" : "drive");
@@ -832,16 +859,28 @@
           modeIntersect: "Tenkina visas",
           modeScore: "Kiek tenkina",
           viewMap: "Rodyti žemėlapį",
+          inspectCenter: "Tikrinti žemėlapio centrą",
           dialogTitle: "Apie šią vietą",
           closeDialog: "Užverti",
           langToggle: "EN",
           langToggleAria: "Switch to English",
+          markerChoiceTitle: "Pasirinkite vietą",
+          markerChoiceHint: count => `Čia sutampa ${count} pasirinktų kategorijų vietos. Pasirinkite, kurią atverti.`,
           mapDataError: message => `Žemėlapio duomenų klaida: ${message}`,
           errorSummary: "Žemėlapio duomenų klaida · atverkite filtrus",
           summaryLoaded: total => `${formatCount(total)} paslaugų ${pluralForm(total, ["vieta", "vietos", "vietų"])} su maršrutais iš vienos OpenStreetMap iškarpos.`,
           couldNotLoad: error => `Nepavyko įkelti sugeneruotų duomenų: ${error}`,
           placesCount: count => `${formatCount(count)} ${pluralForm(count, ["vieta", "vietos", "vietų"])}`,
           travelTimeAria: label => `${label} · kelionės laikas`,
+          iconsOnly: "0 · tik piktogramos",
+          iconsOnlyLegend: "Rodomos pasirinktų kategorijų piktogramos; pasiekiamumas neskaičiuojamas.",
+          statusIconsOnly: count => `${count} ${pluralForm(count, ["kategorija", "kategorijos", "kategorijų"])} ` +
+            "rodoma piktogramomis · pasiekiamumas neskaičiuojamas.",
+          statusMixed: (routed, icons) =>
+            `${routed} ${pluralForm(routed, ["pasiekiamumo sąlyga", "pasiekiamumo sąlygos", "pasiekiamumo sąlygų"])} ir ` +
+            `${icons} ${pluralForm(icons, ["kategorija tik piktogramomis", "kategorijos tik piktogramomis", "kategorijų tik piktogramomis"])}.`,
+          summaryIconsOnly: "Tik piktogramos",
+          legendIconsOnlyTitle: "Tik piktogramos (pasiekiamumas neskaičiuojamas)",
           statusSelected: count =>
             `${pluralForm(count, ["Pasirinkta", "Pasirinktos", "Pasirinkta"])} ${count} ` +
             `${pluralForm(count, ["sąlyga", "sąlygos", "sąlygų"])} · spustelėkite vietą žemėlapyje ir patikrinkite ` +
@@ -903,6 +942,11 @@
             "Rikiuojama pagal atstumą tiesia linija.",
           resultNone: (label, preset) => `Sąlyga „${label} · ${preset}“ šioje vietoje netenkinama.`,
           showMore: count => `Rodyti dar ${count} ${pluralForm(count, ["vietą", "vietas", "vietų"])}`,
+          loadingMore: "Įkeliama daugiau vietų…",
+          showMoreFailed: "Nepavyko įkelti. Bandykite dar kartą.",
+          allPlacesShown: count => count === 1
+            ? "Parodyta visa 1 vieta."
+            : `Parodytos visos ${count} ${pluralForm(count, ["vietos", "vietos", "vietų"])}.`,
           meetsAllSelected: count => pluralForm(count, [
             count === 1 ? "Tenkina pasirinktą sąlygą." : `Tenkina visas ${count} pasirinktą sąlygą.`,
             `Tenkina visas ${count} pasirinktas sąlygas.`,
@@ -960,16 +1004,27 @@
           modeIntersect: "Meets all",
           modeScore: "How many",
           viewMap: "View map",
+          inspectCenter: "Inspect map center",
           dialogTitle: "About this location",
           closeDialog: "Close",
           langToggle: "LT",
           langToggleAria: "Perjungti į lietuvių kalbą",
+          markerChoiceTitle: "Choose a place",
+          markerChoiceHint: count => `${count} selected-category places coincide here. Choose one to open.`,
           mapDataError: message => `Map data error: ${message}`,
           errorSummary: "Map data error · open filters for details",
           summaryLoaded: total => `${formatCount(total)} routed service ${pluralForm(total, ["destination", "destinations"])} from one OpenStreetMap snapshot.`,
           couldNotLoad: error => `Could not load generated data: ${error}`,
           placesCount: count => `${formatCount(count)} ${pluralForm(count, ["place", "places"])}`,
           travelTimeAria: label => `${label} travel time`,
+          iconsOnly: "0 · icons only",
+          iconsOnlyLegend: "Selected category icons are shown; reachability is not evaluated.",
+          statusIconsOnly: count => `${count} selected ${pluralForm(count, ["category", "categories"])} shown as icons · reachability is not evaluated.`,
+          statusMixed: (routed, icons) =>
+            `${routed} routed ${pluralForm(routed, ["requirement", "requirements"])} and ` +
+            `${icons} icons-only ${pluralForm(icons, ["category", "categories"])} selected.`,
+          summaryIconsOnly: "Icons only",
+          legendIconsOnlyTitle: "Icons only (reachability is not evaluated)",
           statusSelected: count =>
             `${count} ${pluralForm(count, ["requirement", "requirements"])} selected · tap or click the map to test every one.`,
           statusNone: "No requirements selected.",
@@ -1028,6 +1083,9 @@
             `${formatCount(count)} ${pluralForm(count, ["option", "options"])} within ${preset}. Closest by straight-line distance.`,
           resultNone: (label, preset) => `No ${label.toLowerCase()} matched ${preset} at this point.`,
           showMore: count => `Show ${count} more`,
+          loadingMore: "Loading more places…",
+          showMoreFailed: "Could not load more places. Try again.",
+          allPlacesShown: count => `All ${count} ${pluralForm(count, ["place", "places"])} shown.`,
           meetsAllSelected: count => `Meets all ${count} selected ${pluralForm(count, ["requirement", "requirements"])}.`,
           meetsSomeSelected: (passed, count) => `Meets ${passed} of ${count} selected requirements.`,
           selectToInspect: "Select at least one requirement to inspect this location.",
@@ -1311,6 +1369,11 @@
           mobileMedia.matches || coarsePointerMedia.matches ? 1.25 : 1.5),
         maxTileCacheZoomLevels: 1
       });
+      // The canvas is created dynamically, so initialize its keyboard action
+      // label even though the static document already starts in Lithuanian.
+      map.getCanvas().setAttribute(
+        "aria-label", `${STR.lt.mapAria} · ${STR.lt.inspectCenter}`
+      );
       // A touch/pen click is often delivered by MapLibre as a synthesized
       // MouseEvent with no pointerType. Retain the real pointerdown modality
       // only long enough to associate it with that click; this prevents a
@@ -1608,6 +1671,7 @@
       let inspectSequence = 0;
       let locationMarker;
       let placeCatalogPromise;
+      let activeMarkerChoices = [];
 
       // Desktop collapse preference; session-scoped on purpose — a shared
       // link should always open with the full panel explaining itself, so
@@ -1672,13 +1736,28 @@
         return `${service}|${mode}|${minutes}`;
       }
 
+      // Zero is presentation-only. It is synthesized in the client so no
+      // 0-minute routing request or destination collection can be generated.
+      function servicePresets(service) {
+        return ReviewUiState.withIconsOnlyPreset(service.presets);
+      }
+
       function selectedPreset(service) {
         const state = serviceState.get(service.id);
-        return service.presets.find(preset => `${preset.mode}:${preset.minutes}` === state.preset);
+        return servicePresets(service)
+          .find(preset => `${preset.mode}:${preset.minutes}` === state.preset);
+      }
+
+      function activeServices() {
+        return metadata.services.filter(service => serviceState.get(service.id).enabled);
       }
 
       function activeRequirements() {
-        return metadata.services.filter(service => serviceState.get(service.id).enabled);
+        return activeServices().filter(service => selectedPreset(service).minutes > 0);
+      }
+
+      function iconsOnlyServices() {
+        return activeServices().filter(service => selectedPreset(service).minutes === 0);
       }
 
       // One entry per active requirement: at most one per service (N <= 4;
@@ -1709,7 +1788,7 @@
       }
 
       function requirementsParam() {
-        return activeRequirements().map(service => {
+        return activeServices().map(service => {
           const preset = selectedPreset(service);
           return `${service.id}:${preset.mode}:${preset.minutes}`;
         }).join(",");
@@ -1719,7 +1798,7 @@
       // the sharer saw; with nothing selected there is no effective
       // mode and the parameter is omitted.
       function effectiveModeParam() {
-        const mode = effectiveViewMode(activeRequirements().length);
+        const mode = effectiveViewMode(selectionDetails().length);
         return mode ? `&mode=${mode}` : "";
       }
 
@@ -1831,7 +1910,7 @@
           const [serviceId, mode, minutesText, ...extra] = item.split(":");
           const minutes = Number(minutesText);
           const service = metadata.services.find(candidate => candidate.id === serviceId);
-          const preset = service?.presets.find(candidate =>
+          const preset = service && servicePresets(service).find(candidate =>
             candidate.mode === mode && candidate.minutes === minutes
           );
           if (!service || !preset || extra.length) {
@@ -1880,6 +1959,7 @@
         document.documentElement.lang = lang;
         document.title = t("docTitle");
         document.getElementById("map").setAttribute("aria-label", t("mapAria"));
+        map.getCanvas().setAttribute("aria-label", `${t("mapAria")} · ${t("inspectCenter")}`);
         mapPanel.setAttribute("aria-label", t("panelAria"));
         document.getElementById("app-title").textContent = t("appTitle");
         const langToggle = document.getElementById("lang-toggle");
@@ -1901,8 +1981,11 @@
           button.textContent = t(modeTexts[button.dataset.mode]);
         });
         document.getElementById("panel-done").textContent = t("viewMap");
+        document.getElementById("inspect-map-center").textContent = t("inspectCenter");
         document.getElementById("location-dialog-title").textContent = t("dialogTitle");
         document.getElementById("dialog-close").setAttribute("aria-label", t("closeDialog"));
+        document.getElementById("marker-choice-dialog-close").setAttribute("aria-label", t("closeDialog"));
+        document.getElementById("marker-choice-dialog-title").textContent = t("markerChoiceTitle");
         renderGeolocationStatus();
         if (!metadata && !persistentMapError) {
           selectionSummary.textContent = t("loadingFilters");
@@ -1968,6 +2051,9 @@
           renderSummaryText();
           updateDetailLanguage();
           if (document.getElementById("location-dialog").open) renderClickedPlaces();
+          if (document.getElementById("marker-choice-dialog").open && activeMarkerChoices.length) {
+            renderMarkerChoices(activeMarkerChoices);
+          }
         }
         renderMapError();
       }
@@ -2061,7 +2147,7 @@
           presets.className = "preset-choices";
           presets.setAttribute("role", "group");
           presets.setAttribute("aria-label", t("travelTimeAria", serviceLabel(service)));
-          service.presets.forEach(preset => {
+          servicePresets(service).forEach(preset => {
             const button = document.createElement("button");
             button.type = "button";
             button.dataset.role = "preset";
@@ -2887,16 +2973,14 @@
           });
           placeLayerIds.push(layerId);
         });
-        // At the deliberately dense z14–15 overview, compact colored rings
-        // remain the least obstructive option and the open filter names their
-        // category. From z16 onward, add an actual category silhouette so a
-        // destination never depends on hue recognition alone.
+        // Use category silhouettes from the same z14 reveal as the destination
+        // data. Compact low-zoom sizing keeps dense cities legible.
         map.addLayer({
           id: "places-service-icons",
           type: "symbol",
           source: "places",
           "source-layer": metadata.places.layer,
-          minzoom: 16,
+          minzoom: Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom),
           // refreshMap replaces this empty enabled-service set. Keeping all
           // service pictograms in one bucket is essential: symbol-sort-key
           // cannot resolve priority across separate style layers.
@@ -2908,7 +2992,7 @@
               "supermarket", "mapgames-supermarket",
               "fuel", "mapgames-fuel",
               "mapgames-information"],
-            "icon-size": ["interpolate", ["linear"], ["zoom"], 16, 0.7, 18, 0.86],
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.58, 16, 0.72, 18, 0.9],
             // A collision must not turn a known destination back into a
             // color-only ring. The compact 17px z16 artwork does not reserve
             // space or evict street labels; exact overlaps resolve in a fixed
@@ -3059,16 +3143,13 @@
       }
 
       function refreshViewSwitcher(mode, selectionCount) {
-        // A single requirement always renders as bands, so the
-        // switcher would be three dead buttons — hide the row entirely and
-        // let the legend name the view. The stored viewMode preference is
-        // untouched, so a second selection restores the previous choice.
-        document.getElementById("view-switcher").hidden = selectionCount === 1;
+        // Fewer than two routed requirements have no meaningful mode choice.
+        document.getElementById("view-switcher").hidden = selectionCount < 2;
         document.querySelectorAll("#view-switcher button").forEach(button => {
           // Bands with two or more selections is the multi-service
           // band compositing this rework removes — disabled, with a hint.
           const bandsLocked = button.dataset.mode === "bands" && selectionCount >= 2;
-          button.disabled = bandsLocked;
+          button.disabled = selectionCount < 2 || bandsLocked;
           button.title = bandsLocked ? t("hintBandsLocked") : "";
           button.setAttribute("aria-checked", String(button.dataset.mode === mode));
         });
@@ -3089,13 +3170,17 @@
       function renderLegend(mode, selections) {
         const legend = document.getElementById("access-legend");
         legend.replaceChildren();
-        legend.hidden = !mode;
-        if (!mode) return;
+        const selectedServices = activeServices();
+        const iconServices = iconsOnlyServices();
+        legend.hidden = !mode && selectedServices.length === 0;
+        if (!mode && selectedServices.length === 0) return;
         const title = document.createElement("span");
         title.className = "legend-title";
         const row = document.createElement("span");
         row.className = "legend-row";
-        if (mode === "bands") {
+        if (!mode) {
+          title.textContent = t("legendIconsOnlyTitle");
+        } else if (mode === "bands") {
           const focus = selections[0];
           title.textContent = t("legendBandsTitle", serviceLabel(focus.service), focus.preset);
           drawnBands(focus).forEach(band => row.append(legendItem(
@@ -3118,7 +3203,23 @@
               t("legendScoreItem", index + 1, selections.length)
             )));
         }
-        legend.append(title, row);
+        legend.append(title);
+        if (row.childElementCount) legend.append(row);
+        if (iconServices.length) {
+          if (mode) {
+            const iconTitle = document.createElement("span");
+            iconTitle.className = "legend-title";
+            iconTitle.textContent = t("legendIconsOnlyTitle");
+            legend.append(iconTitle);
+          }
+          const iconRow = document.createElement("span");
+          iconRow.className = "legend-row";
+          iconServices.forEach(service => iconRow.append(legendItem(
+            serviceStyles[service.id].color,
+            `${serviceLabel(service)} · ${t("iconsOnly")}`
+          )));
+          legend.append(iconRow);
+        }
       }
 
       function summaryChip(label, background, title) {
@@ -3136,23 +3237,27 @@
 
       function updateMapStatus() {
         const selections = selectionDetails();
+        const selectedServices = activeServices();
+        const iconServices = iconsOnlyServices();
         const mode = effectiveViewMode(selections.length);
         const summary = document.getElementById("panel-selection-summary");
         if (persistentMapError) {
           renderMapError();
           return;
         }
-        document.getElementById("map-status").textContent = selections.length
-          ? t("statusSelected", selections.length)
-          : t("statusNone");
+        document.getElementById("map-status").textContent = selections.length && iconServices.length
+          ? t("statusMixed", selections.length, iconServices.length)
+          : selections.length
+            ? t("statusSelected", selections.length)
+            : selectedServices.length
+              ? t("statusIconsOnly", selectedServices.length)
+              : t("statusNone");
         // Collapsed-mobile legend: a mode chip plus one mini-swatch
         // chip per active requirement; tapping the row expands the panel.
         summary.replaceChildren();
         if (!mode) {
-          summary.textContent = t("summaryNone");
-          return;
-        }
-        if (mode === "bands") {
+          summary.textContent = selectedServices.length ? t("summaryIconsOnly") : t("summaryNone");
+        } else if (mode === "bands") {
           const colors = drawnBands(selections[0])
             .map(band => withAlpha(band.color, bandOpacity));
           summary.append(summaryChip(t("chipBands"), `linear-gradient(90deg, ${colors.join(", ")})`));
@@ -3169,12 +3274,18 @@
         // With a single bands selection the travel mode and threshold ARE
         // the map, so surface them on the chip itself; multi-selection
         // chips keep the preset in the tooltip to stay glanceable.
-        selections.forEach(selection => summary.append(summaryChip(
-          mode === "bands"
-            ? `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
-            : serviceLabel(selection.service),
-          serviceStyles[selection.service.id].color,
-          `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
+        if (mode) {
+          selections.forEach(selection => summary.append(summaryChip(
+            mode === "bands"
+              ? `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
+              : serviceLabel(selection.service),
+            serviceStyles[selection.service.id].color,
+            `${serviceLabel(selection.service)} · ${presetLabel(selection.preset)}`
+          )));
+        }
+        iconServices.forEach(service => summary.append(summaryChip(
+          `${serviceLabel(service)} · ${t("iconsOnly")}`,
+          serviceStyles[service.id].color
         )));
       }
 
@@ -3196,7 +3307,8 @@
         destinationRecords.forEach(record => setLayerVisibility([record.destinationLayer], false));
         metadata.services.forEach(service => {
           const state = serviceState.get(service.id);
-          setLayerVisibility([`places-${service.id}`], state.enabled);
+          // Selected categories are pictograms, not pictograms stacked on dots.
+          setLayerVisibility([`places-${service.id}`], false);
         });
         const enabledServices = metadata.services
           .filter(service => serviceState.get(service.id).enabled)
@@ -4191,6 +4303,47 @@
         lookupInspector(lngLat, sequence, false);
       }
 
+      function resetMapInspection() {
+        inspectionPlaceId = undefined;
+        inspectionMarkerFeatures = [];
+        inspectionOsmFeatures = [];
+        inspectionOsmId = undefined;
+        requestedInspectionOsmId = undefined;
+        inspectionOsmLoading = false;
+        inspectionOsmFailed = false;
+        inspectionOsmQueried = false;
+        inspectionPlaceCardFeatures = [];
+        inspectionPending = false;
+        inspectionPrefersRoad = false;
+      }
+
+      function inspectMapCenter() {
+        const center = map.getCenter();
+        // The centre crosshair is a deliberate, precise coordinate, so treat it
+        // as a fine-pointer interaction and resolve it exactly like a map click:
+        // an exact marker, then a semantic object, then a snapped road, then the
+        // literal point.
+        const coarse = false;
+        const { selectedInteraction, roadHit, markerChoices } =
+          interactionAt(map.project(center), coarse);
+        if (markerChoices.length > 1) {
+          openMarkerChoiceDialog(markerChoices);
+          return;
+        }
+        if (selectedInteraction?.kind !== "marker") {
+          resetMapInspection();
+          const sequence = ++inspectSequence;
+          if (selectedInteraction?.kind === "road") {
+            inspectRoadAtRawResolution(center, roadHit, sequence, coarse);
+          } else {
+            commitArbitraryInspection(center, sequence, false);
+          }
+          return;
+        }
+        inspectionPrefersRoad = false;
+        inspectPlaceMarker(selectedInteraction.feature);
+      }
+
       function inspectRoadAtRawResolution(literalLngLat, initialHit, sequence, coarse) {
         const rawZoom = metadata.access_network.max_data_zoom;
         if (map.getZoom() >= rawZoom) {
@@ -4360,19 +4513,14 @@
         });
       }
 
-      // A destination dot renders as a small circle; query a padded box so it
-      // remains practical to tap, then keep only the nearest marker. A marker
-      // click becomes a canonical #place inspection at that marker's exact
-      // coordinates; an ordinary map click remains an exact #at inspection.
-      const dotHitPadding = coarsePointerMedia.matches ? 14 : 9;
-
-      function serviceIconFeaturesAt(point) {
-        if (map.getZoom() < 16 || !map.getLayer(serviceIconLayerId)) return [];
-        const edgePadding = coarsePointerMedia.matches ? 3 : 2;
+      function serviceIconFeaturesAt(point, coarse = coarsePointerMedia.matches) {
+        if (map.getZoom() < placeDisplayMinZoom || !map.getLayer(serviceIconLayerId)) return [];
+        const edgePadding = coarse ? 22 : 2;
         const options = { layers: [serviceIconLayerId] };
-        // Query the painted silhouette first. The tiny fallback box catches
-        // its antialiased outer edge without inheriting the much larger dot
-        // affordance used at z14–15.
+        // Query the painted silhouette first. The fallback catches an
+        // antialiased edge for a fine pointer and supplies a full 44px target
+        // for touch/pen; nearest-distance ordering prevents that larger box
+        // from favoring a farther high-priority category.
         const exact = map.queryRenderedFeatures(point, options);
         const features = exact.length ? exact : map.queryRenderedFeatures([
           [point.x - edgePadding, point.y - edgePadding],
@@ -4382,33 +4530,91 @@
           const projected = map.project(feature.geometry.coordinates);
           return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
         };
-        return dedupeFeatures(features.sort((left, right) =>
+        const priority = (left, right) =>
           (serviceIconPriority[right.properties.service] ?? 0) -
-            (serviceIconPriority[left.properties.service] ?? 0) ||
-          distance(left) - distance(right)
-        )).slice(0, 1);
+            (serviceIconPriority[left.properties.service] ?? 0);
+        // Exact overlaps paint according to serviceIconPriority, so click the
+        // top glyph even when tiny projected-coordinate rounding differs.
+        // A padded coarse-pointer fallback is a proximity affordance and must
+        // instead choose the nearest glyph; priority only breaks a true tie.
+        const compare = exact.length
+          ? (left, right) => priority(left, right) || distance(left) - distance(right)
+          : (left, right) => distance(left) - distance(right) || priority(left, right);
+        const ordered = dedupeFeatures(features.sort(compare));
+        if (!exact.length || !ordered.length) return ordered.slice(0, 1);
+        // Return every marker at the top-painted marker's exact coordinate.
+        // The click path presents these as choices instead of making all but
+        // the last-painted category permanently unreachable.
+        const [anchorLon, anchorLat] = ordered[0].geometry.coordinates;
+        return ordered.filter(feature => {
+          const [lon, lat] = feature.geometry.coordinates;
+          return lon === anchorLon && lat === anchorLat;
+        });
       }
 
-      function markerFeaturesAt(point) {
-        // At z16+ the top-painted category silhouette is the interaction
-        // target. This prevents a hidden collocated circle from opening a
-        // different service than the icon under the pointer.
-        const iconFeatures = serviceIconFeaturesAt(point);
-        if (iconFeatures.length) return iconFeatures;
-        const layers = placeLayerIds.filter(id => map.getLayer(id));
-        if (!layers.length) return [];
-        const features = map.queryRenderedFeatures([
-          [point.x - dotHitPadding, point.y - dotHitPadding],
-          [point.x + dotHitPadding, point.y + dotHitPadding]
-        ], { layers });
-        const distance = feature => {
-          const projected = map.project(feature.geometry.coordinates);
-          return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
+      function markerFeaturesAt(point, coarse = coarsePointerMedia.matches) {
+        // The top-painted category silhouette is the interaction target. This
+        // prevents a hidden collocated circle from opening a different service
+        // than the icon under the pointer. Destination dots are always hidden
+        // beneath the pictograms, so the icon query is the entire hit test.
+        return serviceIconFeaturesAt(point, coarse);
+      }
+
+      function markerCandidateAt(point, coarse = coarsePointerMedia.matches) {
+        const features = markerFeaturesAt(point, coarse);
+        const feature = features[0];
+        if (!feature) return null;
+        const projected = map.project(feature.geometry.coordinates);
+        const exactLayers = [serviceIconLayerId, ...placeLayerIds].filter(id => map.getLayer(id));
+        const key = featureKey(feature);
+        const exact = exactLayers.length > 0 && map.queryRenderedFeatures(point, { layers: exactLayers })
+          .some(candidate => featureKey(candidate) === key);
+        return {
+          kind: "marker",
+          feature,
+          features,
+          distance: Math.hypot(projected.x - point.x, projected.y - point.y),
+          exact
         };
-        // Duplicate buffered-tile copies are removed before choosing the one
-        // nearest marker, so only the canonical selected place is labelled.
-        return dedupeFeatures(features.sort((left, right) => distance(left) - distance(right)))
-          .slice(0, 1);
+      }
+
+      function markerChoiceLabel(choice) {
+        const properties = choice.feature.properties;
+        const service = metadata.services.find(candidate => candidate.id === properties.service);
+        const category = service ? serviceLabel(service) : properties.service;
+        return properties.name ? `${properties.name} · ${category}` : category;
+      }
+
+      function renderMarkerChoices(choices) {
+        activeMarkerChoices = choices;
+        const hint = t("markerChoiceHint", choices.length);
+        document.getElementById("marker-choice-dialog-hint").textContent = hint;
+        const list = document.getElementById("marker-choice-list");
+        list.setAttribute("aria-label", hint);
+        list.replaceChildren();
+        const labels = choices.map(markerChoiceLabel);
+        choices.forEach((choice, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "osm-choice";
+          const duplicateLabel = labels.indexOf(labels[index]) !== labels.lastIndexOf(labels[index]);
+          const identity = choice.feature.properties.place_id ??
+            choice.feature.properties.place_index;
+          button.textContent = duplicateLabel && identity !== undefined
+            ? `${labels[index]} · ${identity}`
+            : labels[index];
+          button.addEventListener("click", () => {
+            document.getElementById("marker-choice-dialog").close();
+            inspectPlaceMarker(choice.feature);
+          });
+          list.append(button);
+        });
+      }
+
+      function openMarkerChoiceDialog(choices) {
+        renderMarkerChoices(choices);
+        const dialog = document.getElementById("marker-choice-dialog");
+        if (!dialog.open) dialog.showModal();
       }
 
       function closestPointOnSegment(point, left, right) {
@@ -4551,6 +4757,27 @@
         };
       }
 
+      function interactionAt(point, coarse) {
+        const markerCandidate = markerCandidateAt(point, coarse);
+        const overSemanticObject = semanticFeatureAt(point);
+        const roadHit = overSemanticObject
+          ? undefined
+          : accessRoadOriginAt(point, { coarse });
+        const selectedInteraction = ReviewUiState.chooseInteraction([
+          markerCandidate,
+          overSemanticObject ? { kind: "map", distance: 0, exact: true } : undefined,
+          roadHit ? { kind: "road", distance: roadHit.distance, exact: roadHit.distance === 0 }
+            : undefined
+        ]);
+        return {
+          roadHit,
+          selectedInteraction,
+          markerChoices: ReviewUiState.collocatedMarkerChoices(
+            selectedInteraction, [markerCandidate]
+          )
+        };
+      }
+
       function inspectorFeaturesAt(lngLat, preferRoad = false) {
         const point = map.project(lngLat);
         const pointPadding = coarsePointerMedia.matches ? 20 : 12;
@@ -4651,12 +4878,13 @@
         const catalogPromise = markerFeatures.length || destinationFeatures.length
           ? loadPlaceCatalog()
           : Promise.resolve({ destinations: [] });
-        catalogPromise
+        return catalogPromise
           .then(placeCatalog => {
             if (sequence === inspectSequence) {
               renderLocationResults(
                 lngLat, markerFeatures, destinationFeatures, placeCatalog.destinations
               );
+              if (!destinationLayerIds.length) updateMapStatus();
             }
           })
           .catch(error => {
@@ -4716,6 +4944,8 @@
         // from the validated inspect=road contract emitted by a snapped-road
         // selection; it is never inferred from an arbitrary nearby way.
         inspectionPrefersRoad = false;
+        const markerChoiceDialog = document.getElementById("marker-choice-dialog");
+        if (markerChoiceDialog.open) markerChoiceDialog.close();
         const parameters = new URLSearchParams(location.hash.slice(1));
         const atValue = parameters.get("at");
         const placeValue = parameters.get("place");
@@ -4938,8 +5168,17 @@
           setPanelCollapsed(true);
           document.getElementById("panel-toggle").focus();
         });
+        document.getElementById("inspect-map-center").addEventListener("click", inspectMapCenter);
+        map.getCanvas().addEventListener("keydown", event => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          inspectMapCenter();
+        });
         document.getElementById("dialog-close").addEventListener("click", () =>
           document.getElementById("location-dialog").close()
+        );
+        document.getElementById("marker-choice-dialog-close").addEventListener("click", () =>
+          document.getElementById("marker-choice-dialog").close()
         );
         // Light dismiss: clicking the backdrop closes the dialog. On the
         // mobile bottom sheet the dimmed map above it becomes the big
@@ -4967,6 +5206,10 @@
             dialog.close();
           }
           dialogPressOnBackdrop = false;
+        });
+        document.getElementById("marker-choice-dialog").addEventListener("close", () => {
+          activeMarkerChoices = [];
+          document.getElementById("marker-choice-list").replaceChildren();
         });
         document.getElementById("location-dialog").addEventListener("close", () => {
           if (suppressedDialogCloses > 0) {
@@ -5006,25 +5249,16 @@
           if (event.originalEvent?.target?.closest?.(
             ".maplibregl-user-location-dot, .maplibregl-user-location-accuracy-circle"
           )) return;
-          const markerFeature = markerFeaturesAt(event.point)[0];
-          if (!markerFeature) {
-            inspectionPlaceId = undefined;
-            inspectionMarkerFeatures = [];
-            inspectionOsmFeatures = [];
-            inspectionOsmId = undefined;
-            requestedInspectionOsmId = undefined;
-            inspectionOsmLoading = false;
-            inspectionOsmFailed = false;
-            inspectionOsmQueried = false;
-            inspectionPlaceCardFeatures = [];
-            inspectionPending = false;
-            inspectionPrefersRoad = false;
-            const coarse = interactionIsCoarse(event.originalEvent);
-            const roadHit = semanticFeatureAt(event.point)
-              ? undefined
-              : accessRoadOriginAt(event.point, { coarse });
+          const coarse = interactionIsCoarse(event.originalEvent);
+          const { selectedInteraction, roadHit, markerChoices } = interactionAt(event.point, coarse);
+          if (markerChoices.length > 1) {
+            openMarkerChoiceDialog(markerChoices);
+            return;
+          }
+          if (selectedInteraction?.kind !== "marker") {
+            resetMapInspection();
             const sequence = ++inspectSequence;
-            if (roadHit) {
+            if (selectedInteraction?.kind === "road") {
               inspectRoadAtRawResolution(event.lngLat, roadHit, sequence, coarse);
             } else {
               commitArbitraryInspection(event.lngLat, sequence, false);
@@ -5032,7 +5266,7 @@
             return;
           }
           inspectionPrefersRoad = false;
-          inspectPlaceMarker(markerFeature);
+          inspectPlaceMarker(selectedInteraction.feature);
         });
         // Fine-pointer cursor affordances: the default pan hand on plain
         // basemap, a pointer over the clickable things — destination dots

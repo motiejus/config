@@ -99,8 +99,14 @@ def main() -> None:
 
     click = source[source.index('map.on("click", event => {'):
                    source.index("// Fine-pointer cursor affordances")]
-    assert click.index("markerFeaturesAt(event.point)") < click.index("semanticFeatureAt(event.point)")
-    assert click.index("semanticFeatureAt(event.point)") < click.index("accessRoadOriginAt(event.point, { coarse })")
+    interaction = source[source.index("function interactionAt"):
+                         source.index("function inspectorFeaturesAt")]
+    assert interaction.index("markerCandidateAt(point, coarse)") < interaction.index("semanticFeatureAt(point)")
+    assert interaction.index("semanticFeatureAt(point)") < interaction.index("accessRoadOriginAt(point, { coarse })")
+    require(interaction, "ReviewUiState.chooseInteraction(",
+            "road and padded marker hits do not share one resolution policy")
+    require(click, "interactionAt(event.point, coarse)",
+            "map clicks bypass the shared interaction resolver")
     require(click, "const coarse = interactionIsCoarse(event.originalEvent);",
             "actual touch/pen events do not receive a coarse road target")
     require(click, "inspectRoadAtRawResolution(event.lngLat, roadHit, sequence, coarse);",

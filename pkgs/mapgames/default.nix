@@ -7,6 +7,7 @@
   compressDrvWeb,
   jq,
   libtiff,
+  nodejs,
   osmium-tool,
   pkg-config,
   pmtiles,
@@ -164,6 +165,11 @@ let
     ${python3}/bin/python ${./check-road-hit-ui.py} --index ${./index.html}
     touch "$out"
   '';
+  reviewUiStateCheck = runCommand "mapgames-review-ui-state-check" { } ''
+    ${nodejs}/bin/node ${./check-review-ui-state.js} \
+      ${./review-ui-state.js} ${./index.html}
+    touch "$out"
+  '';
   cameraBoundsCheck = runCommand "mapgames-camera-bounds-check" { } ''
     ${python3}/bin/python ${./check-camera-bounds.py} --index ${./index.html}
     touch "$out"
@@ -249,6 +255,7 @@ let
         inspectorFixture = inspectorFixtureCheck;
         inspectorUi = inspectorUiCheck;
         roadHitUi = roadHitUiCheck;
+        reviewUiState = reviewUiStateCheck;
         transitFixture = transitFixtureCheck;
         waterUi = waterUiCheck;
       };
@@ -307,6 +314,7 @@ let
         }' \
         ${data}/metadata.json > "$out/metadata.json"
       cp ${./index.html} "$out/index.html"
+      cp ${./review-ui-state.js} "$out/assets/review-ui-state.js"
 
       tar -xzf ${maplibreSource} -C vendor-maplibre --strip-components=1 \
         package/LICENSE.txt \

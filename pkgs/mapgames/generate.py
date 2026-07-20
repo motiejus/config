@@ -131,6 +131,31 @@ for _route, _requirement_key in zip(ROUTE_SPECS, REQUIREMENT_KEYS, strict=True):
         )
 del _route, _requirement_key, _key
 
+# The client (review-ui-state.js withIconsOnlyPreset) synthesizes its icons-only
+# "0" on top of each service's routed presets and trusts them to be a non-empty
+# array of positive-integer minutes. That is a generation-time contract: enforce
+# it here, statically at import, so an invalid SERVICE_SPECS fails the build
+# rather than the page load.
+for _service in SERVICE_SPECS:
+    if not _service["routes"]:
+        raise RuntimeError(f"service {_service['id']!r} has no routes")
+    for _mode, _minutes_values in _service["routes"]:
+        if not isinstance(_mode, str) or not _mode:
+            raise RuntimeError(
+                f"service {_service['id']!r} has a non-string route mode {_mode!r}"
+            )
+        if not _minutes_values:
+            raise RuntimeError(
+                f"service {_service['id']!r} mode {_mode!r} has no preset minutes"
+            )
+        for _minutes in _minutes_values:
+            if isinstance(_minutes, bool) or not isinstance(_minutes, int) or _minutes <= 0:
+                raise RuntimeError(
+                    f"service {_service['id']!r} mode {_mode!r} has a"
+                    f" non-positive-integer preset minute {_minutes!r}"
+                )
+del _service, _mode, _minutes_values, _minutes
+
 MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
 CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
 DESTINATION_SOURCE_COLUMNS = (
