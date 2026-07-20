@@ -19,13 +19,13 @@
     cloc
     josm
     zbar
-    node
     ninja
     shfmt
     cmake
     tokei
     caddy
     nginx
+    nodejs
     stagit
     bloaty
     skopeo
