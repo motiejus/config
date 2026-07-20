@@ -19,6 +19,7 @@
     cloc
     josm
     zbar
+    node
     ninja
     shfmt
     cmake
