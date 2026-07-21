@@ -2,7 +2,9 @@
   lib,
   stdenv,
   stdenvNoCC,
+  cacert,
   fetchurl,
+  git,
   boost,
   compressDrvWeb,
   jq,
@@ -18,6 +20,11 @@
   tilemaker,
   valhalla,
   writeShellScript,
+  # Pinned lt-shelters snapshot (a directory with priedangos.jsonl, kas.jsonl,
+  # and refreshed-at.txt). null uses the fetched default pinned below; override
+  # with a local checkout or another derivation for iteration or air-gapped
+  # builds.
+  sheltersSrc ? null,
   # null means "use $NIX_BUILD_CORES at build time" for the general pipeline.
   # Expansion worker-count policy belongs here; generate.py simply uses the
   # helper and worker count it is passed.
@@ -47,6 +54,41 @@ let
     url = sourceUrl;
     hash = "sha256-7X/oYyrVG9nVF8Qeqkof1OvPUi7KrNEjnxvqkZgG5fw=";
   };
+
+  # Pinned snapshot of the official PAGD shelter datasets, produced by the
+  # lt-shelters service (modules/services/lt-shelters). The repo uses sha256
+  # git objects, which nixpkgs' fetchgit cannot clone (it runs `git init`,
+  # defaulting to sha1, then fails with "mismatched algorithms"). A real
+  # `git clone` auto-negotiates the object format, so this fixed-output
+  # derivation clones and checks out the rev itself. outputHash is the NAR of
+  # only the three files generate.py consumes, so README/LICENSE churn in the
+  # source repo does not invalidate it — only a data or refresh-time change
+  # bumped via sheltersRev does. Bump sheltersRev + outputHash together, the
+  # same maintenance the pinned PBF above needs.
+  sheltersRepo = "https://git.jakstys.lt/lt-shelters.git";
+  sheltersRev = "1131eb85efe466ca01a30bf6e761a09f5a8da9d42c28e1087540b0e0bb6f657e";
+  pinnedShelters = stdenvNoCC.mkDerivation {
+    name = "lt-shelters-snapshot-${builtins.substring 0 12 sheltersRev}";
+    nativeBuildInputs = [
+      cacert
+      git
+    ];
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-kdGTxdfmPpVNT4a344uK9I0j/4HfeDCZX9jee8UwKGw=";
+    buildCommand = ''
+      export GIT_SSL_CAINFO="$NIX_SSL_CERT_FILE"
+      git clone --quiet ${sheltersRepo} repo
+      git -C repo checkout --quiet ${sheltersRev}
+      mkdir -p "$out"
+      install -m 0644 \
+        repo/priedangos.jsonl \
+        repo/kas.jsonl \
+        repo/refreshed-at.txt \
+        "$out/"
+    '';
+  };
+  shelters = if sheltersSrc == null then pinnedShelters else sheltersSrc;
 
   maplibreVersion = "5.24.0";
   maplibreSource = fetchurl {
@@ -260,6 +302,9 @@ let
         --expansion-helper ${valhallaExpandRunner} \
         --coarsen-tool ${./coarsen.py} \
         --osm-source-url ${lib.escapeShellArg sourceUrl} \
+        --shelter-priedangos ${shelters}/priedangos.jsonl \
+        --shelter-kas ${shelters}/kas.jsonl \
+        --shelter-refreshed-at ${shelters}/refreshed-at.txt \
         --output generated
 
       runHook postBuild

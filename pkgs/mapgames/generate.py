@@ -20,6 +20,7 @@ import time
 from shapely.geometry import (
     box,
     mapping,
+    Point,
     shape,
 )
 
@@ -97,6 +98,39 @@ SERVICE_SPECS = (
         "description": "Fuel stations reachable by car",
         "query": ("amenity=fuel",),
         "routes": (("drive", (10, 20)),),
+    },
+    {
+        # Unlike every other service, shelter destinations are not matched from
+        # the OSM PBF. They come from Lithuania's official PAGD open datasets
+        # (see SHELTER_SOURCES / load_shelters), pinned as a snapshot input.
+        # An empty query keeps this service out of the osmium destination
+        # filter while still satisfying the generic per-service machinery.
+        "id": "shelter",
+        "label": "Shelter",
+        "description": "Public civil-protection shelters reachable on foot",
+        "query": (),
+        "routes": (("walk", (10, 20)),),
+    },
+)
+
+# Official PAGD open datasets snapshotted by the lt-shelters service. Each
+# record carries WGS84 coordinates (wgs_lon_ilguma / wgs_lat_platuma) and
+# Lithuanian address fields. `kind` is the catalog/marker classification the
+# client localizes via kindLabelTables. `dataset` is the record `_type` the
+# lt-shelters fetcher validates, re-checked here so a mismatched file fails
+# the build loudly rather than silently emitting zero shelters.
+SHELTER_SOURCES = (
+    {
+        "id": "priedanga",
+        "kind": "priedanga",
+        "arg": "shelter_priedangos",
+        "dataset": "datasets/gov/pagd/priedangos/Priedanga",
+    },
+    {
+        "id": "kas",
+        "kind": "kas",
+        "arg": "shelter_kas",
+        "dataset": "datasets/gov/pagd/kas/KAS",
     },
 )
 
@@ -266,6 +300,26 @@ def feature_collection(features: list[dict], bbox: list[float]) -> dict:
     return {"type": "FeatureCollection", "bbox": bbox, "features": features}
 
 
+# Metres Valhalla is allowed to snap a destination point to the routing graph.
+PLACE_SNAP_RADIUS_METERS = 100
+
+
+def make_place_entry(place_id: str, lon: float, lat: float, properties: dict) -> tuple[dict, dict]:
+    """The (location, feature) tuple every destination takes, OSM or shelter.
+
+    Both destination sources must produce byte-identical structure so the shared
+    sort, place_index assignment, expansion, catalog, and places-tile stages
+    treat them uniformly; keep this the single constructor of that shape.
+    """
+    feature = {
+        "type": "Feature",
+        "id": place_id,
+        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+        "properties": properties,
+    }
+    return ({"lon": lon, "lat": lat, "radius": PLACE_SNAP_RADIUS_METERS}, feature)
+
+
 def decode_osmium_id(feature_id: object):
     value = str(feature_id or "")
     if value.startswith("n") and value[1:].isdigit():
@@ -319,6 +373,108 @@ def place_kind(service: str, properties: dict) -> str:
             return "cafe"
         return "coffee_shop"
     return service
+
+
+def shelter_display_name(record: dict, street: str, house: str) -> str:
+    """A human-facing label for a shelter card, preferring the source name."""
+    name = str(record.get("pavadinimas") or "").strip()
+    if name:
+        return name
+    address = " ".join(part for part in (street, house) if part)
+    if address:
+        return address
+    for field in ("gyvenviete", "savivaldybe"):
+        value = str(record.get(field) or "").strip()
+        if value:
+            return value
+    return "Slėptuvė"
+
+
+def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
+    """Inject PAGD shelter destinations into prepared["shelter"] from JSONL.
+
+    Shelter points originate outside OSM, so they bypass services_for_properties
+    and the osmium destination filter. Every downstream stage (routing,
+    catalog, places, unified network) is service-agnostic and consumes the same
+    (location, feature) tuples the OSM path produces; the only shelter-specific
+    work is here.
+    """
+    seen_ids: set[str] = set()
+    for source in SHELTER_SOURCES:
+        path = getattr(args, source["arg"])
+        added = 0
+        skipped = 0
+        with path.open(encoding="utf-8") as handle:
+            for line_number, raw in enumerate(handle, start=1):
+                stripped = raw.strip()
+                if not stripped:
+                    continue
+                # The lt-shelters fetcher already validated JSON structure and
+                # dataset type per record; re-validate the shape this pipeline
+                # depends on rather than trusting the pinned snapshot blindly.
+                try:
+                    record = json.loads(stripped)
+                except json.JSONDecodeError as error:
+                    raise RuntimeError(
+                        f"{path}:{line_number} is not valid JSON: {error}"
+                    ) from error
+                if not isinstance(record, dict) or record.get("_type") != source["dataset"]:
+                    raise RuntimeError(
+                        f"{path}:{line_number} is not a {source['dataset']!r} record"
+                    )
+                record_id = str(record.get("_id") or "").strip()
+                if not record_id:
+                    raise RuntimeError(f"{path}:{line_number} has no _id")
+                lon = record.get("wgs_lon_ilguma")
+                lat = record.get("wgs_lat_platuma")
+                if (
+                    isinstance(lon, bool)
+                    or isinstance(lat, bool)
+                    or not isinstance(lon, (int, float))
+                    or not isinstance(lat, (int, float))
+                    or not math.isfinite(lon)
+                    or not math.isfinite(lat)
+                ):
+                    skipped += 1
+                    continue
+                point = Point(lon, lat)
+                if not country.covers(point):
+                    skipped += 1
+                    continue
+                place_id = f"shelter:{source['id']}:{record_id}"
+                if place_id in seen_ids:
+                    skipped += 1
+                    continue
+                street = str(record.get("gatve") or "").strip()
+                house = str(record.get("namo_numeris") or "").strip()
+                city = (
+                    str(record.get("gyvenviete") or "").strip()
+                    or str(record.get("savivaldybe") or "").strip()
+                )
+                properties = {
+                    "kind": source["kind"],
+                    "name": shelter_display_name(record, street, house),
+                    "place_id": place_id,
+                    "service": "shelter",
+                    "source_geometry": "Point",
+                }
+                if street:
+                    properties["addr:street"] = street
+                if house:
+                    properties["addr:housenumber"] = house
+                if city:
+                    properties["addr:city"] = city
+                prepared["shelter"].append(
+                    make_place_entry(place_id, lon, lat, properties)
+                )
+                seen_ids.add(place_id)
+                added += 1
+        print(
+            f"[mapgames] loaded {added} {source['id']} shelters"
+            f" ({skipped} skipped: outside coverage, missing coordinates, or duplicate id)",
+            file=sys.stderr,
+            flush=True,
+        )
 
 
 def common_tile_settings(name: str, description: str, minzoom: int = TILE_MIN_ZOOM) -> dict:
@@ -506,8 +662,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expansion-helper", type=Path, required=True)
     parser.add_argument("--coarsen-tool", type=Path, required=True)
     parser.add_argument("--osm-source-url", required=True)
+    # Pinned lt-shelters snapshot (PAGD Priedanga + KAS open datasets) plus the
+    # UTC time that snapshot was last refreshed, surfaced in the map's data
+    # sources. See default.nix `sheltersSrc`.
+    parser.add_argument("--shelter-priedangos", type=Path, required=True)
+    parser.add_argument("--shelter-kas", type=Path, required=True)
+    parser.add_argument("--shelter-refreshed-at", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args()
+
+
+def read_shelter_refreshed_at(path: Path) -> str:
+    text = path.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", text):
+        raise RuntimeError(
+            f"shelter refreshed-at timestamp is not RFC 3339 UTC: {text!r}"
+        )
+    return text
 
 
 def prepare_boundary(args: argparse.Namespace, work: Path):
@@ -607,16 +778,15 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
                         "osm_url": f"https://www.openstreetmap.org/{osm_type}/{osm_id}",
                     }
                 )
-            feature = {
-                "type": "Feature",
-                "id": place_id,
-                "geometry": {"type": "Point", "coordinates": [point.x, point.y]},
-                "properties": properties,
-            }
             prepared[service].append(
-                ({"lon": point.x, "lat": point.y, "radius": 100}, feature)
+                make_place_entry(place_id, point.x, point.y, properties)
             )
             seen_ids.add(place_id)
+
+    # Shelters are the one non-OSM service; inject them before the shared sort,
+    # zero-destination guard, and global place_index assignment below so they
+    # are indistinguishable from OSM destinations to everything downstream.
+    load_shelters(args, country, prepared)
 
     for service, entries in prepared.items():
         entries.sort(key=lambda pair: (pair[0]["lon"], pair[0]["lat"], pair[1]["id"]))
@@ -882,6 +1052,7 @@ def main() -> None:
         "read OSM snapshot timestamp",
         ["osmium", "fileinfo", "-g", "header.option.osmosis_replication_timestamp", args.pbf],
     )
+    shelter_refreshed_at = read_shelter_refreshed_at(args.shelter_refreshed_at)
 
     with timed("prepare coverage boundary"):
         country, country_bbox = prepare_boundary(args, work)
@@ -1526,6 +1697,19 @@ def main() -> None:
             "routing_failure_policy": "fail_build_on_any_unroutable_destination",
             "routing_mode": "reverse expansion edges: origin routing graph to concrete destination",
             "services": service_metadata,
+            # Non-OSM data source: the pinned PAGD shelter snapshot. The client
+            # shows refreshed_at in the map's data-sources line and uses
+            # attribution as the authoritative source/licence credit (required
+            # by CC BY 4.0), so the credit text lives in one place. Per-service
+            # counts are already in services[].place_count; the load log prints
+            # the per-dataset split.
+            "shelters": {
+                "refreshed_at": shelter_refreshed_at,
+                "attribution": (
+                    "Priešgaisrinės apsaugos ir gelbėjimo departamentas (PAGD),"
+                    " CC BY 4.0"
+                ),
+            },
             "valhalla_version": args.valhalla_version,
         },
     )

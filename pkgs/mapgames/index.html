@@ -660,7 +660,11 @@
         coffee: { color: "#E69F00", marker: "#8A5F00", foreground: "#0f172a" },
         hospital: { color: "#D55E00", marker: "#AD4A00", foreground: "#0f172a" },
         supermarket: { color: "#009E73", marker: "#00664A", foreground: "#0f172a" },
-        fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
+        fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" },
+        // Okabe-Ito reddish purple, the remaining CVD-safe hue distinct from
+        // the four above; dark #0f172a text clears 4.5:1 on it, and the darker
+        // #7A2E5C marker ring clears 3:1 on the light basemap fills.
+        shelter: { color: "#CC79A7", marker: "#7A2E5C", foreground: "#0f172a" }
       };
       // Band ramps: discrete lightness steps of each service hue, darkest =
       // smallest minutes. The deliberately wide steps stay ordered
@@ -671,7 +675,8 @@
         hospital_drive: { 15: "#350900", 30: "#B04700" },
         supermarket_walk: { 10: "#003D2C", 20: "#006D50" },
         supermarket_drive: { 10: "#006D50" },
-        fuel_drive: { 10: "#002D49", 20: "#005E90" }
+        fuel_drive: { 10: "#002D49", 20: "#005E90" },
+        shelter_walk: { 10: "#5A184A", 20: "#8A3A6E" }
       };
       const bandOpacity = 0.9;
       // Intersection ink: outside every service hue, hue-free hence
@@ -796,7 +801,8 @@
         coffee: { label: "Kava ir maistas", description: "Kavinės ir restoranai" },
         hospital: { label: "Ligoninė", description: "Ligoninės, pasiekiamos automobiliu" },
         supermarket: { label: "Prekybos centras", description: "Didieji prekybos centrai" },
-        fuel: { label: "Degalinė", description: "Degalinės, pasiekiamos automobiliu" }
+        fuel: { label: "Degalinė", description: "Degalinės, pasiekiamos automobiliu" },
+        shelter: { label: "Slėptuvė", description: "Viešosios civilinės saugos slėptuvės, pasiekiamos pėsčiomis" }
       };
 
       function serviceLabel(service) {
@@ -816,7 +822,9 @@
           coffee_shop: "Kavos parduotuvė",
           hospital: "Ligoninė",
           supermarket: "Prekybos centras",
-          fuel: "Degalinė"
+          fuel: "Degalinė",
+          priedanga: "Trumpalaikė priedanga",
+          kas: "Kolektyvinės apsaugos statinys"
         },
         en: {
           cafe: "Cafe",
@@ -824,7 +832,9 @@
           coffee_shop: "Coffee shop",
           hospital: "Hospital",
           supermarket: "Supermarket",
-          fuel: "Fuel station"
+          fuel: "Fuel station",
+          priedanga: "Short-term shelter",
+          kas: "Collective protection structure"
         }
       };
 
@@ -915,6 +925,7 @@
           inspectorUnavailable: "Nepavyko įkelti OpenStreetMap objektų informacijos.",
           moreInformation: "Daugiau informacijos",
           osmObject: "OpenStreetMap objektas",
+          shelterCategory: "Civilinė sauga",
           openInOsm: "Atverti OpenStreetMap",
           statusLabel: "Būsena",
           accessLabel: "Patekimas pėsčiomis",
@@ -1057,6 +1068,7 @@
           inspectorUnavailable: "OpenStreetMap object information could not be loaded.",
           moreInformation: "More information",
           osmObject: "OpenStreetMap object",
+          shelterCategory: "Civil protection",
           openInOsm: "Open in OpenStreetMap",
           statusLabel: "Status",
           accessLabel: "Access on foot",
@@ -1214,17 +1226,29 @@
         layers: baseLayers
       };
 
+      const isIsoDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value);
       // The OSM snapshot date (metadata.generated_at_osm_timestamp, from the
-      // PBF's osmosis_replication_timestamp) joins the attribution line. The
-      // dated string contains the base one, so MapLibre's containment
-      // dedupe shows only the dated line once the access source is added;
-      // ISO dates read natively in both Lithuanian and English, so the line
-      // needs no re-render on language toggle.
+      // PBF's osmosis_replication_timestamp) joins the attribution line, and —
+      // when the build carries the PAGD shelter snapshot — the shelter source
+      // and the UTC date it was last refreshed (metadata.shelters.refreshed_at).
+      // The full official source name and CC BY 4.0 licence (the authoritative
+      // credit from metadata.shelters.attribution) ride in the link title; the
+      // visible segment stays a bare source acronym + ISO date, matching the
+      // terse OSM segment. Every visible segment is a proper noun or ISO date,
+      // language-neutral in Lithuanian and English, so the line (which is not
+      // re-rendered on language toggle) reads correctly in both. The richest
+      // string contains baseAttribution, so MapLibre's containment dedupe shows
+      // only it once the access source is added.
       function snapshotAttribution() {
-        const date = (metadata.generated_at_osm_timestamp ?? "").slice(0, 10);
-        return /^\d{4}-\d{2}-\d{2}$/.test(date)
-          ? `${baseAttribution} · ${date}`
-          : baseAttribution;
+        const parts = [baseAttribution];
+        const osmDate = (metadata.generated_at_osm_timestamp ?? "").slice(0, 10);
+        if (isIsoDate(osmDate)) parts.push(osmDate);
+        const shelterDate = (metadata.shelters?.refreshed_at ?? "").slice(0, 10);
+        if (isIsoDate(shelterDate)) {
+          const credit = metadata.shelters?.attribution ?? "PAGD, CC BY 4.0";
+          parts.push(`<a href="https://data.gov.lt/datasets/2852/" title="${credit}">PAGD</a> ${shelterDate}`);
+        }
+        return parts.join(" · ");
       }
       // The raw message is stored language-free so a later language toggle
       // re-renders the banner; renderMapError formats it on every call.
@@ -1618,7 +1642,8 @@
         coffee: 10,
         supermarket: 20,
         fuel: 30,
-        hospital: 40
+        hospital: 40,
+        shelter: 50
       };
       const inspectorHitLayerIds = [
         "inspector-hit-areas",
@@ -2496,6 +2521,15 @@
           c.strokeRect(7,6,7,12); c.strokeRect(8.5,8,4,3);
           line(c, [[14,9],[17,10],[17,16]]); c.beginPath(); c.arc(17,17,1,0,Math.PI*2); c.fill();
         });
+        // Civil-protection shelter: a point-up triangle (the protective
+        // roof/shelter reading, not the point-down hazard/yield shape) with an
+        // interior sheltering figure. Distinct from the house-shaped
+        // micro-detail "mapgames-shelter" (a physical rain/bus shelter).
+        registerIcon("mapgames-shelter-service", "#7a2e5c", c => {
+          line(c, [[12,5.5],[18.5,17.5],[5.5,17.5]], true);
+          c.beginPath(); c.arc(12,12,1.2,0,Math.PI*2); c.fill();
+          line(c, [[12,13.2],[12,16]]);
+        });
         registerIcon("mapgames-bus", "#075985", c => {
           c.strokeRect(6,7,12,9); c.strokeRect(8,9,8,3);
           c.beginPath(); c.arc(9,17,1.5,0,Math.PI*2); c.fill();
@@ -2957,6 +2991,7 @@
               "hospital", "mapgames-hospital",
               "supermarket", "mapgames-supermarket",
               "fuel", "mapgames-fuel",
+              "shelter", "mapgames-shelter-service",
               "mapgames-information"],
             "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.58, 16, 0.72, 18, 0.9],
             // A collision must not turn a known destination back into a
@@ -3777,9 +3812,14 @@
       }
 
       function osmCategoryLabel(properties) {
+        const kind = localizedOsmKind(properties.kind);
+        // Shelters are the one non-OSM destination; their card must credit
+        // civil protection, not "OpenStreetMap object".
+        if (properties.service === "shelter") {
+          return kind ? `${t("shelterCategory")} · ${kind}` : t("shelterCategory");
+        }
         const value = properties.category;
         const category = osmCategoryLabels[lang][value] || t("osmObject");
-        const kind = localizedOsmKind(properties.kind);
         return kind ? `${category} · ${kind}` : category;
       }
 

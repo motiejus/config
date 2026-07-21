@@ -587,6 +587,18 @@ def main() -> None:
     assert priority.index("fuel: 30") < priority.index("hospital: 40"), (
         "persistent service silhouettes need deterministic safety-first overpaint"
     )
+    # Civil-protection shelters are safety-critical and must overpaint on top,
+    # with their own civil-defence silhouette distinct from the house-shaped
+    # micro-detail "mapgames-shelter" utility icon asserted above.
+    assert priority.index("hospital: 40") < priority.index("shelter: 50"), (
+        "civil-protection shelters must overpaint above every other service"
+    )
+    assert '"shelter", "mapgames-shelter-service"' in index, (
+        "shelter service needs its own silhouette, not the micro shelter icon"
+    )
+    assert 'registerIcon("mapgames-shelter-service"' in index, (
+        "the shelter service silhouette must be registered as a map image"
+    )
     assert "...Object.entries(serviceIconPriority).flat(), 0" in service_icon_style, (
         "symbol overpaint does not use the shared service priority"
     )

@@ -18,8 +18,10 @@ let
     - Priedanga: https://data.gov.lt/datasets/2852/
     - KAS: https://data.gov.lt/datasets/2878/
 
-    The snapshots are refreshed daily. A commit is created only when the
-    source bytes change. See LICENSE-DATA.md for reuse terms and attribution.
+    The snapshots are refreshed every seven days. Each successful refresh writes
+    its UTC completion time to `refreshed-at.txt` and creates a commit even when
+    the source bytes did not change. See LICENSE-DATA.md for reuse terms and
+    attribution.
   '';
   dataLicense = pkgs.writeText "lt-shelters-LICENSE-DATA.md" ''
     # Data licence and attribution
@@ -82,7 +84,18 @@ let
       fetch-priedangos "$repo/priedangos.jsonl"
       fetch-kas "$repo/kas.jsonl"
 
-      git -C "$repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl
+      # Record the UTC completion time of this refresh. mapgames bakes this
+      # into the map's data-sources line, so it must advance on every
+      # successful refresh even when the source bytes did not change. Both
+      # fetchers replace their file atomically and fail without touching it, so
+      # reaching this point means both snapshots are current as of now.
+      date -u +%Y-%m-%dT%H:%M:%SZ > "$repo/refreshed-at.txt"
+
+      git -C "$repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl refreshed-at.txt
+      # refreshed-at.txt changes every run, so there is normally always
+      # something to commit; the guard still skips an empty commit if a run
+      # somehow left the tree identical (e.g. a manual re-run within the same
+      # second after a no-op).
       if ! git -C "$repo" diff --cached --quiet; then
         git -C "$repo" commit -m "Update PAGD shelter data"
       fi
@@ -137,13 +150,16 @@ in
       };
     };
 
-    # Daily matches observed batch updates (median active-day gaps of 2 days
-    # for Priedanga and 3 days for KAS). Jitter avoids a fixed portal spike.
+    # Weekly: the source datasets change in infrequent batches (median
+    # active-day gaps of a few days), and each refresh now always commits to
+    # record refreshed-at.txt, so a seven-day cadence keeps the "refreshed"
+    # date current without accumulating daily no-op commits. Jitter avoids a
+    # fixed portal spike.
     systemd.timers.lt-shelters = {
-      description = "Daily Lithuanian shelter data snapshot";
+      description = "Weekly Lithuanian shelter data snapshot";
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "*-*-* 04:17:00 Europe/Vilnius";
+        OnCalendar = "Mon *-*-* 04:17:00 Europe/Vilnius";
         Persistent = true;
         RandomizedDelaySec = "30m";
       };
