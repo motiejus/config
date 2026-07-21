@@ -23,10 +23,16 @@ void write_le(std::ostream &output, Integer value) {
   static_assert(std::is_integral_v<Integer>);
   using Unsigned = std::make_unsigned_t<Integer>;
   Unsigned bits = static_cast<Unsigned>(value);
+  // Serialize the little-endian bytes into a stack buffer and emit them in one
+  // ostream::write. The byte content is identical to a per-byte put() loop, but
+  // a single buffered write per value avoids the per-byte sentry/put overhead
+  // that dominates the relation handoff (millions of values per batch).
+  char bytes[sizeof(Integer)];
   for (size_t index = 0; index < sizeof(Integer); ++index) {
-    output.put(static_cast<char>(bits & 0xff));
+    bytes[index] = static_cast<char>(bits & 0xff);
     bits >>= 8;
   }
+  output.write(bytes, sizeof(Integer));
 }
 
 inline void write_double(std::ostream &output, double value) {
