@@ -196,6 +196,7 @@ let
       --destination-tool ${./destination-lookup.py} \
       --destination-native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
       --generate ${./generate.py} \
+      --expand-source ${./valhalla-expand.cc} \
       --pmtiles ${pmtiles}/bin/pmtiles
     touch "$out"
   '';

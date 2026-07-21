@@ -2294,11 +2294,24 @@ int main(int argc, char **argv) {
     write_relation_header(relation_output, minutes);
     size_t completed = 0;
     size_t batch_number = 0;
+    // Civil-protection shelters are a pinned external POI snapshot, not OSM
+    // features matched onto the road graph, so a few sit beyond the 100 m snap
+    // radius of any routable edge (islands, courtyards, digitised-off points).
+    // For that service alone, skip such origins -- recording their request ids
+    // so the caller can keep them as unrouted POIs -- instead of failing the
+    // whole build. Every other service still fails loudly, so a genuine data or
+    // routing-graph regression is never silently dropped.
+    const bool allow_unroutable = service == "shelter";
+    std::vector<std::string> unrouted_ids;
+    std::mutex unrouted_mutex;
     for (size_t batch_start = 0; batch_start < requests.size();
          batch_start += batch_size) {
       const size_t batch_end = std::min(requests.size(), batch_start + batch_size);
       const std::vector<Request> batch_requests(requests.begin() + batch_start,
                                                 requests.begin() + batch_end);
+      // Skips recorded during this batch, so progress logs count only routed
+      // origins (unrouted_ids only grows and workers are joined before use).
+      const size_t unrouted_before_batch = unrouted_ids.size();
       const size_t worker_count =
           std::min(requested_threads, batch_requests.size());
       std::vector<DestinationEdges> worker_destinations;
@@ -2379,11 +2392,21 @@ int main(int argc, char **argv) {
                 }
               }
             } catch (const std::exception &error) {
-              std::lock_guard<std::mutex> lock(log_mutex);
-              std::cerr << "valhalla-expand: request " << request.id << " ("
-                        << request.feature_id << ") failed: " << error.what()
-                        << '\n';
-              throw;
+              {
+                std::lock_guard<std::mutex> lock(log_mutex);
+                std::cerr << "valhalla-expand: request " << request.id << " ("
+                          << request.feature_id << ") "
+                          << (allow_unroutable ? "skipped (unroutable): "
+                                               : "failed: ")
+                          << error.what() << '\n';
+              }
+              if (!allow_unroutable) {
+                throw;
+              }
+              // A shelter origin that will not snap or cannot reach any line is
+              // dropped from routing but kept for the caller as an unrouted POI.
+              std::lock_guard<std::mutex> lock(unrouted_mutex);
+              unrouted_ids.push_back(request.id);
             }
           }
         } catch (...) {
@@ -2411,6 +2434,11 @@ int main(int argc, char **argv) {
                       [](const DestinationEdges &edges) {
                         return edges.empty();
                       })) {
+        if (allow_unroutable) {
+          // Every origin in this batch was unroutable; skip it rather than
+          // emitting an empty relation batch or failing the build.
+          continue;
+        }
         throw std::runtime_error("relation batch is empty");
       }
       const RelationBatch relation_batch = build_relation_batch(
@@ -2420,7 +2448,8 @@ int main(int argc, char **argv) {
         throw std::runtime_error("could not append output: " +
                                  relation_path.string());
       }
-      completed += batch_requests.size();
+      completed += batch_requests.size() -
+                   (unrouted_ids.size() - unrouted_before_batch);
       ++batch_number;
       const size_t resident_edge_rows =
           std::accumulate(worker_destinations.begin(),
@@ -2440,6 +2469,28 @@ int main(int argc, char **argv) {
       throw std::runtime_error("could not close output: " +
                                relation_path.string());
     }
+    if (allow_unroutable) {
+      // Always emit the skip list (empty when every shelter routed) so the
+      // caller can distinguish "carve-out ran, none skipped" from a crash.
+      std::sort(unrouted_ids.begin(), unrouted_ids.end());
+      const auto unrouted_path = out_dir / ("unrouted-" + route_key + ".tsv");
+      std::ofstream unrouted_output(unrouted_path, std::ios::binary);
+      if (!unrouted_output) {
+        throw std::runtime_error("could not open unrouted output: " +
+                                 unrouted_path.string());
+      }
+      for (const std::string &id : unrouted_ids) {
+        unrouted_output << id << '\n';
+      }
+      unrouted_output.close();
+      if (!unrouted_output) {
+        throw std::runtime_error("could not write unrouted output: " +
+                                 unrouted_path.string());
+      }
+      std::cerr << "[mapgames] native expansion " << route_key << ": "
+                << unrouted_ids.size() << " unroutable " << service
+                << " origin(s) skipped\n";
+    }
     const auto routing_finished = std::chrono::steady_clock::now();
 
     std::cerr << "[mapgames] native batched routing+relation output: "
@@ -2447,7 +2498,8 @@ int main(int argc, char **argv) {
                                                routing_started)
                      .count()
               << "s\n";
-    std::cerr << "[mapgames] native expansion+lines: " << requests.size()
+    std::cerr << "[mapgames] native expansion+lines: "
+              << (requests.size() - unrouted_ids.size())
               << " routed in " << batch_number << " batch(es), at most "
               << batch_size << " origins and " << max_worker_count
               << " routing worker(s) resident\n";

@@ -1206,9 +1206,27 @@ def main() -> None:
                 ],
             )
             requests_path.unlink()
-            for _location, place_feature in entries:
-                place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
-            routed_counts[key] = len(entries)
+            # The native helper skips unroutable shelter origins (its shelter-only
+            # carve-out) and lists their 1-based request ids here; every other
+            # service fails the build on an unroutable origin instead, so this
+            # file is only ever written for shelters.
+            unrouted_path = work / f"unrouted-{key}.tsv"
+            unrouted_indices = set()
+            if unrouted_path.exists():
+                unrouted_indices = {
+                    int(line) for line in unrouted_path.read_text(
+                        encoding="utf-8"
+                    ).split()
+                }
+                if any(index < 1 or index > len(entries) for index in unrouted_indices):
+                    raise ValueError(f"unroutable request index out of range for {key}")
+                unrouted_path.unlink()
+            for index, (_location, place_feature) in enumerate(entries, start=1):
+                # Unroutable shelters stay in the POI/marker catalog but are not
+                # reachable destinations; every routable origin is "routed".
+                status = "unroutable" if index in unrouted_indices else "routed"
+                place_feature["properties"][f"{route['mode']}_routing_status"] = status
+            routed_counts[key] = len(entries) - len(unrouted_indices)
 
     config_path.unlink()
 
@@ -1694,7 +1712,10 @@ def main() -> None:
                 "min_data_zoom": PLACE_TILE_MIN_ZOOM,
             },
             "routed_counts": routed_counts,
-            "routing_failure_policy": "fail_build_on_any_unroutable_destination",
+            "routing_failure_policy": (
+                "fail_build_on_any_unroutable_destination_except_shelters_"
+                "which_are_kept_as_unrouted_pois"
+            ),
             "routing_mode": "reverse expansion edges: origin routing graph to concrete destination",
             "services": service_metadata,
             # Non-OSM data source: the pinned PAGD shelter snapshot. The client

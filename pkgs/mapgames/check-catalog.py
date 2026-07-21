@@ -369,6 +369,21 @@ def check_routing_tile_lifecycle(generate_source: str) -> None:
     assert "compute {key} native reverse expansion lines" in routing_scope
     assert 'tiles.mkdir(exist_ok=True)' not in generate_source
     assert "shutil.rmtree(tiles)" not in generate_source
+    # Unroutable shelter origins are skipped by the native helper and kept as
+    # POIs; generate.py must consume the skip list, mark those places
+    # "unroutable", and drop them from the routed count.
+    assert "unrouted-{key}.tsv" in routing_scope
+    assert '"unroutable"' in routing_scope
+    assert "len(entries) - len(unrouted_indices)" in routing_scope
+
+
+def check_shelter_unroutable_carveout(expand_source: str) -> None:
+    # The skip-on-unroutable carve-out must stay scoped to shelters: every other
+    # service still fails the build on an unroutable origin so a genuine data or
+    # routing-graph regression is never silently dropped.
+    assert 'const bool allow_unroutable = service == "shelter";' in expand_source
+    assert "if (!allow_unroutable) {" in expand_source
+    assert 'out_dir / ("unrouted-" + route_key + ".tsv")' in expand_source
 
 
 def main() -> None:
@@ -377,9 +392,13 @@ def main() -> None:
     parser.add_argument("--destination-tool", type=Path, required=True)
     parser.add_argument("--destination-native-tool", type=Path, required=True)
     parser.add_argument("--generate", type=Path, required=True)
+    parser.add_argument("--expand-source", type=Path, required=True)
     parser.add_argument("--pmtiles", type=Path, required=True)
     args = parser.parse_args()
     generate_source = args.generate.read_text(encoding="utf-8")
+    check_shelter_unroutable_carveout(
+        args.expand_source.read_text(encoding="utf-8")
+    )
     assert "args.expansion_output_concurrency" not in generate_source
     assert "if args.expansion_batch_size <= 0:" in generate_source
     assert "lithuania-boundary.raw.geojson" in generate_source
