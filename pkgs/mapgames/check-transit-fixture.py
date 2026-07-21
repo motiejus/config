@@ -28,6 +28,23 @@ def main() -> None:
             "--osmium", args.osmium,
         ], check=True)
         features = json.loads(output.read_text(encoding="utf-8"))["features"]
+        for private_input in (
+            "transit-candidates.osm.pbf",
+            "transit.raw.geojson",
+            "transit-stop-areas.osm.pbf",
+        ):
+            assert not (temporary / private_input).exists(), private_input
+
+        reserved_output = temporary / "transit.raw.geojson"
+        reserved_output.write_bytes(b"preserve reserved path\n")
+        alias_result = subprocess.run([
+            sys.executable, args.transit, "--input", pbf,
+            "--output", reserved_output, "--work", temporary,
+            "--bbox", "24.99,54.99,25.03,55.03", "--osmium", args.osmium,
+        ], text=True, capture_output=True)
+        assert alias_result.returncode != 0
+        assert "different files" in alias_result.stderr
+        assert reserved_output.read_bytes() == b"preserve reserved path\n"
 
     by_name = {}
     unnamed = []

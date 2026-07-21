@@ -29,6 +29,24 @@
       }).map(feature => ({ kind: "marker", feature }));
     });
   }
+  function rankLocations(locations, distance) {
+    return locations.map(location => ({ location, distance: distance(location) }))
+      .sort((left, right) => left.distance - right.distance ||
+        left.location.index - right.location.index)
+      .map(candidate => candidate.location);
+  }
+
+  function initialVisibleObjectIds(groups, limit = 3) {
+    const ids = new Set();
+    groups.forEach(locations =>
+      locations.slice(0, limit).forEach(location => ids.add(location.index))
+    );
+    return [...ids];
+  }
+
+  function nextLocationBatch(locations, loaded, limit = 12) {
+    return locations.slice(loaded, loaded + limit);
+  }
 
   function withIconsOnlyPreset(presets) {
     // Presets are a build-enforced contract: generate.py fails the data
@@ -39,7 +57,14 @@
     return [{ mode: presets[0].mode, minutes: 0, icons_only: true }, ...presets];
   }
 
-  const api = { chooseInteraction, collocatedMarkerChoices, withIconsOnlyPreset };
+  const api = {
+    chooseInteraction,
+    collocatedMarkerChoices,
+    rankLocations,
+    initialVisibleObjectIds,
+    nextLocationBatch,
+    withIconsOnlyPreset
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.ReviewUiState = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

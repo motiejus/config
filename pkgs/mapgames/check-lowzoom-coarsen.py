@@ -18,7 +18,8 @@ coarsen.py. Checks, per attribute-map group:
       Lost, invented, or duplicated segments all fail loudly.
 (ii)  output attribute maps equal input attribute maps, including `g`,
       carried through verbatim.
-(iii) input `g` values are exactly 0..N-1 in file order.
+(iii) input `g` values form contiguous ordered runs exactly 0..N-1; all
+      spatial chunks in a run carry identical properties.
 (iv)  with --z67 and --n-drop: the filtered artifact is exactly the
       subset of complete-skeleton chains with grid length L >= N_drop, order
       preserved.
@@ -77,22 +78,23 @@ def boundary_split(a, b, collect):
         stack.append((p, mid))
 
 
-def derive_group_segments(geometry) -> dict:
-    """Independently quantize + dedup + boundary-split one input feature.
+def derive_group_segments(geometries) -> dict:
+    """Independently quantize + dedup + boundary-split one input group.
     Returns {tile: {segment, ...}}."""
-    lines = (
-        geometry["coordinates"]
-        if geometry["type"] == "MultiLineString"
-        else [geometry["coordinates"]]
-    )
     deduped = set()
-    for line in lines:
-        previous = grid_point(*line[0])
-        for lon, lat in line[1:]:
-            current = grid_point(lon, lat)
-            if current != previous:
-                deduped.add(normalized(previous, current))
-                previous = current
+    for geometry in geometries:
+        lines = (
+            geometry["coordinates"]
+            if geometry["type"] == "MultiLineString"
+            else [geometry["coordinates"]]
+        )
+        for line in lines:
+            previous = grid_point(*line[0])
+            for lon, lat in line[1:]:
+                current = grid_point(lon, lat)
+                if current != previous:
+                    deduped.add(normalized(previous, current))
+                    previous = current
     per_tile = {}
     for a, b in deduped:
         parts = []
@@ -104,6 +106,32 @@ def derive_group_segments(geometry) -> dict:
 
 def fail(message: str):
     raise SystemExit(f"check-lowzoom-coarsen: FAIL: {message}")
+
+
+def ordered_input_groups(features):
+    groups = []
+    for feature_index, feature in enumerate(features):
+        properties = feature.get("properties")
+        geometry = feature.get("geometry")
+        if not isinstance(properties, dict) or not isinstance(geometry, dict):
+            fail(f"input feature {feature_index}: malformed feature")
+        if geometry.get("type") not in ("LineString", "MultiLineString"):
+            fail(f"input feature {feature_index}: geometry {geometry.get('type')!r}")
+        g = properties.get("g")
+        if type(g) is not int:
+            fail(f"input feature {feature_index}: invalid g={g!r}")
+        if g == len(groups):
+            groups.append({"properties": properties, "geometries": [geometry]})
+        elif groups and g == len(groups) - 1:
+            if properties != groups[-1]["properties"]:
+                fail(f"input feature {feature_index}: properties change within g={g}")
+            groups[-1]["geometries"].append(geometry)
+        else:
+            fail(
+                f"input feature {feature_index}: g={g}, expected current group "
+                f"{len(groups) - 1} or next group {len(groups)}"
+            )
+    return groups
 
 
 def requantize_chain(feature, feature_index):
@@ -225,15 +253,11 @@ def main() -> None:
     with open(args.network, encoding="utf-8") as handle:
         network = json.load(handle)
     network_features = network["features"]
-
-    # (iii) input g values are exactly 0..N-1 in file order.
-    for index, feature in enumerate(network_features):
-        if feature["properties"].get("g") != index:
-            fail(
-                f"input feature {index} has g="
-                f"{feature['properties'].get('g')!r}, expected {index}"
-            )
-    print(f"[check] (iii) input g values are exactly 0..{len(network_features) - 1}")
+    network_groups = ordered_input_groups(network_features)
+    print(
+        f"[check] (iii) {len(network_features)} ordered spatial chunks carry "
+        f"group ids exactly 0..{len(network_groups) - 1}"
+    )
 
     with open(args.lowzoom, encoding="utf-8") as handle:
         lowzoom = json.load(handle)
@@ -242,9 +266,9 @@ def main() -> None:
     # (ii) properties carried through verbatim, keyed by g.
     for index, feature in enumerate(lowzoom_features):
         g = feature["properties"].get("g")
-        if not isinstance(g, int) or not 0 <= g < len(network_features):
+        if not isinstance(g, int) or not 0 <= g < len(network_groups):
             fail(f"output feature {index}: bad group id {g!r}")
-        if feature["properties"] != network_features[g]["properties"]:
+        if feature["properties"] != network_groups[g]["properties"]:
             fail(
                 f"output feature {index}: properties differ from input "
                 f"group {g}"
@@ -255,7 +279,7 @@ def main() -> None:
     groups_seen = {feature["properties"]["g"] for feature in lowzoom_features}
     print(
         f"[check] (ii) properties verbatim for {len(lowzoom_features)} chains "
-        f"across {len(groups_seen)} of {len(network_features)} groups"
+        f"across {len(groups_seen)} of {len(network_groups)} groups"
     )
 
     # (i) exact segment-coverage replay, group by group in file order.
@@ -265,8 +289,8 @@ def main() -> None:
     position = 0
     total_segments = 0
     segmentless = 0
-    for g, feature in enumerate(network_features):
-        per_tile = derive_group_segments(feature["geometry"])
+    for g, group in enumerate(network_groups):
+        per_tile = derive_group_segments(group["geometries"])
         if not per_tile:
             if g in groups_seen:
                 fail(f"group {g}: chains emitted for a zero-segment group")

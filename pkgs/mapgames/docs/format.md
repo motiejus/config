@@ -5,7 +5,9 @@ This is the current serving contract for `.#mapgames`. The derivation in
 authoritative; this document is an inventory, not a second configuration.
 
 The output is a static, same-origin web application. All geographic archives
-are PMTiles v3 containing gzip-compressed Mapbox Vector Tiles (MVT). A PMTiles
+are PMTiles v3. Geographic archives contain gzip-compressed Mapbox Vector
+Tiles (MVT); the SHA-256-named catalog archive contains gzip-compressed JSON pages with tile
+type Unknown. A PMTiles
 file is not downloaded whole: `pmtiles.js` reads its header, directories, and
 the visible tile byte ranges with HTTP Range requests.
 
@@ -20,8 +22,7 @@ the visible tile byte ranges with HTTP Range requests.
 | `details.pmtiles` | Curated labels and markers for ordinary map reading, including dedicated potable-water and high-zoom street-detail layers | z15–16 | Source is created at startup; tile payload begins at z15; z17–18 overzoom z16 |
 | `inspector.pmtiles` | Configured coffee/hospital/supermarket/fuel matches plus road-direction geometry | z15–16 | Lazy at z15+; road lines are reserved for explicit highlighted-road snapping |
 | `places.pmtiles` | Point markers for configured service destinations | z14 only | Source is created at startup; enabled-service tiles begin at z14 and overzoom above it |
-| `place-catalog.json` | Compact original coordinates and human-facing fields for service destinations | — | Lazy: fetched only when an inspection needs named destination records or a shared `#place` is restored |
-| `destinations-<service>-<mode>.pmtiles` | Invisible hit corridors mapping a clicked reachable edge to destination catalog indexes | z12–14 | Sources are registered at startup but layers remain hidden; selected layers read tiles only while evaluating a click at z12+; z15–18 overzoom z14 |
+| `catalog-<sha256>.pmtiles` | Content-addressed, range-addressed JSON pages for objects, compact locations, destination sets/relations, plus raw spatial hit pages | synthetic z18 and spatial z15 | Lazy direct range reads; never downloaded whole |
 
 `metadata.json` is the stable way for the client to discover these names and
 layers. Do not duplicate its per-build access group IDs elsewhere: `g` is only
@@ -49,8 +50,15 @@ meaningful with the `access.pmtiles` and metadata from the same output.
 group ID `g`. `metadata.json.access_network.groups[g]` is the line's complete
 attribute map; each present requirement key (for example `coffee_walk`) gives
 the minimum reachable preset in minutes. An absent key means unreachable.
+The build's native network emitter writes those maps to a compact validated
+sidecar in the same loop as the GeoJSON features, so producing metadata does
+not load the full network geometry into Python.
 The browser changes colors and visibility with feature state, so changing a
 service, threshold, or view does not fetch different access tiles.
+At z14, multiple spatially partitioned features can intentionally carry the
+same `g`, even within one tile. The vector source promotes `g` as the feature
+ID; MapLibre applies the group's single feature-state record to every feature
+position with that ID.
 
 The geometry varies inside the same layer:
 
@@ -59,19 +67,43 @@ The geometry varies inside the same layer:
 - z14: raw routing-edge geometry;
 - z15–18: renderer overzoom of z14.
 
-There is one destination archive per routed service/mode pair:
+Destination inspection reads the clicked z15 XYZ page directly from
+the catalog archive named by `metadata.catalog.file`. It adds only the side/corner pages crossed by the largest
+active screen-space corridor (at most a 2x2 block), instead of always reading
+all eight neighbors. Metadata and spatial pages have separate bounded LRUs and
+share a four-request Range queue. Each sparse raw-JSON page is a sorted array
+of `[edge_id,modeMask,deltaE7]` candidates. The compact canonical geometry is
+checked against the click corridor in screen space before any relation-page
+Range request; the fetched relation must repeat the exact geometry or the
+client fails closed. Manifest gates bound the raw candidate count and the
+post-filter relation-page fanout before a pathological lookup reaches the
+network. The matching
+`destination_edges` synthetic collection contains canonical E7 geometry and
+per-preset fraction runs/breakpoints; those records reference
+`destination_edge_set:*` collections of sorted global object indexes. The
+catalog spatial contract and relation contract carry the same `edge_build_id`,
+and clients fail closed when the identifiers differ.
 
-| Archive | MVT layers |
-|---|---|
-| `destinations-coffee-walk.pmtiles` | `destinations_5`, `_10`, `_20` |
-| `destinations-hospital-drive.pmtiles` | `destinations_15`, `_30` |
-| `destinations-supermarket-walk.pmtiles` | `destinations_10`, `_20` |
-| `destinations-supermarket-drive.pmtiles` | `destinations_10` |
-| `destinations-fuel-drive.pmtiles` | `destinations_10`, `_20` |
+### Paged object catalog
 
-Each feature carries `lookup_ids`, a compact set of indexes into
-`place-catalog.json`. These archives are for point inspection, not visible
-coverage rendering.
+`metadata.catalog` and the PMTiles archive JSON metadata contain the same
+schema (the former additionally has `file`). Pages use synthetic XYZ
+coordinates `z=18, x=collection.base+page, y=0`. Object records are in the
+`objects` collection, 64 per page, and retain global `index`, `place_id`,
+`service`, coordinates, and human-facing fields. Destination-set collections use 32 sets
+per page and destination-edge relations use 64 edges per page; the relation
+pages stay below the 64
+KiB compressed page gate. `object_locations`, 512 per page, is indexed by the same global
+object ID and carries `[lonE7,latE7,serviceOrdinal,displayLabel,kind]`; this
+supports country-wide ranking/counting and immediate collapsed result rows
+without waiting for rich object pages. Service
+ordinals are declared in the manifest.
+
+`place_id_index` has exactly 256 pages, one hash bucket per page. Its page is a
+JSON object from `place_id` to global index. Bucket selection is FNV-1a 32-bit
+over the UTF-8 bytes, masked with 255. Thus restoring `#place` needs at most one
+index page and one object page. All page JSON is canonical (sorted object keys,
+compact separators, UTF-8, final newline) and gzip-compressed deterministically.
 
 ### Everyday detail
 
@@ -124,16 +156,15 @@ The distinction between **source setup** and **tile payload** matters:
 1. The document loads MapLibre CSS/JS, `pmtiles.js`, and the basemap style
    helper. It fetches `metadata.json` while the initial map style starts.
 2. The basemap is part of that initial style. After metadata arrives, the app
-   registers access, detail, places, and all five destination sources. PMTiles
-   may therefore make small header/directory Range requests for these files.
-   This is not a full-archive download.
+   registers access, detail, and places sources. PMTiles may therefore make small header/directory Range
+   requests for these files. This is not a full-archive download.
 3. Only sources with a visible layer at the current zoom request tile payload:
    basemap, access from z6, enabled place markers from z14, and details from
-   z15. Destination layers are normally `visibility: none`.
-4. A click first evaluates the active destination layers at z12 or higher.
-   Only the selected service/mode/preset layers become visible for one load,
-   then they are hidden again. If they identify destinations,
-   `place-catalog.json` is fetched once and cached as a browser promise.
+   z15. The catalog is not a MapLibre source and stays unopened until lookup.
+4. A click queries the compact z15 spatial catalog pages and filters their
+   candidates against the click corridor. If they identify destinations, the
+   referenced relation, destination-set, and object pages are fetched by range
+   and cached; unrelated object metadata is not transferred or parsed.
 5. The inspector source itself is not registered until explicit z15+
    inspection. Closing a modal does not imply the browser forgets already
    cached ranges.
@@ -162,9 +193,10 @@ tiles are already gzip-compressed, and HTTP byte ranges must address the
 identity PMTiles bytes. Serving a whole-file `Content-Encoding` for PMTiles
 breaks range offsets.
 
-The production Caddy configuration serves precompressed static files,
-content-derived ETags, `Cache-Control: no-cache` (conditional revalidation),
-and same-origin PMTiles requests. Any alternative server must support byte
+The production Caddy configuration serves precompressed static files and
+content-derived ETags. Mutable deployment pointers use `Cache-Control:
+no-cache` (conditional revalidation); the SHA-256-named catalog uses a
+one-year immutable policy. Any alternative server must support byte
 ranges correctly (`206` and `Content-Range`) and must not rewrite or
 whole-file-compress PMTiles. Cross-origin hosting additionally requires CORS
 permission for the application origin, exposure of range-related headers, and
@@ -190,6 +222,6 @@ the serving format.
 3. final output: `compressDrvWeb www`, wrapped once more to ensure every
    identity or precompressed file has an ETag.
 
-GeoJSON, PBF extracts, Valhalla tiles, edge dumps, and the raw/coarse network
-GeoJSON files live only in the build directory. They are build intermediates,
-not part of the serving format.
+GeoJSON, PBF extracts, Valhalla tiles, the normalized relation database, and
+the raw/coarse network GeoJSON files live only in the build directory. They are
+build intermediates, not part of the serving format.

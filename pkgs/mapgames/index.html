@@ -13,8 +13,10 @@
     <link rel="stylesheet" href="assets/maplibre-gl.css">
     <script src="assets/maplibre-gl-csp.js"></script>
     <script src="assets/pmtiles.js"></script>
-    <script src="assets/basemaps.js"></script>
+    <script src="assets/catalog-pages.js"></script>
     <script src="assets/review-ui-state.js"></script>
+    <script src="assets/destination-relations.js"></script>
+    <script src="assets/basemaps.js"></script>
     <style>
       :root {
         color-scheme: light;
@@ -306,6 +308,7 @@
       }
       .destination-place-card p { margin: .2rem 0; font-size: .85rem; }
       .more-destinations { margin-top: .4rem; }
+      button.more-destinations { min-height: 2.75rem; }
       .clicked-place {
         margin: .7rem 0;
         padding: .55rem .7rem;
@@ -1126,7 +1129,6 @@
       }
       // ---- end i18n ------------------------------------------------------
       const lithuaniaBounds = [[20.35, 53.75], [27.10, 56.60]];
-      const inspectZoom = 12;
       // Individual destinations are useful at street scale, but become a
       // noisy point cloud over whole cities. Delay the visual dots until a
       // user can distinguish nearby streets, then grow them gradually as
@@ -1386,8 +1388,6 @@
           capturedAt: performance.now()
         };
       }, { passive: true });
-      const destinationSourceIds = new Set();
-      const failedDestinationSources = new Set();
       // Tile objects are stable across their request/error lifecycle. Tagging
       // each request when it starts lets a late failure from an invalidated
       // click be ignored instead of poisoning whichever inspection is active.
@@ -1397,6 +1397,7 @@
       let inspectorSourceSerial = 0;
       let inspectorLayersReady = false;
       let inspectorSourceNeedsReset = false;
+      let sharedDestinationLookupSequence = 0;
       // Geolocation is deliberately ephemeral: following the device must
       // never turn its coordinates into a shareable view= hash. The flag
       // remains set while the browser watch is active, including MapLibre's
@@ -1576,9 +1577,6 @@
         localizeMapControls();
       }).observe(geolocationButton, { attributes: true, attributeFilter: ["disabled"] });
       map.on("error", event => {
-        if (destinationSourceIds.has(event.sourceId)) {
-          failedDestinationSources.add(event.sourceId);
-        }
         if (String(event.sourceId || "").startsWith("inspector-")) {
           // A discarded MapLibre source can still finish an asynchronous
           // callback after its replacement has started. Source IDs are unique
@@ -1611,7 +1609,6 @@
       });
 
       const serviceState = new Map();
-      const destinationRecords = new Map();
       const placeLayerIds = [];
       const serviceIconLayerId = "places-service-icons";
       // One ordering owns both symbol overpaint and click resolution. A
@@ -1670,7 +1667,8 @@
       let inspectionPrefersRoad = false;
       let inspectSequence = 0;
       let locationMarker;
-      let placeCatalogPromise;
+      let catalogPages;
+      let destinationRelations;
       let activeMarkerChoices = [];
 
       // Desktop collapse preference; session-scoped on purpose — a shared
@@ -2286,38 +2284,6 @@
               // destination hit corridors below stay uncapped).
               "line-width": corridorLineWidth("walk", corridorWidthCapPx)
             }
-          });
-        });
-        metadata.destination_tiles.forEach(tile => {
-          const destinationSource = `destination-${tile.service}-${tile.mode}`;
-          destinationSourceIds.add(destinationSource);
-          map.addSource(destinationSource, {
-            type: "vector",
-            url: `pmtiles://${new URL(tile.file, location.href).href}`
-          });
-          Object.entries(tile.layers).forEach(([minutesText, sourceLayer]) => {
-            const minutes = Number(minutesText);
-            const record = {
-              destinationLayer: `destinations-${tile.service}-${tile.mode}-${minutes}`,
-              destinationSource,
-              minutes,
-              mode: tile.mode,
-              service: tile.service
-            };
-            map.addLayer({
-              id: record.destinationLayer,
-              type: "line",
-              source: destinationSource,
-              "source-layer": sourceLayer,
-              minzoom: inspectZoom,
-              layout: lineLayout(),
-              paint: {
-                "line-color": "#000000",
-                "line-opacity": 0,
-                "line-width": corridorLineWidth(record.mode)
-              }
-            });
-            destinationRecords.set(presetKey(tile.service, tile.mode, minutes), record);
           });
         });
       }
@@ -3304,7 +3270,6 @@
         else if (mode === "score") styleScoreView(selections);
         else setAccessGroupStates(() => hiddenGroupState);
         renderLegend(mode, selections);
-        destinationRecords.forEach(record => setLayerVisibility([record.destinationLayer], false));
         metadata.services.forEach(service => {
           const state = serviceState.get(service.id);
           // Selected categories are pictograms, not pictograms stacked on dots.
@@ -3416,39 +3381,11 @@
         return list;
       }
 
-      function loadPlaceCatalog() {
-        if (!placeCatalogPromise) {
-          placeCatalogPromise = fetchJson(metadata.places.catalog_file)
-            .then(destinations => {
-              if (!Array.isArray(destinations)) {
-                throw new Error(`${metadata.places.catalog_file}: expected an array`);
-              }
-              const indexByPlaceId = new Map();
-              destinations.forEach((destination, placeIndex) => {
-                const placeId = destination?.place_id;
-                if (typeof placeId !== "string" || !placeId.length) {
-                  throw new Error(`${metadata.places.catalog_file}: place ${placeIndex} has no place_id`);
-                }
-                if (indexByPlaceId.has(placeId)) {
-                  throw new Error(`${metadata.places.catalog_file}: duplicate place_id ${placeId}`);
-                }
-                indexByPlaceId.set(placeId, placeIndex);
-              });
-              return { destinations, indexByPlaceId };
-            })
-            .catch(error => {
-              placeCatalogPromise = undefined;
-              throw error;
-            });
-        }
-        return placeCatalogPromise;
-      }
-
-      function catalogMarkerFeature(placeId, placeCatalog) {
-        const placeIndex = placeCatalog.indexByPlaceId.get(placeId);
-        const destination = placeCatalog.destinations[placeIndex];
+      function catalogMarkerFeature(placeId, destination) {
+        const placeIndex = destination?.index;
         const [minLon, minLat, maxLon, maxLat] = metadata.bbox;
-        if (placeIndex === undefined || !destination ||
+        if (!Number.isSafeInteger(placeIndex) || placeIndex < 0 ||
+            destination.place_id !== placeId ||
             !metadata.services.some(service => service.id === destination.service) ||
             !Number.isFinite(destination.lon) || !Number.isFinite(destination.lat) ||
             destination.lon < minLon || destination.lon > maxLon ||
@@ -3496,14 +3433,10 @@
         inspectionPending = true;
         const sequence = ++inspectSequence;
         renderInspectionLoading(approximateOrigin, true);
-        setLayerVisibility(
-          [...destinationRecords.values()].map(record => record.destinationLayer),
-          false
-        );
-        loadPlaceCatalog()
-          .then(placeCatalog => {
+        catalogPages.getObjects([placeIndex])
+          .then(objects => {
             if (sequence !== inspectSequence) return;
-            const canonicalMarker = catalogMarkerFeature(placeId, placeCatalog);
+            const canonicalMarker = catalogMarkerFeature(placeId, objects.get(placeIndex));
             canonicalMarker.properties = {
               ...markerFeature.properties,
               ...canonicalMarker.properties
@@ -4184,36 +4117,136 @@
         root.append(section);
       }
 
-      function destinationRecordsForRequirements(requirements) {
-        return requirements.map(service => {
-          const preset = selectedPreset(service);
-          return destinationRecords.get(presetKey(service.id, preset.mode, preset.minutes));
+      function sharedActivePresets() {
+        return selectionDetails().map(selection => {
+          const requirement = metadata.destination_lookup.requirements.find(candidate =>
+            candidate.service === selection.service.id && candidate.mode === selection.preset.mode
+          );
+          if (!requirement) {
+            throw new Error(
+              `missing shared destination requirement ${selection.service.id}/${selection.preset.mode}`
+            );
+          }
+          return {
+            key: requirement.key,
+            service: selection.service.id,
+            mode: selection.preset.mode,
+            minutes: selection.preset.minutes
+          };
         });
       }
 
-      function renderLocationResults(origin, markerFeatures, destinationFeatures, placeCatalog) {
+      function inspectSharedDestinationLocation(lngLat, updateHash, sequence) {
+        // A newer tap should not sit behind Range requests queued for an
+        // inspection whose generation can no longer render.
+        catalogPages.cancelQueuedReads();
+        const lookupSequence = ++sharedDestinationLookupSequence;
+        const markerFeatures = inspectionMarkerFeatures ?? [];
+        let active;
+        let markerIndexes;
+        try {
+          active = sharedActivePresets();
+          markerIndexes = markerFeatures.map(feature => {
+            const index = Number(feature.properties.place_index);
+            if (!Number.isSafeInteger(index) || index < 0) {
+              throw new Error("Invalid destination marker object index");
+            }
+            return index;
+          });
+        } catch (error) {
+          reportMapError(error);
+          renderInspectionError(lngLat, updateHash);
+          return;
+        }
+        if (!active.length) {
+          const resolution = markerIndexes.length
+            ? catalogPages.resolveReferenceLocations([], markerIndexes)
+            : Promise.resolve({ sets: new Map(), locations: new Map(), objects: new Map() });
+          resolution.then(resolved => {
+            if (sequence === inspectSequence && lookupSequence === sharedDestinationLookupSequence) {
+              return renderLocationResults(
+                lngLat, markerFeatures, [], resolved, sequence, lookupSequence
+              ).then(() => {
+                if (sequence === inspectSequence && lookupSequence === sharedDestinationLookupSequence) {
+                  updateMapStatus();
+                }
+              });
+            }
+          }).catch(error => {
+            if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+            reportMapError(error);
+            renderInspectionError(lngLat, updateHash);
+          });
+          return;
+        }
+        const lookup = metadata.destination_lookup;
+        const activeModeMask = active.reduce((mask, selection) =>
+          mask | lookup.hit.mode_bits[selection.mode], 0
+        );
+        const corridorPixels = {
+          // Candidate lookup and canonical-edge rejection must use the full
+          // geographic corridor. The 6px cap is only a visual styling policy;
+          // applying it here drops valid destinations at high zoom.
+          walk: corridorLineWidthAtZoom("walk", map.getZoom(), Infinity) / 2,
+          drive: corridorLineWidthAtZoom("drive", map.getZoom(), Infinity) / 2
+        };
+        const maximumCorridorPixels = Math.max(
+          ...active.map(selection => corridorPixels[selection.mode])
+        );
+        catalogPages.getSpatialCandidates(lngLat, activeModeMask, {
+          pixels: maximumCorridorPixels,
+          zoom: map.getZoom()
+        }).then(candidates => {
+          if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+          return destinationRelations.resolve(
+            candidates,
+            lngLat,
+            active,
+            coordinates => map.project(coordinates),
+            corridorPixels
+          );
+        }).then(references => {
+          if (!references || sequence !== inspectSequence ||
+              lookupSequence !== sharedDestinationLookupSequence) return;
+          return catalogPages.resolveReferenceLocations(references, markerIndexes)
+            .then(resolved => {
+              if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+              return renderLocationResults(
+                lngLat, markerFeatures, references, resolved, sequence, lookupSequence
+              ).then(() => {
+                if (sequence === inspectSequence && lookupSequence === sharedDestinationLookupSequence) {
+                  updateMapStatus();
+                }
+              });
+            });
+        }).catch(error => {
+          if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+          reportMapError(error);
+          console.error(error);
+          renderInspectionError(lngLat, updateHash);
+        });
+      }
+
+      async function renderLocationResults(
+        origin, markerFeatures, references, resolved, sequence, lookupSequence
+      ) {
         const requirements = activeRequirements();
         const byService = new Map(requirements.map(service => [service.id, new Map()]));
-        destinationFeatures.forEach(feature => {
-          const properties = feature.properties;
-          if (!byService.has(properties.service)) return;
-          let placeIds;
-          try {
-            placeIds = JSON.parse(properties.lookup_ids);
-          } catch (error) {
-            throw new Error(`Invalid destination IDs in ${properties.service}: ${error}`);
-          }
-          if (!Array.isArray(placeIds)) {
-            throw new Error(`Invalid destination IDs in ${properties.service}: expected an array`);
-          }
-          placeIds.forEach(placeId => {
-            const destination = placeCatalog[placeId];
-            if (!destination) {
+        references.forEach(reference => {
+          if (!byService.has(reference.service)) return;
+          const placeIndexes = resolved.sets.get(`${reference.collection}:${reference.id}`);
+          if (!placeIndexes) throw new Error(`Missing destination set ${reference.collection}:${reference.id}`);
+          placeIndexes.forEach(placeIndex => {
+            const location = resolved.locations.get(placeIndex);
+            if (!location) {
               throw new Error(
-                `Destination lookup references unknown place index ${placeId} in ${properties.service}`
+                `Destination lookup references unknown location ${placeIndex} in ${reference.service}`
               );
             }
-            byService.get(properties.service).set(placeId, destination);
+            if (location.service !== reference.service) {
+              throw new Error(`Destination service mismatch for object ${placeIndex}`);
+            }
+            byService.get(reference.service).set(placeIndex, location);
           });
         });
         // A #place inspection uses the primary marker's coordinates as the
@@ -4224,29 +4257,60 @@
         const primaryService = primaryMarker?.properties.service;
         if (primaryMarker && byService.has(primaryService)) {
           const placeIndex = Number(primaryMarker.properties.place_index);
-          const destination = placeCatalog[placeIndex];
-          if (!destination) {
-            throw new Error(`Destination dot references unknown place index ${placeIndex}`);
+          const location = resolved.locations.get(placeIndex);
+          if (!location) {
+            throw new Error(`Destination dot references unknown location ${placeIndex}`);
           }
-          byService.get(primaryService).set(placeIndex, destination);
+          byService.get(primaryService).set(placeIndex, {
+            ...location,
+            lon: origin.lng,
+            lat: origin.lat
+          });
         }
+        const rankedByService = new Map([...byService].map(([service, locations]) => [
+          service,
+          ReviewUiState.rankLocations(
+            [...locations.values()], location => haversineMeters(origin, location)
+          )
+        ]));
+        const initialIds = ReviewUiState.initialVisibleObjectIds([...rankedByService.values()], 3);
+        const missingInitial = initialIds.filter(id => !resolved.objects.has(id));
+        const initialObjectsPromise = catalogPages.getObjects(missingInitial);
+        const locationsById = new Map(
+          [...rankedByService.values()].flat().map(location => [location.index, location])
+        );
+        // Paint useful collapsed rows from the compact location page now.
+        // Rich object pages hydrate disclosure details in place below instead
+        // of extending the cold lookup's serial network waterfall.
+        initialIds.forEach(id => {
+          if (!resolved.objects.has(id) && locationsById.has(id)) {
+            resolved.objects.set(id, { ...locationsById.get(id) });
+          }
+        });
+        const richObjects = (locations, service) => locations.map(location => {
+          const object = resolved.objects.get(location.index);
+          if (!object || object.service !== service) {
+            throw new Error(`Missing rich destination object ${location.index} in ${service}`);
+          }
+          return object;
+        });
         document.getElementById("location-coordinates").textContent =
           t("coordsLine", `${origin.lat.toFixed(6)}, ${origin.lng.toFixed(6)}`);
         renderClickedPlaces(markerFeatures.map(feature => ({
           ...feature,
           properties: {
-            ...placeCatalog[Number(feature.properties.place_index)],
+            ...resolved.objects.get(Number(feature.properties.place_index)),
             ...feature.properties
           }
         })));
         const results = document.getElementById("location-results");
         results.replaceChildren();
         let passed = 0;
+        const initialLists = [];
         requirements.forEach(service => {
           const preset = selectedPreset(service);
-          const destinations = [...byService.get(service.id).values()]
-            .sort((left, right) => haversineMeters(origin, left) - haversineMeters(origin, right));
-          const pass = destinations.length > 0;
+          const locations = rankedByService.get(service.id);
+          const pass = locations.length > 0;
           if (pass) passed += 1;
 
           const card = document.createElement("section");
@@ -4261,28 +4325,81 @@
           heading.textContent = serviceLabel(service);
           row.append(pill, heading);
           const summary = document.createElement("p");
-          summary.textContent = destinations.length
-            ? t("resultSummary", destinations.length, presetLabel(preset))
+          summary.textContent = locations.length
+            ? t("resultSummary", locations.length, presetLabel(preset))
             : t("resultNone", serviceLabel(service), presetLabel(preset));
           card.append(row, summary);
-          if (destinations.length) {
-            const first = destinations.slice(0, 3);
-            card.append(destinationList(first, origin, preset.mode));
-            if (destinations.length > first.length) {
-              const details = document.createElement("details");
-              details.className = "more-destinations";
-              const detailsSummary = document.createElement("summary");
-              detailsSummary.textContent = t("showMore", destinations.length - first.length);
-              details.append(detailsSummary);
-              details.addEventListener("toggle", () => {
-                if (!details.open || details.dataset.loaded) return;
-                details.dataset.loaded = "true";
-                details.append(destinationList(destinations.slice(first.length), origin, preset.mode));
+          if (locations.length) {
+            const firstLocations = locations.slice(0, 3);
+            const list = destinationList(
+              richObjects(firstLocations, service.id), origin, preset.mode
+            );
+            initialLists.push({ firstLocations, list, mode: preset.mode, service: service.id });
+            card.append(list);
+            if (locations.length > firstLocations.length) {
+              let loaded = firstLocations.length;
+              const more = document.createElement("button");
+              more.className = "more-destinations";
+              more.type = "button";
+              const moreStatus = document.createElement("span");
+              moreStatus.className = "status";
+              moreStatus.setAttribute("role", "status");
+              moreStatus.setAttribute("aria-live", "polite");
+              const updateMore = () => {
+                more.textContent = t("showMore", locations.length - loaded);
+              };
+              updateMore();
+              more.addEventListener("click", () => {
+                const batchLocations = ReviewUiState.nextLocationBatch(locations, loaded, 12);
+                more.disabled = true;
+                moreStatus.textContent = t("loadingMore");
+                catalogPages.getObjects(batchLocations.map(location => location.index))
+                  .then(objects => {
+                    if (sequence !== inspectSequence ||
+                        lookupSequence !== sharedDestinationLookupSequence) return;
+                    objects.forEach((object, id) => resolved.objects.set(id, object));
+                    const batch = destinationList(
+                      richObjects(batchLocations, service.id), origin, preset.mode
+                    );
+                    const appended = [...batch.children];
+                    list.append(...appended);
+                    loaded += batchLocations.length;
+                    if (loaded >= locations.length) {
+                      more.remove();
+                      moreStatus.textContent = t("allPlacesShown", locations.length);
+                      appended[0]?.querySelector("a, button, summary")?.focus();
+                    } else {
+                      more.disabled = false;
+                      updateMore();
+                      moreStatus.textContent = "";
+                    }
+                  })
+                  .catch(error => {
+                    if (sequence !== inspectSequence ||
+                        lookupSequence !== sharedDestinationLookupSequence) return;
+                    console.warn("could not load more destinations", error);
+                    more.disabled = false;
+                    moreStatus.textContent = t("showMoreFailed");
+                  });
               });
-              card.append(details);
+              card.append(more, moreStatus);
             }
           }
           results.append(card);
+        });
+
+        initialObjectsPromise.then(initialObjects => {
+          if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+          initialObjects.forEach((object, id) => resolved.objects.set(id, object));
+          initialLists.forEach(entry => {
+            const hydrated = destinationList(
+              richObjects(entry.firstLocations, entry.service), origin, entry.mode
+            );
+            entry.list.replaceChildren(...hydrated.children);
+          });
+        }).catch(error => {
+          if (sequence !== inspectSequence || lookupSequence !== sharedDestinationLookupSequence) return;
+          reportMapError(error);
         });
 
         const intersection = document.getElementById("intersection-summary");
@@ -4388,15 +4505,12 @@
       function inspectLocation(lngLat, updateHash = true, sequence = ++inspectSequence) {
         inspectionOrigin = { lng: Number(lngLat.lng), lat: Number(lngLat.lat) };
         renderInspectionLoading(inspectionOrigin, updateHash);
-        setLayerVisibility(
-          [...destinationRecords.values()].map(record => record.destinationLayer),
-          false
-        );
-        if (map.getZoom() < inspectZoom) {
+        const requiredInspectZoom = metadata.destination_lookup.hit.zoom;
+        if (map.getZoom() < requiredInspectZoom) {
           document.getElementById("map-status").textContent = t("zoomingIn");
           map.easeTo({
             center: lngLat,
-            zoom: inspectZoom,
+            zoom: requiredInspectZoom,
             offset: inspectionOffset(),
             duration: 450
           });
@@ -4405,43 +4519,7 @@
           });
           return;
         }
-        const requiredRecords = destinationRecordsForRequirements(activeRequirements());
-        const destinationLayerIds = requiredRecords.map(record => record.destinationLayer);
-        const requiredDestinationSources = new Set(
-          requiredRecords.map(record => record.destinationSource)
-        );
-        if (!destinationLayerIds.length) {
-          inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
-          return;
-        }
-        // A transient tile error must not poison every later inspection of
-        // this service: clear the failure mark and force a refetch via
-        // setUrl. (MapLibre's reload skips errored tiles and never puts them
-        // in the reuse cache; what keeps this fail-closed is that every
-        // failure path hides the destination layers, which drops the errored
-        // tiles.) Clear the mark only when a refetch was actually issued;
-        // the post-idle check below still fails this inspection if a source
-        // errors again during the attempt.
-        requiredDestinationSources.forEach(sourceId => {
-          if (!failedDestinationSources.has(sourceId)) return;
-          const source = map.getSource(sourceId);
-          if (source?.setUrl) {
-            failedDestinationSources.delete(sourceId);
-            source.setUrl(source.url);
-          }
-        });
-        setLayerVisibility(destinationLayerIds, true);
-        map.once("idle", () => {
-          if (sequence !== inspectSequence) return;
-          if ([...requiredDestinationSources].some(source => failedDestinationSources.has(source))) {
-            setLayerVisibility(destinationLayerIds, false);
-            renderInspectionError(lngLat, updateHash);
-            return;
-          }
-          inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence);
-          setLayerVisibility(destinationLayerIds, false);
-          updateMapStatus();
-        });
+        inspectSharedDestinationLocation(lngLat, updateHash, sequence);
       }
 
       function renderInspectionError(lngLat, updateHash) {
@@ -4469,7 +4547,7 @@
 
       // Open the dialog at click time, before an automatic zoom or PMTiles
       // lookup can make the interaction feel ignored. Rendered marker fields
-      // are already enough for the place chip; the compact catalog fills in
+      // are already enough for the place chip; on-demand object pages fill in
       // its address and the destination cards when the lookup completes.
       function renderInspectionLoading(lngLat, updateHash) {
         if (!locationMarker) locationMarker = new maplibregl.Marker({ color: "#172033" });
@@ -4500,6 +4578,7 @@
       }
 
       function centerSharedInspection(lngLat, sequence, forceInspector = false) {
+        const destinationZoom = metadata.destination_lookup.hit.zoom;
         map.once("idle", () => {
           if (sequence !== inspectSequence) return;
           inspectLocation(lngLat, true, sequence);
@@ -4508,7 +4587,8 @@
         map.easeTo({
           center: lngLat,
           zoom: Math.max(map.getZoom(), forceInspector
-            ? (metadata.inspector?.min_data_zoom ?? inspectZoom) : inspectZoom),
+            ? (metadata.inspector?.min_data_zoom ?? destinationZoom)
+            : destinationZoom),
           duration: 450
         });
       }
@@ -4869,32 +4949,6 @@
         });
       }
 
-      function inspectVisibleLocation(lngLat, updateHash, destinationLayerIds, sequence) {
-        const point = map.project(lngLat);
-        const markerFeatures = inspectionMarkerFeatures ?? [];
-        const destinationFeatures = destinationLayerIds.length
-          ? map.queryRenderedFeatures(point, { layers: destinationLayerIds })
-          : [];
-        const catalogPromise = markerFeatures.length || destinationFeatures.length
-          ? loadPlaceCatalog()
-          : Promise.resolve({ destinations: [] });
-        return catalogPromise
-          .then(placeCatalog => {
-            if (sequence === inspectSequence) {
-              renderLocationResults(
-                lngLat, markerFeatures, destinationFeatures, placeCatalog.destinations
-              );
-              if (!destinationLayerIds.length) updateMapStatus();
-            }
-          })
-          .catch(error => {
-            if (sequence !== inspectSequence) return;
-            reportMapError(error);
-            console.error(error);
-            renderInspectionError(lngLat, updateHash);
-          });
-      }
-
       function applySharedInspectionFilters(parameters) {
         // Validate mode and language before requirements; the requirements
         // parser itself validates fully before mutating any service state.
@@ -4931,10 +4985,6 @@
         inspectSequence += 1;
         invalidateInspectorLookup();
         locationMarker?.remove();
-        setLayerVisibility(
-          [...destinationRecords.values()].map(record => record.destinationLayer),
-          false
-        );
         const dialog = document.getElementById("location-dialog");
         closeDialogForHashRestore(dialog);
       }
@@ -4985,10 +5035,11 @@
           inspectionPending = true;
           refreshMap();
           renderCatalogLoading();
-          loadPlaceCatalog()
-            .then(placeCatalog => {
+          catalogPages.findObjectByPlaceId(placeValue)
+            .then(destination => {
               if (sequence !== inspectSequence) return;
-              const markerFeature = catalogMarkerFeature(placeValue, placeCatalog);
+              if (!destination) throw new Error(t("errInvalidPlace", placeValue));
+              const markerFeature = catalogMarkerFeature(placeValue, destination);
               const [lng, lat] = markerFeature.geometry.coordinates;
               inspectionPlaceId = placeValue;
               inspectionMarkerFeatures = [markerFeature];
@@ -5112,6 +5163,17 @@
         new Promise(resolve => map.once("load", resolve))
       ]).then(([loadedMetadata]) => {
         metadata = loadedMetadata;
+        if (!metadata.catalog?.file) throw new Error("metadata.catalog.file is missing");
+        const { file: catalogFile, ...catalogManifest } = metadata.catalog;
+        catalogPages = new CatalogPages(
+          new URL(catalogFile, location.href).href,
+          catalogManifest
+        );
+        if (!metadata.destination_lookup) throw new Error("metadata.destination_lookup is missing");
+        if (metadata.destination_lookup.hit?.file !== catalogFile) {
+          throw new Error("destination spatial index must use the object catalog archive");
+        }
+        destinationRelations = new DestinationRelations(catalogPages, metadata.destination_lookup);
         // Date the always-used basemap source too, so the snapshot date
         // stays visible even when no access layer is active (the
         // attribution control ignores unused sources).
@@ -5231,10 +5293,6 @@
           inspectSequence += 1;
           invalidateInspectorLookup();
           locationMarker?.remove();
-          setLayerVisibility(
-            [...destinationRecords.values()].map(record => record.destinationLayer),
-            false
-          );
           // Closing during the below-z12 auto-zoom invalidates its idle
           // callback, so restore the ordinary selection status here instead
           // of leaving “Loading…” behind indefinitely.

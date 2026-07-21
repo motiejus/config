@@ -7,27 +7,25 @@
   compressDrvWeb,
   jq,
   libtiff,
-  nodejs,
   osmium-tool,
+  nodejs,
   pkg-config,
   pmtiles,
   python3,
   rapidjson,
   runCommand,
+  sqlite,
   tilemaker,
   valhalla,
   writeShellScript,
   # null means "use $NIX_BUILD_CORES at build time" for the general pipeline.
   # Expansion worker-count policy belongs here; generate.py simply uses the
-  # helper and worker counts it is passed. Full-Lithuania hospitals measured
-  # 77.2 s / 8.57 GiB at 8 routing workers+arenas and 2 output workers. 9
-  # routing workers used 9.01 GiB but were slower even with serial output
-  # (91.7 s), while 10 projects over the 10 GiB RSS budget.
+  # helper and worker count it is passed.
   concurrency ? null,
   expansionConcurrencyCap ? 8,
-  expansionOutputConcurrencyCap ? 2,
-  # Full Lithuania PBF extent. Data build measured ~8 min at concurrency 12;
-  # output is ~5 GB. Deploy size is accepted (UX/correctness > size).
+  expansionBatchSize ? 256,
+  # Full Lithuania PBF extent. Build time and peak memory are measured per
+  # phase by generate.py/the native helper.
   bbox ? "20.618591,53.892206,26.83873,56.45329",
   # bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/iteration area
 }:
@@ -39,16 +37,11 @@ assert lib.assertMsg (
   builtins.isInt expansionConcurrencyCap && expansionConcurrencyCap > 0
 ) "mapgames: expansionConcurrencyCap must be a positive integer";
 assert lib.assertMsg (
-  builtins.isInt expansionOutputConcurrencyCap && expansionOutputConcurrencyCap > 0
-) "mapgames: expansionOutputConcurrencyCap must be a positive integer";
-
+  builtins.isInt expansionBatchSize && expansionBatchSize > 0
+) "mapgames: expansionBatchSize must be a positive integer";
 let
   sourceUrl = "https://dl.jakstys.lt/maps/lithuania-260716.osm.pbf";
-  expansionArenaCap =
-    if expansionConcurrencyCap > expansionOutputConcurrencyCap then
-      expansionConcurrencyCap
-    else
-      expansionOutputConcurrencyCap;
+  expansionArenaCap = expansionConcurrencyCap;
   lithuaniaPbf = fetchurl {
     name = "lithuania-260716.osm.pbf";
     url = sourceUrl;
@@ -99,13 +92,19 @@ let
       boost
       libtiff
       rapidjson
+      sqlite
       valhalla
     ];
 
     buildPhase = ''
       runHook preBuild
 
+      ln -s ${./destination-relations.hh} destination-relations.hh
+      ln -s ${./destination-lookup-finalize.hh} destination-lookup-finalize.hh
       $CXX -std=c++20 -O2 -pthread ${./valhalla-expand.cc} \
+        ${./destination-lookup-native.cc} \
+        -I. \
+        -lsqlite3 \
         -o mapgames-valhalla-expand \
         $(pkg-config --cflags --libs libvalhalla)
 
@@ -149,6 +148,24 @@ let
       --tilemaker ${tilemaker}/bin/tilemaker
     touch "$out"
   '';
+  catalogCheck = runCommand "mapgames-catalog-check" { } ''
+    ${python3}/bin/python ${./check-catalog.py} \
+      --catalog-tool ${./catalog.py} \
+      --destination-tool ${./destination-lookup.py} \
+      --destination-native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
+      --generate ${./generate.py} \
+      --pmtiles ${pmtiles}/bin/pmtiles
+    touch "$out"
+  '';
+  destinationLookupCheck = runCommand "mapgames-destination-lookup-check" { } ''
+    ${python3}/bin/python ${./check-destination-lookup.py} \
+      --tool ${./destination-lookup.py} \
+      --native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
+      --catalog-tool ${./catalog.py} \
+      --coarsen-tool ${./coarsen.py} \
+      --coarsen-check-tool ${./check-lowzoom-coarsen.py}
+    touch "$out"
+  '';
   transitFixtureCheck = runCommand "mapgames-transit-fixture-check" { } ''
     ${python3}/bin/python ${./check-transit-fixture.py} \
       --fixture ${./testdata/transit.osm} \
@@ -165,11 +182,6 @@ let
     ${python3}/bin/python ${./check-road-hit-ui.py} --index ${./index.html}
     touch "$out"
   '';
-  reviewUiStateCheck = runCommand "mapgames-review-ui-state-check" { } ''
-    ${nodejs}/bin/node ${./check-review-ui-state.js} \
-      ${./review-ui-state.js} ${./index.html}
-    touch "$out"
-  '';
   cameraBoundsCheck = runCommand "mapgames-camera-bounds-check" { } ''
     ${python3}/bin/python ${./check-camera-bounds.py} --index ${./index.html}
     touch "$out"
@@ -182,6 +194,25 @@ let
     ${python3}/bin/python ${./check-water-ui.py} --index ${./index.html}
     touch "$out"
   '';
+  catalogClientCheck =
+    runCommand "mapgames-catalog-client-check"
+      {
+        nativeBuildInputs = [ nodejs ];
+      }
+      ''
+        node ${./check-catalog-pages.js} ${./catalog-pages.js}
+        node ${./check-destination-relations.js} \
+          ${./destination-relations.js} ${./catalog-pages.js}
+        node ${./check-review-ui-state.js} ${./review-ui-state.js} ${./index.html}
+        ${python3}/bin/python ${./check-catalog-ui.py} \
+          --index ${./index.html} \
+          --client ${./catalog-pages.js}
+        ${python3}/bin/python ${./check-shared-destination-ui.py} \
+          --index ${./index.html} \
+          --resolver ${./destination-relations.js} \
+          --catalog-client ${./catalog-pages.js}
+        touch "$out"
+      '';
   data = stdenvNoCC.mkDerivation {
     pname = "mapgames-data";
     version = "260716";
@@ -205,18 +236,13 @@ let
       if (( mapgames_expansion_concurrency > ${toString expansionConcurrencyCap} )); then
         mapgames_expansion_concurrency=${toString expansionConcurrencyCap}
       fi
-      mapgames_expansion_output_concurrency=${toString expansionOutputConcurrencyCap}
-      if (( mapgames_expansion_output_concurrency > mapgames_concurrency )); then
-        mapgames_expansion_output_concurrency="$mapgames_concurrency"
-      fi
-
       export PYTHONPATH="${valhalla}/${python3.sitePackages}"
       python ${./generate.py} \
         --pbf ${lithuaniaPbf} \
         --bbox ${lib.escapeShellArg bbox} \
         --concurrency "$mapgames_concurrency" \
         --expansion-concurrency "$mapgames_expansion_concurrency" \
-        --expansion-output-concurrency "$mapgames_expansion_output_concurrency" \
+        --expansion-batch-size ${toString expansionBatchSize} \
         --basemap-config ${./basemap.json} \
         --basemap-process ${./basemap.lua} \
         --detail-config ${./detail.json} \
@@ -225,6 +251,9 @@ let
         --inspector-process ${./inspector.lua} \
         --transit-tool ${./transit.py} \
         --geojson-process ${./geojson.lua} \
+        --catalog-tool ${./catalog.py} \
+        --destination-lookup-tool ${./destination-lookup.py} \
+        --destination-lookup-native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
         --pmtiles-cli-version ${lib.escapeShellArg pmtiles.version} \
         --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
         --valhalla-version ${lib.escapeShellArg valhalla.version} \
@@ -249,13 +278,15 @@ let
     passthru = {
       inherit bbox lithuaniaPbf;
       tests = {
+        catalog = catalogCheck;
+        catalogClient = catalogClientCheck;
+        destinationLookup = destinationLookupCheck;
         cameraBounds = cameraBoundsCheck;
         detailFixture = detailFixtureCheck;
         geolocationUi = geolocationUiCheck;
         inspectorFixture = inspectorFixtureCheck;
         inspectorUi = inspectorUiCheck;
         roadHitUi = roadHitUiCheck;
-        reviewUiState = reviewUiStateCheck;
         transitFixture = transitFixtureCheck;
         waterUi = waterUiCheck;
       };
@@ -314,6 +345,8 @@ let
         }' \
         ${data}/metadata.json > "$out/metadata.json"
       cp ${./index.html} "$out/index.html"
+      cp ${./catalog-pages.js} "$out/assets/catalog-pages.js"
+      cp ${./destination-relations.js} "$out/assets/destination-relations.js"
       cp ${./review-ui-state.js} "$out/assets/review-ui-state.js"
 
       tar -xzf ${maplibreSource} -C vendor-maplibre --strip-components=1 \

@@ -118,13 +118,16 @@
       '';
       "maps.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
+        @immutableCatalog path /catalog-*.pmtiles
+        @mutableMapAsset not path /catalog-*.pmtiles
+        header @immutableCatalog Cache-Control "public, max-age=31536000, immutable"
+        header @mutableMapAsset Cache-Control "no-cache"
         header {
           Strict-Transport-Security "max-age=15768000"
           Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self'"
           X-Content-Type-Options "nosniff"
           X-Frame-Options "DENY"
           Referrer-Policy "no-referrer"
-          Cache-Control "no-cache"
           Alt-Svc "h3=\":443\"; ma=86400"
         }
 

@@ -3,9 +3,9 @@
 
 Implements the skeleton algorithm in docs/lowzoom-fastpath.md, plus the
 short-chain-filtered z6-7 subset. Input is the merge tool's
-work/network.geojson (one Feature per attribute-map group, MultiLineString
-of pieces, each carrying its group index `g` = feature index in file
-order). Output is work/network-lowzoom.geojson: one LineString Feature per
+work/network.geojson (one or more spatially chunked MultiLineString Features
+per attribute-map group, each carrying its group index `g`; chunks of one
+group are adjacent). Output is work/network-lowzoom.geojson: one LineString Feature per
 chain, properties carried through verbatim, features ordered by
 (g, tile, chain emission order).
 
@@ -155,6 +155,38 @@ def grid_length(chain) -> float:
     return total
 
 
+def grouped_network_features(features):
+    """Validate ordered spatial chunks and return one geometry list per g."""
+    groups = []
+    for feature_index, feature in enumerate(features):
+        properties = feature.get("properties")
+        geometry = feature.get("geometry")
+        if not isinstance(properties, dict):
+            raise SystemExit(f"coarsen: feature {feature_index} has no properties")
+        if not isinstance(geometry, dict) or geometry.get("type") not in (
+            "LineString",
+            "MultiLineString",
+        ):
+            raise SystemExit(f"coarsen: feature {feature_index} is not line geometry")
+        g = properties.get("g")
+        if type(g) is not int:
+            raise SystemExit(f"coarsen: feature {feature_index} has invalid g={g!r}")
+        if g == len(groups):
+            groups.append((properties, [geometry]))
+        elif groups and g == len(groups) - 1:
+            if properties != groups[-1][0]:
+                raise SystemExit(
+                    f"coarsen: feature {feature_index} changes properties within g={g}"
+                )
+            groups[-1][1].append(geometry)
+        else:
+            raise SystemExit(
+                f"coarsen: feature {feature_index} carries g={g}; expected "
+                f"ordered group {max(len(groups) - 1, 0)} or {len(groups)}"
+            )
+    return groups
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("network", help="input work/network.geojson")
@@ -176,18 +208,7 @@ def main() -> None:
     with open(args.network, encoding="utf-8") as handle:
         collection = json.load(handle)
     features = collection["features"]
-
-    # The merge tool is the single source of truth for `g` (= feature index
-    # in emission order); assert the values are exactly 0..N-1 in file
-    # order and never assign our own.
-    for index, feature in enumerate(features):
-        g = feature["properties"].get("g")
-        if g != index:
-            raise SystemExit(
-                f"coarsen: feature {index} carries g={g!r}; expected the "
-                "merge tool's file-order index — rebuild network.geojson "
-                "with the g-emitting merge tool"
-            )
+    groups = grouped_network_features(features)
 
     input_property_maps = set()
     emitted_property_maps = set()
@@ -204,19 +225,11 @@ def main() -> None:
         handle.write('{"type":"FeatureCollection","features":[')
     first_main = first_z67 = True
 
-    for feature in features:
-        properties = feature["properties"]
+    for properties, geometries in groups:
         properties_json = json.dumps(
             properties, ensure_ascii=False, separators=(",", ":")
         )
         input_property_maps.add(properties_json)
-        geometry = feature["geometry"]
-        pieces = (
-            geometry["coordinates"]
-            if geometry["type"] == "MultiLineString"
-            else [geometry["coordinates"]]
-        )
-        in_pieces += len(pieces)
 
         # Steps 1-3: quantize (collapsing consecutive identical grid
         # points), decompose into undirected segments deduplicated in a
@@ -226,17 +239,26 @@ def main() -> None:
         # step 4 its simple graph (sub-segments of distinct input segments
         # may coincide inside one tile).
         group_segments = set()
-        for piece in pieces:
-            in_points += len(piece)
-            previous = quantize(*piece[0])
-            for lon, lat in piece[1:]:
-                current = quantize(lon, lat)
-                if current == previous:
-                    continue
-                group_segments.add(
-                    (previous, current) if previous < current else (current, previous)
-                )
-                previous = current
+        for geometry in geometries:
+            pieces = (
+                geometry["coordinates"]
+                if geometry["type"] == "MultiLineString"
+                else [geometry["coordinates"]]
+            )
+            in_pieces += len(pieces)
+            for piece in pieces:
+                in_points += len(piece)
+                previous = quantize(*piece[0])
+                for lon, lat in piece[1:]:
+                    current = quantize(lon, lat)
+                    if current == previous:
+                        continue
+                    group_segments.add(
+                        (previous, current)
+                        if previous < current
+                        else (current, previous)
+                    )
+                    previous = current
         by_tile = {}
         for a, b in group_segments:
             split = []
@@ -308,7 +330,8 @@ def main() -> None:
 
     elapsed = time.perf_counter() - started
     print(
-        f"[coarsen] {len(features)} groups, {in_pieces} pieces / {in_points} "
+        f"[coarsen] {len(groups)} groups / {len(features)} spatial chunks, "
+        f"{in_pieces} pieces / {in_points} "
         f"points -> {total_segments} grid segments, {total_chains} chains / "
         f"{total_points} points "
         f"(avg {total_points / max(total_chains, 1):.1f} points/chain) "

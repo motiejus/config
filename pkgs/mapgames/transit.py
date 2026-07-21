@@ -4,6 +4,7 @@ import argparse
 from collections import defaultdict
 import json
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -14,6 +15,24 @@ from urllib.parse import unquote
 LIFECYCLE = {"abandoned", "construction", "demolished", "disused", "proposed", "razed", "removed"}
 KIND_PRIORITY = {"stop": 0, "halt": 1, "station": 2, "terminal": 3}
 MODE_PRIORITY = ("train", "subway", "tram", "trolleybus", "bus", "ferry")
+
+
+def same_file_identity(left: Path, right: Path) -> bool:
+    if left.resolve(strict=False) == right.resolve(strict=False):
+        return True
+    try:
+        return os.path.samefile(left, right)
+    except FileNotFoundError:
+        return False
+
+
+def require_distinct_paths(paths: list[tuple[str, Path]]) -> None:
+    for left_index, (left_name, left_path) in enumerate(paths):
+        for right_name, right_path in paths[left_index + 1:]:
+            if same_file_identity(left_path, right_path):
+                raise ValueError(
+                    f"{left_name} and {right_name} must identify different files"
+                )
 
 
 def run(argv: list[object], capture: bool = False) -> str:
@@ -307,6 +326,13 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
     filtered = work / "transit-candidates.osm.pbf"
     raw = work / "transit.raw.geojson"
     relations_pbf = work / "transit-stop-areas.osm.pbf"
+    require_distinct_paths([
+        ("input PBF", pbf),
+        ("output GeoJSON", output),
+        ("filtered PBF", filtered),
+        ("raw GeoJSON", raw),
+        ("stop-area PBF", relations_pbf),
+    ])
     selectors = (
         "nwr/public_transport", "nwr/highway=bus_stop", "nwr/railway=station",
         "nwr/railway=halt", "nwr/railway=tram_stop", "nwr/amenity=bus_station",
@@ -318,6 +344,7 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
     relation_text = run([osmium, "cat", relations_pbf, "-f", "opl"], capture=True)
 
     source = json.loads(raw.read_text(encoding="utf-8"))
+    relations = parse_opl_relations(relation_text)
     candidates = []
     min_lon, min_lat, max_lon, max_lat = bbox
     for feature in source.get("features", []):
@@ -336,7 +363,7 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
     consumed = set()
     features = []
 
-    for relation in parse_opl_relations(relation_text):
+    for relation in relations:
         members = [by_id[member] for member in relation["members"] if member in by_id and member not in consumed]
         if excluded(relation["properties"]):
             # A lifecycle-disabled stop area disables its members as a unit.
@@ -403,6 +430,9 @@ def prepare(pbf: Path, output: Path, work: Path, bbox: tuple[float, float, float
 
     features.sort(key=lambda feature: str(feature["id"]))
     output.write_text(json.dumps({"type": "FeatureCollection", "bbox": list(bbox), "features": features}, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+    filtered.unlink()
+    raw.unlink()
+    relations_pbf.unlink()
     metrics = {
         "candidates": len(candidates), "canonical_stops": len(features),
         "display_tiers": {str(tier): sum(feature["properties"]["display_tier"] == tier for feature in features) for tier in (15, 16, 17, 18)},

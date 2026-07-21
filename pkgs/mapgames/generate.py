@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+import hashlib
 import json
 import math
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -20,7 +24,6 @@ from valhalla import get_config
 
 
 TILE_MIN_ZOOM = 6
-DESTINATION_MIN_ZOOM = 12
 TILE_MAX_ZOOM = 14
 # Place dots are displayed only in overzoomed street-level views. Encoding
 # the same point set below the archive's maximum zoom only duplicates data;
@@ -108,14 +111,9 @@ def route_key(route: dict) -> str:
     return f"{route['service']}-{route['mode']}"
 
 
-# Attribute keys of the unified network layer (docs/unified-access-layer.md):
-# one per requirement, `{service}_{mode}` with underscore.
-# valhalla-expand.cc derives the same keys from the edges-<service>-<mode>.tsv
-# dump filenames, so the two derivations (plus the segment checker's regex)
-# stay lockstep only while every route key is exactly one lowercase word, one
-# dash, one lowercase word. Validate that grammar here at import time — the
-# check is static (module constants only), and failing before the expensive
-# routing phase beats failing after it.
+# Attribute keys of the unified network layer are `{service}_{mode}`. Route
+# keys also name the native classified handoffs, so keep both components to
+# lowercase words and prove their mapping before expensive routing starts.
 _ROUTE_KEY_GRAMMAR = re.compile(r"[a-z]+-[a-z]+")
 REQUIREMENT_KEYS = tuple(f"{route['service']}_{route['mode']}" for route in ROUTE_SPECS)
 for _route, _requirement_key in zip(ROUTE_SPECS, REQUIREMENT_KEYS, strict=True):
@@ -123,7 +121,7 @@ for _route, _requirement_key in zip(ROUTE_SPECS, REQUIREMENT_KEYS, strict=True):
     if not _ROUTE_KEY_GRAMMAR.fullmatch(_key):
         raise RuntimeError(
             f"route key {_key!r} does not match the one-dash [a-z]+-[a-z]+ grammar"
-            " that the dump-filename key derivation in valhalla-expand.cc assumes"
+            " required by the native relation handoff"
         )
     if _key.replace("-", "_") != _requirement_key:
         raise RuntimeError(
@@ -157,13 +155,8 @@ for _service in SERVICE_SPECS:
 del _service, _mode, _minutes_values, _minutes
 
 MODE_COSTING = {"walk": "pedestrian", "drive": "auto"}
+MODE_BITS = {"walk": 1, "drive": 2}
 CORRIDOR_BUFFER_METERS = {"walk": 12, "drive": 18}
-DESTINATION_SOURCE_COLUMNS = (
-    "minutes",
-    "mode",
-    "lookup_ids",
-    "service",
-)
 PLACE_SOURCE_COLUMNS = (
     "amenity",
     "brand",
@@ -228,6 +221,35 @@ def capture(label: str, argv: list[object]) -> str:
     with timed(label):
         result = subprocess.run(command, check=True, text=True, stdout=subprocess.PIPE)
     return result.stdout.strip()
+
+
+def run_parallel_branches(
+    branches: dict[str, Callable[[], object]],
+) -> dict[str, object]:
+    """Run independent branches and retain declaration-ordered outcomes."""
+    if not branches:
+        return {}
+    results = {}
+    failures = {}
+    with ThreadPoolExecutor(max_workers=len(branches), thread_name_prefix="mapgames") as executor:
+        futures = {name: executor.submit(branch) for name, branch in branches.items()}
+        # Resolve every submitted branch before propagating an error. This is
+        # deliberate structured concurrency: a failed build waits for its one
+        # running sibling to finish and clean up rather than abandoning it.
+        for name, future in futures.items():
+            try:
+                results[name] = future.result()
+            except Exception as error:
+                error.add_note(f"post-merge {name} branch failed")
+                failures[name] = error
+    if failures:
+        if len(failures) == 1:
+            raise next(failures[name] for name in branches if name in failures)
+        raise ExceptionGroup(
+            "post-merge build branches failed",
+            [failures[name] for name in branches if name in failures],
+        )
+    return {name: results[name] for name in branches}
 
 
 def write_json(path: Path, value: object) -> None:
@@ -296,14 +318,6 @@ def place_kind(service: str, properties: dict) -> str:
     return service
 
 
-def destination_layer_name(minutes: int) -> str:
-    return f"destinations_{minutes}"
-
-
-def destinations_filename(route: dict, minutes: int) -> str:
-    return f"destinations-{route_key(route)}-{minutes}.geojson"
-
-
 def common_tile_settings(name: str, description: str, minzoom: int = TILE_MIN_ZOOM) -> dict:
     return {
         "minzoom": minzoom,
@@ -325,8 +339,8 @@ def common_tile_settings(name: str, description: str, minzoom: int = TILE_MIN_ZO
     }
 
 
-def edge_dump_filename(route: dict) -> str:
-    return f"edges-{route_key(route)}.tsv"
+def relation_handoff_filename(route: dict) -> str:
+    return f"relations-{route_key(route)}.bin"
 
 
 def network_tile_config(work: Path) -> dict:
@@ -377,25 +391,6 @@ def network_tile_config(work: Path) -> dict:
     }
 
 
-def destination_tile_config(route: dict, work: Path) -> dict:
-    return {
-        "layers": {
-            destination_layer_name(minutes): {
-                "minzoom": DESTINATION_MIN_ZOOM,
-                "maxzoom": TILE_MAX_ZOOM,
-                "source": str(work / destinations_filename(route, minutes)),
-                "source_columns": list(DESTINATION_SOURCE_COLUMNS),
-            }
-            for minutes in route["minutes"]
-        },
-        "settings": common_tile_settings(
-            f"Mapgames {route_key(route)} destination lookup",
-            "Reachable edge to destination-catalog lookup",
-            DESTINATION_MIN_ZOOM,
-        ),
-    }
-
-
 def places_tile_config(work: Path) -> dict:
     return {
         "layers": {
@@ -434,13 +429,63 @@ def parse_bbox(value: str) -> tuple[float, float, float, float]:
     return result
 
 
+def read_access_groups(path: Path, requirement_keys) -> list[dict]:
+    """Load and validate the native network writer's compact group sidecar."""
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(manifest, dict)
+        or set(manifest) != {"schema_version", "group_count", "groups"}
+        or type(manifest.get("schema_version")) is not int
+        or manifest["schema_version"] != 1
+    ):
+        raise RuntimeError("access group manifest has an unsupported schema")
+    allowed_keys = frozenset(requirement_keys)
+    if not allowed_keys or any(
+        not isinstance(key, str) or not key for key in allowed_keys
+    ):
+        raise RuntimeError("access group requirements are invalid")
+    groups = manifest.get("groups")
+    group_count = manifest.get("group_count")
+    if (
+        type(group_count) is not int
+        or group_count < 0
+        or not isinstance(groups, list)
+        or group_count != len(groups)
+    ):
+        raise RuntimeError("access group manifest count does not match its groups")
+    access_groups = []
+    for index, value in enumerate(groups):
+        if not isinstance(value, dict):
+            raise RuntimeError(f"access group manifest entry {index} is not an object")
+        properties = dict(value)
+        group = properties.pop("g", None)
+        if type(group) is not int or group != index:
+            raise RuntimeError(
+                f"access group manifest entry {index} does not carry its own"
+                " file-order index as g"
+            )
+        if not properties:
+            raise RuntimeError(f"access group manifest entry {index} is empty")
+        for key, minutes in properties.items():
+            if key not in allowed_keys:
+                raise RuntimeError(
+                    f"access group manifest entry {index} has unknown requirement {key!r}"
+                )
+            if type(minutes) is not int or minutes <= 0:
+                raise RuntimeError(
+                    f"access group manifest entry {index} has invalid minutes for {key}"
+                )
+        access_groups.append(properties)
+    return access_groups
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pbf", type=Path, required=True)
     parser.add_argument("--bbox", type=parse_bbox, required=True)
     parser.add_argument("--concurrency", type=int, required=True)
     parser.add_argument("--expansion-concurrency", type=int, required=True)
-    parser.add_argument("--expansion-output-concurrency", type=int, required=True)
+    parser.add_argument("--expansion-batch-size", type=int, default=256)
     parser.add_argument("--basemap-config", type=Path, required=True)
     parser.add_argument("--basemap-process", type=Path, required=True)
     parser.add_argument("--detail-config", type=Path, required=True)
@@ -449,6 +494,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--inspector-process", type=Path, required=True)
     parser.add_argument("--transit-tool", type=Path, required=True)
     parser.add_argument("--geojson-process", type=Path, required=True)
+    parser.add_argument("--catalog-tool", type=Path, required=True)
+    parser.add_argument("--destination-lookup-tool", type=Path, required=True)
+    parser.add_argument("--destination-lookup-native-tool", type=Path, required=True)
     parser.add_argument("--pmtiles-cli-version", required=True)
     parser.add_argument("--tilemaker-version", required=True)
     parser.add_argument("--valhalla-version", required=True)
@@ -576,16 +624,18 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
         for _location, feature in prepared[service["id"]]:
             feature["properties"]["place_index"] = place_index
             place_index += 1
+    places_pbf.unlink()
+    raw_places_path.unlink()
     return prepared
 
 
-def place_catalog(features: list[dict]) -> list[dict]:
+def object_catalog(features: list[dict]) -> list[dict]:
     result = []
     for expected_index, feature in enumerate(features):
         properties = feature["properties"]
         if properties.get("place_index") != expected_index:
             raise RuntimeError(
-                f"place catalog feature {expected_index} has index "
+                f"object catalog feature {expected_index} has index "
                 f"{properties.get('place_index')!r}"
             )
         entry = {
@@ -593,6 +643,7 @@ def place_catalog(features: list[dict]) -> list[dict]:
             for key in PLACE_CATALOG_COLUMNS
             if key in properties
         }
+        entry["index"] = expected_index
         entry["lon"], entry["lat"] = feature["geometry"]["coordinates"]
         result.append(entry)
     return result
@@ -633,8 +684,8 @@ def main() -> None:
         raise ValueError("concurrency must be positive")
     if args.expansion_concurrency <= 0:
         raise ValueError("expansion concurrency must be positive")
-    if args.expansion_output_concurrency <= 0:
-        raise ValueError("expansion output concurrency must be positive")
+    if args.expansion_batch_size <= 0:
+        raise ValueError("expansion batch size must be positive")
 
     work = Path.cwd() / "work"
     output = args.output.resolve()
@@ -664,6 +715,7 @@ def main() -> None:
     ]
     basemap_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
     run("build lean vector basemap", basemap_command)
+    (work / "lithuania-boundary.raw.geojson").unlink()
 
     transit_path = work / "transit-details.geojson"
     run(
@@ -700,6 +752,8 @@ def main() -> None:
     ]
     detail_command.extend(["--bbox", ",".join(str(value) for value in args.bbox)])
     run("build high-zoom building and address detail", detail_command)
+    transit_path.unlink()
+    detail_config_path.unlink()
     # tilemaker writes valid but unclustered high-zoom archives whose first
     # z15 lookup can require a multi-megabyte leaf-directory range. Reorder
     # these in place; the established basemap/access/destination archives are
@@ -711,6 +765,7 @@ def main() -> None:
 
     inspector_command = [
         "tilemaker",
+        "--fast",
         "--input",
         args.pbf,
         "--output",
@@ -781,12 +836,10 @@ def main() -> None:
                 args.expansion_helper,
                 config_path,
                 requests_path,
-                # Destination GeoJSON and the edge-interval dump are tilemaker
-                # and merge-tool inputs only; keep them out of the published
-                # output directory.
+                # Classified native relation batches are build intermediates.
                 work,
                 args.expansion_concurrency,
-                args.expansion_output_concurrency,
+                args.expansion_batch_size,
                 ",".join(str(minutes) for minutes in route["minutes"]),
                 bbox_arg,
                 key,
@@ -794,109 +847,205 @@ def main() -> None:
                 route["mode"],
             ],
         )
+        requests_path.unlink()
         for _location, place_feature in entries:
             place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
         routed_counts[key] = len(entries)
 
-    # Unified network (docs/unified-access-layer.md): merge the
-    # per-route edge-interval dumps into one work/network.geojson. The helper
-    # derives each dump's attribute key from its filename
-    # (requirement_key_from_dump in valhalla-expand.cc: edges-<service>-<mode>
-    # .tsv -> <service>_<mode>); the module-scope grammar check next to
-    # REQUIREMENT_KEYS guarantees that derivation lands exactly on the
-    # authoritative keys.
-    network_dumps = tuple(work / edge_dump_filename(route) for route in ROUTE_SPECS)
-    run(
-        "merge per-route edge dumps into unified network",
-        [
-            args.expansion_helper,
-            "--merge-network",
-            # network.geojson is a tilemaker input only (never published);
-            # see "network.geojson is NOT published" in the design doc.
-            work / "network.geojson",
-            bbox_arg,
-            *network_dumps,
-        ],
-    )
+    shutil.rmtree(tiles)
+    config_path.unlink()
 
-    # Low-zoom fast-path (docs/lowzoom-fastpath.md): derive the
-    # encoder-grid skeleton (z8-13 tiles) and the short-chain-
-    # filtered subset (z6-7 tiles) from the merged network. Both are work/
-    # intermediates, never published, exactly like network.geojson.
-    run(
-        "derive low-zoom skeleton from unified network",
-        [
-            sys.executable,
-            args.coarsen_tool,
-            work / "network.geojson",
-            work / "network-lowzoom.geojson",
-            "--z67-out",
-            work / "network-lowzoom-z67.geojson",
-            "--n-drop",
-            VARIANT_B_N_DROP,
-        ],
+    destination_lookup_command = [
+        sys.executable,
+        args.destination_lookup_tool,
+        "--native-tool",
+        args.destination_lookup_native_tool,
+        "--database",
+        work / "destination-lookup.sqlite",
+        "--manifest-out",
+        work / "destination-lookup.json",
+    ]
+    for route in ROUTE_SPECS:
+        destination_lookup_command.extend(
+            [
+                "--route",
+                f"{route['service']}:{route['mode']}:{work / relation_handoff_filename(route)}",
+            ]
+        )
+    run("build shared destination edge relations", destination_lookup_command)
+    destination_lookup_manifest = json.loads(
+        (work / "destination-lookup.json").read_text(encoding="utf-8")
     )
+    (work / "destination-lookup.json").unlink()
+    for route in ROUTE_SPECS:
+        (work / relation_handoff_filename(route)).unlink()
 
     place_features = [
         feature
         for service in SERVICE_SPECS
         for _location, feature in prepared[service["id"]]
     ]
-    # The full GeoJSON is an encoder input, not a web API. The browser gets a
-    # compact, index-addressed detail catalog without geometry wrappers or
-    # hundreds of unrelated OSM tags.
+    # The full GeoJSON is an encoder input, not a web API. Write it before the
+    # parallel section; only the later places tilemaker consumes it, so access
+    # remains the sole tilemaker process while the catalog branch is active.
     write_json(work / "places.geojson", feature_collection(place_features, country_bbox))
-    write_json(output / "place-catalog.json", place_catalog(place_features))
+    lookup_database_path = work / "destination-lookup.sqlite"
 
-    network_config_path = work / "access.json"
-    write_json(network_config_path, network_tile_config(work))
-    run(
-        "build unified access PMTiles",
-        [
-            "tilemaker",
-            "--quiet",
-            "--bbox",
-            bbox_arg,
-            "--output",
-            output / "access.pmtiles",
-            "--config",
-            network_config_path,
-            "--process",
-            args.geojson_process,
-            "--threads",
-            args.concurrency,
-        ],
-    )
+    def build_catalog_branch():
+        with timed("post-normalization catalog branch"):
+            # Rich object records, compact locations and every destination
+            # membership set share one paged PMTiles archive.
+            objects_path = work / "objects.json"
+            write_json(objects_path, object_catalog(place_features))
+            catalog_manifest_path = work / "catalog-manifest.json"
+            run(
+                "pack paged object catalog",
+                [
+                    sys.executable,
+                    args.catalog_tool,
+                    "--objects",
+                    objects_path,
+                    "--lookup-database",
+                    lookup_database_path,
+                    "--mbtiles-out",
+                    work / "catalog.mbtiles",
+                    "--manifest-out",
+                    catalog_manifest_path,
+                ],
+            )
+            objects_path.unlink()
+            run(
+                "convert paged object catalog to PMTiles",
+                ["pmtiles", "convert", work / "catalog.mbtiles", output / "catalog.pmtiles"],
+            )
+            (work / "catalog.mbtiles").unlink()
+            catalog_header = json.loads(
+                capture(
+                    "read paged catalog PMTiles header",
+                    ["pmtiles", "show", output / "catalog.pmtiles", "--header-json"],
+                )
+            )
+            if catalog_header.get("tile_type") not in ("", "unknown", "Unknown"):
+                raise RuntimeError("catalog PMTiles did not retain Unknown tile type")
+            catalog_header["tile_compression"] = "gzip"
+            catalog_header_path = work / "catalog-header.json"
+            write_json(catalog_header_path, catalog_header)
+            run(
+                "set paged catalog header and schema metadata",
+                [
+                    "pmtiles",
+                    "edit",
+                    output / "catalog.pmtiles",
+                    "--header-json",
+                    catalog_header_path,
+                    "--metadata",
+                    catalog_manifest_path,
+                ],
+            )
+            catalog_header_path.unlink()
+            run(
+                "verify paged object catalog",
+                ["pmtiles", "verify", output / "catalog.pmtiles"],
+            )
+            with (output / "catalog.pmtiles").open("rb") as catalog_file:
+                catalog_digest = hashlib.file_digest(catalog_file, "sha256").hexdigest()
+            catalog_filename = f"catalog-{catalog_digest}.pmtiles"
+            (output / "catalog.pmtiles").rename(output / catalog_filename)
+            catalog_manifest = json.loads(catalog_manifest_path.read_text(encoding="utf-8"))
+            catalog_manifest_path.unlink()
+            return catalog_filename, catalog_manifest
 
-    for route in ROUTE_SPECS:
-        key = route_key(route)
-        destination_config_path = work / f"destination-lookup-{key}.json"
-        write_json(destination_config_path, destination_tile_config(route, work))
-        destination_tile_name = f"destinations-{key}.pmtiles"
-        run(
-            f"build {key} click-lookup PMTiles",
-            [
-                "tilemaker",
-                "--quiet",
-                "--bbox",
-                bbox_arg,
-                "--output",
-                output / destination_tile_name,
-                "--config",
-                destination_config_path,
-                "--process",
-                args.geojson_process,
-                "--threads",
-                args.concurrency,
-            ],
+    def build_access_branch():
+        with timed("post-normalization access branch"):
+            # Both post-normalization branches are read-only SQLite consumers.
+            # Start this ordered merge beside catalog packing instead of
+            # serializing two complete scans of the country-wide edge table.
+            run(
+                "merge normalized edge relations into unified network",
+                [
+                    args.expansion_helper,
+                    "--merge-network-db",
+                    # network.geojson is a tilemaker input only (never
+                    # published); see the unified-access design document.
+                    work / "network.geojson",
+                    bbox_arg,
+                    lookup_database_path,
+                    "--groups-out",
+                    work / "network-groups.json",
+                ],
+            )
+            # Low-zoom fast-path (docs/lowzoom-fastpath.md): derive the
+            # encoder-grid skeleton (z8-13 tiles) and the short-chain-filtered
+            # subset (z6-7 tiles) from the already-merged network.
+            run(
+                "derive low-zoom skeleton from unified network",
+                [
+                    sys.executable,
+                    args.coarsen_tool,
+                    work / "network.geojson",
+                    work / "network-lowzoom.geojson",
+                    "--z67-out",
+                    work / "network-lowzoom-z67.geojson",
+                    "--n-drop",
+                    VARIANT_B_N_DROP,
+                ],
+            )
+            network_config_path = work / "access.json"
+            write_json(network_config_path, network_tile_config(work))
+            run(
+                "build unified access PMTiles",
+                [
+                    "tilemaker",
+                    "--fast",
+                    "--quiet",
+                    "--bbox",
+                    bbox_arg,
+                    "--output",
+                    output / "access.pmtiles",
+                    "--config",
+                    network_config_path,
+                    "--process",
+                    args.geojson_process,
+                    "--threads",
+                    args.concurrency,
+                ],
+            )
+            network_config_path.unlink()
+            (work / "network.geojson").unlink()
+            (work / "network-lowzoom.geojson").unlink()
+            (work / "network-lowzoom-z67.geojson").unlink()
+
+    # The normalized database is the common immutable boundary: catalog pages
+    # and the access network are independent projections of it. Reap both
+    # projections before removing their shared input, including on failure.
+    branch_error = None
+    try:
+        branch_results = run_parallel_branches(
+            {"catalog": build_catalog_branch, "access": build_access_branch}
         )
+    except Exception as error:
+        branch_error = error
+        raise
+    finally:
+        try:
+            lookup_database_path.unlink()
+        except OSError as cleanup_error:
+            if branch_error is None:
+                raise
+            branch_error.add_note(
+                f"could not remove joined-branch database: {cleanup_error}"
+            )
+    catalog_filename, catalog_manifest = branch_results["catalog"]
 
+    # Keep this outside the overlap: access is the only tilemaker in the
+    # parallel section, avoiding two full-thread-count tilemakers competing.
     places_config = work / "places.json"
     write_json(places_config, places_tile_config(work))
     run(
         "build service destination PMTiles",
         [
             "tilemaker",
+            "--fast",
             "--quiet",
             "--bbox",
             bbox_arg,
@@ -910,28 +1059,22 @@ def main() -> None:
             args.concurrency,
         ],
     )
+    places_config.unlink()
+    (work / "places.geojson").unlink()
 
-    # Feature-state group table (docs/unified-access-layer.md): the
-    # attribute map of every group, listed in `g` order, read back from
-    # work/network.geojson — the same single source that feeds the tiles,
-    # never a second derivation. R-L5: `g` is a per-build index and must
-    # never be persisted client-side across deploys; URL state stores
-    # requirement keys/minutes, never group ids, and index.html + data
+    # Feature-state group table (docs/unified-access-layer.md): the native
+    # writer emits each compact property map alongside the corresponding
+    # network feature in the same ordered loop. Reading that small sidecar
+    # avoids materializing the country-wide geometry in Python while retaining
+    # explicit count and g/file-order validation. R-L5: `g` is a per-build
+    # index and must never be persisted client-side across deploys; URL state
+    # stores requirement keys/minutes, never group ids, and index.html + data
     # deploy atomically.
     with timed("read attribute-map groups for metadata"):
-        network_features = json.loads(
-            (work / "network.geojson").read_text(encoding="utf-8")
-        )["features"]
-        access_groups = []
-        for index, feature in enumerate(network_features):
-            properties = dict(feature["properties"])
-            if properties.pop("g", None) != index:
-                raise RuntimeError(
-                    f"network.geojson feature {index} does not carry its own"
-                    " file-order index as g"
-                )
-            access_groups.append(properties)
-        del network_features
+        access_groups = read_access_groups(
+            work / "network-groups.json", REQUIREMENT_KEYS
+        )
+    (work / "network-groups.json").unlink()
 
     service_metadata = []
     for service in SERVICE_SPECS:
@@ -986,18 +1129,25 @@ def main() -> None:
                     for key, route in zip(REQUIREMENT_KEYS, ROUTE_SPECS, strict=True)
                 ],
             },
-            "destination_tiles": [
-                {
-                    "file": f"destinations-{route_key(route)}.pmtiles",
-                    "layers": {
-                        str(minutes): destination_layer_name(minutes)
-                        for minutes in route["minutes"]
-                    },
-                    "mode": route["mode"],
-                    "service": route["service"],
-                }
-                for route in ROUTE_SPECS
-            ],
+            "destination_lookup": {
+                "schema_version": destination_lookup_manifest["schema_version"],
+                # Catalog packing is the authoritative canonical serialization
+                # pass for requirements, sets and edges, so it owns this ID.
+                "edge_build_id": catalog_manifest["edge_build_id"],
+                "edge_collection": destination_lookup_manifest["edge_collection"],
+                "edge_count": destination_lookup_manifest["edge_count"],
+                "requirements": destination_lookup_manifest["requirements"],
+                "coordinate_encoding": destination_lookup_manifest["coordinate_encoding"],
+                "fraction_semantics": destination_lookup_manifest["fraction_semantics"],
+                "hit": {
+                    "file": catalog_filename,
+                    "zoom": catalog_manifest["spatial"]["zoom"],
+                    "addressing": catalog_manifest["spatial"]["addressing"],
+                    "candidate_encoding": catalog_manifest["spatial"]["candidate_encoding"],
+                    "neighbor_radius": catalog_manifest["spatial"]["neighbor_radius"],
+                    "mode_bits": MODE_BITS,
+                },
+            },
             "basemap": {
                 "file": "lithuania.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
@@ -1005,6 +1155,7 @@ def main() -> None:
                 "min_data_zoom": 4,
                 "tilemaker_version": args.tilemaker_version,
             },
+            "catalog": {"file": catalog_filename, **catalog_manifest},
             "details": {
                 "attributes": {
                     "access": ["public", "private", "customers"],
@@ -1166,7 +1317,6 @@ def main() -> None:
             "osm_attribution": "© OpenStreetMap contributors, ODbL 1.0",
             "osm_source": args.osm_source_url,
             "places": {
-                "catalog_file": "place-catalog.json",
                 "file": "places.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
                 "layer": "places",

@@ -172,9 +172,17 @@ def main() -> None:
         temporary = Path(temporary)
         pbf = temporary / "inspector.osm.pbf"
         mbtiles = temporary / "inspector.mbtiles"
+        generate_source = (args.process.parent / "generate.py").read_text(
+            encoding="utf-8"
+        )
+        assert re.search(
+            r'inspector_command\s*=\s*\[\s*"tilemaker",\s*"--fast",',
+            generate_source,
+        ), "production inspector Tilemaker command must retain --fast"
         subprocess.run([args.osmium, "cat", args.fixture, "-o", pbf], check=True)
         subprocess.run([
-            args.tilemaker, "--quiet", "--input", pbf, "--output", mbtiles,
+            args.tilemaker, "--fast", "--quiet", "--input", pbf,
+            "--output", mbtiles,
             "--config", args.config, "--process", args.process,
             "--bbox", "24.99,54.99,25.02,55.02", "--threads", "2",
         ], check=True)

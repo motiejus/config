@@ -577,7 +577,7 @@ def main() -> None:
         "per-service icon layers make symbol-sort-key priority ineffective across services"
     )
     service_icon_style = index[index.index('id: "places-service-icons"'):index.index('function refreshControls')]
-    assert 'minzoom: 16' in service_icon_style
+    assert 'minzoom: Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom)' in service_icon_style
     assert '"icon-allow-overlap": true' in service_icon_style
     assert '"icon-ignore-placement": true' in service_icon_style
     priority = index[index.index("const serviceIconPriority"):
@@ -597,15 +597,26 @@ def main() -> None:
     )
     icon_hit = index[index.index("function serviceIconFeaturesAt"):
                      index.index("function markerFeaturesAt")]
-    assert "map.getZoom() < 16" in icon_hit
+    assert "map.getZoom() < placeDisplayMinZoom" in icon_hit
     assert "map.queryRenderedFeatures(point, options)" in icon_hit
     assert "serviceIconPriority[right.properties.service]" in icon_hit
     assert "edgePadding" in icon_hit, "the visible icon edge is not a practical target"
+    assert "const edgePadding = coarse ? 22 : 2;" in icon_hit, (
+        "coarse category icons do not provide a 44 CSS-pixel target"
+    )
+    assert "const compare = exact.length" in icon_hit
+    assert "priority(left, right) || distance(left) - distance(right)" in icon_hit, (
+        "exact overlapping icons do not follow their painted priority"
+    )
+    assert "distance(left) - distance(right) || priority(left, right)" in icon_hit, (
+        "padded icon fallback can select a farther high-priority service"
+    )
     marker_hit = index[index.index("function markerFeaturesAt"):
-                       index.index("function closestPointOnSegment")]
-    assert marker_hit.index("serviceIconFeaturesAt(point)") < marker_hit.index("placeLayerIds.filter"), (
+                       index.index("function markerCandidateAt")]
+    assert "return serviceIconFeaturesAt(point, coarse);" in marker_hit, (
         "a hidden underlying service circle can win before the visible top icon"
     )
+    assert "placeLayerIds" not in marker_hit
     emergency_art = index[index.index('registerIcon("mapgames-emergency"'):index.index('registerIcon("mapgames-bicycle"')]
     hospital_art = index[index.index('registerIcon("mapgames-hospital"'):index.index('registerIcon("mapgames-coffee"')]
     assert "strokeRect" in emergency_art and "fillRect" not in emergency_art

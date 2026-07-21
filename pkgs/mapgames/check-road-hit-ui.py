@@ -115,7 +115,7 @@ def main() -> None:
             "far/ambiguous road clicks do not preserve the literal coordinate")
 
     road_hit = source[source.index("function accessRoadOriginAt"):
-                      source.index("function inspectorFeaturesAt")]
+                      source.index("function interactionAt")]
     assert road_hit.count("map.queryRenderedFeatures(") == 1, (
         "one road tap performs multiple rendered-feature scans"
     )
@@ -143,7 +143,7 @@ def main() -> None:
                      "coarsePointerMedia.matches"):
         require(touch, fragment, f"hybrid input detection is missing {fragment}")
     pointer_capture = source[source.index("const pointerModalityMaxAgeMs"):
-                             source.index("const destinationSourceIds")]
+                             source.index("const inspectorTileLookupSequences")]
     require(pointer_capture, 'addEventListener("pointerdown"',
             "actual pointer modality is not captured before synthesized click")
     require(pointer_capture, "capturedAt: performance.now()",
@@ -214,7 +214,7 @@ def main() -> None:
     require(merge, "isRoadDirectionCandidate(properties, inspectionPrefersRoad)",
             "snapped roads are discarded before modal candidate selection")
     render = source[source.index("function renderClickedPlaces"):
-                    source.index("function destinationRecordsForRequirements")]
+                    source.index("function sharedActivePresets")]
     require(render, 'isRoadDirectionCandidate(active.feature.properties, true)',
             "the active snapped-road card is not explicitly recognized")
     require(render, '? "road-direction" : "destination";',
@@ -232,7 +232,7 @@ def main() -> None:
     require(restore, 'parseSharedInspectionIntent(parameters, sharedOsm, "place");',
             "road intent can be smuggled into a place inspection")
     lookup = source[source.index("function lookupInspector"):
-                    source.index("function inspectVisibleLocation")]
+                    source.index("function applySharedInspectionFilters")]
     require(lookup, "if (inspectionPrefersRoad && !inspectionOsmFeatures.some(feature =>",
             "restored road intent is not revalidated against loaded inspector data")
     fail_lookup = source[source.index("function failInspectorLookup"):

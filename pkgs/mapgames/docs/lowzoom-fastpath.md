@@ -37,12 +37,23 @@ Tilemaker applies Visvalingam simplification at one MVT coordinate unit for
 z6–10. The z11–13 tiles use the same z10-grid source without additional
 simplification. Raw z14 geometry is not simplified by this path.
 
-The intermediate files `network.geojson`, `network-lowzoom.geojson`, and
-`network-lowzoom-z67.geojson` never enter the published derivation output.
+For Tilemaker only, each raw attribute group is serialized as deterministic
+z10 Web Mercator spatial chunks, keyed by the projected centre of each
+linestring's bounding box. This avoids repeatedly clipping a country-wide
+MultiLineString at z14. The bucket is not an MVT property: every chunk retains
+the same `g`, and `coarsen.py` recombines the adjacent `g` run before deriving
+either skeleton. MapLibre 5.24 stores every paint-array position for a promoted
+feature id, so one feature-state update for `g` applies to all of its chunks,
+including multiple chunks present in one tile.
+
+The intermediate files `network.geojson`, its compact `network-groups.json`
+property sidecar, `network-lowzoom.geojson`, and `network-lowzoom-z67.geojson`
+never enter the published derivation output.
 
 ## Required invariants
 
-- Input group IDs are exactly `0..N-1` in feature order.
+- Input group IDs form contiguous ordered runs exactly `0..N-1`; every chunk
+  in a run has the same properties.
 - Every emitted feature retains its original group ID and attribute map.
 - Deduplication occurs only inside one attribute group.
 - Output does not depend on Python hash iteration order.
@@ -53,9 +64,9 @@ The intermediate files `network.geojson`, `network-lowzoom.geojson`, and
   metadata retains the full group table in either case.
 
 `check-lowzoom-coarsen.py` independently exercises quantization, filtering,
-ordering, group preservation, and repeatability. It and the edge-dump and
-unified-network segment checkers are explicit development tools, not automatic
-steps of the ordinary `default.nix` build.
+ordering, repeated-group preservation, and repeatability. The
+normalized-relation fixture checks deterministic direct network generation and
+byte-identical skeleton output from chunked and reassembled inputs.
 
 ## Why this exists
 

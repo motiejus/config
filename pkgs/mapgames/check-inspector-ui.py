@@ -30,7 +30,7 @@ def main() -> None:
     startup = source[startup_start:source.index("renderSummaryText();", startup_start)]
     assert "ensureInspectorLayers" not in startup, "startup opens the inspector PMTiles archive"
     lookup = source[source.index("function lookupInspector"):
-                    source.index("function inspectVisibleLocation")]
+                    source.index("function applySharedInspectionFilters")]
     require(lookup, "if (!forceZoom) return;", "broad-zoom click does not stop before source creation")
     require(lookup, "if (!ensureInspectorLayers())", "native-zoom lookup does not lazily create source")
     assert lookup.index("if (!forceZoom) return;") < lookup.index("ensureInspectorLayers()"), (
@@ -209,7 +209,7 @@ def main() -> None:
     require(source, "[...inspectionPlaceCardFeatures, ...nearbyOsmFeatures]",
             "curated place cards are accidentally filtered")
     rendered = source[source.index("function renderClickedPlaces"):
-                      source.index("function destinationRecordsForRequirements")]
+                      source.index("function sharedActivePresets")]
     require(rendered, "inspectionPrefersRoad &&",
             "ordinary and snapped modal rendering do not have separate state")
     require(rendered, 'isRoadDirectionCandidate(active.feature.properties, true)',
