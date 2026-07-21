@@ -38,6 +38,17 @@ in
       displayManager = {
         defaultSession = lib.mkDefault "none+awesome";
       };
+
+      # Make the GPU render node world-accessible so the agent sandboxes
+      # (claudes/codexs, below) get a hardware WebGL/EGL context for
+      # browser-based rendering tests. The bwrap userns maps the agent to the
+      # host user but drops supplementary groups, so it can never be in the
+      # `render` group; a world-rw render node is the way it can open the
+      # bound /dev/dri/renderD128. Render node only -- offscreen GPU
+      # compute/render, no card0/KMS, so no display control or screen capture.
+      udev.extraRules = ''
+        SUBSYSTEM=="drm", KERNEL=="renderD*", MODE="0666"
+      '';
     };
 
     environment.systemPackages =

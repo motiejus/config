@@ -22,6 +22,12 @@ let
       bwrapArgs = [
         "--proc /proc"
         "--dev /dev"
+        # Expose ONLY the GPU render node so headless chromium/firefox get a
+        # hardware WebGL/EGL context (mesa is already visible via /nix/store),
+        # needed for MapLibre map rendering in browser tests. Deliberately the
+        # render node, not card0: this grants offscreen GPU compute/rendering
+        # but not KMS/modesetting, i.e. no display control or screen capture.
+        "--dev-bind-try /dev/dri/renderD128 /dev/dri/renderD128"
         "--tmpfs /tmp"
         ''--tmpfs "$HOME"''
       ]

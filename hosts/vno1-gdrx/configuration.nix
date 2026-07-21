@@ -152,12 +152,18 @@ in
     pkgs-unstable.codex
 
     # maps.jakstys.lt
+    pkg-config
+    sqlite.dev
     valhalla
     rapidjson
     boost.dev
     libtiff.dev
-    sqlite
   ];
+
+  # Prototyping: let `pkg-config` find .pc files from systemPackages' dev
+  # outputs. NixOS has no default search path into the system profile.
+  # (Note: nixpkgs' boost.pc is a stub with no Cflags/Libs — link boost by hand.)
+  environment.variables.PKG_CONFIG_PATH = "/run/current-system/sw/lib/pkgconfig:/run/current-system/sw/share/pkgconfig";
 
   powerManagement.cpuFreqGovernor = "powersave";
 
