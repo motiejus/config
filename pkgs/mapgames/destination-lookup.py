@@ -459,8 +459,13 @@ def recover_pending_publication(
 
     target_states = [classify_target(record) for record in records]
     if "unknown" in target_states:
+        classified = dict(zip(("database", "manifest"), target_states))
         raise RuntimeError(
-            "destination publication targets do not match either durable generation"
+            "destination publication targets match neither the staged nor the "
+            f"original generation ({classified}); recovery cannot safely "
+            "proceed and every recovery input has been retained. Restore the "
+            "correct database/manifest pair (or remove the live targets), then "
+            f"delete the retained journal {journal} to unblock the next build."
         )
 
     if target_states != ["new", "new"]:
@@ -476,7 +481,9 @@ def recover_pending_publication(
         target_states = [classify_target(record) for record in records]
         if target_states != ["old", "old"]:
             raise RuntimeError(
-                "destination publication rollback did not restore the old pair"
+                "destination publication rollback did not restore the old pair "
+                f"(states={target_states}); the journal {journal} and its "
+                "backups have been retained for manual recovery."
             )
 
     # Cleanup is permitted only after the live pair is proven wholly new or

@@ -937,8 +937,11 @@ int destination_lookup_main(const std::vector<std::string> &args) {
       const auto database_size = std::filesystem::file_size(database_temporary);
       fsync_file(database_temporary);
       std::filesystem::rename(database_temporary, database_path);
-      fsync_parent_directory(database_path);
+      // The rename has consumed the staging file; clear the handle before the
+      // parent-directory sync so a sync failure does not send the cleanup path
+      // chasing an already-renamed temporary while the database is published.
       database_temporary.clear();
+      fsync_parent_directory(database_path);
       std::cerr << "[mapgames] native lookup normalization: "
                 << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
                 << "s, sqlite=" << database_size << " bytes\n";
