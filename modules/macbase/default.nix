@@ -142,6 +142,7 @@ in
           enable = true;
           enableDefaultConfig = false;
           settings."*" = {
+            IgnoreUnknown = "UseKeychain";
             IdentityFile = [ "~/.ssh/id_ed25519" ];
             AddKeysToAgent = "yes";
             UseKeychain = "yes";
