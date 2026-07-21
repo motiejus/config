@@ -75,12 +75,12 @@ manifest, network GeoJSON, and PMTiles pages are. `catalog.py` proves that
 build ID and all object-member bounds while streaming the exact published set
 and relation pages, rather than rescanning the work database first.
 
-Spatial hit pages repeat only each candidate's compact delta-E7 canonical
+Spatial hit pages carry each candidate's compact delta-E7 canonical
 geometry. The browser uses it to reject the country-network edges that merely
 share a z15 tile with the click, then fetches rich relation pages only for
-edges actually inside the active painted corridor. Exact geometry equality
-between the hit and relation records prevents the prefilter from masking a
-stale or mismatched catalog.
+edges actually inside the active painted corridor. Relation records contain
+only `[modeMask,routes]`; their `edge_build_id` and implicit edge index bind
+them to the spatial contract without publishing a second geometry copy.
 
 ## Segmentation invariants
 
@@ -131,4 +131,5 @@ separated lightness/hue steps.
   indexes and every sorted, unique, in-range destination membership set.
 
 Implementation constants and service bands live in `generate.py`; this note
-intentionally does not duplicate them beyond naming the current schema.
+intentionally does not duplicate them beyond naming the current schema v3
+relation shape.

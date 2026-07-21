@@ -694,6 +694,7 @@ void prepare_classified_relations(Database &database, int requirement_ordinal,
             << writer.runs() << " runs, " << writer.points() << " breakpoints\n";
 }
 
+constexpr int kSchemaVersion = 3;
 constexpr int kSpatialZoom = 15;
 constexpr int kSpatialSpan = 1 << kSpatialZoom;
 
@@ -773,6 +774,17 @@ void finalize_edge_ids_and_spatial(Database &database) {
     UPDATE presets SET set_count=(SELECT count(*) FROM sets
       WHERE sets.requirement=presets.requirement AND sets.minute=presets.minute);
   )SQL");
+  Statement metadata(database.get(), "INSERT INTO metadata(key,value) VALUES(?,?)");
+  const auto write_metadata = [&](std::string_view key, uint64_t value) {
+    const std::string encoded = std::to_string(value);
+    metadata.text(1, key);
+    metadata.text(2, encoded);
+    metadata.done();
+  };
+  write_metadata("schema_version", kSchemaVersion);
+  write_metadata("spatial_zoom", kSpatialZoom);
+  write_metadata("edge_count", static_cast<uint64_t>(edge_id));
+  write_metadata("spatial_hit_count", hits);
   std::cerr << "[mapgames] native lookup finalized " << edge_id << " edge ids and "
             << hits << " spatial candidates\n";
 }

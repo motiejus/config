@@ -7,7 +7,7 @@ const { gzipSync } = require("node:zlib");
 const { CatalogPages, fnv1a32 } = require(process.argv[2] || "./catalog-pages.js");
 
 const manifest = {
-  schema_version: 2,
+  schema_version: 3,
   edge_build_id: "a".repeat(64),
   page_zoom: 10,
   page_addressing: "XYZ z=10, x=collection.base+page, y=0",
@@ -108,9 +108,16 @@ function fakeArchive(options = {}) {
 
 async function main() {
   assert.equal(fnv1a32("hello"), 0x4f9f2cab, "FNV-1a implementation drifted");
+  const legacyManifest = structuredClone(manifest);
+  legacyManifest.schema_version = 2;
+  let archive = fakeArchive({ manifest: legacyManifest });
+  let client = new CatalogPages("catalog.pmtiles", legacyManifest, { archive });
+  await assert.rejects(client.getObjects([0]), /invalid catalog manifest header/,
+    "catalog schema v2 must not be accepted through a compatibility path");
+
   // One record loads its one page, not the second object page or any index/set page.
-  let archive = fakeArchive({ gzip: true });
-  let client = new CatalogPages("catalog.pmtiles", manifest, { archive });
+  archive = fakeArchive({ gzip: true });
+  client = new CatalogPages("catalog.pmtiles", manifest, { archive });
   assert.equal(archive.state.metadataCalls, 0, "constructor eagerly opened optional catalog");
   assert.deepEqual(archive.calls, []);
   assert.equal((await client.getObjects([0])).get(0).place_id, "node:10");

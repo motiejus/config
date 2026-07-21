@@ -913,12 +913,28 @@ def main() -> None:
                     catalog_manifest_path,
                 ],
             )
+            catalog_manifest = json.loads(
+                catalog_manifest_path.read_text(encoding="utf-8")
+            )
             objects_path.unlink()
             run(
                 "convert paged object catalog to PMTiles",
                 ["pmtiles", "convert", work / "catalog.mbtiles", output / "catalog.pmtiles"],
             )
             (work / "catalog.mbtiles").unlink()
+            # MBTiles already carries the complete catalog contract in its
+            # `json` metadata. Prove conversion retained it before making the
+            # only required in-place header correction.
+            catalog_archive_metadata = json.loads(
+                capture(
+                    "read paged catalog PMTiles metadata",
+                    ["pmtiles", "show", output / "catalog.pmtiles", "--metadata"],
+                )
+            )
+            if catalog_archive_metadata != catalog_manifest:
+                raise RuntimeError(
+                    "catalog PMTiles did not retain the packed catalog manifest"
+                )
             catalog_header = json.loads(
                 capture(
                     "read paged catalog PMTiles header",
@@ -931,15 +947,13 @@ def main() -> None:
             catalog_header_path = work / "catalog-header.json"
             write_json(catalog_header_path, catalog_header)
             run(
-                "set paged catalog header and schema metadata",
+                "set paged catalog compression header",
                 [
                     "pmtiles",
                     "edit",
                     output / "catalog.pmtiles",
                     "--header-json",
                     catalog_header_path,
-                    "--metadata",
-                    catalog_manifest_path,
                 ],
             )
             catalog_header_path.unlink()
@@ -951,7 +965,6 @@ def main() -> None:
                 catalog_digest = hashlib.file_digest(catalog_file, "sha256").hexdigest()
             catalog_filename = f"catalog-{catalog_digest}.pmtiles"
             (output / "catalog.pmtiles").rename(output / catalog_filename)
-            catalog_manifest = json.loads(catalog_manifest_path.read_text(encoding="utf-8"))
             catalog_manifest_path.unlink()
             return catalog_filename, catalog_manifest
 

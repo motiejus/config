@@ -132,7 +132,7 @@
     }
 
     validateManifest(manifest) {
-      if (manifest.schema_version !== 2 || !isInteger(manifest.page_zoom) ||
+      if (manifest.schema_version !== 3 || !isInteger(manifest.page_zoom) ||
           manifest.page_addressing !== `XYZ z=${manifest.page_zoom}, x=collection.base+page, y=0` ||
           manifest.hash?.name !== "fnv1a32-utf8" || manifest.hash?.buckets !== 256 ||
           !manifest.collections || typeof manifest.collections !== "object") {

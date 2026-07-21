@@ -129,11 +129,14 @@ process.stdout.write(JSON.stringify(result));
     assert "start < fraction && fraction < end" in resolver, "interiors must remain open"
     assert "haversineMeters" in resolver and "closestCanonicalPoint" in resolver
     assert "candidateMask & ~relation[0]" in resolver
+    assert "record.length !== 2" in resolver
+    assert "relation[1].map" in resolver
+    assert "destination hit/relation geometry mismatch" not in resolver
     assert "setCollection.count" in resolver, "set IDs are not manifest-bounded"
     assert "edge_build_id" in resolver and "edge_build_id" in catalog
-    assert "config.schema_version !== 2" in resolver
+    assert "config.schema_version !== 3" in resolver
     assert "catalogFilePattern.test(hit.file)" in resolver
-    assert "manifest.schema_version !== 2" in catalog
+    assert "manifest.schema_version !== 3" in catalog
     assert "destination_edge_set:" in catalog, "new set collections are rejected by page client"
 
     print("shared destination UI contract passed")

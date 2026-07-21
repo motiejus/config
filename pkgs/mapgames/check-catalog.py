@@ -6,6 +6,7 @@ import argparse
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,77 @@ import subprocess
 import sys
 import tempfile
 import time
+
+
+EDGE_BUILD_ID_DOMAIN = b"mapgames-catalog-edge-build-id-v3"
+
+
+def canonical_json(value) -> bytes:
+    return (
+        json.dumps(
+            value, ensure_ascii=False, allow_nan=False,
+            separators=(",", ":"), sort_keys=True,
+        ) + "\n"
+    ).encode("utf-8")
+
+
+def update_build_digest(
+    digest, kind: int, name: str, page_number: int, raw: bytes,
+    tile: tuple[int, int, int] | None = None,
+) -> None:
+    encoded_name = name.encode("utf-8")
+    digest.update(
+        struct.pack(
+            ">BIQQB", kind, len(encoded_name), page_number, len(raw), tile is not None,
+        )
+    )
+    digest.update(encoded_name)
+    if tile is not None:
+        digest.update(struct.pack(">BQQ", *tile))
+    digest.update(raw)
+
+
+def mbtiles_page(database, zoom: int, x: int, y: int) -> bytes:
+    row = database.execute(
+        "SELECT tile_data FROM tiles "
+        "WHERE zoom_level=? AND tile_column=? AND tile_row=?",
+        (zoom, x, 2**zoom - 1 - y),
+    ).fetchone()
+    assert row is not None, (zoom, x, y)
+    return gzip.decompress(row[0])
+
+
+def recompute_edge_build_id(mbtiles: Path, manifest: dict, requirements: list[dict]) -> str:
+    digest = hashlib.sha256()
+    digest.update(EDGE_BUILD_ID_DOMAIN)
+    update_build_digest(digest, 0, "requirements", 0, canonical_json(requirements))
+    with sqlite3.connect(mbtiles) as database:
+        identity_collections = [
+            preset["set_collection"]
+            for requirement in requirements
+            for preset in requirement["presets"]
+        ] + ["destination_edges"]
+        for name in identity_collections:
+            collection = manifest["collections"][name]
+            for page_number in range(collection["pages"]):
+                raw = mbtiles_page(
+                    database, manifest["page_zoom"],
+                    collection["base"] + page_number, 0,
+                )
+                update_build_digest(digest, 1, name, page_number, raw)
+        spatial_zoom = manifest["spatial"]["zoom"]
+        spatial_rows = database.execute(
+            "SELECT tile_column,tile_row,tile_data FROM tiles WHERE zoom_level=? "
+            "ORDER BY tile_column,tile_row DESC",
+            (spatial_zoom,),
+        )
+        for page_number, (x, tms_y, payload) in enumerate(spatial_rows):
+            y = 2**spatial_zoom - 1 - tms_y
+            update_build_digest(
+                digest, 1, "destination_hit", page_number, gzip.decompress(payload),
+                tile=(spatial_zoom, x, y),
+            )
+    return digest.hexdigest()
 
 
 def fnv1a32(value: str) -> int:
@@ -112,7 +184,10 @@ def main() -> None:
         generate_source.index("def build_access_branch(")
     ]
     assert catalog_branch.count('"edit"') == 1
-    assert '"--header-json"' in catalog_branch and '"--metadata"' in catalog_branch
+    assert '"--header-json"' in catalog_branch
+    assert catalog_branch.count('"--metadata"') == 1
+    assert catalog_branch.index('"--metadata"') < catalog_branch.index('"edit"')
+    assert "catalog_archive_metadata" in catalog_branch
     assert "lookup_database_path" in catalog_branch
     access_branch = generate_source[
         generate_source.index("def build_access_branch("):
@@ -358,10 +433,99 @@ def main() -> None:
             assert rejected.returncode != 0, name
             assert expected_error in rejected.stderr, (name, rejected.stderr)
 
+        duplicate_set_lookup = work / "lookup-duplicate-set.sqlite"
+        shutil.copy2(lookup, duplicate_set_lookup)
+        with sqlite3.connect(duplicate_set_lookup) as corrupt:
+            corrupt.execute(
+                "UPDATE sets SET members=? WHERE (requirement,minute,set_id)=("
+                "SELECT requirement,minute,set_id FROM sets ORDER BY requirement,minute,set_id LIMIT 1)",
+                (sqlite3.Binary(struct.pack("<II", 0, 0)),),
+            )
+        rejected = subprocess.run(
+            [
+                sys.executable, str(args.catalog_tool),
+                "--objects", str(objects_path),
+                "--lookup-database", str(duplicate_set_lookup),
+                "--mbtiles-out", str(work / "catalog-duplicate-set.mbtiles"),
+                "--manifest-out", str(work / "catalog-duplicate-set.json"),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert rejected.returncode != 0
+        assert b"invalid destination set" in rejected.stderr, rejected.stderr
+
+        dangling_spatial_lookup = work / "lookup-dangling-spatial.sqlite"
+        shutil.copy2(lookup, dangling_spatial_lookup)
+        with sqlite3.connect(dangling_spatial_lookup) as corrupt:
+            corrupt.execute(
+                "UPDATE spatial_hits SET edge_id=999 WHERE (x,y,edge_id)=("
+                "SELECT x,y,edge_id FROM spatial_hits ORDER BY x,y,edge_id LIMIT 1)"
+            )
+        rejected = subprocess.run(
+            [
+                sys.executable, str(args.catalog_tool),
+                "--objects", str(objects_path),
+                "--lookup-database", str(dangling_spatial_lookup),
+                "--mbtiles-out", str(work / "catalog-dangling-spatial.mbtiles"),
+                "--manifest-out", str(work / "catalog-dangling-spatial.json"),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert rejected.returncode != 0
+        assert b"spatial hit references an unknown edge" in rejected.stderr, rejected.stderr
+
         manifest = json.loads(manifest_path.read_text())
-        assert manifest["schema_version"] == 2
-        assert "edge_build_id" not in json.loads(lookup_manifest.read_text())
+        lookup_contract = json.loads(lookup_manifest.read_text())
+        assert manifest["schema_version"] == 3
+        assert "edge_build_id" not in lookup_contract
         assert len(manifest["edge_build_id"]) == 64
+        assert manifest["edge_build_id"] == recompute_edge_build_id(
+            mbtiles, manifest, lookup_contract["requirements"]
+        )
+
+        moved_spatial_mbtiles = work / "catalog-moved-spatial.mbtiles"
+        shutil.copy2(mbtiles, moved_spatial_mbtiles)
+        with sqlite3.connect(moved_spatial_mbtiles) as moved:
+            zoom = manifest["spatial"]["zoom"]
+            x, tms_y = moved.execute(
+                "SELECT tile_column,tile_row FROM tiles WHERE zoom_level=? "
+                "ORDER BY tile_column,tile_row LIMIT 1",
+                (zoom,),
+            ).fetchone()
+            moved.execute(
+                "UPDATE tiles SET tile_column=? "
+                "WHERE zoom_level=? AND tile_column=? AND tile_row=?",
+                (x + 2**zoom, zoom, x, tms_y),
+            )
+        assert recompute_edge_build_id(
+            moved_spatial_mbtiles, manifest, lookup_contract["requirements"]
+        ) != manifest["edge_build_id"]
+
+        changed_geometry_lookup = work / "lookup-changed-geometry.sqlite"
+        shutil.copy2(lookup, changed_geometry_lookup)
+        with sqlite3.connect(changed_geometry_lookup) as changed:
+            changed.execute(
+                "UPDATE edges SET delta_coords=?",
+                (sqlite3.Binary(struct.pack(
+                    "<iiii", 250_000_000, 550_000_000, 2_000_000, 0,
+                )),),
+            )
+        changed_geometry_manifest = work / "catalog-changed-geometry.json"
+        subprocess.run(
+            [
+                sys.executable, str(args.catalog_tool),
+                "--objects", str(objects_path),
+                "--lookup-database", str(changed_geometry_lookup),
+                "--mbtiles-out", str(work / "catalog-changed-geometry.mbtiles"),
+                "--manifest-out", str(changed_geometry_manifest),
+            ],
+            check=True,
+        )
+        assert json.loads(changed_geometry_manifest.read_text())["edge_build_id"] != (
+            manifest["edge_build_id"]
+        )
         assert manifest["collections"]["object_locations"]["count"] == 3
         assert manifest["collections"]["generic_notes"]["count"] == 1
         assert manifest["collections"]["generic_empty"] == {
@@ -379,14 +543,37 @@ def main() -> None:
             "postfilter_relation_pages_per_lookup"
         ] == fanout["relation_pages_per_lookup_raw_max"]
         assert fanout["candidates_per_lookup_max"] >= 1
-        spatial = sqlite3.connect(mbtiles).execute(
-            "SELECT zoom_level,tile_column,tile_row,tile_data FROM tiles WHERE zoom_level=?",
-            (manifest["spatial"]["zoom"],),
-        ).fetchall()
+        with sqlite3.connect(mbtiles) as database:
+            assert {
+                name for name, _value in database.execute("SELECT name,value FROM metadata")
+            } == {"bounds", "json"}
+            edge_collection = manifest["collections"]["destination_edges"]
+            relation_records = json.loads(mbtiles_page(
+                database, manifest["page_zoom"], edge_collection["base"], 0
+            ))
+            assert relation_records
+            assert all(
+                len(record) == 2
+                and record[0] in (1, 2, 3)
+                and isinstance(record[1], list)
+                for record in relation_records
+            ), relation_records
+            spatial = database.execute(
+                "SELECT zoom_level,tile_column,tile_row,tile_data "
+                "FROM tiles WHERE zoom_level=?",
+                (manifest["spatial"]["zoom"],),
+            ).fetchall()
         assert spatial
 
         archive = work / "catalog.pmtiles"
         subprocess.run([args.pmtiles, "convert", mbtiles, archive], check=True)
+        converted_metadata = json.loads(
+            subprocess.run(
+                [args.pmtiles, "show", archive, "--metadata"], check=True,
+                text=True, stdout=subprocess.PIPE,
+            ).stdout
+        )
+        assert converted_metadata == manifest
         header = json.loads(
             subprocess.run(
                 [args.pmtiles, "show", archive, "--header-json"], check=True,
@@ -400,7 +587,6 @@ def main() -> None:
             [
                 args.pmtiles, "edit", archive,
                 "--header-json", header_path,
-                "--metadata", manifest_path,
             ],
             check=True,
         )
@@ -424,7 +610,7 @@ def main() -> None:
                 [args.pmtiles, "show", archive, "--metadata"], check=True,
                 text=True, stdout=subprocess.PIPE,
             ).stdout
-        ) == manifest
+        ) == converted_metadata
 
         nonfinite_path = work / "generic-nonfinite.json"
         nonfinite_path.write_text('[{"coordinate":NaN}]\n', encoding="utf-8")

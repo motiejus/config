@@ -170,7 +170,7 @@
 
     validateConfiguration() {
       const config = this.configuration;
-      if (!config || config.schema_version !== 2 || !buildIdPattern.test(config.edge_build_id) ||
+      if (!config || config.schema_version !== 3 || !buildIdPattern.test(config.edge_build_id) ||
           typeof config.edge_collection !== "string" || !config.edge_collection.length ||
           !integer(config.edge_count, 1) ||
           config.coordinate_encoding?.scale !== 10_000_000 ||
@@ -232,13 +232,12 @@
     }
 
     validateRelation(record, edgeId, manifest) {
-      if (!Array.isArray(record) || record.length !== 3 ||
-          !integer(record[0], 1) || record[0] > 3 || !Array.isArray(record[2])) {
+      if (!Array.isArray(record) || record.length !== 2 ||
+          !integer(record[0], 1) || record[0] > 3 || !Array.isArray(record[1])) {
         throw new Error(`invalid destination edge relation ${edgeId}`);
       }
-      decodeCoordinates(record[1], this.configuration.coordinate_encoding.scale);
       let priorRequirement = -1;
-      record[2].forEach(route => {
+      record[1].forEach(route => {
         if (!Array.isArray(route) || route.length !== 2 ||
             !integer(route[0]) || route[0] <= priorRequirement ||
             route[0] >= this.configuration.requirements.length || !Array.isArray(route[1])) {
@@ -309,8 +308,8 @@
           throw new Error("invalid destination hit feature");
         }
         // Decode and validate before issuing any relation-page Range request.
-        // Spatial pages intentionally duplicate this compact geometry so the
-        // large raw tile candidate set can be reduced to the visible corridor.
+        // Spatial pages carry compact geometry so the large raw tile candidate
+        // set can be reduced to the visible corridor before relation-page reads.
         const coordinates = decodeCoordinates(
           candidate.encoded, this.configuration.coordinate_encoding.scale
         );
@@ -339,11 +338,8 @@
         ? await this.catalog.getMany(
           this.configuration.edge_collection,
           [...byEdge.keys()],
-          (record, edgeId, checkedManifest, requested) => {
+          (record, edgeId, checkedManifest) => {
             this.validateRelation(record, edgeId, checkedManifest);
-            if (requested && !equalArray(record[1], byEdge.get(edgeId).encoded)) {
-              throw new Error(`destination hit/relation geometry mismatch for edge ${edgeId}`);
-            }
           }
         )
         : new Map();
@@ -355,7 +351,7 @@
           throw new Error(`destination hit/relation mode mismatch for edge ${edgeId}`);
         }
         const snap = candidate.snap;
-        const routes = new Map(relation[2].map(route => [route[0], route[1]]));
+        const routes = new Map(relation[1].map(route => [route[0], route[1]]));
         active.forEach(({ requirement, preset: presetMetadata }) => {
           if (!(candidateMask & requirement.mode_bit) || !(relation[0] & requirement.mode_bit) ||
               snap.distance > corridorPixels[requirement.mode]) return;

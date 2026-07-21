@@ -74,12 +74,12 @@ all eight neighbors. Metadata and spatial pages have separate bounded LRUs and
 share a four-request Range queue. Each sparse raw-JSON page is a sorted array
 of `[edge_id,modeMask,deltaE7]` candidates. The compact canonical geometry is
 checked against the click corridor in screen space before any relation-page
-Range request; the fetched relation must repeat the exact geometry or the
-client fails closed. Manifest gates bound the raw candidate count and the
+Range request. Manifest gates bound the raw candidate count and the
 post-filter relation-page fanout before a pathological lookup reaches the
 network. The matching
-`destination_edges` synthetic collection contains canonical E7 geometry and
-per-preset fraction runs/breakpoints; those records reference
+`destination_edges` synthetic collection contains `[modeMask,routes]` records,
+where `routes` carries the per-preset fraction runs/breakpoints. Those records
+reference
 `destination_edge_set:*` collections of sorted global object indexes. The
 catalog spatial contract and relation contract carry the same `edge_build_id`,
 and clients fail closed when the identifiers differ.
@@ -87,7 +87,7 @@ and clients fail closed when the identifiers differ.
 ### Paged object catalog
 
 `metadata.catalog` and the PMTiles archive JSON metadata contain the same
-schema (the former additionally has `file`). Pages use synthetic XYZ
+schema v3 contract (the former additionally has `file`). Pages use synthetic XYZ
 coordinates `z=18, x=collection.base+page, y=0`. Object records are in the
 `objects` collection, 64 per page, and retain global `index`, `place_id`,
 `service`, coordinates, and human-facing fields. Destination-set collections use 32 sets

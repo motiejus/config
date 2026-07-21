@@ -15,7 +15,7 @@ import sqlite3
 import struct
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 PAGE_ZOOM = 18
 SPATIAL_ZOOM = 15
 OBJECT_PAGE_SIZE = 64
@@ -31,6 +31,11 @@ MAX_HIT_RAW_BYTES = 512 * 1024
 MAX_LOOKUP_CANDIDATES = 20_000
 MAX_LOOKUP_RELATION_PAGES = 512
 MAX_EDGE_POINTS = 1_000_000
+SQLITE_FETCH_BATCH = 8192
+
+# The edge identity is the exact canonical byte stream consumed by catalog
+# clients, not a second per-record JSON serialization beside that stream.
+EDGE_BUILD_ID_DOMAIN = b"mapgames-catalog-edge-build-id-v3"
 
 
 def canonical_json(value) -> bytes:
@@ -39,13 +44,6 @@ def canonical_json(value) -> bytes:
             value, ensure_ascii=False, allow_nan=False,
             separators=(",", ":"), sort_keys=True,
         ) + "\n"
-    ).encode("utf-8")
-
-
-def compact_json(value) -> bytes:
-    return json.dumps(
-        value, ensure_ascii=False, allow_nan=False,
-        separators=(",", ":"), sort_keys=True,
     ).encode("utf-8")
 
 
@@ -213,11 +211,6 @@ def requirements_manifest(database: sqlite3.Connection) -> list[dict]:
                 or type(count) is not int or count <= 0
             ):
                 raise ValueError(f"invalid preset for requirement {ordinal}")
-            actual = database.execute(
-                "SELECT count(*) FROM sets WHERE requirement=? AND minute=?", (ordinal, minute)
-            ).fetchone()[0]
-            if actual != count:
-                raise ValueError(f"set count mismatch for {collection}")
             presets.append({"minutes": minute, "set_collection": collection, "set_count": count})
             previous_minute = minute
         if not presets:
@@ -290,27 +283,36 @@ def decode_delta_e7_blob(value: bytes, context: str) -> list[int]:
     return coords
 
 
+def buffered_rows(cursor: sqlite3.Cursor):
+    """Iterate an ordered SQLite cursor through bounded C-level batches."""
+    while rows := cursor.fetchmany(SQLITE_FETCH_BATCH):
+        yield from rows
+
+
 def edge_entries(database: sqlite3.Connection):
     # Both source tables are WITHOUT ROWID and physically ordered by this key.
     # Merge their two streaming cursors rather than materializing and sorting a
     # 32M-row union in the handoff database.
-    runs = database.execute(
+    runs = buffered_rows(database.execute(
         "SELECT edge_pk,requirement,minute,0,sequence,start,end,set_id "
         "FROM relation_runs ORDER BY edge_pk,requirement,minute,sequence"
-    )
-    points = database.execute(
+    ))
+    points = buffered_rows(database.execute(
         "SELECT edge_pk,requirement,minute,1,sequence,point,NULL,set_id "
         "FROM relation_points ORDER BY edge_pk,requirement,minute,sequence"
-    )
-    run = runs.fetchone()
-    point = points.fetchone()
+    ))
+    run = next(runs, None)
+    point = next(points, None)
     expected_edge_id = 0
     for edge_pk, edge_id, mode_mask, encoded_coords in database.execute(
         "SELECT edge_pk,edge_id,mode_mask,delta_coords FROM edges ORDER BY edge_pk"
     ):
         if edge_pk != edge_id + 1 or edge_id != expected_edge_id or mode_mask not in (1, 2, 3):
             raise ValueError(f"invalid edge identity {edge_id}")
-        coords = decode_delta_e7_blob(encoded_coords, f"edge coordinates {edge_id}")
+        # Validate every canonical geometry once at the producer boundary.
+        # The spatial-hit pages retain the encoded geometry used by the
+        # client; relation pages contain only their mode and routes.
+        decode_delta_e7_blob(encoded_coords, f"edge coordinates {edge_id}")
         routes = []
         while (run is not None and run[0] == edge_pk) or (point is not None and point[0] == edge_pk):
             if point is None or (
@@ -319,10 +321,10 @@ def edge_entries(database: sqlite3.Connection):
                 < (point[0], point[1], point[2], point[3], point[4])
             ):
                 item = run
-                run = runs.fetchone()
+                run = next(runs, None)
             else:
                 item = point
-                point = points.fetchone()
+                point = next(points, None)
             _, requirement, minute, kind, sequence, a, b, set_id = item
             if not routes or routes[-1][0] != requirement:
                 if routes and requirement <= routes[-1][0]:
@@ -338,7 +340,7 @@ def edge_entries(database: sqlite3.Connection):
             destination.append([a, b, set_id] if kind == 0 else [a, set_id])
         if not routes:
             raise ValueError(f"edge {edge_id} has no relations")
-        yield [mode_mask, coords, routes]
+        yield [mode_mask, routes]
         expected_edge_id += 1
     if run is not None or point is not None:
         raise ValueError("relation references unknown edge")
@@ -368,11 +370,28 @@ def pack(
     lookup = sqlite3.connect(f"file:{lookup_path}?mode=ro", uri=True)
     require_lookup_schema(lookup)
     requirements = requirements_manifest(lookup)
-    # Compute the published content identity while the exact set/edge records
-    # are streamed into output pages.  Catalog packing is the only canonical
-    # serialization pass; the normalized handoff deliberately carries no
-    # provisional identity.
-    build_digest = hashlib.sha256(compact_json(requirements) + b"\n")
+    # Compute the published content identity from the exact canonical page
+    # bytes clients consume. Length-prefix every component so collection and
+    # page boundaries are unambiguous without a second per-record encoding.
+    build_digest = hashlib.sha256()
+    build_digest.update(EDGE_BUILD_ID_DOMAIN)
+
+    def update_build_digest(
+        kind: int, name: str, page_number: int, raw: bytes,
+        tile: tuple[int, int, int] | None = None,
+    ) -> None:
+        encoded_name = name.encode("utf-8")
+        build_digest.update(
+            struct.pack(
+                ">BIQQB", kind, len(encoded_name), page_number, len(raw), tile is not None,
+            )
+        )
+        build_digest.update(encoded_name)
+        if tile is not None:
+            build_digest.update(struct.pack(">BQQ", *tile))
+        build_digest.update(raw)
+
+    update_build_digest(0, "requirements", 0, canonical_json(requirements))
 
     if mbtiles_path.exists():
         mbtiles_path.unlink()
@@ -426,19 +445,19 @@ def pack(
             object_count += 1
         if object_count == 0:
             raise ValueError("objects must be a non-empty array")
-        bad_spatial = lookup.execute(
-            "SELECT h.edge_id FROM spatial_hits h LEFT JOIN edges e ON e.edge_id=h.edge_id "
-            "WHERE e.edge_id IS NULL LIMIT 1"
-        ).fetchone()
-        if bad_spatial is not None:
-            raise ValueError("spatial hit references an unknown edge")
-
         collections = {}
         next_x = 0
         page_stats = {}
 
-        def insert_payload(zoom, x, y, value, name, page_number, spatial=False):
+        def insert_payload(
+            zoom, x, y, value, name, page_number, spatial=False, identity=False,
+        ):
             raw = canonical_json(value)
+            if identity:
+                update_build_digest(
+                    1, name, page_number, raw,
+                    tile=(zoom, x, y) if spatial else None,
+                )
             # Level 6 is materially faster for the tens of thousands of build
             # pages and only marginally larger. Preserve the hard mobile gate
             # by retrying an oversized page at level 9 before rejecting it.
@@ -463,7 +482,7 @@ def pack(
 
         def add_collection(
             name, count, page_size, values, allow_empty=False,
-            max_request_pages=None,
+            max_request_pages=None, identity=False,
         ):
             nonlocal next_x
             base = next_x
@@ -473,7 +492,10 @@ def pack(
             while batch := list(itertools.islice(iterator, page_size)):
                 if next_x >= 2**PAGE_ZOOM:
                     raise ValueError("catalog page count exceeds synthetic x range")
-                insert_payload(PAGE_ZOOM, next_x, 0, batch, name, pages)
+                insert_payload(
+                    PAGE_ZOOM, next_x, 0, batch, name, pages,
+                    identity=identity,
+                )
                 next_x += 1
                 pages += 1
                 item_count += len(batch)
@@ -489,6 +511,7 @@ def pack(
             }
             if max_request_pages is not None:
                 collections[name]["max_request_pages"] = max_request_pages
+            return item_count
 
         add_collection(
             "objects", object_count, OBJECT_PAGE_SIZE,
@@ -555,40 +578,28 @@ def pack(
                         decoded = decode_u32_blob(
                             members, f"destination set {ordinal}/{minute}/{set_id}"
                         )
-                        if (
-                            set_id != expected_set_id
-                            or not decoded
-                            or decoded != sorted(set(decoded))
-                            or any(
-                                type(value) is not int or value < 0 or value >= object_count
-                                for value in decoded
-                            )
-                        ):
+                        valid_members = bool(decoded)
+                        previous_member = -1
+                        for member in decoded:
+                            if member <= previous_member or member >= object_count:
+                                valid_members = False
+                                break
+                            previous_member = member
+                        if set_id != expected_set_id or not valid_members:
                             raise ValueError(
                                 f"invalid destination set {ordinal}/{minute}/{set_id}"
                             )
-                        build_digest.update(
-                            compact_json([ordinal, minute, decoded]) + b"\n"
-                        )
                         expected_set_id += 1
                         yield decoded
 
                 add_collection(
                     preset["set_collection"], preset["set_count"], DESTINATION_SET_PAGE_SIZE,
-                    destination_sets(),
+                    destination_sets(), identity=True,
                 )
-        edge_count = lookup.execute("SELECT count(*) FROM edges").fetchone()[0]
-
-        def destination_edges():
-            for entry in edge_entries(lookup):
-                build_digest.update(compact_json(entry) + b"\n")
-                yield entry
-
         add_collection(
-            "destination_edges", edge_count, DESTINATION_EDGE_PAGE_SIZE,
-            destination_edges(),
+            "destination_edges", None, DESTINATION_EDGE_PAGE_SIZE,
+            edge_entries(lookup), identity=True,
         )
-        edge_build_id = build_digest.hexdigest()
 
         spatial_zoom = int(
             lookup.execute("SELECT value FROM metadata WHERE key='spatial_zoom'").fetchone()[0]
@@ -635,52 +646,66 @@ def pack(
             previous_column_x, previous_column = current_column_x, current_column
             current_column_x, current_column = None, {}
 
-        def record_spatial_fanout(key, values):
+        def record_spatial_fanout(key, edge_ids, relation_pages):
             nonlocal current_column_x, current_column
             _zoom, x, y = key
             if current_column_x is not None and x != current_column_x:
                 finish_spatial_column()
             if current_column_x is None:
                 current_column_x = x
-            edge_ids = frozenset(edge_id for edge_id, *_rest in values)
-            current_column[y] = (
-                edge_ids,
-                frozenset(edge_id // DESTINATION_EDGE_PAGE_SIZE for edge_id in edge_ids),
-            )
+            # Ownership transfers with this page: the caller rebinds fresh
+            # sets for the next page, so retaining these avoids two copies.
+            current_column[y] = (edge_ids, relation_pages)
 
-        def write_spatial_page(key, values):
+        def write_spatial_page(key, values, edge_ids, relation_pages):
             nonlocal spatial_tiles, spatial_candidates
             nonlocal spatial_candidate_max, spatial_relation_page_max
-            relation_pages = len({
-                edge_id // DESTINATION_EDGE_PAGE_SIZE for edge_id, *_rest in values
-            })
-            insert_payload(*key, values, "destination_hit", spatial_tiles, spatial=True)
+            relation_page_count = len(relation_pages)
+            insert_payload(
+                *key, values, "destination_hit", spatial_tiles,
+                spatial=True, identity=True,
+            )
             spatial_tiles += 1
             spatial_candidates += len(values)
             spatial_candidate_max = max(spatial_candidate_max, len(values))
-            spatial_relation_page_max = max(spatial_relation_page_max, relation_pages)
-            record_spatial_fanout(key, values)
+            spatial_relation_page_max = max(
+                spatial_relation_page_max, relation_page_count
+            )
+            record_spatial_fanout(key, edge_ids, relation_pages)
 
         current = None
         candidates = []
+        candidate_edge_ids = set()
+        candidate_relation_pages = set()
         for x, y, edge_id, mode_mask, encoded_coords in lookup.execute(
             "SELECT h.x,h.y,h.edge_id,e.mode_mask,e.delta_coords "
-            "FROM spatial_hits h JOIN edges e ON e.edge_id=h.edge_id "
+            "FROM spatial_hits h LEFT JOIN edges e ON e.edge_id=h.edge_id "
             "ORDER BY h.x,h.y,h.edge_id"
         ):
             key = (spatial_zoom, x, y)
             if current is not None and key != current:
-                write_spatial_page(current, candidates)
+                write_spatial_page(
+                    current, candidates,
+                    candidate_edge_ids, candidate_relation_pages,
+                )
                 candidates = []
+                candidate_edge_ids = set()
+                candidate_relation_pages = set()
             current = key
+            if mode_mask is None or encoded_coords is None:
+                raise ValueError("spatial hit references an unknown edge")
             candidates.append([
                 edge_id,
                 mode_mask,
                 decode_i32_blob(encoded_coords, f"spatial edge coordinates {edge_id}"),
             ])
+            candidate_edge_ids.add(edge_id)
+            candidate_relation_pages.add(edge_id // DESTINATION_EDGE_PAGE_SIZE)
         if current is None:
             raise ValueError("lookup database has no spatial hit pages")
-        write_spatial_page(current, candidates)
+        write_spatial_page(
+            current, candidates, candidate_edge_ids, candidate_relation_pages,
+        )
         finish_spatial_column()
         if first_column_x == 0 and previous_column_x == 2**spatial_zoom - 1:
             # XYZ x wraps at the antimeridian; include the one 2x2 block that
@@ -705,6 +730,7 @@ def pack(
         collections["destination_edges"]["max_request_pages"] = (
             lookup_relation_page_max
         )
+        edge_build_id = build_digest.hexdigest()
 
         manifest = {
             "schema_version": SCHEMA_VERSION,
@@ -742,11 +768,8 @@ def pack(
             "page_stats": page_stats,
         }
         metadata = {
-            "name": "Mapgames paged object and destination catalog",
-            "type": "overlay", "version": "2",
-            "description": "Range-addressed canonical JSON metadata and spatial hit pages",
-            "format": "json", "minzoom": str(spatial_zoom), "maxzoom": str(PAGE_ZOOM),
-            "bounds": "-180,-85,180,85", "json": canonical_json(manifest).decode().strip(),
+            "bounds": "-180,-85,180,85",
+            "json": canonical_json(manifest).decode().strip(),
         }
         output.executemany("INSERT INTO metadata VALUES (?,?)", sorted(metadata.items()))
         output.execute("DROP TABLE work_place_ids")

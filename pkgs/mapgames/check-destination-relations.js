@@ -14,7 +14,7 @@ const { CatalogPages } = require(process.argv[3] || "./catalog-pages.js");
 const buildId = "a".repeat(64);
 const catalogFile = `catalog-${"b".repeat(64)}.pmtiles`;
 const configuration = {
-  schema_version: 2,
+  schema_version: 3,
   edge_build_id: buildId,
   hit: {
     file: catalogFile,
@@ -45,9 +45,9 @@ const configuration = {
   fraction_semantics: "closed_source_intervals; exact breakpoint override; open interior runs"
 };
 
+const geometry = [0, 0, 10_000_000, 0, 10_000_000, 0];
 const relation = [
   1,
-  [0, 0, 10_000_000, 0, 10_000_000, 0],
   [[0, [[10, [[0, 0.5, 3], [0.5, 1, 4]], [[0, 1], [0.5, 2], [1, 5]]]]]]
 ];
 
@@ -60,7 +60,7 @@ const webMercatorProject = ([lng, lat]) => {
   };
 };
 const selection = [{ key: "coffee|walk", service: "coffee", mode: "walk", minutes: 10 }];
-const candidate = (edgeId = 7, modeMask = 1, encoded = relation[1]) =>
+const candidate = (edgeId = 7, modeMask = 1, encoded = geometry) =>
   ({ edgeId, modeMask, encoded });
 
 function fakeCatalog(record = relation, manifestBuild = buildId, maxRequestPages = 64) {
@@ -95,7 +95,12 @@ function fakeCatalog(record = relation, manifestBuild = buildId, maxRequestPages
 }
 
 async function main() {
-  assert.deepEqual(decodeCoordinates(relation[1], 10_000_000), [[0, 0], [1, 0], [2, 0]]);
+  assert.throws(
+    () => new DestinationRelations(fakeCatalog(), { ...configuration, schema_version: 2 }),
+    /invalid shared destination lookup metadata/,
+    "destination relation schema v2 must not be accepted through a compatibility path"
+  );
+  assert.deepEqual(decodeCoordinates(geometry, 10_000_000), [[0, 0], [1, 0], [2, 0]]);
   const midpoint = closestCanonicalPoint({ lng: 1, lat: 0 }, [[0, 0], [1, 0], [2, 0]], project);
   assert.equal(midpoint.fraction, 0.5, "canonical vertex must reproduce exact breakpoint");
   const highLatitudeEdge = [[0, 60], [20, 80]];
@@ -118,9 +123,9 @@ async function main() {
   "projected distance must select the second segment before native fraction recovery");
   assert.ok(offLine.projected.x > webMercatorProject(highLatitudeLine[1]).x,
     "off-line snap must retain the projected closest point on the selected segment");
-  assert.equal(selectedSet(relation[2][0][1][0], 0.5), 2, "breakpoint override must win");
-  assert.equal(selectedSet(relation[2][0][1][0], 0.25), 3);
-  assert.equal(selectedSet(relation[2][0][1][0], 0.5000000001), 4,
+  assert.equal(selectedSet(relation[1][0][1][0], 0.5), 2, "breakpoint override must win");
+  assert.equal(selectedSet(relation[1][0][1][0], 0.25), 3);
+  assert.equal(selectedSet(relation[1][0][1][0], 0.5000000001), 4,
     "non-exact value must use the open interior run");
   const diagonalCrossTrack = closestCanonicalPoint(
     { lng: 0.97, lat: 1.03 }, [[0, 0], [2, 2]], project
@@ -175,11 +180,9 @@ async function main() {
   }
 
   // A real CatalogPages read validates every record in a fetched relation
-  // page. Only the requested edge, however, has a spatial-hit geometry to
-  // compare. A valid unrequested neighbor with different geometry must not
-  // poison the requested lookup.
+  // page, including structurally valid unrequested neighbors.
   const pageManifest = {
-    schema_version: 2,
+    schema_version: 3,
     edge_build_id: buildId,
     page_zoom: 10,
     page_addressing: "XYZ z=10, x=collection.base+page, y=0",
@@ -216,8 +219,7 @@ async function main() {
       "destination_edge_set:coffee:walk:10": { base: 259, count: 6, page_size: 6, pages: 1 }
     }
   };
-  const neighbor = structuredClone(relation);
-  neighbor[1] = [30_000_000, 30_000_000, 10_000_000, 0];
+  const neighbor = [1, []];
   const encoder = new TextEncoder();
   const realCatalog = new CatalogPages("catalog.pmtiles", pageManifest, {
     archive: {
@@ -235,7 +237,7 @@ async function main() {
     [candidate(0)], { lng: 1, lat: 0 }, selection, project, { walk: 6, drive: 6 }
   );
   assert.equal(references[0].id, 2);
-  const structurallyBadNeighbor = [1, [0, 0, 10_000_000], []];
+  const structurallyBadNeighbor = [1, [[0]]];
   const badPageCatalog = new CatalogPages("catalog.pmtiles", pageManifest, {
     archive: {
       getMetadata: async () => pageManifest,
@@ -252,7 +254,7 @@ async function main() {
     resolver.resolve(
       [candidate(0)], { lng: 1, lat: 0 }, selection, project, { walk: 6, drive: 6 }
     ),
-    /coordinates/,
+    /invalid route/,
     "unrequested records sharing the fetched page must still be structurally validated"
   );
 
@@ -272,16 +274,6 @@ async function main() {
   assert.deepEqual(references, []);
   assert.deepEqual(catalog.calls, [], "large far candidate sets must remain network-free");
 
-  const mismatchedGeometry = structuredClone(relation);
-  mismatchedGeometry[1] = [0, 0, 5_000_000, 0, 15_000_000, 0];
-  catalog = fakeCatalog(mismatchedGeometry);
-  resolver = new DestinationRelations(catalog, configuration);
-  await assert.rejects(
-    resolver.resolve([candidate()], { lng: 1, lat: 0 }, selection, project,
-      { walk: 6, drive: 6 }),
-    /geometry mismatch/
-  );
-
   catalog = fakeCatalog(relation, "b".repeat(64));
   resolver = new DestinationRelations(catalog, configuration);
   await assert.rejects(
@@ -290,12 +282,13 @@ async function main() {
     /build mismatch/
   );
 
-  catalog = fakeCatalog([1, [0, 0, 10_000_000], []]);
+  catalog = fakeCatalog([1, geometry, relation[1]]);
   resolver = new DestinationRelations(catalog, configuration);
   await assert.rejects(
     resolver.resolve([candidate(0)], { lng: 0, lat: 0 }, selection, project,
       { walk: 6, drive: 6 }),
-    /coordinates/
+    /invalid destination edge relation/,
+    "legacy three-field relation records must fail closed"
   );
 
   catalog = fakeCatalog();
@@ -308,7 +301,7 @@ async function main() {
   );
 
   const badSet = structuredClone(relation);
-  badSet[2][0][1][0][2][1][1] = 6;
+  badSet[1][0][1][0][2][1][1] = 6;
   catalog = fakeCatalog(badSet);
   resolver = new DestinationRelations(catalog, configuration);
   await assert.rejects(

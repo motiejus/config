@@ -16,7 +16,7 @@ import time
 
 MODE_BITS = {"walk": 1, "drive": 2}
 EDGE_COLLECTION = "destination_edges"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SPATIAL_ZOOM = 15
 _ROUTE = re.compile(r"([a-z]+):([a-z]+):(.+)")
 
@@ -49,6 +49,28 @@ def requirements_manifest(database: sqlite3.Connection) -> list[dict]:
             {"key": key, "service": service, "mode": mode, "mode_bit": mode_bit, "presets": presets}
         )
     return result
+
+
+def normalization_counts(database: sqlite3.Connection) -> tuple[int, int]:
+    metadata = dict(database.execute("SELECT key,value FROM metadata"))
+    expected = {"schema_version", "spatial_zoom", "edge_count", "spatial_hit_count"}
+    if set(metadata) != expected:
+        raise ValueError("native relation finalizer left incompatible metadata")
+    if metadata["schema_version"] != str(SCHEMA_VERSION):
+        raise ValueError("native relation finalizer used an incompatible schema version")
+    if metadata["spatial_zoom"] != str(SPATIAL_ZOOM):
+        raise ValueError("native relation finalizer used an incompatible spatial zoom")
+
+    counts = []
+    for name in ("edge_count", "spatial_hit_count"):
+        encoded = metadata[name]
+        if not isinstance(encoded, str) or re.fullmatch(r"[1-9][0-9]*", encoded) is None:
+            raise ValueError(f"native relation finalizer left invalid {name}")
+        counts.append(int(encoded))
+    edge_count, spatial_hit_count = counts
+    if spatial_hit_count < edge_count:
+        raise ValueError("native relation finalizer left too few spatial candidates")
+    return edge_count, spatial_hit_count
 
 
 def same_file_identity(left: Path, right: Path) -> bool:
@@ -91,33 +113,19 @@ def build(routes, database_path: Path, manifest_path: Path,
     for service, mode, path in ordered:
         command.extend(("--route", f"{service}:{mode}:{path}"))
     subprocess.run([str(value) for value in command], check=True)
-    database = sqlite3.connect(database_path)
+    database = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
     try:
-        unfinished = database.execute(
-            "SELECT 1 FROM edges WHERE edge_id IS NULL OR delta_coords IS NULL LIMIT 1"
-        ).fetchone()
-        if unfinished is not None:
-            raise ValueError("native relation finalizer left unfinished edges")
-        if database.execute("SELECT count(*) FROM spatial_hits").fetchone()[0] == 0:
-            raise ValueError("native relation finalizer left no spatial candidates")
+        edge_count, _spatial_hit_count = normalization_counts(database)
         empty = database.execute(
             "SELECT requirement,minute FROM presets WHERE set_count IS NULL OR set_count=0 LIMIT 1"
         ).fetchone()
         if empty is not None:
             raise ValueError(f"native relation finalizer left empty preset {empty}")
         requirements = requirements_manifest(database)
-        database.executemany(
-            "INSERT INTO metadata VALUES (?,?)",
-            (
-                ("schema_version", str(SCHEMA_VERSION)),
-                ("spatial_zoom", str(SPATIAL_ZOOM)),
-            ),
-        )
-        database.commit()
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "edge_collection": EDGE_COLLECTION,
-            "edge_count": database.execute("SELECT count(*) FROM edges").fetchone()[0],
+            "edge_count": edge_count,
             "requirements": requirements,
             "coordinate_encoding": {
                 "scale": 10_000_000,

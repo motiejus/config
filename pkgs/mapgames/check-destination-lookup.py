@@ -85,6 +85,14 @@ def main() -> None:
     args = parser.parse_args()
     lookup_tool = module(args.tool, "lookup_fixture_tool")
     catalog_tool = module(args.catalog_tool, "catalog_fixture_tool")
+    lookup_source = args.tool.read_text(encoding="utf-8")
+    build_source = lookup_source[
+        lookup_source.index("def build("):lookup_source.index("def main()")
+    ]
+    assert "SELECT count(*) FROM edges" not in build_source
+    assert "SELECT count(*) FROM spatial_hits" not in build_source
+    assert "edge_id IS NULL" not in build_source
+    assert "?mode=ro" in build_source
     subprocess.run([args.native_tool, "--self-test"], check=True)
 
     with tempfile.TemporaryDirectory(prefix="destination-lookup-check-") as directory:
@@ -199,7 +207,7 @@ def main() -> None:
         manifest_path = work / "lookup.json"
         run_builder(args.tool, args.native_tool, routes, database_path, manifest_path)
         manifest = json.loads(manifest_path.read_text())
-        assert manifest["schema_version"] == 2 and manifest["edge_count"] == 2
+        assert manifest["schema_version"] == 3 and manifest["edge_count"] == 2
         assert "edge_build_id" not in manifest
         assert [item["key"] for item in manifest["requirements"]] == [
             "coffee_walk", "pharmacy_walk"
@@ -286,8 +294,20 @@ def main() -> None:
 
         database = sqlite3.connect(database_path)
         try:
-            assert database.execute("SELECT count(*) FROM edges").fetchone()[0] == 2
-            assert database.execute("SELECT count(*) FROM spatial_hits").fetchone()[0] >= 2
+            edge_count = database.execute("SELECT count(*) FROM edges").fetchone()[0]
+            spatial_hit_count = database.execute(
+                "SELECT count(*) FROM spatial_hits"
+            ).fetchone()[0]
+            assert edge_count == 2 and spatial_hit_count >= 2
+            assert dict(database.execute("SELECT key,value FROM metadata")) == {
+                "schema_version": "3",
+                "spatial_zoom": "15",
+                "edge_count": str(edge_count),
+                "spatial_hit_count": str(spatial_hit_count),
+            }
+            assert lookup_tool.normalization_counts(database) == (
+                edge_count, spatial_hit_count
+            )
             tables = {
                 row[0] for row in database.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
@@ -314,8 +334,14 @@ def main() -> None:
                 "SELECT value FROM metadata WHERE key='edge_build_id'"
             ).fetchone() is None
             entries = list(catalog_tool.edge_entries(database))
-            edge = next(item for item in entries if item[1][:2] == [10_000_000, 20_000_000])
-            coffee_five = edge[2][0][1][0]
+            geometry_blob = struct.pack(
+                "<iiii", 10_000_000, 20_000_000, 10_000_000, 0
+            )
+            edge_id = database.execute(
+                "SELECT edge_id FROM edges WHERE delta_coords=?",
+                (sqlite3.Binary(geometry_blob),),
+            ).fetchone()[0]
+            coffee_five = entries[edge_id][1][0][1][0]
             sets = {
                 row[0]: list(struct.unpack(f"<{len(row[1]) // 4}I", row[1]))
                 for row in database.execute(
