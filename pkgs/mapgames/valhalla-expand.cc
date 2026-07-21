@@ -4,7 +4,6 @@
 #include <valhalla/tyr/actor.h>
 
 #include <rapidjson/document.h>
-#include <rapidjson/internal/dtoa.h>
 #include <sqlite3.h>
 
 #include <boost/property_tree/ptree.hpp>
@@ -15,7 +14,6 @@
 #include <algorithm>
 #include <atomic>
 #include <bit>
-#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -507,18 +505,11 @@ std::vector<Line> clip_line(const Line &line, const Bounds &bounds) {
 }
 
 double expansion_coordinate(int32_t coordinate) {
-  // Expansion GeoJSON is written through RapidJSON with at most six decimal
-  // places. Preserve that historical double exactly while avoiding the huge
-  // GeoJSON string and DOM: direct coordinate / 1e6 can differ by one
-  // microdegree when its binary approximation lies below the decimal value.
-  char buffer[32];
-  char *end = rapidjson::internal::dtoa(coordinate / 1e6, buffer, 6);
-  double result = 0;
-  const auto [parsed_end, error] = std::from_chars(buffer, end, result);
-  if (error != std::errc{} || parsed_end != end) {
-    throw std::runtime_error("could not decode expansion coordinate");
-  }
-  return result;
+  // Valhalla returns expansion geometry as integer microdegrees. Carry it as
+  // the correctly-rounded quotient; output and canonical keys re-round to
+  // 1e-7, so this double only needs to be deterministic (it is -- IEEE
+  // division), not a byte-exact replay of the old RapidJSON GeoJSON rounding.
+  return coordinate / 1e6;
 }
 
 struct ExpansionEdgeRef {
@@ -750,6 +741,8 @@ std::optional<Interval> reachable_interval(const Edge &edge,
 }
 
 std::string point_key(const Point &point) {
+  // Decimal key, byte-for-byte matching the finalizer's validate_geometry() so
+  // both agree on canonical orientation (see destination-lookup-native.cc).
   return std::to_string(std::llround(point.lon * 10'000'000)) + "," +
          std::to_string(std::llround(point.lat * 10'000'000));
 }
