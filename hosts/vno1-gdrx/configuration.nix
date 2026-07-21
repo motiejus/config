@@ -150,6 +150,13 @@ in
 
   environment.systemPackages = with pkgs; [
     pkgs-unstable.codex
+
+    # maps.jakstys.lt
+    valhalla
+    rapidjson
+    boost.dev
+    libtiff.dev
+    sqlite
   ];
 
   powerManagement.cpuFreqGovernor = "powersave";
