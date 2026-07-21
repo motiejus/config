@@ -287,8 +287,13 @@ struct BatchFunction {
   std::map<double, Members> points;
 };
 
-constexpr size_t kMaxRouteSetCacheEntries = 500'000;
-constexpr size_t kMaxRouteSetCacheKeyBytes = 256 * 1024 * 1024;
+// Sized for the full multi-service finalize: the set-dedup cache holds every
+// distinct (minute, members) tuple across all routes at once. Adding the
+// ~9k-origin shelter service (coffee+fuel+hospital+shelter+supermarket x2)
+// pushes well past the original 500k/256 MiB gate, so raise it to keep the
+// whole workload in memory. ~4-5 GiB of finalize RAM at the ceiling.
+constexpr size_t kMaxRouteSetCacheEntries = 16'000'000;
+constexpr size_t kMaxRouteSetCacheKeyBytes = 4ull * 1024 * 1024 * 1024;
 
 class RelationWriter {
 public:
