@@ -15,7 +15,8 @@ import sqlite3
 import struct
 
 
-SCHEMA_VERSION = 3
+LOOKUP_SCHEMA_VERSION = 3
+CATALOG_SCHEMA_VERSION = 4
 PAGE_ZOOM = 18
 SPATIAL_ZOOM = 15
 OBJECT_PAGE_SIZE = 64
@@ -177,7 +178,7 @@ def require_lookup_schema(database: sqlite3.Connection) -> None:
         if actual != expected:
             raise ValueError(f"lookup database has incompatible {table} schema")
     metadata = dict(database.execute("SELECT key,value FROM metadata"))
-    if metadata.get("schema_version") != str(SCHEMA_VERSION):
+    if metadata.get("schema_version") != str(LOOKUP_SCHEMA_VERSION):
         raise ValueError("lookup database has incompatible schema_version")
     if metadata.get("spatial_zoom") != str(SPATIAL_ZOOM):
         raise ValueError("lookup database has incompatible spatial_zoom")
@@ -446,6 +447,7 @@ def pack(
         if object_count == 0:
             raise ValueError("objects must be a non-empty array")
         collections = {}
+        destination_set_max_members = {}
         next_x = 0
         page_stats = {}
 
@@ -570,6 +572,7 @@ def pack(
 
                 def destination_sets():
                     expected_set_id = 0
+                    max_members = 0
                     for set_id, members in lookup.execute(
                         "SELECT set_id,members FROM sets "
                         "WHERE requirement=? AND minute=? ORDER BY set_id",
@@ -590,7 +593,9 @@ def pack(
                                 f"invalid destination set {ordinal}/{minute}/{set_id}"
                             )
                         expected_set_id += 1
+                        max_members = max(max_members, len(decoded))
                         yield decoded
+                    destination_set_max_members[preset["set_collection"]] = max_members
 
                 add_collection(
                     preset["set_collection"], preset["set_count"], DESTINATION_SET_PAGE_SIZE,
@@ -730,10 +735,54 @@ def pack(
         collections["destination_edges"]["max_request_pages"] = (
             lookup_relation_page_max
         )
+        # A filtered edge contributes at most one destination-set reference to
+        # each preset collection. Geometry filtering can only remove edges from
+        # the measured raw 2x2 lookup, so the raw candidate maximum proves a
+        # per-collection request bound without imposing an arbitrary cap that
+        # could reject a legitimate country-wide destination set.
+        destination_set_pages_per_lookup = 0
+        destination_set_members_per_lookup = 0
+        for requirement in requirements:
+            for preset in requirement["presets"]:
+                collection = collections[preset["set_collection"]]
+                max_records = min(collection["count"], lookup_candidate_max)
+                collection["max_request_pages"] = min(
+                    collection["pages"], max_records
+                )
+                collection["max_record_members"] = destination_set_max_members[
+                    preset["set_collection"]
+                ]
+                collection["max_request_members"] = (
+                    max_records * collection["max_record_members"]
+                )
+                destination_set_pages_per_lookup += collection[
+                    "max_request_pages"
+                ]
+                destination_set_members_per_lookup += collection[
+                    "max_request_members"
+                ]
+        # Marker-only inspection shares this collection with reference
+        # expansion, and marker IDs need not share pages with set members.
+        # Publish the artifact's complete compact-location page count so a
+        # legitimate country-wide set+marker lookup is never underdeclared.
+        collections["object_locations"]["max_request_pages"] = collections[
+            "object_locations"
+        ]["pages"]
+        reference_fanout = {
+            "destination_set_pages_per_lookup": (
+                destination_set_pages_per_lookup
+            ),
+            "destination_set_members_per_lookup": (
+                destination_set_members_per_lookup
+            ),
+            "object_location_pages_per_lookup": collections[
+                "object_locations"
+            ]["max_request_pages"],
+        }
         edge_build_id = build_digest.hexdigest()
 
         manifest = {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": CATALOG_SCHEMA_VERSION,
             "page_zoom": PAGE_ZOOM,
             "page_addressing": f"XYZ z={PAGE_ZOOM}, x=collection.base+page, y=0",
             "hash": {"buckets": PLACE_ID_BUCKETS, "name": "fnv1a32-utf8"},
@@ -744,6 +793,7 @@ def pack(
                 "service_ordinals": services,
             },
             "edge_build_id": edge_build_id,
+            "reference_fanout": reference_fanout,
             "spatial": {
                 "edge_build_id": edge_build_id,
                 "zoom": spatial_zoom,

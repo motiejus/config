@@ -1,4 +1,5 @@
 #include <sqlite3.h>
+#include <fcntl.h>
 
 #include <algorithm>
 #include <array>
@@ -20,6 +21,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <unistd.h>
 
 #include "destination-relations.hh"
 #include "destination-lookup-finalize.hh"
@@ -821,6 +823,70 @@ bool same_file_identity(const std::filesystem::path &left,
   return false;
 }
 
+std::filesystem::path temporary_sibling(const std::filesystem::path &target) {
+  const std::filesystem::path absolute =
+      std::filesystem::absolute(target).lexically_normal();
+  std::string pattern =
+      (absolute.parent_path() /
+       (absolute.filename().string() + ".mapgames-build-XXXXXX"))
+          .string();
+  std::vector<char> writable(pattern.begin(), pattern.end());
+  writable.push_back('\0');
+  const int descriptor = mkstemp(writable.data());
+  if (descriptor < 0) {
+    throw std::runtime_error("could not create temporary database sibling for " +
+                             target.string());
+  }
+  if (close(descriptor) != 0) {
+    const std::filesystem::path failed(writable.data());
+    std::error_code ignored;
+    std::filesystem::remove(failed, ignored);
+    throw std::runtime_error("could not close temporary database sibling for " +
+                             target.string());
+  }
+  return writable.data();
+}
+
+void remove_owned_path(const std::filesystem::path &path) noexcept {
+  if (path.empty()) return;
+  std::error_code ignored;
+  std::filesystem::remove(path, ignored);
+}
+
+void fsync_file(const std::filesystem::path &path) {
+  const int descriptor = open(path.c_str(), O_RDONLY | O_CLOEXEC);
+  if (descriptor < 0) {
+    throw std::runtime_error("could not open database for sync: " + path.string());
+  }
+  if (fsync(descriptor) != 0) {
+    const std::string message = "could not sync database: " + path.string();
+    close(descriptor);
+    throw std::runtime_error(message);
+  }
+  if (close(descriptor) != 0) {
+    throw std::runtime_error("could not close synced database: " + path.string());
+  }
+}
+
+void fsync_parent_directory(const std::filesystem::path &path) {
+  const auto parent = std::filesystem::absolute(path).parent_path();
+  const int descriptor = open(parent.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (descriptor < 0) {
+    throw std::runtime_error("could not open database directory for sync: " +
+                             parent.string());
+  }
+  if (fsync(descriptor) != 0) {
+    const std::string message = "could not sync database directory: " +
+                                parent.string();
+    close(descriptor);
+    throw std::runtime_error(message);
+  }
+  if (close(descriptor) != 0) {
+    throw std::runtime_error("could not close synced database directory: " +
+                             parent.string());
+  }
+}
+
 } // namespace
 
 int destination_lookup_main(const std::vector<std::string> &args) {
@@ -845,29 +911,41 @@ int destination_lookup_main(const std::vector<std::string> &args) {
         throw std::runtime_error("database output and route input must identify different files");
       }
     }
-    std::filesystem::remove(database_path);
+    std::filesystem::path database_temporary = temporary_sibling(database_path);
     const auto started = std::chrono::steady_clock::now();
-    Database database(database_path);
-    create_schema(database);
-    database.exec("BEGIN");
-    for (size_t index = 0; index < routes.size(); ++index) {
-      const auto route_started = std::chrono::steady_clock::now();
-      load_relation_route(database, routes[index], index);
-      const auto overlay_started = std::chrono::steady_clock::now();
-      prepare_classified_relations(database, index, index + 1 == routes.size());
-      const auto route_finished = std::chrono::steady_clock::now();
-      std::cerr << "[mapgames] native route phases " << routes[index].service
-                << '_' << routes[index].mode << ": load="
-                << std::chrono::duration<double>(overlay_started - route_started).count()
-                << "s, overlay="
-                << std::chrono::duration<double>(route_finished - overlay_started).count()
-                << "s\n";
+    try {
+      {
+        Database database(database_temporary);
+        create_schema(database);
+        database.exec("BEGIN");
+        for (size_t index = 0; index < routes.size(); ++index) {
+          const auto route_started = std::chrono::steady_clock::now();
+          load_relation_route(database, routes[index], index);
+          const auto overlay_started = std::chrono::steady_clock::now();
+          prepare_classified_relations(database, index, index + 1 == routes.size());
+          const auto route_finished = std::chrono::steady_clock::now();
+          std::cerr << "[mapgames] native route phases " << routes[index].service
+                    << '_' << routes[index].mode << ": load="
+                    << std::chrono::duration<double>(overlay_started - route_started).count()
+                    << "s, overlay="
+                    << std::chrono::duration<double>(route_finished - overlay_started).count()
+                    << "s\n";
+        }
+        finalize_edge_ids_and_spatial(database);
+        database.exec("COMMIT");
+      }
+      const auto database_size = std::filesystem::file_size(database_temporary);
+      fsync_file(database_temporary);
+      std::filesystem::rename(database_temporary, database_path);
+      fsync_parent_directory(database_path);
+      database_temporary.clear();
+      std::cerr << "[mapgames] native lookup normalization: "
+                << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
+                << "s, sqlite=" << database_size << " bytes\n";
+    } catch (...) {
+      remove_owned_path(database_temporary);
+      throw;
     }
-    finalize_edge_ids_and_spatial(database);
-    database.exec("COMMIT");
-    std::cerr << "[mapgames] native lookup normalization: "
-              << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
-              << "s, sqlite=" << std::filesystem::file_size(database_path) << " bytes\n";
   } catch (const std::exception &error) {
     std::cerr << "destination-lookup-native: " << error.what() << '\n';
     return 1;

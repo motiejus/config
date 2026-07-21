@@ -76,7 +76,14 @@ of `[edge_id,modeMask,deltaE7]` candidates. The compact canonical geometry is
 checked against the click corridor in screen space before any relation-page
 Range request. Manifest gates bound the raw candidate count and the
 post-filter relation-page fanout before a pathological lookup reaches the
-network. The matching
+network. Catalog schema v4 also publishes artifact-derived reference bounds:
+each destination-set collection declares its maximum pages per request, actual
+maximum members per set, and maximum expanded members per request;
+`reference_fanout` totals the set-page/member permissions and carries the full
+`object_locations` page count needed by legitimate country-wide set+marker
+lookups. The browser validates these cross-field bounds before reading pages,
+streams pages through its bounded worker pool, and stops starting work after
+the first failure. The matching
 `destination_edges` synthetic collection contains `[modeMask,routes]` records,
 where `routes` carries the per-preset fraction runs/breakpoints. Those records
 reference
@@ -87,7 +94,8 @@ and clients fail closed when the identifiers differ.
 ### Paged object catalog
 
 `metadata.catalog` and the PMTiles archive JSON metadata contain the same
-schema v3 contract (the former additionally has `file`). Pages use synthetic XYZ
+catalog schema v4 contract (the former additionally has `file`). The normalized
+destination-relation handoff/configuration remains schema v3. Pages use synthetic XYZ
 coordinates `z=18, x=collection.base+page, y=0`. Object records are in the
 `objects` collection, 64 per page, and retain global `index`, `place_id`,
 `service`, coordinates, and human-facing fields. Destination-set collections use 32 sets

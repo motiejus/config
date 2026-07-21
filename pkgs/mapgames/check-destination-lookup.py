@@ -12,10 +12,12 @@ import os
 from pathlib import Path
 import shutil
 import sqlite3
+import stat
 import struct
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 
 GEOMETRY_A = "10000000,20000000;20000000,20000000;"
@@ -82,6 +84,7 @@ def main() -> None:
     parser.add_argument("--native-tool", type=Path, required=True)
     parser.add_argument("--coarsen-tool", type=Path, required=True)
     parser.add_argument("--coarsen-check-tool", type=Path, required=True)
+    parser.add_argument("--publication-only", action="store_true")
     args = parser.parse_args()
     lookup_tool = module(args.tool, "lookup_fixture_tool")
     catalog_tool = module(args.catalog_tool, "catalog_fixture_tool")
@@ -205,13 +208,388 @@ def main() -> None:
 
         database_path = work / "lookup.sqlite"
         manifest_path = work / "lookup.json"
+        run_builder(
+            args.tool,
+            args.native_tool,
+            [f"coffee:walk:{coffee}"],
+            database_path,
+            manifest_path,
+        )
+        previous_database = database_path.read_bytes()
+        previous_manifest = manifest_path.read_bytes()
+        assert json.loads(previous_manifest)["edge_count"] == 2
+
+        truncated = work / "relations-truncated.bin"
+        truncated.write_bytes(coffee.read_bytes()[:-7])
+
+        # The native finalizer is independently rollback-safe: a malformed
+        # handoff never removes or truncates its previously valid database.
+        native_rollback_database = work / "native-rollback.sqlite"
+        shutil.copy2(database_path, native_rollback_database)
+        native_database_before = native_rollback_database.read_bytes()
+        native_truncated = subprocess.run(
+            [
+                args.native_tool,
+                "--finalize-relations",
+                "--database",
+                native_rollback_database,
+                "--route",
+                f"coffee:walk:{truncated}",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        assert native_truncated.returncode != 0
+        assert native_rollback_database.read_bytes() == native_database_before
+
+        # The wrapper stages both files before publication, so a failed native
+        # build retains a matched, valid database/manifest pair.
+        truncated_builder = subprocess.run(
+            [
+                sys.executable,
+                args.tool,
+                "--database",
+                database_path,
+                "--manifest-out",
+                manifest_path,
+                "--native-tool",
+                args.native_tool,
+                "--route",
+                f"coffee:walk:{truncated}",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        assert truncated_builder.returncode != 0
+        assert database_path.read_bytes() == previous_database
+        assert manifest_path.read_bytes() == previous_manifest
+
+        # Exercise rollback after the first new file has been published by
+        # injecting a failure into the second publication rename.
+        pair_database = work / "pair-rollback.sqlite"
+        pair_manifest = work / "pair-rollback.json"
+        shutil.copy2(database_path, pair_database)
+        shutil.copy2(manifest_path, pair_manifest)
+        pair_database_before = pair_database.read_bytes()
+        pair_manifest_before = pair_manifest.read_bytes()
+        pair_database_temporary = lookup_tool.temporary_sibling(
+            pair_database, "build"
+        )
+        pair_manifest_temporary = lookup_tool.temporary_sibling(
+            pair_manifest, "build"
+        )
+        pair_database_temporary.write_bytes(b"replacement database\n")
+        pair_manifest_temporary.write_bytes(b"replacement manifest\n")
+        def fail_second_publication(source, destination):
+            if (
+                Path(source) == pair_manifest_temporary
+                and Path(destination) == pair_manifest
+            ):
+                raise OSError("injected second-publication failure")
+            return real_replace(source, destination)
+
+        real_replace = os.replace
+        with mock.patch.object(lookup_tool.os, "replace", fail_second_publication):
+            try:
+                lookup_tool.publish_output_pair(
+                    pair_database_temporary,
+                    pair_database,
+                    pair_manifest_temporary,
+                    pair_manifest,
+                )
+            except OSError as error:
+                assert "second-publication" in str(error)
+            else:
+                raise AssertionError("injected pair-publication failure was ignored")
+        lookup_tool.remove_owned_path(pair_database_temporary)
+        lookup_tool.remove_owned_path(pair_manifest_temporary)
+        assert pair_database.read_bytes() == pair_database_before
+        assert pair_manifest.read_bytes() == pair_manifest_before
+        assert not list(work.glob("*.mapgames-*"))
+
+        # Reproduce the dual-failure review case end to end through build():
+        # database publication succeeds, manifest publication fails, then the
+        # attempted database restoration also fails. Finally must retain the
+        # journal-owned manifest staging file, and the next invocation must
+        # restore the old pair rather than infer a commit from missing names.
+        dual_database = work / "dual-failure.sqlite"
+        dual_manifest = work / "dual-failure.json"
+        shutil.copy2(database_path, dual_database)
+        shutil.copy2(manifest_path, dual_manifest)
+        dual_database_before = dual_database.read_bytes()
+        dual_manifest_before = dual_manifest.read_bytes()
+
+        def fail_manifest_and_database_restore(source, destination):
+            source = Path(source)
+            destination = Path(destination)
+            if (
+                destination == dual_manifest
+                and source.name.startswith(dual_manifest.name + ".mapgames-build-")
+            ):
+                raise OSError("injected manifest publication failure")
+            if (
+                destination == dual_database
+                and ".mapgames-restore-" in source.name
+            ):
+                raise OSError("injected database restore failure")
+            return real_replace(source, destination)
+
+        with mock.patch.object(
+            lookup_tool.os, "replace", fail_manifest_and_database_restore
+        ):
+            try:
+                lookup_tool.build(
+                    [
+                        ("coffee", "walk", coffee),
+                        ("pharmacy", "walk", pharmacy),
+                    ],
+                    dual_database,
+                    dual_manifest,
+                    args.native_tool,
+                )
+            except BaseExceptionGroup as errors:
+                assert [type(error) for error in errors.exceptions] == [
+                    OSError, OSError
+                ]
+            else:
+                raise AssertionError("dual publication/recovery failure was ignored")
+        dual_journal = lookup_tool.publication_journal_path(
+            dual_database, dual_manifest
+        )
+        dual_state = json.loads(dual_journal.read_text())
+        retained_manifest_temporary = Path(dual_state["manifest"]["temporary"])
+        assert retained_manifest_temporary.exists()
+        assert dual_database.read_bytes() != dual_database_before
+        assert dual_manifest.read_bytes() == dual_manifest_before
+        assert lookup_tool.recover_output_pair(dual_database, dual_manifest)
+        assert dual_database.read_bytes() == dual_database_before
+        assert dual_manifest.read_bytes() == dual_manifest_before
+        assert not list(work.glob("*.mapgames-*"))
+
+        # Cooperative process interruption follows the same rollback path as
+        # ordinary exceptions instead of stranding live files in backups.
+        interrupt_database = work / "interrupt.sqlite"
+        interrupt_manifest = work / "interrupt.json"
+        shutil.copy2(database_path, interrupt_database)
+        shutil.copy2(manifest_path, interrupt_manifest)
+        interrupt_database_before = interrupt_database.read_bytes()
+        interrupt_manifest_before = interrupt_manifest.read_bytes()
+        interrupt_database_temporary = lookup_tool.temporary_sibling(
+            interrupt_database, "build"
+        )
+        interrupt_manifest_temporary = lookup_tool.temporary_sibling(
+            interrupt_manifest, "build"
+        )
+        interrupt_database_temporary.write_bytes(b"interrupted database\n")
+        interrupt_manifest_temporary.write_bytes(b"interrupted manifest\n")
+
+        def interrupt_second_publication(source, destination):
+            if (
+                Path(source) == interrupt_manifest_temporary
+                and Path(destination) == interrupt_manifest
+            ):
+                raise KeyboardInterrupt()
+            return real_replace(source, destination)
+
+        with mock.patch.object(
+            lookup_tool.os, "replace", interrupt_second_publication
+        ):
+            try:
+                lookup_tool.publish_output_pair(
+                    interrupt_database_temporary,
+                    interrupt_database,
+                    interrupt_manifest_temporary,
+                    interrupt_manifest,
+                )
+            except KeyboardInterrupt:
+                pass
+            else:
+                raise AssertionError("KeyboardInterrupt was swallowed")
+        assert interrupt_database.read_bytes() == interrupt_database_before
+        assert interrupt_manifest.read_bytes() == interrupt_manifest_before
+        assert not list(work.glob("*.mapgames-*"))
+
+        # Simulate a hard crash after only the database rename. The immutable
+        # stale journal is recovered by the next invocation.
+        stale_database = lookup_tool.canonical_target(work / "stale.sqlite")
+        stale_manifest = lookup_tool.canonical_target(work / "stale.json")
+        shutil.copy2(database_path, stale_database)
+        shutil.copy2(manifest_path, stale_manifest)
+        stale_database_before = stale_database.read_bytes()
+        stale_manifest_before = stale_manifest.read_bytes()
+        stale_database_temporary = lookup_tool.temporary_sibling(
+            stale_database, "build"
+        )
+        stale_manifest_temporary = lookup_tool.temporary_sibling(
+            stale_manifest, "build"
+        )
+        stale_database_temporary.write_bytes(b"crashed database\n")
+        stale_manifest_temporary.write_bytes(b"crashed manifest\n")
+        with lookup_tool.publication_lock(stale_database, stale_manifest):
+            lookup_tool.begin_output_pair_transaction(
+                stale_database_temporary,
+                stale_database,
+                stale_manifest_temporary,
+                stale_manifest,
+            )
+            lookup_tool.durable_replace(stale_database_temporary, stale_database)
+        assert lookup_tool.publication_journal_path(
+            stale_database, stale_manifest
+        ).exists()
+        assert lookup_tool.recover_output_pair(stale_database, stale_manifest)
+        assert stale_database.read_bytes() == stale_database_before
+        assert stale_manifest.read_bytes() == stale_manifest_before
+        assert not list(work.glob("*.mapgames-*"))
+
+        # The other recoverable crash matrices are deterministic too: a
+        # journal prepared before either rename rolls back, while two proven
+        # staged targets commit even if cleanup never ran.
+        prepared_database = lookup_tool.canonical_target(work / "prepared.sqlite")
+        prepared_manifest = lookup_tool.canonical_target(work / "prepared.json")
+        shutil.copy2(database_path, prepared_database)
+        shutil.copy2(manifest_path, prepared_manifest)
+        prepared_database_before = prepared_database.read_bytes()
+        prepared_manifest_before = prepared_manifest.read_bytes()
+        prepared_database_temporary = lookup_tool.temporary_sibling(
+            prepared_database, "build"
+        )
+        prepared_manifest_temporary = lookup_tool.temporary_sibling(
+            prepared_manifest, "build"
+        )
+        prepared_database_temporary.write_bytes(b"prepared database\n")
+        prepared_manifest_temporary.write_bytes(b"prepared manifest\n")
+        with lookup_tool.publication_lock(prepared_database, prepared_manifest):
+            lookup_tool.begin_output_pair_transaction(
+                prepared_database_temporary,
+                prepared_database,
+                prepared_manifest_temporary,
+                prepared_manifest,
+            )
+        assert lookup_tool.recover_output_pair(prepared_database, prepared_manifest)
+        assert prepared_database.read_bytes() == prepared_database_before
+        assert prepared_manifest.read_bytes() == prepared_manifest_before
+
+        committed_database = lookup_tool.canonical_target(work / "committed.sqlite")
+        committed_manifest = lookup_tool.canonical_target(work / "committed.json")
+        shutil.copy2(database_path, committed_database)
+        shutil.copy2(manifest_path, committed_manifest)
+        committed_database_temporary = lookup_tool.temporary_sibling(
+            committed_database, "build"
+        )
+        committed_manifest_temporary = lookup_tool.temporary_sibling(
+            committed_manifest, "build"
+        )
+        committed_database_temporary.write_bytes(b"committed database\n")
+        committed_manifest_temporary.write_bytes(b"committed manifest\n")
+        with lookup_tool.publication_lock(committed_database, committed_manifest):
+            lookup_tool.begin_output_pair_transaction(
+                committed_database_temporary,
+                committed_database,
+                committed_manifest_temporary,
+                committed_manifest,
+            )
+            lookup_tool.durable_replace(
+                committed_database_temporary, committed_database
+            )
+            lookup_tool.durable_replace(
+                committed_manifest_temporary, committed_manifest
+            )
+        assert lookup_tool.recover_output_pair(committed_database, committed_manifest)
+        assert committed_database.read_bytes() == b"committed database\n"
+        assert committed_manifest.read_bytes() == b"committed manifest\n"
+        assert not list(work.glob("*.mapgames-*"))
+
+        # A forged/malformed journal cannot redirect cleanup through a
+        # non-path JSON value or mutate either live target.
+        malformed_database = lookup_tool.canonical_target(work / "malformed.sqlite")
+        malformed_manifest = lookup_tool.canonical_target(work / "malformed.json")
+        shutil.copy2(database_path, malformed_database)
+        shutil.copy2(manifest_path, malformed_manifest)
+        malformed_database_before = malformed_database.read_bytes()
+        malformed_manifest_before = malformed_manifest.read_bytes()
+        malformed_database_temporary = lookup_tool.temporary_sibling(
+            malformed_database, "build"
+        )
+        malformed_manifest_temporary = lookup_tool.temporary_sibling(
+            malformed_manifest, "build"
+        )
+        malformed_state = {
+            "schema_version": lookup_tool.TRANSACTION_SCHEMA_VERSION,
+            "transaction_id": "a" * 32,
+            "database": lookup_tool.transaction_record(
+                malformed_database, malformed_database_temporary, "a" * 32
+            ),
+            "manifest": lookup_tool.transaction_record(
+                malformed_manifest, malformed_manifest_temporary, "a" * 32
+            ),
+        }
+        malformed_state["database"]["temporary"] = ["not", "a", "path"]
+        malformed_journal = lookup_tool.publication_journal_path(
+            malformed_database, malformed_manifest
+        )
+        malformed_journal.write_bytes(
+            lookup_tool.canonical_json(malformed_state) + b"\n"
+        )
+        try:
+            lookup_tool.recover_output_pair(
+                malformed_database, malformed_manifest
+            )
+        except RuntimeError as error:
+            assert "invalid destination publication transaction" in str(error)
+        else:
+            raise AssertionError("malformed publication journal was trusted")
+        assert malformed_database.read_bytes() == malformed_database_before
+        assert malformed_manifest.read_bytes() == malformed_manifest_before
+        for path in (
+            malformed_journal,
+            malformed_database_temporary,
+            malformed_manifest_temporary,
+        ):
+            lookup_tool.remove_owned_path(path)
+        assert not list(work.glob("*.mapgames-*"))
+
+        # File data and every directory-entry transition are explicitly synced.
+        sync_database = work / "sync.sqlite"
+        sync_manifest = work / "sync.json"
+        sync_database_temporary = lookup_tool.temporary_sibling(
+            sync_database, "build"
+        )
+        sync_manifest_temporary = lookup_tool.temporary_sibling(
+            sync_manifest, "build"
+        )
+        sync_database_temporary.write_bytes(b"synced database\n")
+        sync_manifest_temporary.write_bytes(b"synced manifest\n")
+        sync_kinds = []
+        real_fsync = os.fsync
+
+        def track_fsync(descriptor):
+            mode = os.fstat(descriptor).st_mode
+            sync_kinds.append("directory" if stat.S_ISDIR(mode) else "file")
+            return real_fsync(descriptor)
+
+        with mock.patch.object(lookup_tool.os, "fsync", track_fsync):
+            lookup_tool.publish_output_pair(
+                sync_database_temporary,
+                sync_database,
+                sync_manifest_temporary,
+                sync_manifest,
+            )
+        assert sync_kinds.count("file") >= 3, sync_kinds
+        assert sync_kinds.count("directory") >= 5, sync_kinds
+        assert not list(work.glob("*.mapgames-*"))
+
+        # A subsequent valid rebuild publishes both newly validated outputs.
         run_builder(args.tool, args.native_tool, routes, database_path, manifest_path)
+        assert database_path.read_bytes() != previous_database
+        assert manifest_path.read_bytes() != previous_manifest
         manifest = json.loads(manifest_path.read_text())
         assert manifest["schema_version"] == 3 and manifest["edge_count"] == 2
         assert "edge_build_id" not in manifest
         assert [item["key"] for item in manifest["requirements"]] == [
             "coffee_walk", "pharmacy_walk"
         ]
+        if args.publication_only:
+            return
 
         def rejected_merge(network_out, groups_out, *extra):
             result = subprocess.run(
@@ -581,6 +959,7 @@ def main() -> None:
         catalog = catalog_tool.pack(
             objects_path, database_path, catalog_path, catalog_manifest_path
         )
+        assert catalog["schema_version"] == 4
         assert len(catalog["edge_build_id"]) == 64
         assert catalog["collections"]["destination_edges"]["count"] == 2
         assert catalog["collections"]["object_locations"]["page_size"] == 512
@@ -599,6 +978,20 @@ def main() -> None:
         assert (
             gates["postfilter_relation_pages_per_lookup"]
             == fanout["relation_pages_per_lookup_raw_max"]
+        )
+        set_collections = [
+            collection
+            for name, collection in catalog["collections"].items()
+            if name.startswith("destination_edge_set:")
+        ]
+        assert catalog["reference_fanout"]["destination_set_pages_per_lookup"] == sum(
+            collection["max_request_pages"] for collection in set_collections
+        )
+        assert catalog["reference_fanout"]["destination_set_members_per_lookup"] == sum(
+            collection["max_request_members"] for collection in set_collections
+        )
+        assert catalog["reference_fanout"]["object_location_pages_per_lookup"] == (
+            catalog["collections"]["object_locations"]["pages"]
         )
         pages = sqlite3.connect(catalog_path).execute(
             "SELECT zoom_level,tile_column,tile_row,tile_data FROM tiles"

@@ -7,7 +7,7 @@ const { gzipSync } = require("node:zlib");
 const { CatalogPages, fnv1a32 } = require(process.argv[2] || "./catalog-pages.js");
 
 const manifest = {
-  schema_version: 3,
+  schema_version: 4,
   edge_build_id: "a".repeat(64),
   page_zoom: 10,
   page_addressing: "XYZ z=10, x=collection.base+page, y=0",
@@ -16,6 +16,11 @@ const manifest = {
     collection: "object_locations",
     encoding: "[lonE7,latE7,serviceOrdinal,displayLabel,kind]",
     service_ordinals: ["coffee"]
+  },
+  reference_fanout: {
+    destination_set_pages_per_lookup: 1,
+    destination_set_members_per_lookup: 4,
+    object_location_pages_per_lookup: 1
   },
   spatial: {
     edge_build_id: "a".repeat(64),
@@ -35,8 +40,13 @@ const manifest = {
   collections: {
     objects: { base: 0, count: 4, page_size: 2, pages: 2 },
     place_id_index: { base: 2, count: 256, page_size: 1, pages: 256 },
-    "destination_edge_set:coffee:walk:10": { base: 258, count: 2, page_size: 2, pages: 1 },
-    object_locations: { base: 259, count: 4, page_size: 512, pages: 1 }
+    "destination_edge_set:coffee:walk:10": {
+      base: 258, count: 2, page_size: 2, pages: 1,
+      max_request_pages: 1, max_record_members: 2, max_request_members: 4
+    },
+    object_locations: {
+      base: 259, count: 4, page_size: 512, pages: 1, max_request_pages: 1
+    }
   }
 };
 
@@ -109,11 +119,11 @@ function fakeArchive(options = {}) {
 async function main() {
   assert.equal(fnv1a32("hello"), 0x4f9f2cab, "FNV-1a implementation drifted");
   const legacyManifest = structuredClone(manifest);
-  legacyManifest.schema_version = 2;
+  legacyManifest.schema_version = 3;
   let archive = fakeArchive({ manifest: legacyManifest });
   let client = new CatalogPages("catalog.pmtiles", legacyManifest, { archive });
   await assert.rejects(client.getObjects([0]), /invalid catalog manifest header/,
-    "catalog schema v2 must not be accepted through a compatibility path");
+    "catalog schema v3 must not be accepted through a compatibility path");
 
   // One record loads its one page, not the second object page or any index/set page.
   archive = fakeArchive({ gzip: true });
@@ -167,14 +177,14 @@ async function main() {
   assert.equal(factoryCalls, 2);
   assert.deepEqual(healthyArchive.calls.map(call => call.x), [0]);
 
-  // The explicitly requested marker's rich page starts concurrently with the
-  // set chain; compact locations still remain the complete ranking input.
+  // Reference stages are ordered so a set/location failure cannot leave
+  // later rich-object work running; compact locations remain complete input.
   archive = fakeArchive();
   client = new CatalogPages("catalog.pmtiles", manifest, { archive });
   const resolved = await client.resolveReferenceLocations([
     { collection: "destination_edge_set:coffee:walk:10", id: 0 }
   ], [0]);
-  assert.deepEqual(archive.calls.map(call => call.x), [0, 258, 259]);
+  assert.deepEqual(archive.calls.map(call => call.x), [258, 259, 0]);
   assert.deepEqual(resolved.sets.get("destination_edge_set:coffee:walk:10:0"), [1, 2]);
   assert.deepEqual([...resolved.locations.keys()], [0, 1, 2]);
   assert.deepEqual(resolved.locations.get(1), {
@@ -303,6 +313,233 @@ async function main() {
   releaseFirst();
   await assert.rejects(staleRead, /superseded/);
   assert.equal(base.calls.length, 1);
+
+  // A page failure stops the batch before later pages start. Logical workers
+  // detach immediately even though an already-active physical read may drain.
+  const failingBatchManifest = structuredClone(manifest);
+  failingBatchManifest.collections.batch_records = {
+    base: 300, count: 6, page_size: 1, pages: 6, max_request_pages: 6
+  };
+  const batchCalls = [];
+  let failFirst;
+  let releaseSecond;
+  const firstFailure = new Promise((_resolve, reject) => { failFirst = reject; });
+  const secondRead = new Promise(resolve => { releaseSecond = resolve; });
+  archive = {
+    getMetadata: async () => failingBatchManifest,
+    getZxy: async (_z, x) => {
+      batchCalls.push(x);
+      if (x === 300) await firstFailure;
+      if (x === 301) await secondRead;
+      return { data: bytes([[x - 300]]) };
+    }
+  };
+  client = new CatalogPages("catalog.pmtiles", failingBatchManifest, {
+    archive, maxConcurrentReads: 2
+  });
+  let batchSettled = false;
+  const failedBatch = client.getMany("batch_records", [0, 1, 2, 3, 4, 5])
+    .finally(() => { batchSettled = true; });
+  const failedBatchRejected = assert.rejects(failedBatch, /first batch page failed/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(batchCalls, [300, 301]);
+  failFirst(new Error("first batch page failed"));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(batchSettled, true, "batch remained coupled to an active physical read");
+  assert.deepEqual(batchCalls, [300, 301], "a later page started after the first failure");
+  await failedBatchRejected;
+  releaseSecond();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(batchCalls, [300, 301]);
+
+  // With the global queue saturated by an unrelated read, a loader failure
+  // must cancel its owning batch before releasing the slot. The queued second
+  // page never starts, and rejection does not wait for that nonexistent read.
+  const saturatedCalls = [];
+  let releaseUnrelated;
+  let failSaturatedPage;
+  const unrelatedHold = new Promise(resolve => { releaseUnrelated = resolve; });
+  const saturatedFailure = new Promise((_resolve, reject) => {
+    failSaturatedPage = () => reject(new Error("saturated page failed"));
+  });
+  archive = {
+    getMetadata: async () => failingBatchManifest,
+    getZxy: async (_z, x) => {
+      saturatedCalls.push(x);
+      if (x === 0) {
+        await unrelatedHold;
+        return { data: bytes(objects.slice(0, 2)) };
+      }
+      if (x === 300) await saturatedFailure;
+      if (x === 301) throw new Error("cancelled second page started");
+      return { data: bytes([[x - 300]]) };
+    }
+  };
+  client = new CatalogPages("catalog.pmtiles", failingBatchManifest, {
+    archive, maxConcurrentReads: 2
+  });
+  const unrelatedRead = client.getObjects([0]);
+  await new Promise(resolve => setImmediate(resolve));
+  const saturatedBatch = client.getMany("batch_records", [0, 1]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(saturatedCalls, [0, 300]);
+  failSaturatedPage();
+  await assert.rejects(saturatedBatch, /saturated page failed/);
+  assert.deepEqual(saturatedCalls, [0, 300]);
+  releaseUnrelated();
+  await unrelatedRead;
+
+  // Successful transport/decode is not enough: page-shape validation remains
+  // inside the scheduler slot, so malformed data cancels the batch before the
+  // queued sibling can start.
+  const malformedCalls = [];
+  let releaseMalformedHold;
+  const malformedHold = new Promise(resolve => { releaseMalformedHold = resolve; });
+  archive = {
+    getMetadata: async () => failingBatchManifest,
+    getZxy: async (_z, x) => {
+      malformedCalls.push(x);
+      if (x === 0) {
+        await malformedHold;
+        return { data: bytes(objects.slice(0, 2)) };
+      }
+      if (x === 300) return { data: bytes({ malformed: true }) };
+      if (x === 301) throw new Error("malformed batch sibling started");
+      return { data: bytes([[x - 300]]) };
+    }
+  };
+  client = new CatalogPages("catalog.pmtiles", failingBatchManifest, {
+    archive, maxConcurrentReads: 2
+  });
+  const malformedHeldRead = client.getObjects([0]);
+  await new Promise(resolve => setImmediate(resolve));
+  await assert.rejects(
+    client.getMany("batch_records", [0, 1]),
+    /batch_records page 0 is not an array/
+  );
+  assert.deepEqual(malformedCalls, [0, 300]);
+  releaseMalformedHold();
+  await malformedHeldRead;
+
+  // If another request consumes a queued in-flight page, cancellation of the
+  // original owner removes only that owner. The shared physical read remains
+  // queued, starts when capacity opens, and satisfies the unrelated consumer.
+  const sharedCalls = [];
+  let releaseSharedHold;
+  let failSharedOwner;
+  let releaseSharedPage;
+  const sharedHold = new Promise(resolve => { releaseSharedHold = resolve; });
+  const sharedOwnerFailure = new Promise((_resolve, reject) => {
+    failSharedOwner = () => reject(new Error("shared owner failed"));
+  });
+  const sharedPage = new Promise(resolve => { releaseSharedPage = resolve; });
+  archive = {
+    getMetadata: async () => failingBatchManifest,
+    getZxy: async (_z, x) => {
+      sharedCalls.push(x);
+      if (x === 0) {
+        await sharedHold;
+        return { data: bytes(objects.slice(0, 2)) };
+      }
+      if (x === 300) await sharedOwnerFailure;
+      if (x === 301) await sharedPage;
+      return { data: bytes([[x - 300]]) };
+    }
+  };
+  client = new CatalogPages("catalog.pmtiles", failingBatchManifest, {
+    archive, maxConcurrentReads: 2
+  });
+  const heldSharedRead = client.getObjects([0]);
+  await new Promise(resolve => setImmediate(resolve));
+  const sharedOwner = client.getMany("batch_records", [0, 1]);
+  await new Promise(resolve => setImmediate(resolve));
+  const sharedConsumer = client.getMany("batch_records", [1]);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(sharedCalls, [0, 300]);
+  const ownerRejected = assert.rejects(sharedOwner, /shared owner failed/);
+  failSharedOwner();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(sharedCalls, [0, 300, 301]);
+  await ownerRejected;
+  releaseSharedPage();
+  assert.equal((await sharedConsumer).get(1)[0], 1);
+  releaseSharedHold();
+  await heldSharedRead;
+  assert.deepEqual(sharedCalls, [0, 300, 301]);
+
+  // Aggregate set-page fanout is preflighted before any set page is queued.
+  const oneCandidateManifest = structuredClone(manifest);
+  oneCandidateManifest.spatial.fanout_stats.candidates_per_tile_max = 1;
+  oneCandidateManifest.spatial.fanout_stats.candidates_per_lookup_max = 1;
+  oneCandidateManifest.collections["destination_edge_set:coffee:walk:10"] = {
+    base: 258, count: 6, page_size: 2, pages: 3,
+    max_request_pages: 1, max_record_members: 2, max_request_members: 2
+  };
+  oneCandidateManifest.collections.object_locations.base = 261;
+  oneCandidateManifest.reference_fanout.destination_set_pages_per_lookup = 1;
+  oneCandidateManifest.reference_fanout.destination_set_members_per_lookup = 2;
+  archive = fakeArchive({ manifest: oneCandidateManifest });
+  client = new CatalogPages("catalog.pmtiles", oneCandidateManifest, { archive });
+  await assert.rejects(client.resolveReferenceLocations([
+    { collection: "destination_edge_set:coffee:walk:10", id: 0 },
+    { collection: "destination_edge_set:coffee:walk:10", id: 2 }
+  ]), /exceeds 1 pages/);
+  assert.deepEqual(archive.calls, []);
+
+  // A set whose decoded membership exceeds the producer's record bound fails
+  // before object-location or rich-object work can start.
+  const boundedMemberManifest = structuredClone(manifest);
+  boundedMemberManifest.collections["destination_edge_set:coffee:walk:10"].max_record_members = 1;
+  boundedMemberManifest.collections["destination_edge_set:coffee:walk:10"].max_request_members = 2;
+  boundedMemberManifest.reference_fanout.destination_set_members_per_lookup = 2;
+  archive = fakeArchive({ manifest: boundedMemberManifest });
+  client = new CatalogPages("catalog.pmtiles", boundedMemberManifest, { archive });
+  await assert.rejects(client.resolveReferenceLocations([
+    { collection: "destination_edge_set:coffee:walk:10", id: 0 }
+  ], [0]), /invalid destination set/);
+  assert.deepEqual(archive.calls.map(call => call.x), [258]);
+
+  // Compact locations must publish their complete artifact page fanout so
+  // extra marker IDs cannot make a valid set+marker lookup exceed metadata.
+  // An underdeclared location gate fails manifest validation before any read.
+  const locationBoundManifest = structuredClone(manifest);
+  locationBoundManifest.collections.objects = {
+    base: 0, count: 1025, page_size: 64, pages: 17
+  };
+  locationBoundManifest.collections.place_id_index.base = 17;
+  locationBoundManifest.collections["destination_edge_set:coffee:walk:10"] = {
+    base: 273, count: 1, page_size: 1, pages: 1,
+    max_request_pages: 1, max_record_members: 1, max_request_members: 1
+  };
+  locationBoundManifest.collections.object_locations = {
+    base: 274, count: 1025, page_size: 512, pages: 3, max_request_pages: 1
+  };
+  locationBoundManifest.spatial.fanout_stats.candidates_per_tile_max = 1;
+  locationBoundManifest.spatial.fanout_stats.candidates_per_lookup_max = 1;
+  locationBoundManifest.reference_fanout = {
+    destination_set_pages_per_lookup: 1,
+    destination_set_members_per_lookup: 1,
+    object_location_pages_per_lookup: 1
+  };
+  archive = fakeArchive({ manifest: locationBoundManifest });
+  client = new CatalogPages("catalog.pmtiles", locationBoundManifest, { archive });
+  await assert.rejects(
+    client.resolveReferenceLocations([], [0, 512]),
+    /collections are missing/
+  );
+  assert.deepEqual(archive.calls, []);
+
+  // The producer-derived page/member/location maxima are permissions, not
+  // small static caps: a valid request exactly at every advertised bound works.
+  archive = fakeArchive();
+  client = new CatalogPages("catalog.pmtiles", manifest, { archive });
+  const atBound = await client.resolveReferenceLocations([
+    { collection: "destination_edge_set:coffee:walk:10", id: 0 },
+    { collection: "destination_edge_set:coffee:walk:10", id: 1 }
+  ]);
+  assert.equal(atBound.sets.size, 2);
+  assert.deepEqual([...atBound.locations.keys()].sort((left, right) => left - right), [0, 1, 2]);
+  assert.deepEqual(archive.calls.map(call => call.x), [258, 259]);
 
   // Spatial churn has its own LRU and cannot evict a hot metadata page.
   archive = fakeArchive();

@@ -4,12 +4,15 @@ import argparse
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+import errno
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
-import shutil
+import secrets
+import stat
 import subprocess
 import sys
 import time
@@ -677,6 +680,189 @@ def write_expansion_requests(path: Path, route: dict, entries: list[tuple[dict, 
             )
 
 
+def require_paths_outside_directory(
+    directory: Path, paths: list[tuple[str, Path]]
+) -> None:
+    directory = directory.resolve(strict=False)
+    for name, path in paths:
+        resolved = path.resolve(strict=False)
+        if resolved == directory or directory in resolved.parents:
+            raise ValueError(f"{name} must not be inside temporary routing tiles")
+
+
+@contextmanager
+def routing_tiles_directory(
+    work: Path, protected_paths: list[tuple[str, Path]]
+):
+    work = work.resolve(strict=True)
+    directory_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    parent_descriptor = os.open(work, directory_flags)
+    tiles_descriptor = None
+    name = None
+    try:
+        for _attempt in range(128):
+            candidate = f"valhalla-tiles-{secrets.token_hex(8)}"
+            try:
+                os.mkdir(candidate, mode=0o700, dir_fd=parent_descriptor)
+                name = candidate
+                break
+            except FileExistsError:
+                continue
+        if name is None:
+            raise RuntimeError("could not reserve temporary routing tile directory")
+        tiles_descriptor = os.open(name, directory_flags, dir_fd=parent_descriptor)
+        owned_identity = (
+            os.fstat(tiles_descriptor).st_dev,
+            os.fstat(tiles_descriptor).st_ino,
+        )
+        tiles = work / name
+
+        def require_owned_directory(
+            parent: int,
+            entry: str,
+            identity: tuple[int, int],
+            identity_error: str,
+        ) -> None:
+            try:
+                current = os.stat(
+                    entry, dir_fd=parent, follow_symlinks=False
+                )
+            except FileNotFoundError as error:
+                raise RuntimeError(identity_error) from error
+            if (
+                not stat.S_ISDIR(current.st_mode)
+                or (current.st_dev, current.st_ino) != identity
+            ):
+                raise RuntimeError(identity_error)
+
+        def remove_owned_directory(
+            parent: int,
+            entry: str,
+            descriptor: int,
+            identity: tuple[int, int],
+            description: str,
+            identity_error: str,
+        ) -> None:
+            cleanup_attempts = 16
+            for attempt in range(1, cleanup_attempts + 1):
+                for child_entry in os.listdir(descriptor):
+                    try:
+                        child_status = os.stat(
+                            child_entry,
+                            dir_fd=descriptor,
+                            follow_symlinks=False,
+                        )
+                    except FileNotFoundError:
+                        continue
+                    if stat.S_ISDIR(child_status.st_mode):
+                        try:
+                            child = os.open(
+                                child_entry, directory_flags, dir_fd=descriptor
+                            )
+                        except FileNotFoundError:
+                            continue
+                        try:
+                            opened = os.fstat(child)
+                            child_identity = (opened.st_dev, opened.st_ino)
+                            if child_identity != (
+                                child_status.st_dev,
+                                child_status.st_ino,
+                            ):
+                                raise RuntimeError(
+                                    "routing tile directory entry changed during cleanup"
+                                )
+                            remove_owned_directory(
+                                descriptor,
+                                child_entry,
+                                child,
+                                child_identity,
+                                f"routing tile directory entry {child_entry!r}",
+                                "routing tile directory entry changed during cleanup",
+                            )
+                        finally:
+                            os.close(child)
+                    else:
+                        try:
+                            os.unlink(child_entry, dir_fd=descriptor)
+                        except FileNotFoundError:
+                            continue
+                require_owned_directory(
+                    parent, entry, identity, identity_error
+                )
+                try:
+                    os.rmdir(entry, dir_fd=parent)
+                except OSError as error:
+                    if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+                        raise
+                    # Directory enumeration and rmdir are not one atomic
+                    # operation. A late Valhalla writer may add an entry after
+                    # the drain, so retry the complete descriptor-relative
+                    # traversal. Rechecking the path identity on every pass
+                    # keeps a replacement directory out of the deletion walk.
+                    require_owned_directory(
+                        parent, entry, identity, identity_error
+                    )
+                    if attempt == cleanup_attempts:
+                        remaining = sorted(os.listdir(descriptor))
+                        sample = ", ".join(
+                            repr(remaining_entry)
+                            for remaining_entry in remaining[:5]
+                        )
+                        if len(remaining) > 5:
+                            sample += ", ..."
+                        raise RuntimeError(
+                            f"{description} remained non-empty "
+                            f"after {cleanup_attempts} cleanup attempts; "
+                            "possible active writer"
+                            + (f" (remaining: {sample})" if sample else "")
+                        ) from error
+                    time.sleep(min(0.001 * (2 ** (attempt - 1)), 0.05))
+                else:
+                    # rmdir is path-based: the entry can be replaced after
+                    # the preceding identity check but before the syscall.
+                    # POSIX does not expose descriptor-relative removal of an
+                    # already-open directory. Prove that rmdir unlinked this
+                    # opened inode rather than an empty replacement; otherwise
+                    # fail visibly instead of reporting successful cleanup.
+                    if os.fstat(descriptor).st_nlink != 0:
+                        raise RuntimeError(identity_error)
+                    return
+
+        def cleanup() -> None:
+            remove_owned_directory(
+                parent_descriptor,
+                name,
+                tiles_descriptor,
+                owned_identity,
+                "temporary routing tile directory",
+                "temporary routing tile directory identity changed; refusing cleanup",
+            )
+
+        try:
+            require_paths_outside_directory(tiles, protected_paths)
+            yield tiles
+        except BaseException as body_error:
+            try:
+                cleanup()
+            except BaseException as cleanup_error:
+                raise BaseExceptionGroup(
+                    "routing tile work failed and cleanup also failed",
+                    [body_error, cleanup_error],
+                )
+            raise
+        else:
+            cleanup()
+    finally:
+        if tiles_descriptor is not None:
+            os.close(tiles_descriptor)
+        os.close(parent_descriptor)
+
+
 def main() -> None:
     pipeline_started = time.perf_counter()
     args = parse_args()
@@ -789,70 +975,70 @@ def main() -> None:
     with timed("prepare service locations"):
         prepared = prepare_places(args, work, country)
 
-    tiles = work / "tiles"
-    tiles.mkdir(exist_ok=True)
-    with timed("write Valhalla configuration"):
-        config = get_config(tile_extract="", tile_dir=tiles)
-        # The pipeline reads only its unpacked graph tiles. Remove optional
-        # /data/valhalla defaults so an unsandboxed build cannot accidentally
-        # consume host traffic, admin, timezone, transit, landmark, or elevation
-        # data and produce a different output for the same derivation.
-        for key in (
-            "tile_extract",
-            "traffic_extract",
-            "admin",
-            "landmarks",
-            "timezone",
-            "transit_dir",
-            "transit_feeds_dir",
-        ):
-            config["mjolnir"].pop(key, None)
-        config.get("additional_data", {}).pop("elevation", None)
-        config_path = work / "valhalla.json"
-        write_json(config_path, config)
+    with routing_tiles_directory(
+        work, [("PBF input", args.pbf), ("output directory", output)]
+    ) as tiles:
+        with timed("write Valhalla configuration"):
+            config = get_config(tile_extract="", tile_dir=tiles)
+            # The pipeline reads only its unpacked graph tiles. Remove optional
+            # /data/valhalla defaults so an unsandboxed build cannot accidentally
+            # consume host traffic, admin, timezone, transit, landmark, or elevation
+            # data and produce a different output for the same derivation.
+            for key in (
+                "tile_extract",
+                "traffic_extract",
+                "admin",
+                "landmarks",
+                "timezone",
+                "transit_dir",
+                "transit_feeds_dir",
+            ):
+                config["mjolnir"].pop(key, None)
+            config.get("additional_data", {}).pop("elevation", None)
+            config_path = work / "valhalla.json"
+            write_json(config_path, config)
 
-    run(
-        "build Valhalla routing tiles",
-        [
-            "valhalla_build_tiles",
-            "--config",
-            config_path,
-            "--concurrency",
-            args.concurrency,
-            args.pbf,
-        ],
-    )
-
-    routed_counts = {}
-    bbox_arg = ",".join(str(coordinate) for coordinate in country_bbox)
-    for route in ROUTE_SPECS:
-        key = route_key(route)
-        entries = prepared[route["service"]]
-        requests_path = work / f"expansion-{key}.tsv"
-        write_expansion_requests(requests_path, route, entries)
         run(
-            f"compute {key} native reverse expansion lines",
+            "build Valhalla routing tiles",
             [
-                args.expansion_helper,
+                "valhalla_build_tiles",
+                "--config",
                 config_path,
-                requests_path,
-                # Classified native relation batches are build intermediates.
-                work,
-                args.expansion_concurrency,
-                args.expansion_batch_size,
-                ",".join(str(minutes) for minutes in route["minutes"]),
-                bbox_arg,
-                key,
-                route["service"],
-                route["mode"],
+                "--concurrency",
+                args.concurrency,
+                args.pbf,
             ],
         )
-        requests_path.unlink()
-        for _location, place_feature in entries:
-            place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
-        routed_counts[key] = len(entries)
 
-    shutil.rmtree(tiles)
+        routed_counts = {}
+        bbox_arg = ",".join(str(coordinate) for coordinate in country_bbox)
+        for route in ROUTE_SPECS:
+            key = route_key(route)
+            entries = prepared[route["service"]]
+            requests_path = work / f"expansion-{key}.tsv"
+            write_expansion_requests(requests_path, route, entries)
+            run(
+                f"compute {key} native reverse expansion lines",
+                [
+                    args.expansion_helper,
+                    config_path,
+                    requests_path,
+                    # Classified native relation batches are build intermediates.
+                    work,
+                    args.expansion_concurrency,
+                    args.expansion_batch_size,
+                    ",".join(str(minutes) for minutes in route["minutes"]),
+                    bbox_arg,
+                    key,
+                    route["service"],
+                    route["mode"],
+                ],
+            )
+            requests_path.unlink()
+            for _location, place_feature in entries:
+                place_feature["properties"][f"{route['mode']}_routing_status"] = "routed"
+            routed_counts[key] = len(entries)
+
     config_path.unlink()
 
     destination_lookup_command = [

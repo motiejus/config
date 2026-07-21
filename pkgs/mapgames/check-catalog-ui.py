@@ -24,6 +24,9 @@ def main() -> None:
     assert "resolveReferenceLocations" in client and "getDestinationSets" in client
     assert "getObjectLocations" in client and "getSpatialCandidates" in client
     assert "findObjectByPlaceId" in client and "fnv1a32" in client
+    assert "manifest.schema_version !== 4" in client
+    assert "reference_fanout" in client and "max_request_members" in client
+    assert "cancelReadBatch" in client and "Promise.all(pages.values())" not in client
 
     # No interaction may fall back to a whole-country JSON catalog.
     for obsolete in (

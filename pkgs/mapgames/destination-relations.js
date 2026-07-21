@@ -4,6 +4,7 @@
   const buildIdPattern = /^[0-9a-f]{64}$/;
   const catalogFilePattern = /^catalog-[0-9a-f]{64}\.pmtiles$/;
   const breakpointSnapPixels = 2;
+  const fractionInversionSteps = 24;
 
   function integer(value, minimum = 0) {
     return Number.isSafeInteger(value) && value >= minimum;
@@ -49,6 +50,42 @@
     return result;
   }
 
+  function nativeParameterAtChordPosition(
+    nativeLeft, nativeRight, projectedLeft, projectedRight, chordT, project
+  ) {
+    if (chordT <= 0) return 0;
+    if (chordT >= 1) return 1;
+    const dx = projectedRight.x - projectedLeft.x;
+    const dy = projectedRight.y - projectedLeft.y;
+    const denominator = dx * dx + dy * dy;
+    if (!(denominator > 0)) return 0;
+    const nativeDx = nativeRight[0] - nativeLeft[0];
+    const nativeDy = nativeRight[1] - nativeLeft[1];
+    let low = 0;
+    let high = 1;
+    // Projection onto the rendered endpoint chord is monotonic along a
+    // visible source segment. A fixed 24-step bisection bounds both work and
+    // native-parameter error (< 3e-8), while an exact dyadic source position
+    // such as a midpoint is recovered without rounding away breakpoint
+    // equality. This inversion runs only for the one closest segment.
+    for (let step = 0; step < fractionInversionSteps; step += 1) {
+      const middle = (low + high) / 2;
+      const point = project([
+        nativeLeft[0] + nativeDx * middle,
+        nativeLeft[1] + nativeDy * middle
+      ]);
+      const position = ((point.x - projectedLeft.x) * dx +
+        (point.y - projectedLeft.y) * dy) / denominator;
+      if (!Number.isFinite(position)) {
+        throw new Error("invalid destination edge screen projection");
+      }
+      if (position === chordT) return middle;
+      if (position < chordT) low = middle;
+      else high = middle;
+    }
+    return (low + high) / 2;
+  }
+
   function closestCanonicalPoint(lngLat, coordinates, project) {
     const target = project([lngLat.lng, lngLat.lat]);
     const cumulativeLengths = [0];
@@ -69,41 +106,54 @@
       total += meters;
       cumulativeLengths.push(total);
       if (!best || distance < best.distance) {
-        best = { distance, segment: index - 1, projected };
+        best = {
+          distance,
+          segment: index - 1,
+          projected,
+          chordT: t,
+          projectedLeft: left,
+          projectedRight: right
+        };
       }
     }
     if (!best || !(total > 0)) throw new Error("degenerate destination edge geometry");
-    const nativeLeft = coordinates[best.segment];
-    const nativeRight = coordinates[best.segment + 1];
-    const nativeDx = nativeRight[0] - nativeLeft[0];
-    const nativeDy = nativeRight[1] - nativeLeft[1];
-    // The screen projection decides which segment is closest and supplies the
-    // corridor distance. Fractions, however, are produced natively by linear
-    // lon/lat interpolation within a haversine-measured segment. Recover that
-    // parameter with a two-axis projection rather than reusing the generally
-    // non-affine projected chord parameter. Using both axes is important: a
-    // click's perpendicular offset from a diagonal must not move its
-    // along-edge fraction to the wrong side of a breakpoint.
-    const nativeDenominator = nativeDx * nativeDx + nativeDy * nativeDy;
-    const nativeT = nativeDenominator === 0 ? 0 : Math.max(0, Math.min(1,
-      ((lngLat.lng - nativeLeft[0]) * nativeDx +
-        (lngLat.lat - nativeLeft[1]) * nativeDy) / nativeDenominator
-    ));
+    // The rendered chord decides the closest segment and along-screen
+    // position. Convert that position back to the producer's native linear
+    // lon/lat parameter before applying the segment's haversine weight.
+    // Projecting the raw off-line click in lon/lat skews cross-track snaps;
+    // using chordT directly instead drifts from producer fractions on long,
+    // visibly curved Web-Mercator segments.
+    const nativeT = nativeParameterAtChordPosition(
+      coordinates[best.segment],
+      coordinates[best.segment + 1],
+      best.projectedLeft,
+      best.projectedRight,
+      best.chordT,
+      project
+    );
     return {
       distance: best.distance,
       fraction: (cumulativeLengths[best.segment] +
         nativeT * (cumulativeLengths[best.segment + 1] -
           cumulativeLengths[best.segment])) / total,
       projected: best.projected,
+      segment: best.segment,
+      projectedLeft: best.projectedLeft,
+      projectedRight: best.projectedRight,
       target,
       cumulativeLengths,
       total
     };
   }
 
-  function coordinateAtFraction(coordinates, snap, fraction) {
-    if (fraction <= 0) return coordinates[0];
-    if (fraction >= 1) return coordinates[coordinates.length - 1];
+  function nativePositionAtFraction(coordinates, snap, fraction) {
+    if (fraction <= 0) return { coordinate: coordinates[0], segment: 0 };
+    if (fraction >= 1) {
+      return {
+        coordinate: coordinates[coordinates.length - 1],
+        segment: coordinates.length - 2
+      };
+    }
     const distance = fraction * snap.total;
     let low = 1;
     let high = snap.cumulativeLengths.length - 1;
@@ -117,10 +167,30 @@
     const within = length > 0 ? (distance - before) / length : 0;
     const left = coordinates[low - 1];
     const right = coordinates[low];
-    return [
-      left[0] + (right[0] - left[0]) * within,
-      left[1] + (right[1] - left[1]) * within
-    ];
+    return {
+      coordinate: [
+        left[0] + (right[0] - left[0]) * within,
+        left[1] + (right[1] - left[1]) * within
+      ],
+      segment: low - 1
+    };
+  }
+
+  function renderedChordPoint(coordinates, snap, position, project) {
+    const left = position.segment === snap.segment
+      ? snap.projectedLeft
+      : project(coordinates[position.segment]);
+    const right = position.segment === snap.segment
+      ? snap.projectedRight
+      : project(coordinates[position.segment + 1]);
+    const point = project(position.coordinate);
+    const dx = right.x - left.x;
+    const dy = right.y - left.y;
+    const denominator = dx * dx + dy * dy;
+    const chordT = denominator === 0 ? 0 : Math.max(0, Math.min(1,
+      ((point.x - left.x) * dx + (point.y - left.y) * dy) / denominator
+    ));
+    return { x: left.x + chordT * dx, y: left.y + chordT * dy };
   }
 
   function nearbyBreakpoint(preset, snap, coordinates, project) {
@@ -135,16 +205,22 @@
     let nearest;
     for (const index of [low - 1, low]) {
       if (index < 0 || index >= breakpoints.length) continue;
-      const projected = project(coordinateAtFraction(
-        coordinates, snap, breakpoints[index][0]
-      ));
+      const projected = renderedChordPoint(
+        coordinates,
+        snap,
+        nativePositionAtFraction(coordinates, snap, breakpoints[index][0]),
+        project
+      );
       const distance = Math.hypot(
-        snap.target.x - projected.x, snap.target.y - projected.y
+        snap.projected.x - projected.x, snap.projected.y - projected.y
       );
       // MVT coordinate quantization can move a rendered boundary by roughly a
-      // pixel. Only the two fraction-neighboring breakpoints are projected,
-      // and a deliberately small tolerance preserves open-run selection away
-      // from that quantization halo.
+      // pixel. Compare rendered chord positions, not the native curve point:
+      // the latter can sit several pixels off a long endpoint chord in Web
+      // Mercator. Only the two fraction-neighboring breakpoints are tested,
+      // and this deliberately small along-edge tolerance preserves open-run
+      // selection away from the quantization halo. Click cross-track distance
+      // was already checked against the road corridor independently.
       if (distance <= breakpointSnapPixels && (!nearest || distance < nearest.distance)) {
         nearest = { distance, setId: breakpoints[index][1] };
       }

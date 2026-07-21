@@ -36,6 +36,7 @@
       collections: value?.collections,
       edge_build_id: value?.edge_build_id,
       object_locations: value?.object_locations,
+      reference_fanout: value?.reference_fanout,
       spatial: value?.spatial
     };
   }
@@ -90,6 +91,7 @@
       this.inFlightSpatialPages = new Map();
       this.spatialPageCache = new Map();
       this.readQueue = [];
+      this.readBatches = new Set();
       this.activeReads = 0;
       this.archiveGeneration = 0;
       this.manifestPromise = undefined;
@@ -132,7 +134,7 @@
     }
 
     validateManifest(manifest) {
-      if (manifest.schema_version !== 3 || !isInteger(manifest.page_zoom) ||
+      if (manifest.schema_version !== 4 || !isInteger(manifest.page_zoom) ||
           manifest.page_addressing !== `XYZ z=${manifest.page_zoom}, x=collection.base+page, y=0` ||
           manifest.hash?.name !== "fnv1a32-utf8" || manifest.hash?.buckets !== 256 ||
           !manifest.collections || typeof manifest.collections !== "object") {
@@ -147,7 +149,12 @@
             !isInteger(collection.count) || !isInteger(collection.page_size, 1) ||
             !isInteger(collection.pages) ||
             (collection.max_request_pages !== undefined &&
-              !isInteger(collection.max_request_pages, 1)) ||
+              (!isInteger(collection.max_request_pages, 1) ||
+                collection.max_request_pages > collection.pages)) ||
+            (collection.max_record_members !== undefined &&
+              !isInteger(collection.max_record_members, 1)) ||
+            (collection.max_request_members !== undefined &&
+              !isInteger(collection.max_request_members, 1)) ||
             collection.pages !== Math.ceil(collection.count / collection.page_size) ||
             collection.base + collection.pages > 2 ** manifest.page_zoom) {
           throw new Error(`invalid catalog collection ${name}`);
@@ -163,9 +170,40 @@
       const objects = manifest.collections.objects;
       const placeIndex = manifest.collections.place_id_index;
       const locations = manifest.collections.object_locations;
+      const destinationSets = Object.entries(manifest.collections).filter(([name]) =>
+        name.startsWith("destination_edge_set:")
+      );
+      const referenceFanout = manifest.reference_fanout;
+      let destinationSetPages = 0;
+      let destinationSetMembers = 0;
+      destinationSets.forEach(([name, collection]) => {
+        const maxRecords = Math.min(
+          collection.count,
+          manifest.spatial?.fanout_stats?.candidates_per_lookup_max || 0
+        );
+        const expectedMembers = maxRecords * collection.max_record_members;
+        if (!isInteger(collection.max_request_pages, 1) ||
+            collection.max_request_pages !== Math.min(collection.pages, maxRecords) ||
+            !isInteger(collection.max_record_members, 1) ||
+            collection.max_record_members > objects?.count ||
+            !isInteger(expectedMembers, 1) ||
+            collection.max_request_members !== expectedMembers) {
+          throw new Error(`invalid catalog destination set bounds ${name}`);
+        }
+        destinationSetPages += collection.max_request_pages;
+        destinationSetMembers += collection.max_request_members;
+      });
       if (!objects || !placeIndex || placeIndex.count !== 256 ||
           placeIndex.page_size !== 1 || placeIndex.pages !== 256 ||
           !locations || locations.count !== objects.count || locations.page_size !== 512 ||
+          locations.max_request_pages !== locations.pages ||
+          !destinationSets.length ||
+          !isInteger(referenceFanout?.destination_set_pages_per_lookup, 1) ||
+          referenceFanout.destination_set_pages_per_lookup !== destinationSetPages ||
+          !isInteger(referenceFanout?.destination_set_members_per_lookup, 1) ||
+          referenceFanout.destination_set_members_per_lookup !== destinationSetMembers ||
+          !isInteger(referenceFanout?.object_location_pages_per_lookup, 1) ||
+          referenceFanout.object_location_pages_per_lookup !== locations.max_request_pages ||
           manifest.object_locations?.collection !== "object_locations" ||
           manifest.object_locations?.encoding !==
             "[lonE7,latE7,serviceOrdinal,displayLabel,kind]" ||
@@ -205,7 +243,7 @@
       }
     }
 
-    async getPage(collectionName, page) {
+    async getPage(collectionName, page, batch, validatePage) {
       const manifest = await this.manifest();
       const collection = manifest.collections[collectionName];
       if (!collection) throw new Error(`unknown catalog collection ${collectionName}`);
@@ -217,45 +255,127 @@
         const tile = await this.archive.getZxy(manifest.page_zoom, collection.base + page, 0);
         if (!tile?.data) throw new Error(`missing ${collectionName} page ${page}`);
         return jsonFromBytes(tile.data, manifest.spatial.page_size_gate);
-      });
+      }, batch, validatePage);
     }
 
-    queueRead(loader) {
+    queueRead(loader, read) {
+      if (read && !read.unmanaged &&
+          ![...read.consumers].some(batch => !batch.cancelled)) {
+        return Promise.reject(
+          [...read.consumers][0]?.error || new Error("catalog read was cancelled")
+        );
+      }
       const generation = this.archiveGeneration;
       const promise = new Promise((resolve, reject) => {
-        this.readQueue.push({ generation, loader, resolve, reject });
+        this.readQueue.push({ generation, loader, resolve, reject, read });
       });
       this.drainReads();
       return promise;
     }
 
     cancelQueuedReads() {
+      const error = new Error("catalog read was superseded");
+      [...this.readBatches].forEach(batch => this.cancelReadBatch(batch, error));
       const stale = this.readQueue.splice(0);
-      stale.forEach(job => job.reject(new Error("catalog read was superseded")));
+      stale.forEach(job => job.reject(error));
+    }
+
+    cancelReadBatch(batch, error) {
+      if (batch.cancelled) return;
+      batch.cancelled = true;
+      batch.error = error;
+      [...batch.cancellationWaiters].forEach(reject => reject(error));
+      batch.cancellationWaiters.clear();
+      const remaining = [];
+      this.readQueue.forEach(job => {
+        if (!job.read?.consumers.has(batch)) {
+          remaining.push(job);
+          return;
+        }
+        job.read.consumers.delete(batch);
+        job.read.validators.delete(batch);
+        if (job.read.unmanaged || job.read.consumers.size) remaining.push(job);
+        else job.reject(error);
+      });
+      this.readQueue = remaining;
+    }
+
+    failReadJob(job, error) {
+      // Mark every consumer before any queue slot is released. Consumers that
+      // share other queued reads are removed independently by cancelReadBatch.
+      [...(job.read?.consumers || [])].forEach(batch => {
+        this.cancelReadBatch(batch, error);
+      });
+      job.reject(error);
     }
 
     drainReads() {
       while (this.activeReads < this.maxConcurrentReads && this.readQueue.length) {
         const job = this.readQueue.shift();
+        if (job.read && !job.read.unmanaged &&
+            ![...job.read.consumers].some(batch => !batch.cancelled)) {
+          job.reject(
+            [...job.read.consumers][0]?.error || new Error("catalog read was cancelled")
+          );
+          continue;
+        }
         if (job.generation !== this.archiveGeneration) {
-          job.reject(new Error("stale catalog read"));
+          this.failReadJob(job, new Error("stale catalog read"));
           continue;
         }
         this.activeReads += 1;
         Promise.resolve().then(job.loader).then(value => {
           if (job.generation !== this.archiveGeneration) {
-            job.reject(new Error("stale catalog read"));
+            this.failReadJob(job, new Error("stale catalog read"));
             return;
           }
+          // Validation is part of the scheduled read's critical section. Run
+          // every logical consumer's synchronous page validator before the
+          // physical slot is released, so a malformed page cancels its batch
+          // before finally().drainReads() can start that batch's next page.
+          [...(job.read?.validators || [])].forEach(([batch, validate]) => {
+            if (batch.cancelled) return;
+            try {
+              validate(value);
+            } catch (error) {
+              job.read.validationFailed = true;
+              this.cancelReadBatch(batch, error);
+            }
+          });
           job.resolve(value);
-        }, error => job.reject(error)).finally(() => {
+        }, error => {
+          // Cancel every consuming batch before releasing this queue slot.
+          // Otherwise finally().drainReads() can start a later page from the
+          // failed batch before its awaiting worker observes the rejection.
+          this.failReadJob(job, error);
+        }).finally(() => {
           this.activeReads -= 1;
           this.drainReads();
         });
       }
     }
 
-    async cachedRead(kind, cacheKey, loader) {
+    consumeRead(promise, batch) {
+      if (!batch) return promise;
+      if (batch.cancelled) return Promise.reject(batch.error);
+      return new Promise((resolve, reject) => {
+        const cancel = error => {
+          batch.cancellationWaiters.delete(cancel);
+          reject(error);
+        };
+        batch.cancellationWaiters.add(cancel);
+        promise.then(value => {
+          batch.cancellationWaiters.delete(cancel);
+          if (batch.cancelled) reject(batch.error);
+          else resolve(value);
+        }, error => {
+          batch.cancellationWaiters.delete(cancel);
+          reject(error);
+        });
+      });
+    }
+
+    cachedRead(kind, cacheKey, loader, batch, validate) {
       const spatial = kind === "spatial";
       const cache = spatial ? this.spatialPageCache : this.pageCache;
       const inFlight = spatial ? this.inFlightSpatialPages : this.inFlightPages;
@@ -264,13 +384,27 @@
         const value = cache.get(cacheKey);
         cache.delete(cacheKey);
         cache.set(cacheKey, value);
-        return value;
+        if (batch && validate) {
+          try {
+            validate(value);
+          } catch (error) {
+            this.cancelReadBatch(batch, error);
+          }
+        }
+        return this.consumeRead(Promise.resolve(value), batch);
       }
-      if (!inFlight.has(cacheKey)) {
-        const promise = this.queueRead(loader)
+      let entry = inFlight.get(cacheKey);
+      if (!entry) {
+        const read = {
+          unmanaged: !batch,
+          consumers: new Set(batch ? [batch] : []),
+          validators: new Map(batch && validate ? [[batch, validate]] : []),
+          validationFailed: false
+        };
+        const promise = this.queueRead(loader, read)
           .then(value => {
             inFlight.delete(cacheKey);
-            if (maximum) {
+            if (maximum && !read.validationFailed) {
               cache.set(cacheKey, value);
               while (cache.size > maximum) {
                 cache.delete(cache.keys().next().value);
@@ -283,9 +417,18 @@
             cache.delete(cacheKey);
             throw error;
           });
-        inFlight.set(cacheKey, promise);
+        entry = { promise, read };
+        inFlight.set(cacheKey, entry);
+      } else if (batch) {
+        // The physical read may have been queued by another request. Track
+        // this consumer so cancelling the owner does not reject a still-useful
+        // shared read.
+        entry.read.consumers.add(batch);
+        if (validate) entry.read.validators.set(batch, validate);
+      } else {
+        entry.read.unmanaged = true;
       }
-      return inFlight.get(cacheKey);
+      return this.consumeRead(entry.promise, batch);
     }
 
     async getMany(collectionName, ids, validateRecord) {
@@ -299,10 +442,10 @@
           throw new Error(`invalid ${collectionName} record ${id}`);
         }
       });
-      const pages = new Map();
+      const pages = new Set();
       unique.forEach(id => {
         const page = Math.floor(id / collection.page_size);
-        if (!pages.has(page)) pages.set(page, undefined);
+        pages.add(page);
       });
       if (collection.max_request_pages !== undefined &&
           pages.size > collection.max_request_pages) {
@@ -310,34 +453,66 @@
           `${collectionName} lookup exceeds ${collection.max_request_pages} pages`
         );
       }
-      pages.forEach((_promise, page) => pages.set(page, this.getPage(collectionName, page)));
-      await Promise.all(pages.values());
-      const result = new Map();
-      for (const [page, promise] of pages) {
-        try {
-          const records = await promise;
-          if (!Array.isArray(records)) throw new Error(`${collectionName} page ${page} is not an array`);
-          const expected = Math.min(collection.page_size, collection.count - page * collection.page_size);
-          if (records.length !== expected) {
-            throw new Error(`${collectionName} page ${page} has ${records.length} records, expected ${expected}`);
+      const result = new Map(unique.map(id => [id, undefined]));
+      const pageNumbers = [...pages];
+      const batch = {
+        cancelled: false,
+        error: undefined,
+        cancellationWaiters: new Set()
+      };
+      this.readBatches.add(batch);
+      let nextPage = 0;
+      const readPages = async () => {
+        while (!batch.cancelled) {
+          const pageIndex = nextPage;
+          if (pageIndex >= pageNumbers.length) return;
+          nextPage += 1;
+          const page = pageNumbers[pageIndex];
+          try {
+            await this.getPage(collectionName, page, batch, records => {
+              if (!Array.isArray(records)) {
+                throw new Error(`${collectionName} page ${page} is not an array`);
+              }
+              const expected = Math.min(
+                collection.page_size,
+                collection.count - page * collection.page_size
+              );
+              if (records.length !== expected) {
+                throw new Error(
+                  `${collectionName} page ${page} has ${records.length} records, expected ${expected}`
+                );
+              }
+              records.forEach((record, offset) => {
+                const id = page * collection.page_size + offset;
+                // A page is the integrity boundary: structurally validate every
+                // decoded record, including neighbors fetched only because they
+                // share the requested record's page. Validators may use the last
+                // argument for request-specific cross-checks (for example spatial
+                // hit geometry), which must not be applied to those neighbors.
+                if (validateRecord) {
+                  validateRecord(record, id, manifest, wanted.has(id));
+                }
+                if (wanted.has(id)) result.set(id, record);
+              });
+            });
+          } catch (error) {
+            this.pageCache.delete(`${collectionName}:${page}`);
+            this.inFlightPages.delete(`${collectionName}:${page}`);
+            this.cancelReadBatch(batch, error);
+            return;
           }
-          records.forEach((record, offset) => {
-            const id = page * collection.page_size + offset;
-            // A page is the integrity boundary: structurally validate every
-            // decoded record, including neighbors fetched only because they
-            // share the requested record's page. Validators may use the last
-            // argument for request-specific cross-checks (for example spatial
-            // hit geometry), which must not be applied to those neighbors.
-            if (validateRecord) validateRecord(record, id, manifest, wanted.has(id));
-            if (wanted.has(id)) result.set(id, record);
-          });
-        } catch (error) {
-          this.pageCache.delete(`${collectionName}:${page}`);
-          this.inFlightPages.delete(`${collectionName}:${page}`);
-          throw error;
         }
+      };
+      try {
+        await Promise.all(Array.from(
+          { length: Math.min(this.maxConcurrentReads, pageNumbers.length) },
+          readPages
+        ));
+        if (batch.error) throw batch.error;
+        return result;
+      } finally {
+        this.readBatches.delete(batch);
       }
-      return result;
     }
 
     getObjects(ids) {
@@ -465,48 +640,98 @@
       return [...byEdge].map(([edgeId, value]) => ({ edgeId, ...value }));
     }
 
-    getDestinationSets(collectionName, ids) {
+    async getDestinationSets(collectionName, ids) {
       if (!collectionName.startsWith("destination_edge_set:")) {
-        return Promise.reject(new Error(`invalid destination collection ${collectionName}`));
+        throw new Error(`invalid destination collection ${collectionName}`);
       }
-      return this.getMany(collectionName, ids, (record, id, manifest) => {
-        const objectCount = manifest.collections.objects.count;
+      const manifest = await this.manifest();
+      const collection = manifest.collections[collectionName];
+      if (!collection) throw new Error(`unknown catalog collection ${collectionName}`);
+      let requestedMembers = 0;
+      return this.getMany(collectionName, ids, (record, id, checkedManifest, wanted) => {
+        const objectCount = checkedManifest.collections.objects.count;
         if (!Array.isArray(record) || record.some(index => !isInteger(index) || index >= objectCount) ||
-            record.some((index, position) => position && index <= record[position - 1])) {
+            record.some((index, position) => position && index <= record[position - 1]) ||
+            record.length > collection.max_record_members) {
           throw new Error(`invalid destination set ${collectionName}:${id}`);
+        }
+        if (wanted) {
+          requestedMembers += record.length;
+          if (requestedMembers > collection.max_request_members) {
+            throw new Error(
+              `${collectionName} lookup exceeds ${collection.max_request_members} members`
+            );
+          }
         }
       });
     }
 
     async resolveReferenceLocations(requests, extraObjectIds = []) {
+      const manifest = await this.manifest();
       const extraIds = [...new Set(extraObjectIds)];
-      // Marker cards are independent of destination-set resolution. Start
-      // their rich page fetch immediately so a slow set/location chain does
-      // not add a full extra network round trip to the visible card.
-      const objectsPromise = this.getObjects(extraIds);
-      // Sets may fail before this branch is awaited; attach a handler now to
-      // avoid reporting the concurrently useful request as an unhandled
-      // rejection. Awaiting the original promise below still propagates it.
-      objectsPromise.catch(() => {});
       const grouped = new Map();
       requests.forEach(({ collection, id }) => {
         if (!grouped.has(collection)) grouped.set(collection, []);
         grouped.get(collection).push(id);
       });
-      const setMaps = await Promise.all([...grouped].map(async ([collection, ids]) =>
-        [collection, await this.getDestinationSets(collection, ids)]
-      ));
+      const setPages = new Set();
+      grouped.forEach((ids, collectionName) => {
+        const collection = manifest.collections[collectionName];
+        if (!collectionName.startsWith("destination_edge_set:") || !collection) {
+          throw new Error(`invalid destination collection ${collectionName}`);
+        }
+        const collectionPages = new Set();
+        new Set(ids).forEach(id => {
+          if (!isInteger(id) || id >= collection.count) {
+            throw new Error(`invalid ${collectionName} record ${id}`);
+          }
+          const page = Math.floor(id / collection.page_size);
+          collectionPages.add(page);
+          setPages.add(`${collectionName}:${page}`);
+        });
+        if (collectionPages.size > collection.max_request_pages) {
+          throw new Error(
+            `${collectionName} lookup exceeds ${collection.max_request_pages} pages`
+          );
+        }
+      });
+      if (setPages.size > manifest.reference_fanout.destination_set_pages_per_lookup) {
+        throw new Error(
+          `destination set lookup exceeds ${manifest.reference_fanout.destination_set_pages_per_lookup} pages`
+        );
+      }
       const sets = new Map();
       const objectIds = new Set(extraIds);
-      setMaps.forEach(([collection, records]) => records.forEach((indexes, id) => {
-        sets.set(`${collection}:${id}`, indexes);
-        indexes.forEach(index => objectIds.add(index));
+      let memberCount = 0;
+      for (const [collection, ids] of grouped) {
+        const records = await this.getDestinationSets(collection, ids);
+        records.forEach((indexes, id) => {
+          memberCount += indexes.length;
+          if (memberCount > manifest.reference_fanout.destination_set_members_per_lookup) {
+            throw new Error(
+              `destination set lookup exceeds ${manifest.reference_fanout.destination_set_members_per_lookup} members`
+            );
+          }
+          sets.set(`${collection}:${id}`, indexes);
+          indexes.forEach(index => objectIds.add(index));
+        });
+      }
+      const locationPages = new Set([...objectIds].map(id => {
+        if (!isInteger(id) || id >= manifest.collections.object_locations.count) {
+          throw new Error(`invalid object_locations record ${id}`);
+        }
+        return Math.floor(id / manifest.collections.object_locations.page_size);
       }));
+      if (locationPages.size > manifest.reference_fanout.object_location_pages_per_lookup) {
+        throw new Error(
+          `object_locations lookup exceeds ${manifest.reference_fanout.object_location_pages_per_lookup} pages`
+        );
+      }
       // Location pages are the complete ranking/counting input. Rich object
       // pages are deliberately limited to explicitly requested marker IDs;
       // result-card hydration chooses its own small visible batches later.
       const locations = await this.getObjectLocations([...objectIds]);
-      const objects = await objectsPromise;
+      const objects = await this.getObjects(extraIds);
       return { sets, locations, objects };
     }
 

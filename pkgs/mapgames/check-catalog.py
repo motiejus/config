@@ -5,13 +5,17 @@
 import argparse
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+import errno
 import gzip
 import hashlib
 import json
 import os
 from pathlib import Path
+import secrets
 import shutil
 import sqlite3
+import stat
 import struct
 import subprocess
 import sys
@@ -166,6 +170,207 @@ def check_parallel_branches(generate_source: str) -> None:
         raise AssertionError("multiple branch failures were not propagated")
 
 
+def check_routing_tile_lifecycle(generate_source: str) -> None:
+    helper_source = generate_source[
+        generate_source.index("def require_paths_outside_directory("):
+        generate_source.index("def main()")
+    ]
+    namespace = {
+        "Path": Path,
+        "contextmanager": contextmanager,
+        "errno": errno,
+        "os": os,
+        "secrets": secrets,
+        "stat": stat,
+        "time": time,
+    }
+    exec(compile(helper_source, "generate-routing-tile-support", "exec"), namespace)
+    require_outside = namespace["require_paths_outside_directory"]
+    routing_directory = namespace["routing_tiles_directory"]
+
+    with tempfile.TemporaryDirectory(prefix="routing-tile-lifecycle-") as directory:
+        work = Path(directory)
+        preexisting = work / "tiles"
+        preexisting.mkdir()
+        (preexisting / "user-data").write_text("preserve me\n")
+        with routing_directory(
+            work, [("safe input", work / "outside.pbf")]
+        ) as owned:
+            assert owned.parent == work and owned != preexisting
+            (owned / "graph-tile").write_text("temporary\n")
+        assert not owned.exists()
+        assert (preexisting / "user-data").read_text() == "preserve me\n"
+
+        # A producer can add one last entry after cleanup's directory snapshot
+        # but before the root rmdir. The next bounded drain must remove it.
+        original_rmdir = os.rmdir
+        late_owned = None
+        injected_late_entry = False
+
+        def inject_late_entry(path, *, dir_fd=None):
+            nonlocal injected_late_entry
+            if (
+                not injected_late_entry
+                and late_owned is not None
+                and path == late_owned.name
+            ):
+                (late_owned / "late-graph-tile").write_text("late\n")
+                injected_late_entry = True
+            return original_rmdir(path, dir_fd=dir_fd)
+
+        try:
+            with routing_directory(
+                work, [("safe input", work / "outside.pbf")]
+            ) as late_owned:
+                (late_owned / "initial-graph-tile").write_text("temporary\n")
+                os.rmdir = inject_late_entry
+        finally:
+            os.rmdir = original_rmdir
+        assert injected_late_entry
+        assert not late_owned.exists()
+
+        # A hostile writer must not turn cleanup into an infinite loop. Leave
+        # one new entry before every root removal, then verify the useful,
+        # bounded failure and clean up the test fixture ourselves.
+        hostile_owned = None
+        hostile_injections = 0
+
+        def inject_forever(path, *, dir_fd=None):
+            nonlocal hostile_injections
+            if hostile_owned is not None and path == hostile_owned.name:
+                hostile_injections += 1
+                (hostile_owned / f"late-{hostile_injections}").write_text("late\n")
+            return original_rmdir(path, dir_fd=dir_fd)
+
+        try:
+            try:
+                with routing_directory(
+                    work, [("safe input", work / "outside.pbf")]
+                ) as hostile_owned:
+                    os.rmdir = inject_forever
+            except RuntimeError as error:
+                assert "remained non-empty after 16 cleanup attempts" in str(error)
+                assert "possible active writer" in str(error)
+                assert "late-16" in str(error)
+            else:
+                raise AssertionError("hostile writer bypassed bounded cleanup")
+        finally:
+            os.rmdir = original_rmdir
+        assert hostile_injections == 16
+        (hostile_owned / "late-16").unlink()
+        hostile_owned.rmdir()
+
+        # rmdir itself is path-based, so an empty replacement can be installed
+        # after the last identity check and be removed by the syscall. The
+        # retained descriptor's link count must expose that the owned inode was
+        # merely renamed and prevent a false cleanup success. A non-empty
+        # replacement is preserved by the pre-retry identity check above; POSIX
+        # offers no way to restore an empty replacement already removed by the
+        # successful path-based rmdir.
+        last_moment_original = work / "last-moment-original"
+        replaced_owned = None
+        replaced_empty_directory = False
+
+        def replace_before_rmdir(path, *, dir_fd=None):
+            nonlocal replaced_empty_directory
+            if (
+                not replaced_empty_directory
+                and replaced_owned is not None
+                and path == replaced_owned.name
+            ):
+                replaced_owned.rename(last_moment_original)
+                replaced_owned.mkdir()
+                replaced_empty_directory = True
+            return original_rmdir(path, dir_fd=dir_fd)
+
+        try:
+            try:
+                with routing_directory(
+                    work, [("safe input", work / "outside.pbf")]
+                ) as replaced_owned:
+                    os.rmdir = replace_before_rmdir
+            except RuntimeError as error:
+                assert "identity changed; refusing cleanup" in str(error)
+            else:
+                raise AssertionError("empty replacement hid leaked owned directory")
+        finally:
+            os.rmdir = original_rmdir
+        assert replaced_empty_directory
+        assert not replaced_owned.exists()
+        assert last_moment_original.is_dir()
+        last_moment_original.rmdir()
+
+        # Retaining an fd to the exclusively created inode prevents recursive
+        # cleanup from following a different directory swapped into its path.
+        swapped_original = work / "swapped-original"
+        try:
+            with routing_directory(
+                work, [("safe input", work / "outside.pbf")]
+            ) as owned:
+                owned.rename(swapped_original)
+                owned.mkdir()
+                (owned / "replacement-data").write_text("preserve replacement\n")
+        except RuntimeError as error:
+            assert "identity changed; refusing cleanup" in str(error)
+        else:
+            raise AssertionError("swapped routing directory was recursively deleted")
+        assert (owned / "replacement-data").read_text() == "preserve replacement\n"
+        assert swapped_original.is_dir() and not list(swapped_original.iterdir())
+
+        dual_original = work / "dual-original"
+        try:
+            with routing_directory(
+                work, [("safe input", work / "outside.pbf")]
+            ) as dual_owned:
+                dual_owned.rename(dual_original)
+                dual_owned.mkdir()
+                (dual_owned / "replacement-data").write_text("still here\n")
+                raise ValueError("primary routing failure")
+        except BaseExceptionGroup as errors:
+            assert [type(error) for error in errors.exceptions] == [
+                ValueError, RuntimeError
+            ]
+            assert str(errors.exceptions[0]) == "primary routing failure"
+        else:
+            raise AssertionError("cleanup failure masked the primary exception")
+        assert (dual_owned / "replacement-data").read_text() == "still here\n"
+
+        tiles = work / "owned-tiles"
+        tiles.mkdir()
+        require_outside(tiles, [("safe input", work / "outside.pbf")])
+        for name, protected in (
+            ("tile directory", tiles),
+            ("PBF descendant", tiles / "source.pbf"),
+            ("output descendant", tiles / "generated"),
+        ):
+            try:
+                require_outside(tiles, [(name, protected)])
+            except ValueError as error:
+                assert "must not be inside temporary routing tiles" in str(error)
+            else:
+                raise AssertionError(f"accepted unsafe {name}")
+        alias = work / "tile-alias"
+        alias.symlink_to(tiles, target_is_directory=True)
+        try:
+            require_outside(tiles, [("aliased output", alias / "generated")])
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("accepted an aliased output descendant")
+
+    routing_start = generate_source.index("with routing_tiles_directory(")
+    routing_scope = generate_source[
+        routing_start:generate_source.index("config_path.unlink()", routing_start)
+    ]
+    assert 'os.mkdir(candidate, mode=0o700, dir_fd=parent_descriptor)' in generate_source
+    assert "remove_owned_directory(" in generate_source
+    assert "BaseExceptionGroup(" in generate_source
+    assert 'work, [("PBF input", args.pbf), ("output directory", output)]' in routing_scope
+    assert "compute {key} native reverse expansion lines" in routing_scope
+    assert 'tiles.mkdir(exist_ok=True)' not in generate_source
+    assert "shutil.rmtree(tiles)" not in generate_source
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--catalog-tool", type=Path, required=True)
@@ -216,12 +421,13 @@ def main() -> None:
         < generate_source.index("canonicalize public transport stops")
     )
     check_parallel_branches(generate_source)
+    check_routing_tile_lifecycle(generate_source)
     for cleanup in (
         "places_pbf.unlink()",
         "raw_places_path.unlink()",
         boundary_cleanup,
         "requests_path.unlink()",
-        "shutil.rmtree(tiles)",
+        "remove_owned_directory(",
         "config_path.unlink()",
         "relation_handoff_filename(route)).unlink()",
         "objects_path.unlink()",
@@ -238,8 +444,8 @@ def main() -> None:
     assert generate_source.index("requests_path.unlink()") > generate_source.index(
         "compute {key} native reverse expansion lines"
     )
-    assert generate_source.index("shutil.rmtree(tiles)") > generate_source.index(
-        "requests_path.unlink()"
+    assert generate_source.index("remove_owned_directory(") > (
+        generate_source.index("def routing_tiles_directory(")
     )
     assert generate_source.index("relation_handoff_filename(route)).unlink()") > (
         generate_source.index("build shared destination edge relations")
@@ -478,7 +684,7 @@ def main() -> None:
 
         manifest = json.loads(manifest_path.read_text())
         lookup_contract = json.loads(lookup_manifest.read_text())
-        assert manifest["schema_version"] == 3
+        assert manifest["schema_version"] == 4
         assert "edge_build_id" not in lookup_contract
         assert len(manifest["edge_build_id"]) == 64
         assert manifest["edge_build_id"] == recompute_edge_build_id(
@@ -543,6 +749,36 @@ def main() -> None:
             "postfilter_relation_pages_per_lookup"
         ] == fanout["relation_pages_per_lookup_raw_max"]
         assert fanout["candidates_per_lookup_max"] >= 1
+        destination_sets = [
+            collection
+            for name, collection in manifest["collections"].items()
+            if name.startswith("destination_edge_set:")
+        ]
+        assert destination_sets
+        for collection in destination_sets:
+            max_records = min(
+                collection["count"], fanout["candidates_per_lookup_max"]
+            )
+            assert collection["max_request_pages"] == min(
+                collection["pages"], max_records
+            )
+            assert 1 <= collection["max_record_members"] <= len(objects)
+            assert collection["max_request_members"] == (
+                max_records * collection["max_record_members"]
+            )
+        reference_fanout = manifest["reference_fanout"]
+        assert reference_fanout["destination_set_pages_per_lookup"] == sum(
+            collection["max_request_pages"] for collection in destination_sets
+        )
+        assert reference_fanout["destination_set_members_per_lookup"] == sum(
+            collection["max_request_members"] for collection in destination_sets
+        )
+        assert manifest["collections"]["object_locations"]["max_request_pages"] == (
+            manifest["collections"]["object_locations"]["pages"]
+        )
+        assert reference_fanout["object_location_pages_per_lookup"] == (
+            manifest["collections"]["object_locations"]["pages"]
+        )
         with sqlite3.connect(mbtiles) as database:
             assert {
                 name for name, _value in database.execute("SELECT name,value FROM metadata")

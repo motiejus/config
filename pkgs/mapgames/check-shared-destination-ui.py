@@ -115,6 +115,10 @@ process.stdout.write(JSON.stringify(result));
     assert "maxConcurrentReads" in catalog and "maxCachedSpatialPages" in catalog
     assert "fanout_gate" in catalog
     assert "pages.size > collection.max_request_pages" in catalog
+    assert "reference_fanout" in catalog
+    assert "max_request_members" in catalog and "max_record_members" in catalog
+    assert "cancelReadBatch" in catalog and "readBatches" in catalog
+    assert "Promise.all(pages.values())" not in catalog
 
     rendering = index[index.index("async function renderLocationResults("):
                       index.index("function commitArbitraryInspection(")]
@@ -136,7 +140,7 @@ process.stdout.write(JSON.stringify(result));
     assert "edge_build_id" in resolver and "edge_build_id" in catalog
     assert "config.schema_version !== 3" in resolver
     assert "catalogFilePattern.test(hit.file)" in resolver
-    assert "manifest.schema_version !== 3" in catalog
+    assert "manifest.schema_version !== 4" in catalog
     assert "destination_edge_set:" in catalog, "new set collections are rejected by page client"
 
     print("shared destination UI contract passed")
