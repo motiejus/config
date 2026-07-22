@@ -881,14 +881,21 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
             )
             seen_ids.add(place_id)
 
-    # Shelters are the one non-OSM service; inject them before the shared sort,
-    # zero-destination guard, and global place_index assignment below so they
-    # are indistinguishable from OSM destinations to everything downstream.
+    # The PAGD civil-protection classes (priedanga/kas) are the non-OSM
+    # services; inject them before the shared sort, zero-destination guard, and
+    # global place_index assignment below so they are indistinguishable from OSM
+    # destinations to everything downstream.
     load_shelters(args, country, prepared)
 
+    # priedanga + kas split one former "shelter" set in two; a restricted
+    # coverage region may legitimately hold zero of one class, so require only
+    # the civil-protection set as a whole to be non-empty. Every OSM service
+    # still fails the build when it is empty (a genuine coverage/query bug).
+    pagd_ids = {source["id"] for source in SHELTER_SOURCES}
+    pagd_total = sum(len(prepared[service_id]) for service_id in pagd_ids)
     for service, entries in prepared.items():
         entries.sort(key=lambda pair: (pair[0]["lon"], pair[0]["lat"], pair[1]["id"]))
-        if not entries:
+        if not entries and not (service in pagd_ids and pagd_total > 0):
             raise RuntimeError(f"coverage region contains no {service} destinations")
     place_index = 0
     for service in SERVICE_SPECS:
@@ -1372,10 +1379,10 @@ def main() -> None:
                 ],
             )
             requests_path.unlink()
-            # The native helper skips unroutable shelter origins (its shelter-only
-            # carve-out) and lists their 1-based request ids here; every other
-            # service fails the build on an unroutable origin instead, so this
-            # file is only ever written for shelters.
+            # The native helper skips unroutable priedanga/kas origins (its
+            # civil-protection carve-out) and lists their 1-based request ids
+            # here; every other service fails the build on an unroutable origin
+            # instead, so this file is only ever written for priedanga/kas.
             unrouted_path = work / f"unrouted-{key}.tsv"
             unrouted_indices = set()
             if unrouted_path.exists():
@@ -1887,7 +1894,7 @@ def main() -> None:
             },
             "routed_counts": routed_counts,
             "routing_failure_policy": (
-                "fail_build_on_any_unroutable_destination_except_shelters_"
+                "fail_build_on_any_unroutable_destination_except_priedanga_kas_"
                 "which_are_kept_as_unrouted_pois"
             ),
             "routing_mode": "reverse expansion edges: origin routing graph to concrete destination",

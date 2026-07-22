@@ -919,7 +919,7 @@
           hospital: "Hospital",
           supermarket: "Supermarket",
           fuel: "Fuel station",
-          priedanga: "Short-term shelter",
+          priedanga: "Short-term cover",
           kas: "Collective protection structure"
         }
       };
@@ -3200,27 +3200,11 @@
         });
 
         // Low-zoom overview (below placeDisplayMinZoom): the vector `places`
-        // source only carries markers at z>=14, so country-level dots and
-        // aggregates are drawn from GeoJSON populated once from the catalog's
-        // compact object locations (loadPlaceOverview). Not-selected classes
-        // stay quiet dots; each selected class aggregates into its own
-        // service-symboled count bubbles that split toward the z>=14 reveal.
-        const serviceColorMatch = ["match", ["get", "service"],
-          ...metadata.services.flatMap(s => [s.id, serviceStyles[s.id].color]),
-          "#8a8a8a"];
-        map.addSource("place-dots", { type: "geojson", data: emptyFeatureCollection() });
-        map.addLayer({
-          id: "place-dots-layer", type: "circle", source: "place-dots",
-          maxzoom: placeDisplayMinZoom,
-          paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 1.4, 8, 2.2, 12, 3.2],
-            "circle-color": serviceColorMatch,
-            "circle-opacity": 0.85,
-            "circle-stroke-width": 0.6,
-            "circle-stroke-color": "#ffffff",
-            "circle-stroke-opacity": 0.5
-          }
-        });
+        // source only carries markers at z>=14, so country-level aggregates are
+        // drawn from GeoJSON populated once from the catalog's compact object
+        // locations (loadPlaceOverview). Only SELECTED classes appear -- each
+        // aggregates into its own service-symboled count bubbles that split
+        // toward the z>=14 reveal; a not-selected class is hidden entirely.
         // One clustered source per service, so every aggregate carries exactly
         // one service's symbol + count (a shared source would merge services
         // under a single ambiguous bubble). Shelters are normally aggregated by
@@ -3318,16 +3302,12 @@
       }
 
       function updatePlaceOverviewSources() {
-        const dots = map.getSource("place-dots");
-        if (!dots || !placeOverviewFeatures) return;
+        if (!placeOverviewFeatures) return;
         const selected = new Set(metadata.services
           .filter(service => serviceState.get(service.id).enabled)
           .map(service => service.id));
-        dots.setData({
-          type: "FeatureCollection",
-          features: placeOverviewFeatures.filter(f => !selected.has(f.properties.service))
-        });
-        // A region-aggregated service (priedanga, kas) is drawn by region
+        // Not-selected classes are hidden entirely (no dots). A region-
+        // aggregated service (priedanga, kas) is drawn by region
         // instead of geometric clustering, so it keeps its geometric source
         // empty -- unless the build carries no region aggregates for it, in
         // which case it falls back to clustering here so it never vanishes.
@@ -3702,11 +3682,12 @@
           // Selected categories are pictograms, not pictograms stacked on dots.
           setLayerVisibility([`places-${service.id}`], false);
         });
-        const enabledServices = metadata.services
-          .filter(service => serviceState.get(service.id).enabled)
-          .map(service => service.id);
+        // At the z>=14 detail reveal, show EVERY class's pictogram, selected or
+        // not, so you can see what is actually around -- the low-zoom overview
+        // stays selection-only (aggregates), this icon layer is minzoom 14.
+        // Selection still drives the reachability bands and the overview.
         map.setFilter("places-service-icons",
-          ["in", ["get", "service"], ["literal", enabledServices]]);
+          ["in", ["get", "service"], ["literal", metadata.services.map(service => service.id)]]);
         updatePlaceOverviewSources();
         updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);

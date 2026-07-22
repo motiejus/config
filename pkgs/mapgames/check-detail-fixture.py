@@ -609,8 +609,11 @@ def main() -> None:
     )
     assert '["in", ["get", "service"], ["literal", []]]' in service_icon_style
     assert 'map.setFilter("places-service-icons",' in index
-    assert '["literal", enabledServices]' in index, (
-        "the combined icon filter must track precisely the enabled service set"
+    # The z>=14 detail icons intentionally show EVERY class (selected or not) so
+    # you can see what is around; the low-zoom overview aggregates are what track
+    # the enabled set.
+    assert '["literal", metadata.services.map(service => service.id)]' in index, (
+        "the detail icon layer must show all services, not only the enabled set"
     )
     icon_hit = index[index.index("function serviceIconFeaturesAt"):
                      index.index("function markerFeaturesAt")]
