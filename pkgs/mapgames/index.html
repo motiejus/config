@@ -571,10 +571,41 @@
         /* Stock inner padding assumes a 24px button; clear the 44px one. */
         .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-right: 3rem; }
       }
+      #fatal-error {
+        position: absolute; inset: 0; z-index: 60; display: none;
+        align-items: center; justify-content: center; padding: 16px;
+        background: rgba(248, 250, 252, 0.97);
+      }
+      #fatal-error.visible { display: flex; }
+      #fatal-error .fatal-box {
+        max-width: 720px; width: 100%; max-height: 92%; overflow: auto;
+        background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
+        padding: 20px 22px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+      }
+      #fatal-error h2 { margin: 0 0 6px; font-size: 1.15rem; color: #b91c1c; }
+      #fatal-error p { margin: 0 0 12px; color: #334155; line-height: 1.45; }
+      #fatal-error pre {
+        margin: 0 0 14px; padding: 12px; background: #0f172a; color: #e2e8f0;
+        border-radius: 8px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap; word-break: break-word; max-height: 42vh;
+        overflow: auto; user-select: text; -webkit-user-select: text;
+      }
+      #fatal-error button {
+        font: inherit; padding: 8px 14px; border: 1px solid #334155;
+        border-radius: 8px; background: #334155; color: #ffffff; cursor: pointer;
+      }
     </style>
   </head>
   <body>
     <div id="map" aria-label="Kasdienių paslaugų pasiekiamumo žemėlapis"></div>
+    <div id="fatal-error" role="alertdialog" aria-modal="true" aria-labelledby="fatal-title">
+      <div class="fatal-box">
+        <h2 id="fatal-title"></h2>
+        <p id="fatal-lead"></p>
+        <pre id="fatal-detail" tabindex="0"></pre>
+        <button type="button" id="fatal-reload"></button>
+      </div>
+    </div>
     <p
       class="geolocation-status"
       id="geolocation-status"
@@ -790,6 +821,56 @@
         return value.toLocaleString(uiLocale());
       }
 
+      // Cluster-count label: compact (fits the small fixed disc) AND localized
+      // -- MapLibre's point_count_abbreviated is hardcoded English ("2.7k",
+      // period decimal), which clashes with the LT UI's "2 700"-style counts.
+      // <1000 shows the full localized integer; >=1000 shows e.g. "2,7k" (lt) /
+      // "2.7k" (en). Re-applied on language toggle (applyLanguage).
+      function clusterCountExpr(countValue) {
+        const v = countValue || ["get", "point_count"];
+        const loc = uiLocale();
+        return ["case",
+          [">=", v, 1000],
+          ["concat",
+            ["number-format", ["/", v, 1000],
+              { "locale": loc, "max-fraction-digits": 1 }],
+            "k"],
+          ["number-format", v, { "locale": loc }]
+        ];
+      }
+
+      // Low-zoom aggregate bubbles carry the service's own map symbol (the same
+      // warm-white-backed sprite as the z>=14 markers) so a service is
+      // identifiable from its aggregate, plus the count below it. Fallback to
+      // the generic marker for any unexpected service id.
+      const SERVICE_AGG_ICON = {
+        coffee: "mapgames-coffee", hospital: "mapgames-hospital",
+        supermarket: "mapgames-supermarket", fuel: "mapgames-fuel",
+        shelter: "mapgames-shelter-service"
+      };
+      function aggregateIcon(serviceId) {
+        return SERVICE_AGG_ICON[serviceId] || "mapgames-information";
+      }
+      function aggregateSymbolLayout(iconImage, countValue) {
+        return {
+          "icon-image": iconImage, "icon-size": 0.9,
+          "icon-allow-overlap": true, "icon-ignore-placement": true,
+          "icon-anchor": "bottom",
+          "text-field": clusterCountExpr(countValue),
+          "text-font": ["Noto Sans Medium"], "text-size": 11,
+          "text-anchor": "top", "text-offset": [0, 0.3],
+          "text-allow-overlap": true, "text-ignore-placement": true
+        };
+      }
+      function aggregateSymbolPaint() {
+        // Dark count on a white halo so it reads on the light basemap, under the
+        // symbol whose own backing carries the colour identity.
+        return {
+          "text-color": "#1f2937",
+          "text-halo-color": "#ffffff", "text-halo-width": 1.6
+        };
+      }
+
       function formatKm(meters) {
         return (meters / 1000).toLocaleString(uiLocale(), {
           minimumFractionDigits: 1,
@@ -883,6 +964,11 @@
           errorSummary: "Žemėlapio duomenų klaida · atverkite filtrus",
           summaryLoaded: total => `${formatCount(total)} paslaugų ${pluralForm(total, ["vieta", "vietos", "vietų"])} su maršrutais iš vienos OpenStreetMap iškarpos.`,
           couldNotLoad: error => `Nepavyko įkelti sugeneruotų duomenų: ${error}`,
+          fatalTitle: "Žemėlapio nepavyko įkelti",
+          fatalLead: "Įvyko klaida ir žemėlapis negali veikti. Techninė informacija pateikta žemiau — nukopijuokite ją pranešdami apie problemą.",
+          fatalWebgl: "Šiai naršyklei reikia WebGL, tačiau jis nepasiekiamas arba išjungtas. Įjunkite aparatinį spartinimą (angl. hardware acceleration) arba pabandykite kitą naršyklę.",
+          fatalData: "Nepavyko įkelti žemėlapio duomenų (metaduomenys arba PMTiles).",
+          fatalReload: "Bandyti dar kartą",
           placesCount: count => `${formatCount(count)} ${pluralForm(count, ["vieta", "vietos", "vietų"])}`,
           travelTimeAria: label => `${label} · kelionės laikas`,
           iconsOnly: "0 · tik piktogramos",
@@ -1029,6 +1115,11 @@
           errorSummary: "Map data error · open filters for details",
           summaryLoaded: total => `${formatCount(total)} routed service ${pluralForm(total, ["destination", "destinations"])} from one OpenStreetMap snapshot.`,
           couldNotLoad: error => `Could not load generated data: ${error}`,
+          fatalTitle: "The map could not load",
+          fatalLead: "Something went wrong and the map cannot run. Technical details are below — copy them when reporting the problem.",
+          fatalWebgl: "This browser needs WebGL, but it is unavailable or disabled. Enable hardware acceleration or try a different browser.",
+          fatalData: "Could not load the map data (metadata or PMTiles).",
+          fatalReload: "Try again",
           placesCount: count => `${formatCount(count)} ${pluralForm(count, ["place", "places"])}`,
           travelTimeAria: label => `${label} travel time`,
           iconsOnly: "0 · icons only",
@@ -1272,6 +1363,57 @@
         renderMapError();
       }
 
+      function webglSupported() {
+        try {
+          // failIfMajorPerformanceCaveat:false so a software/SwiftShader WebGL
+          // context (a slow but valid fallback) still counts as supported
+          // rather than dropping the user straight to the error page.
+          const canvas = document.createElement("canvas");
+          const options = { failIfMajorPerformanceCaveat: false };
+          return !!(window.WebGLRenderingContext &&
+            (canvas.getContext("webgl2", options) ||
+             canvas.getContext("webgl", options) ||
+             canvas.getContext("experimental-webgl", options)));
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      // A full-surface fatal error page for unsatisfiable requirements (WebGL
+      // missing, map init failed, generated data unreachable). Unlike the
+      // transient status banner it surfaces the technical message + stack trace,
+      // selectable so a user can copy it into a bug report.
+      let fatalErrorShown = false;
+      function showFatalError(error, context) {
+        console.error(context || "fatal error", error);
+        if (fatalErrorShown) return;
+        fatalErrorShown = true;
+        const box = document.getElementById("fatal-error");
+        if (!box) return;
+        try {
+          document.getElementById("fatal-title").textContent = t("fatalTitle");
+          document.getElementById("fatal-lead").textContent =
+            [context, t("fatalLead")].filter(Boolean).join(" ");
+          const reload = document.getElementById("fatal-reload");
+          reload.textContent = t("fatalReload");
+          reload.onclick = () => location.reload();
+        } catch (_localizationError) {
+          document.getElementById("fatal-title").textContent = "The map could not load";
+        }
+        const detail = error && (error.stack || error.message)
+          ? (error.stack || error.message) : String(error);
+        document.getElementById("fatal-detail").textContent = detail;
+        // Make the alertdialog genuinely modal: mark everything else inert so
+        // keyboard/AT users can't tab into the dead map behind it, then move
+        // focus into the dialog so it is announced and actionable.
+        for (const el of document.body.children) {
+          if (el.id !== "fatal-error") el.setAttribute("inert", "");
+        }
+        box.setAttribute("tabindex", "-1");
+        (document.getElementById("fatal-reload") || box).focus();
+        box.classList.add("visible");
+      }
+
       window.addEventListener("error", event => reportMapError(event.error ?? event.message));
 
       const mobileMedia = matchMedia(
@@ -1373,7 +1515,16 @@
         return { center, zoom: constrainedZoom };
       }
 
-      const map = new maplibregl.Map({
+      if (!webglSupported()) {
+        showFatalError(new Error("WebGL rendering context is not available."), t("fatalWebgl"));
+        // Halt: without this the script falls through, constructs the map, and
+        // wires handlers/fetches behind the overlay (a false-negative probe
+        // would hide a working map under a "cannot run" screen).
+        throw new Error("WebGL unavailable -- map init halted");
+      }
+      let map;
+      try {
+        map = new maplibregl.Map({
         container: "map",
         style: mapStyle,
         bounds: lithuaniaBounds,
@@ -1394,7 +1545,13 @@
         pixelRatio: Math.min(window.devicePixelRatio || 1,
           mobileMedia.matches || coarsePointerMedia.matches ? 1.25 : 1.5),
         maxTileCacheZoomLevels: 1
-      });
+        });
+      } catch (mapInitError) {
+        showFatalError(mapInitError, t("fatalWebgl"));
+        throw mapInitError;
+      }
+      map.on("webglcontextcreationerror", event =>
+        showFatalError(new Error(event?.message || "WebGL context creation failed."), t("fatalWebgl")));
       // The canvas is created dynamically, so initialize its keyboard action
       // label even though the static document already starts in Lithuanian.
       map.getCanvas().setAttribute(
@@ -2073,6 +2230,17 @@
           updateServiceCardTexts();
           renderSummaryText();
           updateDetailLanguage();
+          if (map) {
+            for (const service of metadata.services) {
+              const layer = `cluster-${service.id}-aggregate`;
+              if (map.getLayer(layer)) {
+                map.setLayoutProperty(layer, "text-field", clusterCountExpr());
+              }
+            }
+            if (map.getLayer("shelter-region-aggregate")) {
+              map.setLayoutProperty("shelter-region-aggregate", "text-field", clusterCountExpr(["get", "count"]));
+            }
+          }
           if (document.getElementById("location-dialog").open) renderClickedPlaces();
           if (document.getElementById("marker-choice-dialog").open && activeMarkerChoices.length) {
             renderMarkerChoices(activeMarkerChoices);
@@ -2137,7 +2305,10 @@
         metadata.services.forEach(service => {
           const defaultPreset = service.presets.find(preset => preset.minutes === 10) || service.presets[0];
           serviceState.set(service.id, {
-            enabled: service.id === "coffee",
+            // Shelters at 10 min walk is the landing view: civil-protection
+            // reach is the headline use, and it seeds the selected-class
+            // emphasis/aggregation below.
+            enabled: service.id === "shelter",
             preset: `${defaultPreset.mode}:${defaultPreset.minutes}`
           });
 
@@ -2151,7 +2322,7 @@
           heading.className = "service-heading";
           const enabled = document.createElement("input");
           enabled.type = "checkbox";
-          enabled.checked = service.id === "coffee";
+          enabled.checked = service.id === "shelter";
           enabled.dataset.role = "enabled";
           const title = document.createElement("strong");
           title.textContent = serviceLabel(service);
@@ -2993,7 +3164,10 @@
               "fuel", "mapgames-fuel",
               "shelter", "mapgames-shelter-service",
               "mapgames-information"],
-            "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.58, 16, 0.72, 18, 0.9],
+            // Only selected (enabled) services reach this z>=14 icon layer, so
+            // an enlarged ramp is the "selected stands out" emphasis; the
+            // low-zoom dot/cluster overview below carries the rest.
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.82, 16, 1.02, 18, 1.26],
             // A collision must not turn a known destination back into a
             // color-only ring. The compact 17px z16 artwork does not reserve
             // space or evict street labels; exact overlaps resolve in a fixed
@@ -3004,6 +3178,196 @@
               ...Object.entries(serviceIconPriority).flat(), 0]
           }
         });
+
+        // Low-zoom overview (below placeDisplayMinZoom): the vector `places`
+        // source only carries markers at z>=14, so country-level dots and
+        // aggregates are drawn from GeoJSON populated once from the catalog's
+        // compact object locations (loadPlaceOverview). Not-selected classes
+        // stay quiet dots; each selected class aggregates into its own
+        // service-symboled count bubbles that split toward the z>=14 reveal.
+        const serviceColorMatch = ["match", ["get", "service"],
+          ...metadata.services.flatMap(s => [s.id, serviceStyles[s.id].color]),
+          "#8a8a8a"];
+        map.addSource("place-dots", { type: "geojson", data: emptyFeatureCollection() });
+        map.addLayer({
+          id: "place-dots-layer", type: "circle", source: "place-dots",
+          maxzoom: placeDisplayMinZoom,
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 1.4, 8, 2.2, 12, 3.2],
+            "circle-color": serviceColorMatch,
+            "circle-opacity": 0.85,
+            "circle-stroke-width": 0.6,
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-opacity": 0.5
+          }
+        });
+        // One clustered source per service, so every aggregate carries exactly
+        // one service's symbol + count (a shared source would merge services
+        // under a single ambiguous bubble). Shelters are normally aggregated by
+        // region (below) and keep an empty geometric source, populated only as
+        // the no-region-data fallback (see updatePlaceOverviewSources).
+        for (const service of metadata.services) {
+          const source = `cluster-${service.id}`;
+          map.addSource(source, {
+            type: "geojson", data: emptyFeatureCollection(),
+            cluster: true, clusterRadius: 56, clusterMaxZoom: placeDisplayMinZoom - 1
+          });
+          map.addLayer({
+            id: `${source}-point`, type: "circle", source,
+            maxzoom: placeDisplayMinZoom, filter: ["!", ["has", "point_count"]],
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 2.2, 12, 4.5],
+              "circle-color": serviceStyles[service.id].color,
+              "circle-stroke-width": 1, "circle-stroke-color": "#ffffff"
+            }
+          });
+          map.addLayer({
+            id: `${source}-aggregate`, type: "symbol", source,
+            maxzoom: placeDisplayMinZoom, filter: ["has", "point_count"],
+            layout: aggregateSymbolLayout(aggregateIcon(service.id)),
+            paint: aggregateSymbolPaint()
+          });
+        }
+        // Shelter region bubbles: at overview zoom the selected shelter class is
+        // aggregated by administrative region (county -> municipality -> eldership
+        // by zoom, see REGION_BANDS) instead of geometric clustering. Each bubble
+        // sits at the region MEDOID (a real shelter, always on land -- see
+        // shelter_region_aggregates), so it never floats over the lagoon a
+        // coastal centroid would. Same symbol+count treatment as the clusters.
+        map.addSource("shelter-regions", { type: "geojson", data: emptyFeatureCollection() });
+        map.addLayer({
+          id: "shelter-region-aggregate", type: "symbol", source: "shelter-regions",
+          maxzoom: placeDisplayMinZoom,
+          layout: aggregateSymbolLayout(aggregateIcon("shelter"), ["get", "count"]),
+          paint: aggregateSymbolPaint()
+        });
+        // Lazily populate the overview only once the viewport is actually at an
+        // overview zoom, so a street-level landing never pulls the whole point
+        // set (and the catalog archive stays lazy on load).
+        const maybeLoadOverview = () => {
+          if (map.getZoom() < placeDisplayMinZoom) loadPlaceOverview();
+          // Re-pick the region band (county vs municipality) for the new zoom.
+          updateShelterRegionSource();
+        };
+        map.on("zoomend", maybeLoadOverview);
+        // Defer the first check to the initial "idle" -- addPlaceLayers runs
+        // before fitBounds/applyLocationHash, so a synchronous call here would
+        // see the pre-camera country fit (zoom ~6 < placeDisplayMinZoom) and
+        // always fetch the whole overview, even for a street-level deep link.
+        // At idle the camera is at its final zoom, so the check is honest.
+        map.once("idle", maybeLoadOverview);
+      }
+
+      function emptyFeatureCollection() {
+        return { type: "FeatureCollection", features: [] };
+      }
+
+      // All object points as GeoJSON for the low-zoom overview, fetched once
+      // from the catalog's object_locations pages and cached. Split into a
+      // not-selected "dots" set and a selected "clusters" set by
+      // updatePlaceOverviewSources() whenever the selection changes.
+      let placeOverviewFeatures = null;
+      let placeOverviewLoading = false;
+      async function loadPlaceOverview() {
+        if (placeOverviewFeatures) { updatePlaceOverviewSources(); return; }
+        if (placeOverviewLoading) return;
+        placeOverviewLoading = true;
+        try {
+          // The catalog manifest is already embedded in metadata.catalog, so
+          // read the object count from there rather than eagerly awaiting the
+          // client manifest (keeps the catalog archive lazy on load).
+          const count = metadata.catalog?.collections?.objects?.count;
+          if (!Number.isInteger(count) || count <= 0) return;
+          const locations = await catalogPages.getObjectLocations(
+            Array.from({ length: count }, (_value, index) => index));
+          placeOverviewFeatures = [...locations.values()].map(object => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [object.lon, object.lat] },
+            properties: { service: object.service }
+          }));
+          updatePlaceOverviewSources();
+        } catch (error) {
+          console.warn("place overview load failed", error);
+        } finally {
+          placeOverviewLoading = false;
+        }
+      }
+
+      function updatePlaceOverviewSources() {
+        const dots = map.getSource("place-dots");
+        if (!dots || !placeOverviewFeatures) return;
+        const selected = new Set(metadata.services
+          .filter(service => serviceState.get(service.id).enabled)
+          .map(service => service.id));
+        dots.setData({
+          type: "FeatureCollection",
+          features: placeOverviewFeatures.filter(f => !selected.has(f.properties.service))
+        });
+        // Each selected class feeds its own geometric cluster source. Shelters
+        // are aggregated by region instead (updateShelterRegionSource) and keep
+        // their geometric source empty -- unless the build carries no region
+        // aggregates, in which case shelters fall back to clustering here so
+        // they never vanish from the overview.
+        const regioned = hasShelterRegions();
+        for (const service of metadata.services) {
+          const source = map.getSource(`cluster-${service.id}`);
+          if (!source) continue;
+          const useGeometric = service.id !== "shelter" || !regioned;
+          source.setData({
+            type: "FeatureCollection",
+            features: (selected.has(service.id) && useGeometric)
+              ? placeOverviewFeatures.filter(f => f.properties.service === service.id)
+              : []
+          });
+        }
+        updateShelterRegionSource();
+      }
+
+      function hasShelterRegions() {
+        const r = metadata.shelter_regions;
+        return !!(r && ((r.county && r.county.length) ||
+          (r.municipality && r.municipality.length) ||
+          (r.eldership && r.eldership.length)));
+      }
+
+      // Descending admin bands (coarse -> fine), each shown up to its exclusive
+      // maxZoom; the finest runs until the z>=14 individual-marker reveal (the
+      // layer's own maxzoom hides it there, so Infinity is fine). Keys match
+      // metadata.shelter_regions from shelter_region_aggregates.
+      const REGION_BANDS = [
+        { level: "county", maxZoom: 8 },
+        { level: "municipality", maxZoom: 10.5 },
+        { level: "eldership", maxZoom: Infinity }
+      ];
+
+      function currentRegionLevel() {
+        const zoom = map.getZoom();
+        for (const band of REGION_BANDS) {
+          if (zoom < band.maxZoom) return band.level;
+        }
+        return REGION_BANDS[REGION_BANDS.length - 1].level;
+      }
+
+      // Region bubbles for the selected shelter class, chosen by zoom band. Empty
+      // when shelter is not selected (then shelters show as quiet dots instead).
+      function shelterRegionData() {
+        const regions = metadata.shelter_regions;
+        const state = serviceState.get("shelter");
+        if (!regions || !state || !state.enabled) return emptyFeatureCollection();
+        const band = regions[currentRegionLevel()] || [];
+        return {
+          type: "FeatureCollection",
+          features: band.map(region => ({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [region.lon, region.lat] },
+            properties: { count: region.count, name: region.name }
+          }))
+        };
+      }
+
+      function updateShelterRegionSource() {
+        const source = map.getSource("shelter-regions");
+        if (source) source.setData(shelterRegionData());
       }
 
       function refreshControls() {
@@ -3315,6 +3679,7 @@
           .map(service => service.id);
         map.setFilter("places-service-icons",
           ["in", ["get", "service"], ["literal", enabledServices]]);
+        updatePlaceOverviewSources();
         updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
         else scheduleViewHash();
@@ -3920,14 +4285,17 @@
           );
       }
 
-      function appendOsmFact(parent, label, value, key) {
+      function appendOsmFact(parent, label, value, key, raw) {
         if (value === undefined || value === null || value === "") return;
         const row = document.createElement("p");
         row.className = "osm-fact";
         const heading = document.createElement("span");
         heading.className = "osm-fact-label";
         heading.textContent = `${label}: `;
-        row.append(heading, document.createTextNode(readableOsmValue(value, key)));
+        // raw: value is already display-ready (shelter facts, coordinates);
+        // skip readableOsmValue's ";"-splitting / "_"-stripping / re-translation.
+        const text = raw ? String(value) : readableOsmValue(value, key);
+        row.append(heading, document.createTextNode(text));
         parent.append(row);
       }
 
@@ -3979,8 +4347,137 @@
           (!!properties.railway && !railwayCrossing);
       }
 
+      const shelterLabels = {
+        lt: {
+          capacity: "Talpa", area: "Plotas", operator: "Valdytojas",
+          work_hours: "Darbo valandos", accessible: "Pritaikyta neįgaliesiems",
+          marked: "Paženklinta", around_the_clock: "Prieinama visą parą",
+          lighting: "Apšvietimas", sanitation: "Sanitariniai mazgai",
+          ventilation: "Vėdinimas", abc_supplies: "ABC apsaugos priemonės",
+          water_food: "Vanduo ir maistas", evac_scheme: "Evakuacijos schemos",
+          eldership: "Seniūnija", municipality: "Savivaldybė", county: "Apskritis",
+          updated: "Atnaujinta", details: "Civilinės saugos informacija",
+          coordinates: "Koordinatės", openInMaps: "Atidaryti žemėlapyje",
+          yes: "Taip", no: "Ne", people: ["žmogus", "žmonės", "žmonių"]
+        },
+        en: {
+          capacity: "Capacity", area: "Area", operator: "Operator",
+          work_hours: "Working hours", accessible: "Wheelchair accessible",
+          marked: "Signposted", around_the_clock: "Around-the-clock access",
+          lighting: "Lighting", sanitation: "Sanitation", ventilation: "Ventilation",
+          abc_supplies: "ABC protection supplies", water_food: "Water and food",
+          evac_scheme: "Evacuation plans", eldership: "Eldership",
+          municipality: "Municipality", county: "County", updated: "Updated",
+          details: "Civil protection details", coordinates: "Coordinates",
+          openInMaps: "Open in maps", yes: "Yes", no: "No",
+          people: ["person", "people"]
+        }
+      };
+
+      // Ordered (property key -> label key) list for the shelter fact group.
+      // Numbers/text/booleans are formatted per field; only present values show.
+      const shelterDetailRows = [
+        ["shelter:capacity", "capacity"], ["shelter:area_m2", "area"],
+        ["shelter:operator", "operator"], ["shelter:work_hours", "work_hours"],
+        ["shelter:accessible", "accessible"], ["shelter:marked", "marked"],
+        ["shelter:around_the_clock", "around_the_clock"],
+        ["shelter:lighting", "lighting"], ["shelter:sanitation", "sanitation"],
+        ["shelter:ventilation", "ventilation"],
+        ["shelter:abc_supplies", "abc_supplies"], ["shelter:water_food", "water_food"],
+        ["shelter:evac_scheme", "evac_scheme"], ["shelter:eldership", "eldership"],
+        ["shelter:municipality", "municipality"], ["shelter:county", "county"],
+        ["shelter:updated", "updated"]
+      ];
+
+      function shelterFactValue(key, value) {
+        if (value === true) return shelterLabels[lang].yes;
+        if (value === false) return shelterLabels[lang].no;
+        if (key === "shelter:capacity" && Number.isFinite(Number(value))) {
+          const n = Number(value);
+          return `${formatCount(n)} ${pluralForm(n, shelterLabels[lang].people)}`;
+        }
+        if (key === "shelter:area_m2" && Number.isFinite(Number(value))) {
+          return `${formatCount(Number(value))} m²`;
+        }
+        return String(value);
+      }
+
+      function appendShelterDetails(card, properties) {
+        const facts = document.createElement("div");
+        facts.className = "osm-facts";
+        let shown = 0;
+        for (const [key, labelKey] of shelterDetailRows) {
+          const value = properties[key];
+          // Present-but-false is meaningful ("not accessible" != unknown); only
+          // an absent/blank key is skipped. shelterFactValue already localized
+          // the value (Yes/No, "0 žmonių", free-text work hours), so append it
+          // raw -- readableOsmValue would re-split ";" and eat "_" and would
+          // double-translate the localized Yes/No.
+          if (value === undefined || value === null || value === "") continue;
+          appendOsmFact(facts, shelterLabels[lang][labelKey], shelterFactValue(key, value), undefined, true);
+          shown += 1;
+        }
+        if (!shown) return;
+        const title = document.createElement("h4");
+        title.textContent = shelterLabels[lang].details;
+        card.append(title, facts);
+      }
+
+      // WGS84 for every object, plus LKS94 grid for shelters; both round-tripped
+      // through appendOsmFact so they inherit card styling.
+      function appendPlaceCoordinates(card, properties, coord) {
+        const lon = coord ? coord[0] : Number(properties.lon);
+        const lat = coord ? coord[1] : Number(properties.lat);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+        const facts = document.createElement("div");
+        facts.className = "osm-facts";
+        appendOsmFact(facts, "WGS84", `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+        const lksX = Number(properties["shelter:lks_x"]);
+        const lksY = Number(properties["shelter:lks_y"]);
+        // Real LKS94 grid coords are hundreds of thousands; a literal 0,0 is junk
+        // (the projection origin), so treat both-zero as unset.
+        if (Number.isFinite(lksX) && Number.isFinite(lksY) && (lksX !== 0 || lksY !== 0)) {
+          appendOsmFact(facts, "LKS94", `x ${Math.round(lksX)}, y ${Math.round(lksY)}`);
+        }
+        const title = document.createElement("h4");
+        title.textContent = shelterLabels[lang].coordinates;
+        card.append(title, facts);
+      }
+
+      // WGS84 lon/lat for an inspected object. Catalog markers carry lon/lat in
+      // their properties; objects opened straight from the inspector (queried
+      // OSM POIs) do not, so fall back to the feature's own point geometry.
+      // Non-point features (roads, areas) return null -- no coords/geo link.
+      function placeLonLat(candidate) {
+        const p = candidate.feature.properties;
+        const plon = Number(p.lon), plat = Number(p.lat);
+        if (Number.isFinite(plon) && Number.isFinite(plat)) return [plon, plat];
+        const g = candidate.feature.geometry;
+        if (g && g.type === "Point" && Array.isArray(g.coordinates)) {
+          const glon = Number(g.coordinates[0]), glat = Number(g.coordinates[1]);
+          if (Number.isFinite(glon) && Number.isFinite(glat)) return [glon, glat];
+        }
+        return null;
+      }
+
+      // Native "open in maps" href per platform: iOS has no geo: handler and
+      // Apple Maps ignores it, so use an Apple Maps URL there; Android gets the
+      // geo: intent (opens the user's default maps app); desktop has no geo:
+      // handler either, so fall back to a universal Google Maps web link.
+      function mapsHref(lat, lon, label) {
+        const clean = encodeURIComponent(String(label).replace(/[()]/g, " ").trim());
+        const ua = navigator.userAgent || "";
+        // iPadOS 13+ reports a "Macintosh" UA; disambiguate with touch points.
+        const isIos = /iP(hone|ad|od)/.test(ua) ||
+          (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+        if (isIos) return `https://maps.apple.com/?ll=${lat},${lon}&q=${clean}`;
+        if (/Android/.test(ua)) return `geo:${lat},${lon}?q=${lat},${lon}(${clean})`;
+        return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+      }
+
       function renderOsmObject(candidate, renderingMode = "destination") {
         const properties = candidate.feature.properties;
+        const objectCoord = placeLonLat(candidate);
         const card = document.createElement("div");
         card.className = "osm-object-card";
         const heading = document.createElement("h4");
@@ -3994,6 +4491,7 @@
         } else {
           appendOsmGroup(card, properties, "statusLabel", osmFactGroups.status);
           appendOsmGroup(card, properties, "practicalLabel", osmFactGroups.practical);
+          appendShelterDetails(card, properties);
         }
 
         const address = [
@@ -4031,6 +4529,10 @@
           card.append(details);
         }
 
+        if (renderingMode !== "road-direction") {
+          appendPlaceCoordinates(card, properties, objectCoord);
+        }
+
         const links = document.createElement("div");
         links.className = "osm-object-links";
         const addLink = (href, label) => {
@@ -4044,6 +4546,15 @@
           link.textContent = label;
           links.append(link);
         };
+        if (renderingMode !== "road-direction" && objectCoord) {
+          // Platform-aware maps link (see mapsHref): geo: on Android, an Apple
+          // Maps URL on iOS, a Google Maps web link on desktop -- so the CTA is
+          // never a dead geo: tap.
+          addLink(
+            mapsHref(objectCoord[1], objectCoord[0], osmObjectLabel(properties)),
+            shelterLabels[lang].openInMaps
+          );
+        }
         addLink(osmUrl(osmIdentity(properties)), t("openInOsm"));
         addLink([properties.website, properties["contact:website"]]
           .map(safeExternalUrl).find(Boolean), t("website"));
@@ -5434,6 +5945,7 @@
       }).catch(error => {
         document.getElementById("summary-text").textContent = t("couldNotLoad", error);
         reportMapError(error);
+        showFatalError(error, t("fatalData"));
         console.error(error);
       });
     </script>
