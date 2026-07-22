@@ -80,6 +80,7 @@ let
         pkgs.nodejs
         pkgs.chromium
         pkgs.firefox-bin
+        pkgs.playwright-driver.browsers
       ];
       text = ''
         mkdir -p ${tmpDir} && \
