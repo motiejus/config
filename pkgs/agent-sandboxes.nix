@@ -28,6 +28,12 @@ let
         # render node, not card0: this grants offscreen GPU compute/rendering
         # but not KMS/modesetting, i.e. no display control or screen capture.
         "--dev-bind-try /dev/dri/renderD128 /dev/dri/renderD128"
+        # The GPU device alone isn't enough: the browser also needs the NixOS
+        # graphics runtime (glvnd, EGL vendor ICDs, GBM, DRI drivers, GLX) at
+        # its canonical path, else EGL/GL init falls back to X11 and fails
+        # headless. This is the standard surfaceless-EGL/GBM driver set.
+        "--ro-bind-try /run/opengl-driver /run/opengl-driver"
+        "--ro-bind-try /run/opengl-driver-32 /run/opengl-driver-32"
         "--tmpfs /tmp"
         ''--tmpfs "$HOME"''
       ]
