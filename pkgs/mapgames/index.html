@@ -688,26 +688,30 @@
         // (2.25:1, 3.87:1, and 3.42:1 respectively). Keep the identifying
         // hues, but pair each pressed preset with a foreground that is at
         // least 4.5:1; fuel is the one hue on which white remains clearer.
+        // The two PAGD civil-protection classes. Okabe-Ito sky blue and reddish
+        // purple -- the CVD-safe hues left after the four below; dark #0f172a
+        // text clears 4.5:1 on each, and the darker marker rings clear 3:1 on
+        // the light basemap. (Their map symbols are the official orange/yellow
+        // PAGD signs; these hues only drive the bands, dots, and preset chips.)
+        priedanga: { color: "#56B4E9", marker: "#1F6F9E", foreground: "#0f172a" },
+        kas: { color: "#CC79A7", marker: "#7A2E5C", foreground: "#0f172a" },
         coffee: { color: "#E69F00", marker: "#8A5F00", foreground: "#0f172a" },
         hospital: { color: "#D55E00", marker: "#AD4A00", foreground: "#0f172a" },
         supermarket: { color: "#009E73", marker: "#00664A", foreground: "#0f172a" },
-        fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" },
-        // Okabe-Ito reddish purple, the remaining CVD-safe hue distinct from
-        // the four above; dark #0f172a text clears 4.5:1 on it, and the darker
-        // #7A2E5C marker ring clears 3:1 on the light basemap fills.
-        shelter: { color: "#CC79A7", marker: "#7A2E5C", foreground: "#0f172a" }
+        fuel: { color: "#0072B2", marker: "#004E7A", foreground: "#ffffff" }
       };
       // Band ramps: discrete lightness steps of each service hue, darkest =
       // smallest minutes. The deliberately wide steps stay ordered
       // under color-vision deficiencies and remain distinct on the light
       // basemap; keyed by the requirement keys of metadata.access_network.
       const bandRamps = {
+        priedanga_walk: { 10: "#124E73", 20: "#1F6F9E" },
+        kas_walk: { 10: "#5A184A", 20: "#8A3A6E" },
         coffee_walk: { 5: "#3F2800", 10: "#654100", 20: "#8D5C00" },
         hospital_drive: { 15: "#350900", 30: "#B04700" },
         supermarket_walk: { 10: "#003D2C", 20: "#006D50" },
         supermarket_drive: { 10: "#006D50" },
-        fuel_drive: { 10: "#002D49", 20: "#005E90" },
-        shelter_walk: { 10: "#5A184A", 20: "#8A3A6E" }
+        fuel_drive: { 10: "#002D49", 20: "#005E90" }
       };
       const bandOpacity = 0.9;
       // Intersection ink: outside every service hue, hue-free hence
@@ -844,9 +848,9 @@
       // identifiable from its aggregate, plus the count below it. Fallback to
       // the generic marker for any unexpected service id.
       const SERVICE_AGG_ICON = {
+        priedanga: "mapgames-priedanga", kas: "mapgames-kas",
         coffee: "mapgames-coffee", hospital: "mapgames-hospital",
-        supermarket: "mapgames-supermarket", fuel: "mapgames-fuel",
-        shelter: "mapgames-shelter-service"
+        supermarket: "mapgames-supermarket", fuel: "mapgames-fuel"
       };
       function aggregateIcon(serviceId) {
         return SERVICE_AGG_ICON[serviceId] || "mapgames-information";
@@ -879,11 +883,12 @@
       }
 
       const serviceStringsLt = {
+        priedanga: { label: "Trumpalaikė priedanga", description: "Trumpalaikės civilinės saugos priedangos, pasiekiamos pėsčiomis" },
+        kas: { label: "Kolektyvinės apsaugos statinys", description: "Kolektyvinės apsaugos statiniai, pasiekiami pėsčiomis" },
         coffee: { label: "Kava ir maistas", description: "Kavinės ir restoranai" },
         hospital: { label: "Ligoninė", description: "Ligoninės, pasiekiamos automobiliu" },
         supermarket: { label: "Prekybos centras", description: "Didieji prekybos centrai" },
-        fuel: { label: "Degalinė", description: "Degalinės, pasiekiamos automobiliu" },
-        shelter: { label: "Slėptuvė", description: "Viešosios civilinės saugos slėptuvės, pasiekiamos pėsčiomis" }
+        fuel: { label: "Degalinė", description: "Degalinės, pasiekiamos automobiliu" }
       };
 
       function serviceLabel(service) {
@@ -1800,7 +1805,8 @@
         supermarket: 20,
         fuel: 30,
         hospital: 40,
-        shelter: 50
+        priedanga: 50,
+        kas: 60
       };
       const inspectorHitLayerIds = [
         "inspector-hit-areas",
@@ -2237,8 +2243,11 @@
                 map.setLayoutProperty(layer, "text-field", clusterCountExpr());
               }
             }
-            if (map.getLayer("shelter-region-aggregate")) {
-              map.setLayoutProperty("shelter-region-aggregate", "text-field", clusterCountExpr(["get", "count"]));
+            for (const serviceId of regionServiceIds()) {
+              const layer = `region-${serviceId}-aggregate`;
+              if (map.getLayer(layer)) {
+                map.setLayoutProperty(layer, "text-field", clusterCountExpr(["get", "count"]));
+              }
             }
           }
           if (document.getElementById("location-dialog").open) renderClickedPlaces();
@@ -2305,10 +2314,10 @@
         metadata.services.forEach(service => {
           const defaultPreset = service.presets.find(preset => preset.minutes === 10) || service.presets[0];
           serviceState.set(service.id, {
-            // Shelters at 10 min walk is the landing view: civil-protection
-            // reach is the headline use, and it seeds the selected-class
-            // emphasis/aggregation below.
-            enabled: service.id === "shelter",
+            // The civil-protection classes (priedanga + kas, the region-
+            // aggregated PAGD services) at 10 min walk are the landing view --
+            // the headline use -- and seed the selected-class aggregation below.
+            enabled: hasRegionAggregate(service.id),
             preset: `${defaultPreset.mode}:${defaultPreset.minutes}`
           });
 
@@ -2322,7 +2331,7 @@
           heading.className = "service-heading";
           const enabled = document.createElement("input");
           enabled.type = "checkbox";
-          enabled.checked = service.id === "shelter";
+          enabled.checked = hasRegionAggregate(service.id);
           enabled.dataset.role = "enabled";
           const title = document.createElement("strong");
           title.textContent = serviceLabel(service);
@@ -2692,15 +2701,6 @@
           c.strokeRect(7,6,7,12); c.strokeRect(8.5,8,4,3);
           line(c, [[14,9],[17,10],[17,16]]); c.beginPath(); c.arc(17,17,1,0,Math.PI*2); c.fill();
         });
-        // Civil-protection shelter: a point-up triangle (the protective
-        // roof/shelter reading, not the point-down hazard/yield shape) with an
-        // interior sheltering figure. Distinct from the house-shaped
-        // micro-detail "mapgames-shelter" (a physical rain/bus shelter).
-        registerIcon("mapgames-shelter-service", "#7a2e5c", c => {
-          line(c, [[12,5.5],[18.5,17.5],[5.5,17.5]], true);
-          c.beginPath(); c.arc(12,12,1.2,0,Math.PI*2); c.fill();
-          line(c, [[12,13.2],[12,16]]);
-        });
         registerIcon("mapgames-bus", "#075985", c => {
           c.strokeRect(6,7,12,9); c.strokeRect(8,9,8,3);
           c.beginPath(); c.arc(9,17,1.5,0,Math.PI*2); c.fill();
@@ -2733,6 +2733,25 @@
           line(c, [[10,18],[14,18]]); line(c, [[12,18],[12,11]]);
           c.beginPath(); c.arc(12,8,3,0,Math.PI*2); c.stroke();
         });
+
+        // The two PAGD civil-protection classes use their official signs (the
+        // orange KAS emblem, the yellow PRIEDANGA sign) as map symbols, shipped
+        // as static raster assets rather than drawn. Loading is async, so the
+        // aggregate/marker layers may briefly show only the count until each
+        // image resolves.
+        for (const [name, url] of [
+          ["mapgames-priedanga", "assets/priedanga.png"],
+          ["mapgames-kas", "assets/kas.png"]
+        ]) {
+          map.loadImage(new URL(url, location.href).href).then(image => {
+            if (!image || map.hasImage(name)) return;
+            // The ~128px sign displays at roughly the 24px canvas-icon footprint
+            // (pixelRatio = source px per logical px), so icon-size matches the
+            // drawn service icons.
+            const pixelRatio = Math.max(1, (image.data.width || 128) / 26);
+            map.addImage(name, image.data, { pixelRatio });
+          }).catch(error => console.warn("failed to load icon", name, error));
+        }
 
         const firstBaseLabel = map.getStyle().layers.find(layer => layer.type === "symbol")?.id;
         const addBelowBaseLabels = layer => firstBaseLabel
@@ -3158,11 +3177,12 @@
           filter: ["in", ["get", "service"], ["literal", []]],
           layout: {
             "icon-image": ["match", ["get", "service"],
+              "priedanga", "mapgames-priedanga",
+              "kas", "mapgames-kas",
               "coffee", "mapgames-coffee",
               "hospital", "mapgames-hospital",
               "supermarket", "mapgames-supermarket",
               "fuel", "mapgames-fuel",
-              "shelter", "mapgames-shelter-service",
               "mapgames-information"],
             // Only selected (enabled) services reach this z>=14 icon layer, so
             // an enlarged ramp is the "selected stands out" emphasis; the
@@ -3228,26 +3248,30 @@
             paint: aggregateSymbolPaint()
           });
         }
-        // Shelter region bubbles: at overview zoom the selected shelter class is
-        // aggregated by administrative region (county -> municipality -> eldership
-        // by zoom, see REGION_BANDS) instead of geometric clustering. Each bubble
-        // sits at the region MEDOID (a real shelter, always on land -- see
-        // shelter_region_aggregates), so it never floats over the lagoon a
-        // coastal centroid would. Same symbol+count treatment as the clusters.
-        map.addSource("shelter-regions", { type: "geojson", data: emptyFeatureCollection() });
-        map.addLayer({
-          id: "shelter-region-aggregate", type: "symbol", source: "shelter-regions",
-          maxzoom: placeDisplayMinZoom,
-          layout: aggregateSymbolLayout(aggregateIcon("shelter"), ["get", "count"]),
-          paint: aggregateSymbolPaint()
-        });
+        // Region bubbles: the PAGD civil-protection services (priedanga, kas)
+        // are aggregated by administrative region (county -> municipality ->
+        // eldership by zoom, see REGION_BANDS) instead of geometric clustering.
+        // Each bubble sits at the region MEDOID (a real shelter, always on land
+        // -- see shelter_region_aggregates), so it never floats over the lagoon
+        // a coastal centroid would. One source per region service so each keeps
+        // its own official symbol + count.
+        for (const serviceId of regionServiceIds()) {
+          const source = `region-${serviceId}`;
+          map.addSource(source, { type: "geojson", data: emptyFeatureCollection() });
+          map.addLayer({
+            id: `${source}-aggregate`, type: "symbol", source,
+            maxzoom: placeDisplayMinZoom,
+            layout: aggregateSymbolLayout(aggregateIcon(serviceId), ["get", "count"]),
+            paint: aggregateSymbolPaint()
+          });
+        }
         // Lazily populate the overview only once the viewport is actually at an
         // overview zoom, so a street-level landing never pulls the whole point
         // set (and the catalog archive stays lazy on load).
         const maybeLoadOverview = () => {
           if (map.getZoom() < placeDisplayMinZoom) loadPlaceOverview();
           // Re-pick the region band (county vs municipality) for the new zoom.
-          updateShelterRegionSource();
+          updateRegionSources();
         };
         map.on("zoomend", maybeLoadOverview);
         // Defer the first check to the initial "idle" -- addPlaceLayers runs
@@ -3303,16 +3327,14 @@
           type: "FeatureCollection",
           features: placeOverviewFeatures.filter(f => !selected.has(f.properties.service))
         });
-        // Each selected class feeds its own geometric cluster source. Shelters
-        // are aggregated by region instead (updateShelterRegionSource) and keep
-        // their geometric source empty -- unless the build carries no region
-        // aggregates, in which case shelters fall back to clustering here so
-        // they never vanish from the overview.
-        const regioned = hasShelterRegions();
+        // A region-aggregated service (priedanga, kas) is drawn by region
+        // instead of geometric clustering, so it keeps its geometric source
+        // empty -- unless the build carries no region aggregates for it, in
+        // which case it falls back to clustering here so it never vanishes.
         for (const service of metadata.services) {
           const source = map.getSource(`cluster-${service.id}`);
           if (!source) continue;
-          const useGeometric = service.id !== "shelter" || !regioned;
+          const useGeometric = !hasRegionAggregate(service.id);
           source.setData({
             type: "FeatureCollection",
             features: (selected.has(service.id) && useGeometric)
@@ -3320,11 +3342,15 @@
               : []
           });
         }
-        updateShelterRegionSource();
+        updateRegionSources();
       }
 
-      function hasShelterRegions() {
-        const r = metadata.shelter_regions;
+      function regionServiceIds() {
+        return Object.keys(metadata.region_aggregates || {});
+      }
+
+      function hasRegionAggregate(serviceId) {
+        const r = metadata.region_aggregates && metadata.region_aggregates[serviceId];
         return !!(r && ((r.county && r.county.length) ||
           (r.municipality && r.municipality.length) ||
           (r.eldership && r.eldership.length)));
@@ -3333,7 +3359,7 @@
       // Descending admin bands (coarse -> fine), each shown up to its exclusive
       // maxZoom; the finest runs until the z>=14 individual-marker reveal (the
       // layer's own maxzoom hides it there, so Infinity is fine). Keys match
-      // metadata.shelter_regions from shelter_region_aggregates.
+      // metadata.region_aggregates from shelter_region_aggregates.
       const REGION_BANDS = [
         { level: "county", maxZoom: 8 },
         { level: "municipality", maxZoom: 10.5 },
@@ -3348,11 +3374,11 @@
         return REGION_BANDS[REGION_BANDS.length - 1].level;
       }
 
-      // Region bubbles for the selected shelter class, chosen by zoom band. Empty
-      // when shelter is not selected (then shelters show as quiet dots instead).
-      function shelterRegionData() {
-        const regions = metadata.shelter_regions;
-        const state = serviceState.get("shelter");
+      // Region bubbles for one region-aggregated service, chosen by zoom band.
+      // Empty when that service is not selected (then it shows as quiet dots).
+      function regionData(serviceId) {
+        const regions = metadata.region_aggregates && metadata.region_aggregates[serviceId];
+        const state = serviceState.get(serviceId);
         if (!regions || !state || !state.enabled) return emptyFeatureCollection();
         const band = regions[currentRegionLevel()] || [];
         return {
@@ -3365,9 +3391,11 @@
         };
       }
 
-      function updateShelterRegionSource() {
-        const source = map.getSource("shelter-regions");
-        if (source) source.setData(shelterRegionData());
+      function updateRegionSources() {
+        for (const serviceId of regionServiceIds()) {
+          const source = map.getSource(`region-${serviceId}`);
+          if (source) source.setData(regionData(serviceId));
+        }
       }
 
       function refreshControls() {
@@ -4178,9 +4206,9 @@
 
       function osmCategoryLabel(properties) {
         const kind = localizedOsmKind(properties.kind);
-        // Shelters are the one non-OSM destination; their card must credit
-        // civil protection, not "OpenStreetMap object".
-        if (properties.service === "shelter") {
+        // The PAGD civil-protection classes are the non-OSM destinations; their
+        // card must credit civil protection, not "OpenStreetMap object".
+        if (properties.service === "priedanga" || properties.service === "kas") {
           return kind ? `${t("shelterCategory")} · ${kind}` : t("shelterCategory");
         }
         const value = properties.category;

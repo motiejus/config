@@ -394,6 +394,10 @@ let
       cp ${./catalog-pages.js} "$out/assets/catalog-pages.js"
       cp ${./destination-relations.js} "$out/assets/destination-relations.js"
       cp ${./review-ui-state.js} "$out/assets/review-ui-state.js"
+      # Official PAGD civil-protection signs used as the priedanga/kas map
+      # symbols (loaded as icons by index.html).
+      cp ${./assets/priedanga.png} "$out/assets/priedanga.png"
+      cp ${./assets/kas.png} "$out/assets/kas.png"
 
       tar -xzf ${maplibreSource} -C vendor-maplibre --strip-components=1 \
         package/LICENSE.txt \

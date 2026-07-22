@@ -378,10 +378,14 @@ def check_routing_tile_lifecycle(generate_source: str) -> None:
 
 
 def check_shelter_unroutable_carveout(expand_source: str) -> None:
-    # The skip-on-unroutable carve-out must stay scoped to shelters: every other
-    # service still fails the build on an unroutable origin so a genuine data or
-    # routing-graph regression is never silently dropped.
-    assert 'const bool allow_unroutable = service == "shelter";' in expand_source
+    # The skip-on-unroutable carve-out must stay scoped to the PAGD civil-
+    # protection classes (priedanga/kas): every other service still fails the
+    # build on an unroutable origin so a genuine data or routing-graph
+    # regression is never silently dropped.
+    assert (
+        'const bool allow_unroutable = service == "priedanga" || service == "kas";'
+        in expand_source
+    )
     assert "if (!allow_unroutable) {" in expand_source
     assert 'out_dir / ("unrouted-" + route_key + ".tsv")' in expand_source
 

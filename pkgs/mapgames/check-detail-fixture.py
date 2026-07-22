@@ -587,18 +587,23 @@ def main() -> None:
     assert priority.index("fuel: 30") < priority.index("hospital: 40"), (
         "persistent service silhouettes need deterministic safety-first overpaint"
     )
-    # Civil-protection shelters are safety-critical and must overpaint on top,
-    # with their own civil-defence silhouette distinct from the house-shaped
-    # micro-detail "mapgames-shelter" utility icon asserted above.
-    assert priority.index("hospital: 40") < priority.index("shelter: 50"), (
-        "civil-protection shelters must overpaint above every other service"
-    )
-    assert '"shelter", "mapgames-shelter-service"' in index, (
-        "shelter service needs its own silhouette, not the micro shelter icon"
-    )
-    assert 'registerIcon("mapgames-shelter-service"' in index, (
-        "the shelter service silhouette must be registered as a map image"
-    )
+    # The PAGD civil-protection classes (priedanga, kas) are safety-critical and
+    # must overpaint on top, each with its own official sign -- distinct from the
+    # house-shaped micro-detail "mapgames-shelter" utility icon asserted above.
+    assert (
+        priority.index("hospital: 40")
+        < priority.index("priedanga: 50")
+        < priority.index("kas: 60")
+    ), "civil-protection classes must overpaint above every other service"
+    assert (
+        '"priedanga", "mapgames-priedanga"' in index
+        and '"kas", "mapgames-kas"' in index
+    ), "priedanga/kas need their own symbols in the z>=14 icon match"
+    # Those symbols are the official PAGD signs, loaded as static raster assets.
+    assert (
+        '"mapgames-priedanga", "assets/priedanga.png"' in index
+        and '"mapgames-kas", "assets/kas.png"' in index
+    ), "priedanga/kas symbols must load the official PAGD sign assets"
     assert "...Object.entries(serviceIconPriority).flat(), 0" in service_icon_style, (
         "symbol overpaint does not use the shared service priority"
     )

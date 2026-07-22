@@ -72,6 +72,27 @@ assert RAW_NETWORK_MIN_ZOOM <= TILE_MAX_ZOOM
 
 SERVICE_SPECS = (
     {
+        # PAGD short-term civil-protection cover (trumpalaikė priedanga). Like
+        # the KAS service below it comes from Lithuania's official PAGD open
+        # datasets (see SHELTER_SOURCES / load_shelters), not the OSM PBF -- an
+        # empty query keeps it out of the osmium destination filter while still
+        # satisfying the generic per-service machinery. Listed first.
+        "id": "priedanga",
+        "label": "Short-term cover",
+        "description": "Short-term civil-protection cover reachable on foot",
+        "query": (),
+        "routes": (("walk", (10, 20)),),
+    },
+    {
+        # PAGD collective-protection structures (kolektyvinės apsaugos
+        # statiniai), the sturdier shelter class, likewise a pinned open dataset.
+        "id": "kas",
+        "label": "Collective protection structure",
+        "description": "Collective civil-protection structures reachable on foot",
+        "query": (),
+        "routes": (("walk", (10, 20)),),
+    },
+    {
         "id": "coffee",
         "label": "Coffee & food",
         "description": "Cafes, coffee shops, and restaurants",
@@ -98,18 +119,6 @@ SERVICE_SPECS = (
         "description": "Fuel stations reachable by car",
         "query": ("amenity=fuel",),
         "routes": (("drive", (10, 20)),),
-    },
-    {
-        # Unlike every other service, shelter destinations are not matched from
-        # the OSM PBF. They come from Lithuania's official PAGD open datasets
-        # (see SHELTER_SOURCES / load_shelters), pinned as a snapshot input.
-        # An empty query keeps this service out of the osmium destination
-        # filter while still satisfying the generic per-service machinery.
-        "id": "shelter",
-        "label": "Shelter",
-        "description": "Public civil-protection shelters reachable on foot",
-        "query": (),
-        "routes": (("walk", (10, 20)),),
     },
 )
 
@@ -476,7 +485,7 @@ def shelter_detail_properties(record: dict) -> dict:
 
 
 def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
-    """Inject PAGD shelter destinations into prepared["shelter"] from JSONL.
+    """Inject PAGD shelter destinations into prepared[<priedanga|kas>] from JSONL.
 
     Shelter points originate outside OSM, so they bypass services_for_properties
     and the osmium destination filter. Every downstream stage (routing,
@@ -540,7 +549,10 @@ def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
                     "kind": source["kind"],
                     "name": shelter_display_name(record, street, house),
                     "place_id": place_id,
-                    "service": "shelter",
+                    # priedanga and kas are separate services (their own panel
+                    # group, symbol, and region aggregate); the source id is the
+                    # service id.
+                    "service": source["id"],
                     "source_geometry": "Point",
                 }
                 if street:
@@ -550,7 +562,7 @@ def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
                 if city:
                     properties["addr:city"] = city
                 properties.update(shelter_detail_properties(record))
-                prepared["shelter"].append(
+                prepared[source["id"]].append(
                     make_place_entry(place_id, lon, lat, properties)
                 )
                 seen_ids.add(place_id)
@@ -1643,10 +1655,14 @@ def main() -> None:
     write_json(
         output / "metadata.json",
         {
-            # Pre-aggregated shelter counts per administrative region for the
-            # low-zoom overview bubbles (see shelter_region_aggregates); tiny,
-            # so the frontend needs no per-point fetch to draw them.
-            "shelter_regions": shelter_region_aggregates(prepared["shelter"]),
+            # Pre-aggregated per-region counts for the low-zoom overview bubbles,
+            # per PAGD service (priedanga, kas), so each aggregates independently
+            # (see shelter_region_aggregates). Tiny, so the frontend needs no
+            # per-point fetch to draw them.
+            "region_aggregates": {
+                source["id"]: shelter_region_aggregates(prepared[source["id"]])
+                for source in SHELTER_SOURCES
+            },
             "access_network": {
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",

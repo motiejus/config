@@ -2302,11 +2302,12 @@ int main(int argc, char **argv) {
     // Civil-protection shelters are a pinned external POI snapshot, not OSM
     // features matched onto the road graph, so a few sit beyond the 100 m snap
     // radius of any routable edge (islands, courtyards, digitised-off points).
-    // For that service alone, skip such origins -- recording their request ids
-    // so the caller can keep them as unrouted POIs -- instead of failing the
-    // whole build. Every other service still fails loudly, so a genuine data or
-    // routing-graph regression is never silently dropped.
-    const bool allow_unroutable = service == "shelter";
+    // For those services alone (the PAGD priedanga/kas classes), skip such
+    // origins -- recording their request ids so the caller can keep them as
+    // unrouted POIs -- instead of failing the whole build. Every other service
+    // still fails loudly, so a genuine data or routing-graph regression is
+    // never silently dropped.
+    const bool allow_unroutable = service == "priedanga" || service == "kas";
     std::vector<std::string> unrouted_ids;
     std::mutex unrouted_mutex;
     for (size_t batch_start = 0; batch_start < requests.size();
