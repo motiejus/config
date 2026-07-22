@@ -1242,6 +1242,9 @@
       // user can distinguish nearby streets, then grow them gradually as
       // density falls; MapLibre overzooms the canonical z14 source tiles.
       const placeDisplayMinZoom = 14;
+      // Non-selected classes' pictograms reveal only here -- "much higher" than
+      // the z14 selected-class detail -- so the dense z14 reveal stays cheap.
+      const secondaryIconRevealZoom = 15.5;
       const archiveUrl = new URL("lithuania.pmtiles", location.href).href;
       const baseSource = "protomaps";
       const baseLayers = basemaps.layers(baseSource, basemaps.namedFlavor("light"), { lang: "lt" });
@@ -1796,7 +1799,10 @@
 
       const serviceState = new Map();
       const placeLayerIds = [];
-      const serviceIconLayerId = "places-service-icons";
+      // Detail pictograms live in two layers (selected + staggered non-selected,
+      // see secondaryIconRevealZoom); both are click targets. Index 0 is the
+      // primary (selected) layer, added last so it paints on top of -more.
+      const serviceIconLayerIds = ["places-service-icons", "places-service-icons-more"];
       // One ordering owns both symbol overpaint and click resolution. A
       // collocated icon must therefore open the service whose silhouette the
       // user can actually see, with safety-critical destinations on top.
@@ -2244,9 +2250,13 @@
               }
             }
             for (const serviceId of regionServiceIds()) {
-              const layer = `region-${serviceId}-aggregate`;
-              if (map.getLayer(layer)) {
-                map.setLayoutProperty(layer, "text-field", clusterCountExpr(["get", "count"]));
+              // One layer per admin band (see REGION_BANDS); relabel each so a
+              // language switch re-localizes the region-bubble counts.
+              for (const band of REGION_BANDS) {
+                const layer = `region-${serviceId}-${band.level}`;
+                if (map.getLayer(layer)) {
+                  map.setLayoutProperty(layer, "text-field", clusterCountExpr(["get", "count"]));
+                }
               }
             }
           }
@@ -3165,38 +3175,73 @@
         });
         // Use category silhouettes from the same z14 reveal as the destination
         // data. Compact low-zoom sizing keeps dense cities legible.
+        // Shared icon look for both reveal layers below. Selected classes and
+        // non-selected classes render from TWO layers, not one, so the dense
+        // z14 reveal only has to place the handful of selected classes' icons;
+        // the rest stagger in later (secondaryIconRevealZoom). Splitting the
+        // buckets means symbol-sort-key no longer cross-resolves selected vs
+        // non-selected overlaps, so the selected (safety-relevant) layer is
+        // added LAST to sit on top; within each layer the priority order holds.
+        const serviceIconLayout = {
+          "icon-image": ["match", ["get", "service"],
+            "priedanga", "mapgames-priedanga",
+            "kas", "mapgames-kas",
+            "coffee", "mapgames-coffee",
+            "hospital", "mapgames-hospital",
+            "supermarket", "mapgames-supermarket",
+            "fuel", "mapgames-fuel",
+            "mapgames-information"],
+          // The two PAGD signs are square and opaque, so at equal nominal size
+          // they read visibly bigger than the round, padded drawn pictograms.
+          // Scale just those two to ~0.75 of the shared ramp so their footprint
+          // *looks* comparable (paired with the opacity tone-down). The factor
+          // is folded into each interpolate stop rather than multiplied outside:
+          // a ["zoom"] interpolate must stay top-level, so per-service scaling
+          // lives in the stop OUTPUTS (0.82*0.75=0.615, 1.02*0.75=0.765, ...).
+          "icon-size": ["interpolate", ["linear"], ["zoom"],
+            14, ["match", ["get", "service"], "priedanga", 0.615, "kas", 0.615, 0.82],
+            16, ["match", ["get", "service"], "priedanga", 0.765, "kas", 0.765, 1.02],
+            18, ["match", ["get", "service"], "priedanga", 0.945, "kas", 0.945, 1.26]],
+          // A collision must not turn a known destination back into a
+          // color-only ring. The compact 17px z16 artwork does not reserve
+          // space or evict street labels; exact overlaps resolve in a fixed
+          // safety/usefulness order with the highest key painted last.
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "symbol-sort-key": ["match", ["get", "service"],
+            ...Object.entries(serviceIconPriority).flat(), 0]
+        };
+        const serviceIconPaint = {
+          // The two PAGD signs are full-colour opaque rasters (bright yellow
+          // PRIEDANGA, orange KAS) and read far louder than the muted drawn
+          // pictograms at street zoom, dominating a dense city. Hold them
+          // back with reduced opacity so they sit at a comparable weight; the
+          // drawn icons stay fully opaque.
+          "icon-opacity": ["match", ["get", "service"],
+            "priedanga", 0.62,
+            "kas", 0.62,
+            1]
+        };
+        const iconRevealMin = Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom);
+        // Non-selected classes: revealed only "much higher" than the z14 detail
+        // so their icons neither crowd the map nor pay the full placement cost
+        // at the dense reveal. refreshMap fills both filters (selected here vs
+        // not-selected in the -more layer).
+        map.addLayer({
+          id: "places-service-icons-more",
+          type: "symbol", source: "places",
+          "source-layer": metadata.places.layer,
+          minzoom: Math.max(iconRevealMin, secondaryIconRevealZoom),
+          filter: ["in", ["get", "service"], ["literal", []]],
+          layout: serviceIconLayout, paint: serviceIconPaint
+        });
         map.addLayer({
           id: "places-service-icons",
-          type: "symbol",
-          source: "places",
+          type: "symbol", source: "places",
           "source-layer": metadata.places.layer,
-          minzoom: Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom),
-          // refreshMap replaces this empty enabled-service set. Keeping all
-          // service pictograms in one bucket is essential: symbol-sort-key
-          // cannot resolve priority across separate style layers.
+          minzoom: iconRevealMin,
           filter: ["in", ["get", "service"], ["literal", []]],
-          layout: {
-            "icon-image": ["match", ["get", "service"],
-              "priedanga", "mapgames-priedanga",
-              "kas", "mapgames-kas",
-              "coffee", "mapgames-coffee",
-              "hospital", "mapgames-hospital",
-              "supermarket", "mapgames-supermarket",
-              "fuel", "mapgames-fuel",
-              "mapgames-information"],
-            // Only selected (enabled) services reach this z>=14 icon layer, so
-            // an enlarged ramp is the "selected stands out" emphasis; the
-            // low-zoom dot/cluster overview below carries the rest.
-            "icon-size": ["interpolate", ["linear"], ["zoom"], 14, 0.82, 16, 1.02, 18, 1.26],
-            // A collision must not turn a known destination back into a
-            // color-only ring. The compact 17px z16 artwork does not reserve
-            // space or evict street labels; exact overlaps resolve in a fixed
-            // safety/usefulness order with the highest key painted last.
-            "icon-allow-overlap": true,
-            "icon-ignore-placement": true,
-            "symbol-sort-key": ["match", ["get", "service"],
-              ...Object.entries(serviceIconPriority).flat(), 0]
-          }
+          layout: serviceIconLayout, paint: serviceIconPaint
         });
 
         // Low-zoom overview (below placeDisplayMinZoom): the vector `places`
@@ -3239,23 +3284,37 @@
         // -- see shelter_region_aggregates), so it never floats over the lagoon
         // a coastal centroid would. One source per region service so each keeps
         // its own official symbol + count.
+        // One layer PER BAND (county/municipality/eldership) with a fixed
+        // zoom range, all fed from a single source that carries every band's
+        // features at once (each tagged properties.level). The band shown is
+        // chosen by the GPU from the layer zoom ranges -- zooming triggers zero
+        // JS and zero setData, so crossing a band boundary no longer re-parses
+        // and re-uploads a fresh GeoJSON mid-gesture (the old per-zoomend
+        // setData was a visible stutter with thousands of eldership medoids).
+        // Data is written once per selection change (updateRegionSources).
         for (const serviceId of regionServiceIds()) {
           const source = `region-${serviceId}`;
           map.addSource(source, { type: "geojson", data: emptyFeatureCollection() });
-          map.addLayer({
-            id: `${source}-aggregate`, type: "symbol", source,
-            maxzoom: placeDisplayMinZoom,
-            layout: aggregateSymbolLayout(aggregateIcon(serviceId), ["get", "count"]),
-            paint: aggregateSymbolPaint()
-          });
+          let bandMin = 0;
+          for (const band of REGION_BANDS) {
+            const bandMax = Math.min(band.maxZoom, placeDisplayMinZoom);
+            map.addLayer({
+              id: `${source}-${band.level}`, type: "symbol", source,
+              minzoom: bandMin, maxzoom: bandMax,
+              filter: ["==", ["get", "level"], band.level],
+              layout: aggregateSymbolLayout(aggregateIcon(serviceId), ["get", "count"]),
+              paint: aggregateSymbolPaint()
+            });
+            bandMin = bandMax;
+          }
         }
         // Lazily populate the overview only once the viewport is actually at an
         // overview zoom, so a street-level landing never pulls the whole point
         // set (and the catalog archive stays lazy on load).
         const maybeLoadOverview = () => {
           if (map.getZoom() < placeDisplayMinZoom) loadPlaceOverview();
-          // Re-pick the region band (county vs municipality) for the new zoom.
-          updateRegionSources();
+          // Region bands are fixed-zoom-range GPU layers now, so zoom needs no
+          // setData -- updateRegionSources runs only on selection change.
         };
         map.on("zoomend", maybeLoadOverview);
         // Defer the first check to the initial "idle" -- addPlaceLayers runs
@@ -3302,6 +3361,9 @@
       }
 
       function updatePlaceOverviewSources() {
+        // Region bubbles come from metadata (not the object-locations fetch),
+        // so refresh them first -- they must not wait on the lazy overview load.
+        updateRegionSources();
         if (!placeOverviewFeatures) return;
         const selected = new Set(metadata.services
           .filter(service => serviceState.get(service.id).enabled)
@@ -3322,7 +3384,6 @@
               : []
           });
         }
-        updateRegionSources();
       }
 
       function regionServiceIds() {
@@ -3346,29 +3407,25 @@
         { level: "eldership", maxZoom: Infinity }
       ];
 
-      function currentRegionLevel() {
-        const zoom = map.getZoom();
-        for (const band of REGION_BANDS) {
-          if (zoom < band.maxZoom) return band.level;
-        }
-        return REGION_BANDS[REGION_BANDS.length - 1].level;
-      }
-
-      // Region bubbles for one region-aggregated service, chosen by zoom band.
-      // Empty when that service is not selected (then it shows as quiet dots).
+      // Region bubbles for one region-aggregated service: ALL bands at once,
+      // each feature tagged properties.level so the per-band layers (fixed zoom
+      // ranges) select which to show on the GPU. Empty when the service is not
+      // selected. Written once per selection change -- never on zoom.
       function regionData(serviceId) {
         const regions = metadata.region_aggregates && metadata.region_aggregates[serviceId];
         const state = serviceState.get(serviceId);
         if (!regions || !state || !state.enabled) return emptyFeatureCollection();
-        const band = regions[currentRegionLevel()] || [];
-        return {
-          type: "FeatureCollection",
-          features: band.map(region => ({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [region.lon, region.lat] },
-            properties: { count: region.count, name: region.name }
-          }))
-        };
+        const features = [];
+        for (const band of REGION_BANDS) {
+          for (const region of regions[band.level] || []) {
+            features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [region.lon, region.lat] },
+              properties: { count: region.count, name: region.name, level: band.level }
+            });
+          }
+        }
+        return { type: "FeatureCollection", features };
       }
 
       function updateRegionSources() {
@@ -3682,12 +3739,21 @@
           // Selected categories are pictograms, not pictograms stacked on dots.
           setLayerVisibility([`places-${service.id}`], false);
         });
-        // At the z>=14 detail reveal, show EVERY class's pictogram, selected or
-        // not, so you can see what is actually around -- the low-zoom overview
-        // stays selection-only (aggregates), this icon layer is minzoom 14.
-        // Selection still drives the reachability bands and the overview.
+        // Detail reveal shows every class's pictogram so you can see what is
+        // actually around, but STAGGERED across two layers to keep the dense
+        // z14 reveal cheap: selected classes at z14 (primary, on top),
+        // non-selected only at secondaryIconRevealZoom (the -more layer). The
+        // low-zoom overview stays selection-only (aggregates).
+        const enabledIds = metadata.services
+          .filter(service => serviceState.get(service.id).enabled)
+          .map(service => service.id);
+        const disabledIds = metadata.services
+          .map(service => service.id)
+          .filter(id => !enabledIds.includes(id));
         map.setFilter("places-service-icons",
-          ["in", ["get", "service"], ["literal", metadata.services.map(service => service.id)]]);
+          ["in", ["get", "service"], ["literal", enabledIds]]);
+        map.setFilter("places-service-icons-more",
+          ["in", ["get", "service"], ["literal", disabledIds]]);
         updatePlaceOverviewSources();
         updateMapStatus();
         if (inspectionOrigin) inspectLocation(inspectionOrigin, true);
@@ -5154,9 +5220,10 @@
       }
 
       function serviceIconFeaturesAt(point, coarse = coarsePointerMedia.matches) {
-        if (map.getZoom() < placeDisplayMinZoom || !map.getLayer(serviceIconLayerId)) return [];
+        const iconLayers = serviceIconLayerIds.filter(id => map.getLayer(id));
+        if (map.getZoom() < placeDisplayMinZoom || !iconLayers.length) return [];
         const edgePadding = coarse ? 22 : 2;
-        const options = { layers: [serviceIconLayerId] };
+        const options = { layers: iconLayers };
         // Query the painted silhouette first. The fallback catches an
         // antialiased edge for a fine pointer and supplies a full 44px target
         // for touch/pen; nearest-distance ordering prevents that larger box
@@ -5170,16 +5237,26 @@
           const projected = map.project(feature.geometry.coordinates);
           return (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2;
         };
-        const priority = (left, right) =>
+        // Paint order across the two icon layers is add-order, not
+        // symbol-sort-key: the primary (selected) layer is added last and
+        // paints on top of the staggered `-more` (non-selected) layer.
+        // symbol-sort-key only orders WITHIN a layer. So the true top glyph is
+        // "selected layer first, then serviceIconPriority within the layer" --
+        // resolve exact overlaps in that order or a click on a visible selected
+        // icon could open a non-selected sign painted underneath it.
+        const layerRank = feature =>
+          feature.layer.id === serviceIconLayerIds[0] ? 1 : 0;
+        const paintOrder = (left, right) =>
+          layerRank(right) - layerRank(left) ||
           (serviceIconPriority[right.properties.service] ?? 0) -
             (serviceIconPriority[left.properties.service] ?? 0);
-        // Exact overlaps paint according to serviceIconPriority, so click the
-        // top glyph even when tiny projected-coordinate rounding differs.
-        // A padded coarse-pointer fallback is a proximity affordance and must
-        // instead choose the nearest glyph; priority only breaks a true tie.
+        // Exact overlaps follow paint order, so click the top glyph even when
+        // tiny projected-coordinate rounding differs. A padded coarse-pointer
+        // fallback is a proximity affordance and must instead choose the
+        // nearest glyph; paint order only breaks a true tie.
         const compare = exact.length
-          ? (left, right) => priority(left, right) || distance(left) - distance(right)
-          : (left, right) => distance(left) - distance(right) || priority(left, right);
+          ? (left, right) => paintOrder(left, right) || distance(left) - distance(right)
+          : (left, right) => distance(left) - distance(right) || paintOrder(left, right);
         const ordered = dedupeFeatures(features.sort(compare));
         if (!exact.length || !ordered.length) return ordered.slice(0, 1);
         // Return every marker at the top-painted marker's exact coordinate.
@@ -5205,7 +5282,7 @@
         const feature = features[0];
         if (!feature) return null;
         const projected = map.project(feature.geometry.coordinates);
-        const exactLayers = [serviceIconLayerId, ...placeLayerIds].filter(id => map.getLayer(id));
+        const exactLayers = [...serviceIconLayerIds, ...placeLayerIds].filter(id => map.getLayer(id));
         const key = featureKey(feature);
         const exact = exactLayers.length > 0 && map.queryRenderedFeatures(point, { layers: exactLayers })
           .some(candidate => featureKey(candidate) === key);

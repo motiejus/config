@@ -573,13 +573,34 @@ def main() -> None:
             f"{service} service needs a non-colour silhouette at z16+"
         )
     assert index.count('id: "places-service-icons"') == 1
+    assert index.count('id: "places-service-icons-more"') == 1, (
+        "non-selected classes need a second, staggered higher-zoom reveal layer"
+    )
     assert 'id: `places-${service.id}-icon`' not in index, (
         "per-service icon layers make symbol-sort-key priority ineffective across services"
     )
-    service_icon_style = index[index.index('id: "places-service-icons"'):index.index('function refreshControls')]
-    assert 'minzoom: Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom)' in service_icon_style
+    # Both reveal layers share one layout/paint const, defined just above them.
+    service_icon_style = index[index.index("const serviceIconLayout"):index.index("// Low-zoom overview")]
+    assert "const iconRevealMin = Math.max(placeDisplayMinZoom, metadata.places.min_data_zoom);" in index
+    assert "minzoom: iconRevealMin," in service_icon_style, (
+        "the primary detail icons reveal at the z14 detail zoom"
+    )
+    assert "const secondaryIconRevealZoom = 15.5;" in index, (
+        "non-selected classes must reveal 'much higher' than the z14 detail"
+    )
+    assert "minzoom: Math.max(iconRevealMin, secondaryIconRevealZoom)," in service_icon_style, (
+        "the -more layer must stagger non-selected classes to the higher reveal zoom"
+    )
     assert '"icon-allow-overlap": true' in service_icon_style
     assert '"icon-ignore-placement": true' in service_icon_style
+    # The two PAGD signs are toned down at the detail reveal -- dimmer (opacity)
+    # and smaller (size) -- so their square footprint reads like the round icons.
+    assert '"priedanga", 0.62' in service_icon_style and '"kas", 0.62' in service_icon_style, (
+        "the PAGD signs must be dimmed so they do not dominate the street map"
+    )
+    assert '"priedanga", 0.615' in service_icon_style and '"priedanga", 0.945' in service_icon_style, (
+        "the PAGD signs must be scaled down to read like the round pictograms"
+    )
     priority = index[index.index("const serviceIconPriority"):
                      index.index("const inspectorHitLayerIds")]
     assert priority.index("coffee: 10") < priority.index("supermarket: 20")
@@ -608,16 +629,36 @@ def main() -> None:
         "symbol overpaint does not use the shared service priority"
     )
     assert '["in", ["get", "service"], ["literal", []]]' in service_icon_style
-    assert 'map.setFilter("places-service-icons",' in index
-    # The z>=14 detail icons intentionally show EVERY class (selected or not) so
-    # you can see what is around; the low-zoom overview aggregates are what track
-    # the enabled set.
-    assert '["literal", metadata.services.map(service => service.id)]' in index, (
-        "the detail icon layer must show all services, not only the enabled set"
+    # refreshMap drives BOTH detail layers: selected classes in the primary
+    # (z14), the rest staggered into the -more layer at the higher reveal zoom.
+    # Every class is still shown at detail -- just spread across two zoom bands
+    # so the dense z14 reveal only has to place the selected classes.
+    # Pin the pairing (not just that each string exists somewhere): the primary
+    # layer must get enabledIds and the -more layer disabledIds -- swapping them
+    # would invert the reveal while four independent substring checks still pass.
+    assert (
+        'map.setFilter("places-service-icons",\n'
+        '          ["in", ["get", "service"], ["literal", enabledIds]]);'
+    ) in index, "the primary detail layer must be filtered to the selected classes"
+    assert (
+        'map.setFilter("places-service-icons-more",\n'
+        '          ["in", ["get", "service"], ["literal", disabledIds]]);'
+    ) in index, "the -more layer must be filtered to the non-selected classes"
+    # Region bubbles are per-band layers; the old single `region-<id>-aggregate`
+    # id must be gone everywhere (a lingering ref silently no-ops, e.g. the
+    # language-switch relabel), and that relabel must target the per-band ids.
+    assert "region-${serviceId}-aggregate" not in index, (
+        "the removed single-band region layer id must not linger anywhere"
+    )
+    assert "region-${serviceId}-${band.level}" in index, (
+        "the language-switch relabel must target the per-band region layers"
     )
     icon_hit = index[index.index("function serviceIconFeaturesAt"):
                      index.index("function markerFeaturesAt")]
     assert "map.getZoom() < placeDisplayMinZoom" in icon_hit
+    assert "serviceIconLayerIds" in icon_hit, (
+        "both reveal layers (selected + staggered) must be click targets"
+    )
     assert "map.queryRenderedFeatures(point, options)" in icon_hit
     assert "serviceIconPriority[right.properties.service]" in icon_hit
     assert "edgePadding" in icon_hit, "the visible icon edge is not a practical target"
@@ -625,11 +666,17 @@ def main() -> None:
         "coarse category icons do not provide a 44 CSS-pixel target"
     )
     assert "const compare = exact.length" in icon_hit
-    assert "priority(left, right) || distance(left) - distance(right)" in icon_hit, (
-        "exact overlapping icons do not follow their painted priority"
+    # Cross-layer paint order (selected primary layer on top of the staggered
+    # -more layer) must win over within-layer serviceIconPriority, else a click
+    # on a visible selected icon can open a non-selected sign painted beneath.
+    assert "feature.layer.id === serviceIconLayerIds[0]" in icon_hit, (
+        "the click resolver must rank the selected (top) layer above -more"
     )
-    assert "distance(left) - distance(right) || priority(left, right)" in icon_hit, (
-        "padded icon fallback can select a farther high-priority service"
+    assert "paintOrder(left, right) || distance(left) - distance(right)" in icon_hit, (
+        "exact overlapping icons do not follow their painted (layer, priority) order"
+    )
+    assert "distance(left) - distance(right) || paintOrder(left, right)" in icon_hit, (
+        "padded icon fallback can select a farther higher-painted service"
     )
     marker_hit = index[index.index("function markerFeaturesAt"):
                        index.index("function markerCandidateAt")]
