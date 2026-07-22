@@ -52,6 +52,10 @@ struct Request {
   double lon;
   double lat;
   int minutes;
+  // PAGD's LKS94 grid coords, carried through for shelters (see
+  // write_expansion_requests); absent for OSM destinations.
+  std::optional<double> lks_x;
+  std::optional<double> lks_y;
 };
 
 struct Bounds {
@@ -366,6 +370,12 @@ Request parse_request(const std::string &line, size_t line_number) {
         "line " + std::to_string(line_number) +
         ": properties must contain string place_id and uint lookup_id");
   }
+  std::optional<double> lks_x, lks_y;
+  if (properties.HasMember("lks_x") && properties["lks_x"].IsNumber() &&
+      properties.HasMember("lks_y") && properties["lks_y"].IsNumber()) {
+    lks_x = properties["lks_x"].GetDouble();
+    lks_y = properties["lks_y"].GetDouble();
+  }
   return {
       fields[0],
       properties["place_id"].GetString(),
@@ -374,6 +384,8 @@ Request parse_request(const std::string &line, size_t line_number) {
       std::stod(fields[2]),
       std::stod(fields[3]),
       std::stoi(fields[4]),
+      lks_x,
+      lks_y,
   };
 }
 
@@ -2386,12 +2398,22 @@ int main(int argc, char **argv) {
               }
             } catch (const std::exception &error) {
               {
+                // Locate the object: WGS84 always, plus PAGD's LKS94 grid where
+                // the destination carries it (shelters). Built in a local stream
+                // so std::cerr's format flags are left untouched.
+                std::ostringstream coords;
+                coords << std::fixed << std::setprecision(6) << "WGS84 "
+                       << request.lat << ',' << request.lon;
+                if (request.lks_x && request.lks_y) {
+                  coords << " | LKS94 x " << std::llround(*request.lks_x)
+                         << ", y " << std::llround(*request.lks_y);
+                }
                 std::lock_guard<std::mutex> lock(log_mutex);
                 std::cerr << "valhalla-expand: request " << request.id << " ("
                           << request.feature_id << ") "
                           << (allow_unroutable ? "skipped (unroutable): "
                                                : "failed: ")
-                          << error.what() << '\n';
+                          << error.what() << " [" << coords.str() << "]" << '\n';
               }
               if (!allow_unroutable) {
                 throw;

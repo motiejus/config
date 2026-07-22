@@ -221,13 +221,43 @@ PLACE_CATALOG_COLUMNS = (
     "addr:postcode",
     "addr:street",
     "brand",
+    "capacity",
+    "contact:email",
     "contact:phone",
+    "contact:website",
+    "cuisine",
+    "email",
     "kind",
+    "level",
     "name",
     "opening_hours",
+    "operator",
     "phone",
     "place_id",
     "service",
+    "website",
+    "wheelchair",
+    # Shelter-only attributes (PAGD open data), carried by load_shelters and
+    # rendered as a dedicated card group; see SHELTER_DETAIL_FIELDS.
+    "shelter:abc_supplies",
+    "shelter:accessible",
+    "shelter:area_m2",
+    "shelter:around_the_clock",
+    "shelter:capacity",
+    "shelter:county",
+    "shelter:eldership",
+    "shelter:evac_scheme",
+    "shelter:lighting",
+    "shelter:lks_x",
+    "shelter:lks_y",
+    "shelter:marked",
+    "shelter:municipality",
+    "shelter:operator",
+    "shelter:sanitation",
+    "shelter:updated",
+    "shelter:ventilation",
+    "shelter:water_food",
+    "shelter:work_hours",
 )
 
 
@@ -390,6 +420,61 @@ def shelter_display_name(record: dict, street: str, house: str) -> str:
     return "Slėptuvė"
 
 
+# PAGD shelter attributes worth surfacing in the inspect card, mapped from the
+# raw JSONL field name to the catalog property key. Present values are carried
+# verbatim -- including boolean False and numeric 0 -- so the card can show an
+# explicit negative distinctly from unknown/absent; only null, non-finite
+# numbers, and blank strings are dropped (see shelter_detail_properties). Text
+# stays a string, numbers stay numeric (capacity, area, the LKS grid
+# coordinates). Everything lands under a shelter: prefix so the card can group
+# and label it distinctly from the OSM tag set.
+SHELTER_DETAIL_FIELDS = {
+    "gyventoju_skaicius": "shelter:capacity",
+    "plotas": "shelter:area_m2",
+    "valdytojas": "shelter:operator",
+    "darbo_valandos": "shelter:work_hours",
+    "seniunija": "shelter:eldership",
+    "savivaldybe": "shelter:municipality",
+    "apskritis": "shelter:county",
+    "atnaujinimo_data": "shelter:updated",
+    "pritaikyta_asmenims_su_negalia": "shelter:accessible",
+    "pazenklinta": "shelter:marked",
+    "patekimas_visa_para": "shelter:around_the_clock",
+    "patalpu_apsvietimas": "shelter:lighting",
+    "patalpu_sanitariniai_mazgai": "shelter:sanitation",
+    "patalpu_ventiliacija": "shelter:ventilation",
+    "kaupiamos_abc_priemones": "shelter:abc_supplies",
+    "kaupiamas_vanduo_maistas": "shelter:water_food",
+    "evakuavimo_schemos": "shelter:evac_scheme",
+    "lks_x": "shelter:lks_x",
+    "lks_y": "shelter:lks_y",
+}
+
+
+def shelter_detail_properties(record: dict) -> dict:
+    """Present shelter attributes for the inspect card (see SHELTER_DETAIL_FIELDS).
+
+    Values are carried verbatim, INCLUDING boolean False and numeric 0, so the
+    card can distinguish an explicit negative ("not accessible", "capacity 0")
+    from unknown/absent. Only None, non-finite numbers, and blank strings are
+    dropped -- catalog.py preserves the rest (whole-record JSON), and the
+    frontend distinguishes present-but-false from a missing key.
+    """
+    props: dict = {}
+    for field, key in SHELTER_DETAIL_FIELDS.items():
+        value = record.get(field)
+        if isinstance(value, bool):
+            props[key] = value
+        elif isinstance(value, (int, float)):
+            if math.isfinite(value):
+                props[key] = value
+        elif isinstance(value, str):
+            text = value.strip()
+            if text:
+                props[key] = text
+    return props
+
+
 def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
     """Inject PAGD shelter destinations into prepared["shelter"] from JSONL.
 
@@ -464,6 +549,7 @@ def load_shelters(args: argparse.Namespace, country, prepared: dict) -> None:
                     properties["addr:housenumber"] = house
                 if city:
                     properties["addr:city"] = city
+                properties.update(shelter_detail_properties(record))
                 prepared["shelter"].append(
                     make_place_entry(place_id, lon, lat, properties)
                 )
@@ -802,6 +888,66 @@ def prepare_places(args: argparse.Namespace, work: Path, country):
     return prepared
 
 
+def shelter_region_aggregates(shelter_entries: list[tuple[dict, dict]]) -> dict:
+    """Per-region shelter counts for the zoom-banded low-zoom overview bubbles.
+
+    Grouped at three levels -- county (apskritis), municipality (savivaldybe),
+    and eldership (seniunija, falling back to municipality where absent so every
+    shelter is still counted). Each bubble is positioned at the group's MEDOID
+    -- the member nearest the group's mean coordinate -- not the mean itself: a
+    coastal county spanning the Curonian Lagoon (mainland + the spit) would
+    average to a point over water, so the bubble would look offshore. The medoid
+    is always a real shelter location, so it is always on land.
+    """
+
+    def aggregate(*fields: str) -> list[dict]:
+        # Group by the first present field, so a shelter missing the finest
+        # level (e.g. no seniunija) falls back to the next coarser one and is
+        # never dropped -- counts stay complete at every band.
+        groups: dict[str, list[tuple[float, float]]] = {}
+        for location, feature in shelter_entries:
+            name = None
+            for field in fields:
+                value = feature["properties"].get(field)
+                if isinstance(value, str) and value.strip():
+                    name = value.strip()
+                    break
+            if name is None:
+                continue
+            groups.setdefault(name, []).append(
+                (location["lon"], location["lat"])
+            )
+        regions = []
+        for name, points in groups.items():
+            count = len(points)
+            mean_lon = sum(lon for lon, _ in points) / count
+            mean_lat = sum(lat for _, lat in points) / count
+            # Cosine-scale the longitude delta (a degree of longitude is ~0.57 of
+            # a degree of latitude at Lithuania's ~55N) so the medoid is the truly
+            # most-central member, not one biased east-west.
+            coslat = math.cos(math.radians(mean_lat))
+            lon, lat = min(
+                points,
+                key=lambda p: ((p[0] - mean_lon) * coslat) ** 2
+                + (p[1] - mean_lat) ** 2,
+            )
+            regions.append({"name": name, "count": count, "lon": lon, "lat": lat})
+        regions.sort(key=lambda r: (-r["count"], r["name"]))
+        return regions
+
+    # Descending admin hierarchy (coarse -> fine) for the zoom-banded overview:
+    # apskritis (10) -> savivaldybe (60) -> seniunija -> individual markers at
+    # z>=14.
+    return {
+        "county": aggregate("shelter:county"),
+        "municipality": aggregate("shelter:municipality"),
+        # Eldership where present, else municipality: every shelter (all have a
+        # municipality) is represented, so the finest band still sums to the full
+        # count instead of dropping the ~6% with no seniunija.
+        "eldership": aggregate("shelter:eldership", "shelter:municipality"),
+    }
+
+
 def object_catalog(features: list[dict]) -> list[dict]:
     result = []
     for expected_index, feature in enumerate(features):
@@ -827,6 +973,17 @@ def write_expansion_requests(path: Path, route: dict, entries: list[tuple[dict, 
         for index, (location, place_feature) in enumerate(entries, start=1):
             request_id = f"{index:06d}"
             max_minutes = max(route["minutes"])
+            properties = place_feature["properties"]
+            payload = {
+                "lookup_id": properties["place_index"],
+                "place_id": properties["place_id"],
+            }
+            # Carry PAGD's LKS94 grid coordinates through for shelters (they
+            # already have them) so valhalla-expand can name an unroutable
+            # origin in the Lithuanian grid without re-deriving it.
+            if "shelter:lks_x" in properties and "shelter:lks_y" in properties:
+                payload["lks_x"] = properties["shelter:lks_x"]
+                payload["lks_y"] = properties["shelter:lks_y"]
             file.write(
                 "\t".join(
                     [
@@ -836,10 +993,7 @@ def write_expansion_requests(path: Path, route: dict, entries: list[tuple[dict, 
                         f"{location['lat']:.17g}",
                         str(max_minutes),
                         json.dumps(
-                            {
-                                "lookup_id": place_feature["properties"]["place_index"],
-                                "place_id": place_feature["properties"]["place_id"],
-                            },
+                            payload,
                             ensure_ascii=False,
                             separators=(",", ":"),
                             sort_keys=True,
@@ -1489,6 +1643,10 @@ def main() -> None:
     write_json(
         output / "metadata.json",
         {
+            # Pre-aggregated shelter counts per administrative region for the
+            # low-zoom overview bubbles (see shelter_region_aggregates); tiny,
+            # so the frontend needs no per-point fetch to draw them.
+            "shelter_regions": shelter_region_aggregates(prepared["shelter"]),
             "access_network": {
                 "file": "access.pmtiles",
                 "format": "PMTiles v3 with Mapbox Vector Tiles",
