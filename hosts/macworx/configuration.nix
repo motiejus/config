@@ -91,7 +91,6 @@ in
   environment.systemPackages = with pkgs; [
     autoraise
     tailscale
-    syncthing-macos
     colima
     docker-client
     pkgs.xscreensaver-mac

@@ -17,7 +17,6 @@ let
     "vno2-irena".id = "VL2MA2E-ZDGVHYN-A3Q3EKU-7J625QM-FG7CNXY-UKDL563-MDRRIEG-XQDS3AW";
     "vno2-desk2".id = "HUM7DHH-54XEV44-UVIK3TJ-DDMUFKR-S6IHDMB-6XXOSP2-3RKL4TB-M5VCGAQ";
     "vno3-nk".id = "HDESTGW-C3PGZLU-7V7KLWP-SIJVM3V-JEG6OMT-CGOLOQW-DZMIPS7-G7SVSQB";
-    "macworx".id = "PPIEHDI-MJQJVDV-WGL4J56-PXWQ2IJ-WQMK5PF-UB6DNMZ-KWMVU2U-CUQHXQW";
     "v-kfire".id = "REEDZAL-KPLWARZ-466J4BR-H5UDI6D-UUA33QG-HPZHIMX-WNFLDGD-PJLTFQZ";
     "a-kfire".id = "VIQF4QW-2OLBBIK-XWOIO4A-264J32R-BE4J4BT-WEJXMYO-MXQDQHD-SJ6MEQ7";
   };
@@ -52,7 +51,6 @@ let
         "vno1-gdrx"
         "mxp1"
         "fwminex"
-        "macworx"
       ];
       id = "f6fma-unkxq";
       label = "M-Active";
@@ -197,7 +195,6 @@ in
               vno1-gdrx
               vno3-nk
               fwminex
-              macworx
               mxp1
               vxp10
               vno2-irena
@@ -233,7 +230,6 @@ in
               vno1-gdrx
               vno3-nk
               fwminex
-              macworx
               mxp1
               vxp10
               rzj-744P2PE
