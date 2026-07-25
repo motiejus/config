@@ -15,6 +15,7 @@
     pkgs.zigpkgs."0.16.0"
     fq
     uv
+    mdr
     (fio.override { withLibnbd = false; })
     cloc
     josm
