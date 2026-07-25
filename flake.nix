@@ -102,7 +102,8 @@
             mapgames = super.callPackage ./pkgs/mapgames { };
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
-            inherit (super.callPackage ./pkgs/agent-sandboxes.nix { }) claudes codexs;
+            mem-limit-run = super.callPackage ./pkgs/mem-limit-run.nix { };
+            inherit (super.callPackage ./pkgs/agent-sandboxes.nix { inherit mem-limit-run; }) claudes codexs;
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
             mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 

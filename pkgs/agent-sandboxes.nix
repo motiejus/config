@@ -2,6 +2,7 @@
   lib,
   writeShellApplication,
   pkgs,
+  mem-limit-run,
   ...
 }:
 let
@@ -77,15 +78,33 @@ let
       # Browser and Node versions come from the flake rather than the user's
       # imperative profile. The Nix store is already visible inside bwrap.
       runtimeInputs = [
+        mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
         pkgs.nodejs
         pkgs.chromium
         pkgs.firefox-bin
         pkgs.playwright-driver.browsers
       ];
       text = ''
-        mkdir -p ${tmpDir} && \
-        ${pkgs.bubblewrap}/bin/bwrap \
+        mkdir -p ${tmpDir}
+
+        # Bind the shared agent memory pool (cgroup v2) into the sandbox so
+        # commands routed through ~/code/.mem-limit-run are accounted against ONE
+        # kernel-enforced aggregate RSS cap shared by all agents. The pool is
+        # provisioned by the `agent-mem-pool` user service, which publishes its
+        # resolved path here. Bound read-write: uid 1001 maps to the host user
+        # (1000) that owns the pool, so it can join and size it. The agent
+        # session itself is NOT placed in the pool -- only wrapped commands are.
+        pool_args=()
+        pool_host="$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mem-pool.cgroup" 2>/dev/null || true)"
+        if [ -n "$pool_host" ] && [ -w "$pool_host/cgroup.procs" ]; then
+          pool_args=(--bind "$pool_host" /sys/fs/cgroup/pool --setenv MEM_POOL /sys/fs/cgroup/pool)
+        else
+          echo "agent-sandbox: WARNING -- memory pool unavailable ('$pool_host'); wrapped commands will refuse to run. Is agent-mem-pool.service active?" >&2
+        fi
+
+        exec ${pkgs.bubblewrap}/bin/bwrap \
           ${lib.concatStringsSep " \\\n          " bwrapArgs} \
+          "''${pool_args[@]}" \
           -- ${lib.escapeShellArgs command} "$@"
       '';
     };

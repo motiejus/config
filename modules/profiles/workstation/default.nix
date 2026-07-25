@@ -67,6 +67,7 @@ in
         kicad
         codexs
         claudes
+        mem-limit-run
         esptool
         neomutt
         freecad
