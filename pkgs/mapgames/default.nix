@@ -96,9 +96,10 @@ let
   # 12 nested `*-tests/build.zig.zon` manifests, used only by `zig build test`,
   # are a separate concern from the site/data build.)
   #
-  # TODO(owner): fill `outputHash` from the first `nix build` (keep lib.fakeHash;
-  # nix prints the correct value on the mismatch). It changes whenever
-  # build.zig.zon's dependency set changes (bump with mapsRev).
+  # `outputHash` below is the NAR of the fetched `p/`, pinned from a real
+  # `nix build`. Re-derive it (set to lib.fakeHash, read nix's reported value)
+  # whenever build.zig.zon's dependency set changes -- typically with a mapsRev
+  # bump.
   zigDeps = runCommand "mapgames-${version}-zig-deps" {
     src = mapsSrc;
     nativeBuildInputs = [ zig ];
