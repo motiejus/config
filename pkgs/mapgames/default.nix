@@ -67,12 +67,12 @@ let
   # (== what fetchgit produces); `nix build` prints the correct value if it ever
   # drifts.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  mapsRev = "0a7c832d8519807e2ae1abf0b0668be3b3666644ae6825cfbcaa966312281982";
+  mapsRev = "4c30895571089667cc33924de04deec7d7df8562e979ac37eb70ddd1809639f4";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
     preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-2U37InIYvMnmPyi6jFDlVO7dEUbGfxkVHp2Qspjt8e0=";
+    hash = "sha256-Pf9cgFsp5khZre8WHiEhtf+Guc3UwyKfcgGP4tzrcyk=";
   };
 
   # All build.zig.zon dependencies of the *root* package (native source
@@ -100,20 +100,23 @@ let
   # `nix build`. Re-derive it (set to lib.fakeHash, read nix's reported value)
   # whenever build.zig.zon's dependency set changes -- typically with a mapsRev
   # bump.
-  zigDeps = runCommand "mapgames-${version}-zig-deps" {
-    src = mapsSrc;
-    nativeBuildInputs = [ zig ];
-    outputHashAlgo = null;
-    outputHashMode = "recursive";
-    outputHash = "sha256-maNL06Do1YVZvy0jvS1TCQkityhEJz9XmdNOOfA5Bqs="; # zig-deps NAR
-  } ''
-    export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
-    mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp" # sqlite .zip temp dir (see comment above)
-    runHook unpackPhase
-    cd "$sourceRoot"
-    zig build --fetch=all
-    mv "$ZIG_GLOBAL_CACHE_DIR/p" "$out"
-  '';
+  zigDeps =
+    runCommand "mapgames-${version}-zig-deps"
+      {
+        src = mapsSrc;
+        nativeBuildInputs = [ zig ];
+        outputHashAlgo = null;
+        outputHashMode = "recursive";
+        outputHash = "sha256-maNL06Do1YVZvy0jvS1TCQkityhEJz9XmdNOOfA5Bqs="; # zig-deps NAR
+      }
+      ''
+        export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
+        mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp" # sqlite .zip temp dir (see comment above)
+        runHook unpackPhase
+        cd "$sourceRoot"
+        zig build --fetch=all
+        mv "$ZIG_GLOBAL_CACHE_DIR/p" "$out"
+      '';
 
   # The pre-fetched dependency set, exposed as the global cache's package store
   # so `zig build` never touches the network. The nixpkgs zig setup-hook's
@@ -128,13 +131,12 @@ let
   # Generation-tuning flags shared by every `zig build` invocation, as a Nix
   # list (fed directly to the hook via zigBuildFlags for the default `site`
   # target) and shell-escaped (for the explicit non-default data/test targets).
-  genFlagList =
-    [
-      "-Dbbox=${bbox}"
-      "-Dexpansion-concurrency-cap=${toString expansionConcurrencyCap}"
-      "-Dexpansion-batch-size=${toString expansionBatchSize}"
-    ]
-    ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}";
+  genFlagList = [
+    "-Dbbox=${bbox}"
+    "-Dexpansion-concurrency-cap=${toString expansionConcurrencyCap}"
+    "-Dexpansion-batch-size=${toString expansionBatchSize}"
+  ]
+  ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}";
   genFlagsEscaped = lib.escapeShellArgs genFlagList;
 
   # concurrency is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
@@ -142,7 +144,7 @@ let
     if concurrency == null then
       ''mapgames_concurrency="$NIX_BUILD_CORES"''
     else
-      ''mapgames_concurrency=${toString concurrency}'';
+      "mapgames_concurrency=${toString concurrency}";
 
   # `zig build` (default install == site) generates the country data, builds
   # every native tool from source, assembles zig-out/www (browser vendoring +
