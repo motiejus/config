@@ -2,7 +2,6 @@
   lib,
   stdenvNoCC,
   fetchgit,
-  compressDrvWeb,
   jq,
   python3,
   runCommand,
@@ -242,79 +241,67 @@ let
     };
   };
 
-  writeEtags = ''
-    find "$out" -type f ! -name '*.etag' | while read -r file; do
-      hash=$(sha256sum "$file")
-      printf '"%s"' "''${hash:0:32}" > "$file.etag"
-    done
-  '';
-
-  compressed = compressDrvWeb site {
-    # Never add "pmtiles" here (or serve pmtiles pre-encoded): pmtiles.js
-    # issues HTTP Range requests that must address identity bytes. A .br/.gz
-    # sidecar would let the web server satisfy ranges over encoded bytes,
-    # which decodes to silent tile corruption.
-    extraFormats = [
-      "geojson"
-      "pbf"
-    ];
-  };
+  # The mapgames-publisher state machine ships inside the maps source tree now
+  # (repo root), not in this config directory. Expose its store path so the
+  # `mapgames-publisher` NixOS module and its VM test wrap the single
+  # version-controlled copy instead of carrying a second one in config.
+  publisherScript = "${mapsSrc}/mapgames-publisher.py";
 in
-runCommand "mapgames-${version}"
-  {
-    # compressDrvWeb transforms the files but does not carry custom passthru.
-    # Keep the compressed payload while carrying the package identity/tests
-    # through the final etag wrapper. Static compression + ETags are the
-    # deployment layer: maps.jakstys.lt's `zig build` deliberately does not
-    # emit them, so they are produced here.
-    pname = "mapgames";
-    inherit version;
-    inherit (site) meta;
-    passthru = {
-      inherit site data;
-      tests = {
-        # `zig build test` is the comprehensive production + fixture/UI/native
-        # suite. It is reused against the already-generated `data` output via
-        # -Dsite-data so the country is not regenerated for the checks.
-        # The site-check/check fingerprint scopes additionally require the
-        # test-only tools node/strace/sqlite3 in PATH (wired below).
-        # TODO(owner): verify on a nix-daemon machine (never built here).
-        zigTest = stdenvNoCC.mkDerivation {
-          pname = "mapgames-zig-test";
-          inherit version;
-          src = mapsSrc;
-          nativeBuildInputs = [
-            zig
-            python
-            jq
-            nodejs
-            strace
-            sqlite
-          ];
-          # `test` is a non-default target; drive it explicitly but still use the
-          # hook's zigConfigurePhase (cache dir) + postConfigure dep link.
-          dontSetZigDefaultFlags = true;
-          postConfigure = linkZigDeps;
-          dontUseZigBuild = true;
-          buildPhase = ''
-            runHook preBuild
-            ${resolveConcurrency}
-            zig build test ${genFlagsEscaped} \
-              -Dconcurrency="$mapgames_concurrency" \
-              -Dsite-data=${data}
-            runHook postBuild
-          '';
-          dontUseZigInstall = true;
-          installPhase = ''
-            runHook preInstall
-            touch "$out"
-            runHook postInstall
-          '';
-        };
+# The deployable artifact is maps' own `zig build` output: the search-injected,
+# content-addressed object graph. inject-search.py and build-web-graph.py run
+# INSIDE maps' build now, so `zig-out/www` already contains the hash-named
+# objects, their allowlisted Brotli siblings and web-graph.json. The
+# mapgames-publisher module consumes this as its `candidate`; Caddy serves the
+# atomically-seeded /var/lib/mapgames/current.
+#
+# No compressDrvWeb / `.etag` deployment layer is applied anymore: maps emits
+# exactly the Brotli allowlist the new Caddy `precompressed br` policy
+# negotiates, and the immutable objects get their revalidation validators from
+# Caddy itself (a `.etag` sidecar model is incompatible with the never-304
+# mutable index.html the publisher policy requires). passthru is metadata only,
+# so this override yields the SAME store path as `site` (no second heavy build).
+site.overrideAttrs (_: {
+  passthru = {
+    inherit site data publisherScript;
+    tests = {
+      # `zig build test` is the comprehensive production + fixture/UI/native
+      # suite. It is reused against the already-generated `data` output via
+      # -Dsite-data so the country is not regenerated for the checks.
+      # The site-check/check fingerprint scopes additionally require the
+      # test-only tools node/strace/sqlite3 in PATH (wired below).
+      # TODO(owner): verify on a nix-daemon machine (never built here).
+      zigTest = stdenvNoCC.mkDerivation {
+        pname = "mapgames-zig-test";
+        inherit version;
+        src = mapsSrc;
+        nativeBuildInputs = [
+          zig
+          python
+          jq
+          nodejs
+          strace
+          sqlite
+        ];
+        # `test` is a non-default target; drive it explicitly but still use the
+        # hook's zigConfigurePhase (cache dir) + postConfigure dep link.
+        dontSetZigDefaultFlags = true;
+        postConfigure = linkZigDeps;
+        dontUseZigBuild = true;
+        buildPhase = ''
+          runHook preBuild
+          ${resolveConcurrency}
+          zig build test ${genFlagsEscaped} \
+            -Dconcurrency="$mapgames_concurrency" \
+            -Dsite-data=${data}
+          runHook postBuild
+        '';
+        dontUseZigInstall = true;
+        installPhase = ''
+          runHook preInstall
+          touch "$out"
+          runHook postInstall
+        '';
       };
     };
-  }
-  ''
-    cp -r --no-preserve=mode ${compressed} "$out"
-    ${writeEtags}
-  ''
+  };
+})

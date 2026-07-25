@@ -14,6 +14,9 @@ in
     ../../modules/profiles/physical
     ../../modules/profiles/devtools
     ../../modules/profiles/btrfs
+    # The content-addressed map/search publisher module is imported directly by
+    # this host (search-design.md §4.1); caddy.nix serves its `current` tree.
+    ../../modules/services/mapgames-publisher
     ./caddy.nix
   ];
 
@@ -371,6 +374,11 @@ in
         ];
       };
       lt-shelters.enable = true;
+      # Stateful content-addressed map/search deployment. The seed oneshot runs
+      # before and is required by caddy.service, which serves only
+      # /var/lib/mapgames/current (see caddy.nix). candidate defaults to
+      # pkgs.mapgames (the built web graph).
+      mapgames-publisher.enable = true;
       hass.enable = true;
       syncthing-relay.enable = true;
 
