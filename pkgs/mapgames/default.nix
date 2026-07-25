@@ -78,7 +78,7 @@ let
     ];
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = lib.fakeHash; # TODO(owner): compute on a nix-daemon machine.
+    outputHash = "sha256-7rFYPI0rB/SVInPP48bIQKMyIDU5a3aHE/gwVAEDd3g="; # NAR of the .git-stripped checkout at mapsRev
     buildCommand = ''
       export GIT_SSL_CAINFO="$NIX_SSL_CERT_FILE"
       git clone --quiet ${mapsRepo} repo
@@ -90,22 +90,37 @@ let
 
   # All build.zig.zon dependencies of the *root* package (native source
   # tarballs incl. Boost/SQLite/Valhalla/Tilemaker/osmium, browser-asset
-  # archives, the pinned Lithuania PBF, and the lazy lt-shelters snapshot) as
-  # one fixed-output derivation. `zig build --fetch` (fetchAll = false) is
-  # sufficient: the default `zig build` (site) target only reaches root-package
-  # deps. The 12 nested `*-tests/build.zig.zon` manifests are fetched by their
-  # own subprocess `zig build` invocations under `zig build test`, so they are
-  # out of scope here.
+  # archives, the pinned Lithuania PBF, and lazy deps like the lt-shelters
+  # snapshot) as one fixed-output derivation.
   #
-  # TODO(owner): compute this hash on a nix-daemon machine. Either set it to
-  # lib.fakeHash and read the correct value from the first `nix build` failure,
-  # or run the fetcher derivation directly. It changes whenever build.zig.zon's
-  # dependency set changes (i.e. together with mapsRev when deps move).
+  # fetchAll = true is REQUIRED, not optional: the Nix build phase has no
+  # network (only this FOD does), so every dep Zig resolves at build time --
+  # including LAZY deps -- must already be in the pre-fetched `p/`. A partial
+  # (fetchAll = false) fetch leaves lazy deps missing and the sandboxed
+  # `zig build` then fails trying to fetch them. (The 12 nested
+  # `*-tests/build.zig.zon` manifests used only by `zig build test` are a
+  # separate concern from the site/data build.)
+  #
+  # TODO(owner): compute `hash` on a nix-daemon machine -- keep lib.fakeHash
+  # and read the correct value from the first `nix build` failure. It changes
+  # whenever build.zig.zon's dependency set changes (bump with mapsRev).
+  #
+  # KNOWN RISK to verify on the real build (found while reproducing the fetch
+  # locally with Zig 0.16.0): fetching the sqlite dep, which is a `.zip`
+  # (`https://sqlite.org/.../sqlite-amalgamation-*.zip`, reachable, HTTP 200),
+  # failed with `error: failed to create temporary zip file: FileNotFound`
+  # unless `$ZIG_GLOBAL_CACHE_DIR/tmp` already existed -- the `.tar.gz` deps
+  # were fine. nixpkgs' fetcher.nix does `export ZIG_GLOBAL_CACHE_DIR=$(mktemp
+  # -d)` without creating `tmp/`. If the FOD fails on the sqlite `.zip`, the fix
+  # is a fetcher override that runs `mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp"`
+  # before `zig build --fetch=all` (or mirror the sqlite amalgamation as a
+  # .tar.gz). This may be environment-specific to this box; verify on the
+  # daemon machine before patching.
   zigDeps = zig.fetchDeps {
     pname = "mapgames";
     inherit version;
     src = mapsSrc;
-    # fetchAll = false; # default; site target needs only root-package deps.
+    fetchAll = true; # sandboxed build has no network; pre-fetch lazy deps too.
     hash = lib.fakeHash; # TODO(owner): compute on a nix-daemon machine.
   };
 
