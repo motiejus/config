@@ -1,8 +1,7 @@
 {
   lib,
   stdenvNoCC,
-  cacert,
-  git,
+  fetchgit,
   compressDrvWeb,
   jq,
   python3,
@@ -54,38 +53,26 @@ let
   # are Zig-built inside `zig build` and are NOT nixpkgs inputs.
   python = python3.withPackages (ps: [ ps.shapely ]);
 
-  # Whole maps.jakstys.lt source tree at a pinned revision.
+  # Whole maps.jakstys.lt source tree at a pinned revision, via fetchgit.
   #
-  # git.jakstys.lt uses sha256 git objects, which nixpkgs' fetchgit cannot
-  # clone (it runs `git init`, defaulting to sha1, then fails with "mismatched
-  # algorithms"). A real `git clone` auto-negotiates the object format, so this
-  # fixed-output derivation clones and checks out the rev itself -- the same
-  # pattern the lt-shelters snapshot uses. `.git` is dropped so the NAR (and
-  # therefore outputHash) is a function of the checked-out tree only.
+  # git.jakstys.lt uses sha256 git objects; fetchgit's `git init` defaults to
+  # sha1 and then rejects the sha256 pack. nixpkgs has no object-format knob, so
+  # set git's algorithm via preFetch -- the same proven pattern as
+  # pkgs/stagit-ng.nix. (`GIT_DEFAULT_HASH=sha256 nix-prefetch-git` clone-verifies
+  # this flat, non-owner-qualified URL.)
   #
-  # Bump mapsRev + outputHash together when advancing the site.
-  # TODO(owner): recompute outputHash on a nix-daemon machine after every
-  # mapsRev bump (`nix build` will print the correct sha256; or
-  # `nix-prefetch-git --fetch-submodules=false <repo> <rev>` style). Left as
-  # lib.fakeHash so a stale hash can never silently pass.
+  # Bump mapsRev + hash together when advancing the site.
+  # TODO(owner): confirm `hash` on the first `nix build` on a nix-daemon
+  # machine. It was computed as the NAR of a `.git`-stripped clone of mapsRev
+  # (== what fetchgit produces); `nix build` prints the correct value if it ever
+  # drifts.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
   mapsRev = "89ec739d5cf37a1312f0f79f10702c81280334d3a326ab6bc1a02f7b4918d076";
-  mapsSrc = stdenvNoCC.mkDerivation {
-    name = "maps-jakstys-lt-source-${builtins.substring 0 12 mapsRev}";
-    nativeBuildInputs = [
-      cacert
-      git
-    ];
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
-    outputHash = "sha256-7rFYPI0rB/SVInPP48bIQKMyIDU5a3aHE/gwVAEDd3g="; # NAR of the .git-stripped checkout at mapsRev
-    buildCommand = ''
-      export GIT_SSL_CAINFO="$NIX_SSL_CERT_FILE"
-      git clone --quiet ${mapsRepo} repo
-      git -C repo checkout --quiet ${mapsRev}
-      rm -rf repo/.git
-      cp -a repo "$out"
-    '';
+  mapsSrc = fetchgit {
+    url = mapsRepo;
+    rev = mapsRev;
+    preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
+    hash = "sha256-7rFYPI0rB/SVInPP48bIQKMyIDU5a3aHE/gwVAEDd3g=";
   };
 
   # All build.zig.zon dependencies of the *root* package (native source
@@ -124,30 +111,29 @@ let
     hash = lib.fakeHash; # TODO(owner): compute on a nix-daemon machine.
   };
 
-  # Shared prologue: point Zig's caches at build-local writable dirs (the build
-  # sandbox has no writable $HOME -- the one sanctioned exception to leaving the
-  # Zig cache dirs at their defaults) and expose the pre-fetched dependency set
-  # as the global cache's package store so `zig build` never touches the
-  # network (the build is a normal sandboxed derivation).
-  zigCachePrelude = ''
-    export HOME="$TMPDIR"
-    export ZIG_GLOBAL_CACHE_DIR="$TMPDIR/zig-global-cache"
-    export ZIG_LOCAL_CACHE_DIR="$TMPDIR/zig-local-cache"
-    mkdir -p "$ZIG_GLOBAL_CACHE_DIR" "$ZIG_LOCAL_CACHE_DIR"
-    ln -s ${zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"
-  '';
+  # The pre-fetched dependency set, exposed as the global cache's package store
+  # so `zig build` never touches the network. The nixpkgs zig setup-hook's
+  # zigConfigurePhase sets ZIG_GLOBAL_CACHE_DIR=$(mktemp -d); this link is done
+  # from postConfigure, which runs *after* that (NOT postPatch, where the cache
+  # dir is not set yet). The sandbox has no writable $HOME, but the hook points
+  # the global cache at a writable temp dir and Zig's local cache defaults to
+  # ./.zig-cache in the (writable) build dir, so no manual HOME / cache-dir
+  # exports are needed -- the manual prelude that set them is gone.
+  linkZigDeps = ''ln -s ${zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"'';
 
-  # Generation-tuning flags shared by every `zig build` invocation. concurrency
-  # is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
-  zigGenFlags = lib.escapeShellArgs (
+  # Generation-tuning flags shared by every `zig build` invocation, as a Nix
+  # list (fed directly to the hook via zigBuildFlags for the default `site`
+  # target) and shell-escaped (for the explicit non-default data/test targets).
+  genFlagList =
     [
       "-Dbbox=${bbox}"
       "-Dexpansion-concurrency-cap=${toString expansionConcurrencyCap}"
       "-Dexpansion-batch-size=${toString expansionBatchSize}"
     ]
-    ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}"
-  );
+    ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}";
+  genFlagsEscaped = lib.escapeShellArgs genFlagList;
 
+  # concurrency is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
   resolveConcurrency =
     if concurrency == null then
       ''mapgames_concurrency="$NIX_BUILD_CORES"''
@@ -173,14 +159,24 @@ let
     # whole sandbox and do not let Zig fan out beyond the requested workers.
     enableParallelBuilding = true;
 
-    buildPhase = ''
-      runHook preBuild
-      ${zigCachePrelude}
+    # Lean on the zig setup-hook: zigConfigurePhase provides ZIG_GLOBAL_CACHE_DIR
+    # and zigBuildPhase runs the default `zig build` (== the site/www install).
+    # Keep maps' own optimize/cpu selection (README: the no-option build is
+    # ReleaseSafe; build.zig has an optimize audit and declares no `cpu` option)
+    # by suppressing the hook's default -Dcpu=baseline / --release=safe flags.
+    dontSetZigDefaultFlags = true;
+    postConfigure = linkZigDeps;
+    zigBuildFlags = genFlagList;
+    # -Dconcurrency must resolve $NIX_BUILD_CORES at build time, so append it to
+    # the array the hook concatenates rather than the eval-time list.
+    preBuild = ''
       ${resolveConcurrency}
-      zig build ${zigGenFlags} -Dconcurrency="$mapgames_concurrency"
-      runHook postBuild
+      zigBuildFlagsArray+=("-Dconcurrency=$mapgames_concurrency")
     '';
 
+    # maps installs the site to zig-out/www, not via `--prefix`, so the hook's
+    # default `zig build install --prefix $out` is wrong; install by hand.
+    dontUseZigInstall = true;
     installPhase = ''
       runHook preInstall
       cp -r zig-out/www "$out"
@@ -215,14 +211,20 @@ let
       jq
     ];
 
+    # `data` is a non-default `zig build` target, so drive it explicitly; the
+    # hook's zigConfigurePhase still provides ZIG_GLOBAL_CACHE_DIR (deps linked
+    # in postConfigure) and dontSetZigDefaultFlags keeps maps' own optimize mode.
+    dontSetZigDefaultFlags = true;
+    postConfigure = linkZigDeps;
+    dontUseZigBuild = true;
     buildPhase = ''
       runHook preBuild
-      ${zigCachePrelude}
       ${resolveConcurrency}
-      zig build data ${zigGenFlags} -Dconcurrency="$mapgames_concurrency"
+      zig build data ${genFlagsEscaped} -Dconcurrency="$mapgames_concurrency"
       runHook postBuild
     '';
 
+    dontUseZigInstall = true;
     installPhase = ''
       runHook preInstall
       cp -r zig-out/data "$out"
@@ -283,15 +285,20 @@ runCommand "mapgames-${version}"
             strace
             sqlite
           ];
+          # `test` is a non-default target; drive it explicitly but still use the
+          # hook's zigConfigurePhase (cache dir) + postConfigure dep link.
+          dontSetZigDefaultFlags = true;
+          postConfigure = linkZigDeps;
+          dontUseZigBuild = true;
           buildPhase = ''
             runHook preBuild
-            ${zigCachePrelude}
             ${resolveConcurrency}
-            zig build test ${zigGenFlags} \
+            zig build test ${genFlagsEscaped} \
               -Dconcurrency="$mapgames_concurrency" \
               -Dsite-data=${data}
             runHook postBuild
           '';
+          dontUseZigInstall = true;
           installPhase = ''
             runHook preInstall
             touch "$out"
