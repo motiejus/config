@@ -80,36 +80,39 @@ let
   # archives, the pinned Lithuania PBF, and lazy deps like the lt-shelters
   # snapshot) as one fixed-output derivation.
   #
-  # fetchAll = true is REQUIRED, not optional: the Nix build phase has no
-  # network (only this FOD does), so every dep Zig resolves at build time --
-  # including LAZY deps -- must already be in the pre-fetched `p/`. A partial
-  # (fetchAll = false) fetch leaves lazy deps missing and the sandboxed
-  # `zig build` then fails trying to fetch them. (The 12 nested
-  # `*-tests/build.zig.zon` manifests used only by `zig build test` are a
-  # separate concern from the site/data build.)
+  # This is nixpkgs' `zig.fetchDeps` (pkgs/development/compilers/zig/fetcher.nix)
+  # inlined with ONE fix: `mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp"`. Zig 0.16 writes
+  # the temp download for a `.zip` dependency under $ZIG_GLOBAL_CACHE_DIR/tmp but
+  # does not create that dir, and fetcher.nix `mktemp -d`s the cache without it,
+  # so plain `zig.fetchDeps` fails on the sqlite `.zip` amalgamation with
+  # `error: failed to create temporary zip file: FileNotFound` (confirmed on a
+  # real `nix build`; `.tar.gz` deps are unaffected). TODO: drop this inline copy
+  # for plain `zig.fetchDeps` once nixpkgs' fetcher.nix creates tmp/ (worth
+  # upstreaming).
   #
-  # TODO(owner): compute `hash` on a nix-daemon machine -- keep lib.fakeHash
-  # and read the correct value from the first `nix build` failure. It changes
-  # whenever build.zig.zon's dependency set changes (bump with mapsRev).
+  # `--fetch=all` (not `--fetch`) is REQUIRED: the Nix build phase has no network
+  # -- only this FOD does -- so every dep Zig resolves at build time, including
+  # LAZY ones (lt-shelters etc.), must already be in the pre-fetched `p/`. (The
+  # 12 nested `*-tests/build.zig.zon` manifests, used only by `zig build test`,
+  # are a separate concern from the site/data build.)
   #
-  # KNOWN RISK to verify on the real build (found while reproducing the fetch
-  # locally with Zig 0.16.0): fetching the sqlite dep, which is a `.zip`
-  # (`https://sqlite.org/.../sqlite-amalgamation-*.zip`, reachable, HTTP 200),
-  # failed with `error: failed to create temporary zip file: FileNotFound`
-  # unless `$ZIG_GLOBAL_CACHE_DIR/tmp` already existed -- the `.tar.gz` deps
-  # were fine. nixpkgs' fetcher.nix does `export ZIG_GLOBAL_CACHE_DIR=$(mktemp
-  # -d)` without creating `tmp/`. If the FOD fails on the sqlite `.zip`, the fix
-  # is a fetcher override that runs `mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp"`
-  # before `zig build --fetch=all` (or mirror the sqlite amalgamation as a
-  # .tar.gz). This may be environment-specific to this box; verify on the
-  # daemon machine before patching.
-  zigDeps = zig.fetchDeps {
-    pname = "mapgames";
-    inherit version;
+  # TODO(owner): fill `outputHash` from the first `nix build` (keep lib.fakeHash;
+  # nix prints the correct value on the mismatch). It changes whenever
+  # build.zig.zon's dependency set changes (bump with mapsRev).
+  zigDeps = runCommand "mapgames-${version}-zig-deps" {
     src = mapsSrc;
-    fetchAll = true; # sandboxed build has no network; pre-fetch lazy deps too.
-    hash = lib.fakeHash; # TODO(owner): compute on a nix-daemon machine.
-  };
+    nativeBuildInputs = [ zig ];
+    outputHashAlgo = null;
+    outputHashMode = "recursive";
+    outputHash = lib.fakeHash; # TODO(owner): fill from the first `nix build`.
+  } ''
+    export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
+    mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp" # sqlite .zip temp dir (see comment above)
+    runHook unpackPhase
+    cd "$sourceRoot"
+    zig build --fetch=all
+    mv "$ZIG_GLOBAL_CACHE_DIR/p" "$out"
+  '';
 
   # The pre-fetched dependency set, exposed as the global cache's package store
   # so `zig build` never touches the network. The nixpkgs zig setup-hook's
