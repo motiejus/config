@@ -85,7 +85,7 @@
         zig.overlays.default
 
         (
-          _: super:
+          final: super:
           rec {
             gamja = super.callPackage ./pkgs/gamja.nix { };
             lt-shelters = super.callPackage ./pkgs/lt-shelters { };
@@ -99,7 +99,9 @@
             xscreensaver-mac = super.callPackage ./pkgs/xscreensaver-mac.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
-            mapgames = super.callPackage ./pkgs/mapgames { };
+            mapgames = super.callPackage ./pkgs/mapgames {
+              inherit (final) pkgs-unstable;
+            };
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
             inherit (super.callPackage ./pkgs/agent-sandboxes.nix { }) claudes codexs;
