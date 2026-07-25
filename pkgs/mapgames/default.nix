@@ -1,38 +1,32 @@
 {
   lib,
-  stdenv,
   stdenvNoCC,
-  cacert,
-  fetchurl,
-  git,
-  boost,
+  fetchgit,
   compressDrvWeb,
   jq,
-  libtiff,
-  osmium-tool,
-  nodejs,
-  pkg-config,
-  pmtiles,
   python3,
-  rapidjson,
   runCommand,
+  # Test-only tools, used exclusively by the `passthru.tests.zigTest`
+  # (`zig build test`) derivation. Not inputs to the production site/data path.
+  nodejs,
+  strace,
   sqlite,
-  tilemaker,
-  valhalla,
-  writeShellScript,
-  # Pinned lt-shelters snapshot (a directory with priedangos.jsonl, kas.jsonl,
-  # and refreshed-at.txt). null uses the fetched default pinned below; override
-  # with a local checkout or another derivation for iteration or air-gapped
-  # builds.
+  # nixpkgs-unstable package set (exposed by the flake overlay). Stable
+  # nixpkgs 26.05 only ships zig <= 0.13; maps.jakstys.lt requires zig 0.16 and
+  # the zig `fetchDeps` fixed-output-derivation helper, both of which live in
+  # unstable (zig.default == zig_0_16 == 0.16.0).
+  pkgs-unstable,
+  # Optional local lt-shelters snapshot (a directory with priedangos.jsonl,
+  # kas.jsonl, refreshed-at.txt and LICENSE-DATA.md). null keeps the pinned
+  # `lt_shelters` build.zig.zon dependency in the Zig build graph (the normal
+  # production path). Override with a checkout for shelter-data iteration.
   sheltersSrc ? null,
-  # null means "use $NIX_BUILD_CORES at build time" for the general pipeline.
-  # Expansion worker-count policy belongs here; generate.py simply uses the
-  # helper and worker count it is passed.
+  # null means "use $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
   expansionConcurrencyCap ? 8,
   expansionBatchSize ? 256,
   # Full Lithuania PBF extent. Build time and peak memory are measured per
-  # phase by generate.py/the native helper.
+  # phase by generate.py / the native helper.
   bbox ? "20.618591,53.892206,26.83873,56.45329",
   # bbox ? "24.95,54.52,25.55,54.92", # Vilnius prototype/iteration area
 }:
@@ -46,429 +40,214 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   builtins.isInt expansionBatchSize && expansionBatchSize > 0
 ) "mapgames: expansionBatchSize must be a positive integer";
+
 let
-  sourceUrl = "https://dl.jakstys.lt/maps/lithuania-260716.osm.pbf";
-  expansionArenaCap = expansionConcurrencyCap;
-  lithuaniaPbf = fetchurl {
-    name = "lithuania-260716.osm.pbf";
-    url = sourceUrl;
-    hash = "sha256-7X/oYyrVG9nVF8Qeqkof1OvPUi7KrNEjnxvqkZgG5fw=";
-  };
+  version = "260716";
 
-  # Pinned snapshot of the official PAGD shelter datasets, produced by the
-  # lt-shelters service (modules/services/lt-shelters). The repo uses sha256
-  # git objects, which nixpkgs' fetchgit cannot clone (it runs `git init`,
-  # defaulting to sha1, then fails with "mismatched algorithms"). A real
-  # `git clone` auto-negotiates the object format, so this fixed-output
-  # derivation clones and checks out the rev itself. outputHash is the NAR of
-  # only the three files generate.py consumes, so README/LICENSE churn in the
-  # source repo does not invalidate it — only a data or refresh-time change
-  # bumped via sheltersRev does. Bump sheltersRev + outputHash together, the
-  # same maintenance the pinned PBF above needs.
-  sheltersRepo = "https://git.jakstys.lt/lt-shelters.git";
-  sheltersRev = "1131eb85efe466ca01a30bf6e761a09f5a8da9d42c28e1087540b0e0bb6f657e";
-  pinnedShelters = stdenvNoCC.mkDerivation {
-    name = "lt-shelters-snapshot-${builtins.substring 0 12 sheltersRev}";
-    nativeBuildInputs = [
-      cacert
-      git
-    ];
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
-    outputHash = "sha256-kdGTxdfmPpVNT4a344uK9I0j/4HfeDCZX9jee8UwKGw=";
-    buildCommand = ''
-      export GIT_SSL_CAINFO="$NIX_SSL_CERT_FILE"
-      git clone --quiet ${sheltersRepo} repo
-      git -C repo checkout --quiet ${sheltersRev}
-      mkdir -p "$out"
-      install -m 0644 \
-        repo/priedangos.jsonl \
-        repo/kas.jsonl \
-        repo/refreshed-at.txt \
-        "$out/"
-    '';
-  };
-  shelters = if sheltersSrc == null then pinnedShelters else sheltersSrc;
+  # Zig 0.16 from nixpkgs-unstable, used for both dependency fetching and the
+  # build. maps.jakstys.lt pins `minimum_zig_version = "0.16.0"`.
+  zig = pkgs-unstable.zig_0_16;
 
-  maplibreVersion = "5.24.0";
-  maplibreSource = fetchurl {
-    url = "https://registry.npmjs.org/maplibre-gl/-/maplibre-gl-${maplibreVersion}.tgz";
-    hash = "sha256-XL+DwyjJ05yyTj8s78m0B9ad0QS6C0HoTAv7sxxE4oM=";
-  };
-
-  pmtilesJsVersion = "4.4.1";
-  pmtilesJsSource = fetchurl {
-    url = "https://registry.npmjs.org/pmtiles/-/pmtiles-${pmtilesJsVersion}.tgz";
-    hash = "sha256-4n78Cv4iIDJh4Pc0a8MhNszZHXLnw+0UxKfsZtHkiXw=";
-  };
-  pmtilesLicense = fetchurl {
-    url = "https://raw.githubusercontent.com/protomaps/PMTiles/0cebcaeade40034b86facb6e7da4ec726b9053fb/LICENSE";
-    hash = "sha256-A3HDjzOINff8E+1xF289khROIsi3NqMcztV62762R7M=";
-  };
-
-  protomapsBasemapsVersion = "5.7.2";
-  protomapsBasemapsSource = fetchurl {
-    url = "https://registry.npmjs.org/@protomaps/basemaps/-/basemaps-${protomapsBasemapsVersion}.tgz";
-    hash = "sha256-LV1BspzdI2T3CSrUOb2dFwtPOMvsiFjO++hND5gSXOY=";
-  };
-  protomapsBasemapsLicense = fetchurl {
-    url = "https://raw.githubusercontent.com/protomaps/basemaps/3ea8293a28131c3dc63f1bb20827bdb8a76df06f/LICENSE.md";
-    hash = "sha256-dPl1z+3RaAmMQ7XP1uWH5AYEaExP/Ow+kNJLOwnAYbA=";
-  };
-
-  basemapAssetsRevision = "028c18f713baecad011301ff7a69acc39bcc2ae7";
-  basemapAssetsSource = fetchurl {
-    url = "https://github.com/protomaps/basemaps-assets/archive/${basemapAssetsRevision}.tar.gz";
-    hash = "sha256-V+QOjFEr2AQtCjolHxnQ0chSOtljxmbDxmQ7raTcktA=";
-  };
-
+  # generate.py needs Shapely (which propagates GEOS) plus the CPython `_sqlite3`
+  # extension (bundled in nixpkgs' python3). Tilemaker/osmium/pmtiles/Valhalla
+  # are Zig-built inside `zig build` and are NOT nixpkgs inputs.
   python = python3.withPackages (ps: [ ps.shapely ]);
-  valhallaExpand = stdenv.mkDerivation {
-    pname = "mapgames-valhalla-expand";
-    version = "260716";
 
-    dontUnpack = true;
+  # Whole maps.jakstys.lt source tree at a pinned revision, via fetchgit.
+  #
+  # git.jakstys.lt uses sha256 git objects; fetchgit's `git init` defaults to
+  # sha1 and then rejects the sha256 pack. nixpkgs has no object-format knob, so
+  # set git's algorithm via preFetch -- the same proven pattern as
+  # pkgs/stagit-ng.nix. (`GIT_DEFAULT_HASH=sha256 nix-prefetch-git` clone-verifies
+  # this flat, non-owner-qualified URL.)
+  #
+  # Bump mapsRev + hash together when advancing the site.
+  # TODO(owner): confirm `hash` on the first `nix build` on a nix-daemon
+  # machine. It was computed as the NAR of a `.git`-stripped clone of mapsRev
+  # (== what fetchgit produces); `nix build` prints the correct value if it ever
+  # drifts.
+  mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
+  mapsRev = "0a7c832d8519807e2ae1abf0b0668be3b3666644ae6825cfbcaa966312281982";
+  mapsSrc = fetchgit {
+    url = mapsRepo;
+    rev = mapsRev;
+    preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
+    hash = "sha256-2U37InIYvMnmPyi6jFDlVO7dEUbGfxkVHp2Qspjt8e0=";
+  };
 
-    nativeBuildInputs = [ pkg-config ];
-    buildInputs = [
-      boost
-      libtiff
-      rapidjson
-      sqlite
-      valhalla
+  # All build.zig.zon dependencies of the *root* package (native source
+  # tarballs incl. Boost/SQLite/Valhalla/Tilemaker/osmium, browser-asset
+  # archives, the pinned Lithuania PBF, and lazy deps like the lt-shelters
+  # snapshot) as one fixed-output derivation.
+  #
+  # This is nixpkgs' `zig.fetchDeps` (pkgs/development/compilers/zig/fetcher.nix)
+  # inlined with ONE fix: `mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp"`. Zig 0.16 writes
+  # the temp download for a `.zip` dependency under $ZIG_GLOBAL_CACHE_DIR/tmp but
+  # does not create that dir, and fetcher.nix `mktemp -d`s the cache without it,
+  # so plain `zig.fetchDeps` fails on the sqlite `.zip` amalgamation with
+  # `error: failed to create temporary zip file: FileNotFound` (confirmed on a
+  # real `nix build`; `.tar.gz` deps are unaffected). TODO: drop this inline copy
+  # for plain `zig.fetchDeps` once nixpkgs' fetcher.nix creates tmp/ (worth
+  # upstreaming).
+  #
+  # `--fetch=all` (not `--fetch`) is REQUIRED: the Nix build phase has no network
+  # -- only this FOD does -- so every dep Zig resolves at build time, including
+  # LAZY ones (lt-shelters etc.), must already be in the pre-fetched `p/`. (The
+  # 12 nested `*-tests/build.zig.zon` manifests, used only by `zig build test`,
+  # are a separate concern from the site/data build.)
+  #
+  # `outputHash` below is the NAR of the fetched `p/`, pinned from a real
+  # `nix build`. Re-derive it (set to lib.fakeHash, read nix's reported value)
+  # whenever build.zig.zon's dependency set changes -- typically with a mapsRev
+  # bump.
+  zigDeps = runCommand "mapgames-${version}-zig-deps" {
+    src = mapsSrc;
+    nativeBuildInputs = [ zig ];
+    outputHashAlgo = null;
+    outputHashMode = "recursive";
+    outputHash = "sha256-maNL06Do1YVZvy0jvS1TCQkityhEJz9XmdNOOfA5Bqs="; # zig-deps NAR
+  } ''
+    export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
+    mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp" # sqlite .zip temp dir (see comment above)
+    runHook unpackPhase
+    cd "$sourceRoot"
+    zig build --fetch=all
+    mv "$ZIG_GLOBAL_CACHE_DIR/p" "$out"
+  '';
+
+  # The pre-fetched dependency set, exposed as the global cache's package store
+  # so `zig build` never touches the network. The nixpkgs zig setup-hook's
+  # zigConfigurePhase sets ZIG_GLOBAL_CACHE_DIR=$(mktemp -d); this link is done
+  # from postConfigure, which runs *after* that (NOT postPatch, where the cache
+  # dir is not set yet). The sandbox has no writable $HOME, but the hook points
+  # the global cache at a writable temp dir and Zig's local cache defaults to
+  # ./.zig-cache in the (writable) build dir, so no manual HOME / cache-dir
+  # exports are needed -- the manual prelude that set them is gone.
+  linkZigDeps = ''ln -s ${zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"'';
+
+  # Generation-tuning flags shared by every `zig build` invocation, as a Nix
+  # list (fed directly to the hook via zigBuildFlags for the default `site`
+  # target) and shell-escaped (for the explicit non-default data/test targets).
+  genFlagList =
+    [
+      "-Dbbox=${bbox}"
+      "-Dexpansion-concurrency-cap=${toString expansionConcurrencyCap}"
+      "-Dexpansion-batch-size=${toString expansionBatchSize}"
+    ]
+    ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}";
+  genFlagsEscaped = lib.escapeShellArgs genFlagList;
+
+  # concurrency is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
+  resolveConcurrency =
+    if concurrency == null then
+      ''mapgames_concurrency="$NIX_BUILD_CORES"''
+    else
+      ''mapgames_concurrency=${toString concurrency}'';
+
+  # `zig build` (default install == site) generates the country data, builds
+  # every native tool from source, assembles zig-out/www (browser vendoring +
+  # jq metadata enrichment happen inside build-site.sh) and runs the production
+  # check gate before publishing. This is the heavy derivation.
+  site = stdenvNoCC.mkDerivation {
+    pname = "mapgames-site";
+    inherit version;
+    src = mapsSrc;
+
+    nativeBuildInputs = [
+      zig
+      python
+      jq
     ];
 
+    # Full-country generation is single-derivation heavy work; give it the
+    # whole sandbox and do not let Zig fan out beyond the requested workers.
+    enableParallelBuilding = true;
+
+    # Lean on the zig setup-hook: zigConfigurePhase provides ZIG_GLOBAL_CACHE_DIR
+    # and zigBuildPhase runs the default `zig build` (== the site/www install).
+    # Keep maps' own optimize/cpu selection (README: the no-option build is
+    # ReleaseSafe; build.zig has an optimize audit and declares no `cpu` option)
+    # by suppressing the hook's default -Dcpu=baseline / --release=safe flags.
+    dontSetZigDefaultFlags = true;
+    postConfigure = linkZigDeps;
+    zigBuildFlags = genFlagList;
+    # -Dconcurrency must resolve $NIX_BUILD_CORES at build time, so append it to
+    # the array the hook concatenates rather than the eval-time list.
+    preBuild = ''
+      ${resolveConcurrency}
+      zigBuildFlagsArray+=("-Dconcurrency=$mapgames_concurrency")
+    '';
+
+    # maps installs the site to zig-out/www, not via `--prefix`, so the hook's
+    # default `zig build install --prefix $out` is wrong; install by hand.
+    dontUseZigInstall = true;
+    installPhase = ''
+      runHook preInstall
+      cp -r zig-out/www "$out"
+      runHook postInstall
+    '';
+
+    meta = {
+      description = "Deployable maps.jakstys.lt site (zig-out/www) for a configured Lithuania snapshot region";
+      homepage = "https://maps.jakstys.lt/";
+      license = with lib.licenses; [
+        mit
+        odbl
+        bsd2
+        bsd3
+        ofl
+      ];
+      platforms = [ "x86_64-linux" ];
+    };
+  };
+
+  # On-demand `zig build data` (zig-out/data): the generated JSON + PMTiles,
+  # validated by the data-check gate. Exposed through passthru so the raw data
+  # can be built/inspected without the browser-asset assembly.
+  data = stdenvNoCC.mkDerivation {
+    pname = "mapgames-data";
+    inherit version;
+    src = mapsSrc;
+
+    nativeBuildInputs = [
+      zig
+      python
+      jq
+    ];
+
+    # `data` is a non-default `zig build` target, so drive it explicitly; the
+    # hook's zigConfigurePhase still provides ZIG_GLOBAL_CACHE_DIR (deps linked
+    # in postConfigure) and dontSetZigDefaultFlags keeps maps' own optimize mode.
+    dontSetZigDefaultFlags = true;
+    postConfigure = linkZigDeps;
+    dontUseZigBuild = true;
     buildPhase = ''
       runHook preBuild
-
-      ln -s ${./destination-relations.hh} destination-relations.hh
-      ln -s ${./destination-lookup-finalize.hh} destination-lookup-finalize.hh
-      $CXX -std=c++20 -O2 -pthread ${./valhalla-expand.cc} \
-        ${./destination-lookup-native.cc} \
-        -I. \
-        -lsqlite3 \
-        -o mapgames-valhalla-expand \
-        $(pkg-config --cflags --libs libvalhalla)
-
+      ${resolveConcurrency}
+      zig build data ${genFlagsEscaped} -Dconcurrency="$mapgames_concurrency"
       runHook postBuild
     '';
 
+    dontUseZigInstall = true;
     installPhase = ''
       runHook preInstall
-
-      install -Dm755 mapgames-valhalla-expand "$out/bin/mapgames-valhalla-expand"
-
+      cp -r zig-out/data "$out"
       runHook postInstall
     '';
+
+    meta = site.meta // {
+      description = "Generated JSON and PMTiles (zig-out/data) for a configured Lithuania snapshot region";
+    };
   };
-  valhallaExpandRunner = writeShellScript "mapgames-valhalla-expand-runner" ''
-    export MALLOC_ARENA_MAX=${toString expansionArenaCap}
-    exec ${valhallaExpand}/bin/mapgames-valhalla-expand "$@"
-  '';
+
   writeEtags = ''
     find "$out" -type f ! -name '*.etag' | while read -r file; do
       hash=$(sha256sum "$file")
       printf '"%s"' "''${hash:0:32}" > "$file.etag"
     done
   '';
-  detailFixtureCheck = runCommand "mapgames-detail-fixture-check" { } ''
-    ${python3}/bin/python ${./check-detail-fixture.py} \
-      --config ${./detail.json} \
-      --fixture ${./testdata/detail.osm} \
-      --index ${./index.html} \
-      --osmium ${osmium-tool}/bin/osmium \
-      --process ${./detail.lua} \
-      --tilemaker ${tilemaker}/bin/tilemaker
-    touch "$out"
-  '';
-  inspectorFixtureCheck = runCommand "mapgames-inspector-fixture-check" { } ''
-    ${python3}/bin/python ${./check-inspector-fixture.py} \
-      --config ${./inspector.json} \
-      --fixture ${./testdata/inspector.osm} \
-      --osmium ${osmium-tool}/bin/osmium \
-      --process ${./inspector.lua} \
-      --tilemaker ${tilemaker}/bin/tilemaker
-    touch "$out"
-  '';
-  catalogCheck = runCommand "mapgames-catalog-check" { } ''
-    ${python3}/bin/python ${./check-catalog.py} \
-      --catalog-tool ${./catalog.py} \
-      --destination-tool ${./destination-lookup.py} \
-      --destination-native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
-      --generate ${./generate.py} \
-      --expand-source ${./valhalla-expand.cc} \
-      --pmtiles ${pmtiles}/bin/pmtiles
-    touch "$out"
-  '';
-  destinationLookupCheck = runCommand "mapgames-destination-lookup-check" { } ''
-    ${python3}/bin/python ${./check-destination-lookup.py} \
-      --tool ${./destination-lookup.py} \
-      --native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
-      --catalog-tool ${./catalog.py} \
-      --coarsen-tool ${./coarsen.py} \
-      --coarsen-check-tool ${./check-lowzoom-coarsen.py}
-    touch "$out"
-  '';
-  transitFixtureCheck = runCommand "mapgames-transit-fixture-check" { } ''
-    ${python3}/bin/python ${./check-transit-fixture.py} \
-      --fixture ${./testdata/transit.osm} \
-      --index ${./index.html} \
-      --osmium ${osmium-tool}/bin/osmium \
-      --transit ${./transit.py}
-    touch "$out"
-  '';
-  inspectorUiCheck = runCommand "mapgames-inspector-ui-check" { } ''
-    ${python3}/bin/python ${./check-inspector-ui.py} --index ${./index.html}
-    touch "$out"
-  '';
-  roadHitUiCheck = runCommand "mapgames-road-hit-ui-check" { } ''
-    ${python3}/bin/python ${./check-road-hit-ui.py} --index ${./index.html}
-    touch "$out"
-  '';
-  cameraBoundsCheck = runCommand "mapgames-camera-bounds-check" { } ''
-    ${python3}/bin/python ${./check-camera-bounds.py} --index ${./index.html}
-    touch "$out"
-  '';
-  geolocationUiCheck = runCommand "mapgames-geolocation-ui-check" { } ''
-    ${python3}/bin/python ${./check-geolocation-ui.py} --index ${./index.html}
-    touch "$out"
-  '';
-  waterUiCheck = runCommand "mapgames-water-ui-check" { } ''
-    ${python3}/bin/python ${./check-water-ui.py} --index ${./index.html}
-    touch "$out"
-  '';
-  catalogClientCheck =
-    runCommand "mapgames-catalog-client-check"
-      {
-        nativeBuildInputs = [ nodejs ];
-      }
-      ''
-        node ${./check-catalog-pages.js} ${./catalog-pages.js}
-        node ${./check-destination-relations.js} \
-          ${./destination-relations.js} ${./catalog-pages.js}
-        node ${./check-review-ui-state.js} ${./review-ui-state.js} ${./index.html}
-        ${python3}/bin/python ${./check-catalog-ui.py} \
-          --index ${./index.html} \
-          --client ${./catalog-pages.js}
-        ${python3}/bin/python ${./check-shared-destination-ui.py} \
-          --index ${./index.html} \
-          --resolver ${./destination-relations.js} \
-          --catalog-client ${./catalog-pages.js}
-        touch "$out"
-      '';
-  data = stdenvNoCC.mkDerivation {
-    pname = "mapgames-data";
-    version = "260716";
 
-    dontUnpack = true;
-
-    nativeBuildInputs = [
-      osmium-tool
-      pmtiles
-      python
-      tilemaker
-      valhalla
-      valhallaExpand
-    ];
-
-    buildPhase = ''
-      runHook preBuild
-
-      mapgames_concurrency=${if concurrency == null then "\"$NIX_BUILD_CORES\"" else toString concurrency}
-      mapgames_expansion_concurrency="$mapgames_concurrency"
-      if (( mapgames_expansion_concurrency > ${toString expansionConcurrencyCap} )); then
-        mapgames_expansion_concurrency=${toString expansionConcurrencyCap}
-      fi
-      export PYTHONPATH="${valhalla}/${python3.sitePackages}"
-      python ${./generate.py} \
-        --pbf ${lithuaniaPbf} \
-        --bbox ${lib.escapeShellArg bbox} \
-        --concurrency "$mapgames_concurrency" \
-        --expansion-concurrency "$mapgames_expansion_concurrency" \
-        --expansion-batch-size ${toString expansionBatchSize} \
-        --basemap-config ${./basemap.json} \
-        --basemap-process ${./basemap.lua} \
-        --detail-config ${./detail.json} \
-        --detail-process ${./detail.lua} \
-        --inspector-config ${./inspector.json} \
-        --inspector-process ${./inspector.lua} \
-        --transit-tool ${./transit.py} \
-        --geojson-process ${./geojson.lua} \
-        --catalog-tool ${./catalog.py} \
-        --destination-lookup-tool ${./destination-lookup.py} \
-        --destination-lookup-native-tool ${valhallaExpand}/bin/mapgames-valhalla-expand \
-        --pmtiles-cli-version ${lib.escapeShellArg pmtiles.version} \
-        --tilemaker-version ${lib.escapeShellArg tilemaker.version} \
-        --valhalla-version ${lib.escapeShellArg valhalla.version} \
-        --expansion-helper ${valhallaExpandRunner} \
-        --coarsen-tool ${./coarsen.py} \
-        --osm-source-url ${lib.escapeShellArg sourceUrl} \
-        --shelter-priedangos ${shelters}/priedangos.jsonl \
-        --shelter-kas ${shelters}/kas.jsonl \
-        --shelter-refreshed-at ${shelters}/refreshed-at.txt \
-        --output generated
-
-      runHook postBuild
-    '';
-
-    installPhase = ''
-      runHook preInstall
-
-      mkdir -p "$out"
-      cp generated/*.json generated/*.pmtiles "$out/"
-      ${writeEtags}
-
-      runHook postInstall
-    '';
-
-    passthru = {
-      inherit bbox lithuaniaPbf;
-      tests = {
-        catalog = catalogCheck;
-        catalogClient = catalogClientCheck;
-        destinationLookup = destinationLookupCheck;
-        cameraBounds = cameraBoundsCheck;
-        detailFixture = detailFixtureCheck;
-        geolocationUi = geolocationUiCheck;
-        inspectorFixture = inspectorFixtureCheck;
-        inspectorUi = inspectorUiCheck;
-        roadHitUi = roadHitUiCheck;
-        transitFixture = transitFixtureCheck;
-        waterUi = waterUiCheck;
-      };
-    };
-
-    meta = {
-      description = "Everyday-service reachable networks and vector tiles for a configured Lithuania snapshot region";
-      homepage = "https://www.openstreetmap.org/";
-      license = with lib.licenses; [
-        mit
-        odbl
-        bsd2
-        bsd3
-        ofl
-      ];
-      platforms = lib.platforms.linux;
-    };
-  };
-
-  www = stdenvNoCC.mkDerivation {
-    pname = "mapgames";
-    version = "260716";
-
-    dontUnpack = true;
-    dontBuild = true;
-
-    nativeBuildInputs = [ jq ];
-
-    installPhase = ''
-      runHook preInstall
-
-      mkdir -p \
-        "$out/assets/fonts" \
-        "$out/assets/sprites" \
-        vendor-maplibre \
-        vendor-pmtiles \
-        vendor-protomaps-basemaps \
-        vendor-basemap-assets
-      for file in ${data}/*; do
-        if test "''${file##*/}" != metadata.json && test "''${file##*/}" != metadata.json.etag; then
-          ln -s "$file" "$out/"
-        fi
-      done
-      jq \
-        --arg renderer "maplibre-gl" \
-        --arg renderer_version ${lib.escapeShellArg maplibreVersion} \
-        --arg pmtiles_js_version ${lib.escapeShellArg pmtilesJsVersion} \
-        --arg style "@protomaps/basemaps" \
-        --arg style_version ${lib.escapeShellArg protomapsBasemapsVersion} \
-        '.basemap += {
-          renderer: $renderer,
-          renderer_version: $renderer_version,
-          pmtiles_js_version: $pmtiles_js_version,
-          style: $style,
-          style_version: $style_version
-        }' \
-        ${data}/metadata.json > "$out/metadata.json"
-      cp ${./index.html} "$out/index.html"
-      cp ${./catalog-pages.js} "$out/assets/catalog-pages.js"
-      cp ${./destination-relations.js} "$out/assets/destination-relations.js"
-      cp ${./review-ui-state.js} "$out/assets/review-ui-state.js"
-      # Official PAGD civil-protection signs used as the priedanga/kas map
-      # symbols (loaded as icons by index.html).
-      cp ${./assets/priedanga.png} "$out/assets/priedanga.png"
-      cp ${./assets/kas.png} "$out/assets/kas.png"
-
-      tar -xzf ${maplibreSource} -C vendor-maplibre --strip-components=1 \
-        package/LICENSE.txt \
-        package/dist/maplibre-gl.css \
-        package/dist/maplibre-gl-csp.js \
-        package/dist/maplibre-gl-csp-worker.js
-      cp vendor-maplibre/dist/maplibre-gl.css \
-        vendor-maplibre/dist/maplibre-gl-csp.js \
-        vendor-maplibre/dist/maplibre-gl-csp-worker.js \
-        "$out/assets/"
-      cp vendor-maplibre/LICENSE.txt "$out/LICENSE.maplibre-gl"
-
-      tar -xzf ${pmtilesJsSource} -C vendor-pmtiles --strip-components=1 \
-        package/dist/pmtiles.js
-      cp vendor-pmtiles/dist/pmtiles.js "$out/assets/"
-      cp ${pmtilesLicense} "$out/LICENSE.pmtiles"
-
-      tar -xzf ${protomapsBasemapsSource} -C vendor-protomaps-basemaps \
-        --strip-components=1 package/dist/basemaps.js
-      cp vendor-protomaps-basemaps/dist/basemaps.js "$out/assets/"
-      cp ${protomapsBasemapsLicense} "$out/LICENSE.protomaps-basemaps"
-
-      tar -xzf ${basemapAssetsSource} -C vendor-basemap-assets --strip-components=1
-      cp -r \
-        vendor-basemap-assets/fonts/"Noto Sans Italic" \
-        vendor-basemap-assets/fonts/"Noto Sans Medium" \
-        vendor-basemap-assets/fonts/"Noto Sans Regular" \
-        "$out/assets/fonts/"
-      cp vendor-basemap-assets/sprites/v4/light* "$out/assets/sprites/"
-      # Style construction relies on these exact pinned pictograms at both
-      # device pixel ratios. Fail the derivation here instead of rendering an
-      # unexplained blank marker when an upstream atlas changes.
-      for sprite in \
-        "$out/assets/sprites/light.json" \
-        "$out/assets/sprites/light@2x.json"; do
-        jq -e '
-          has("arrow") and has("bench") and has("park") and has("toilets") and
-          has("train_station") and has("ferry_terminal") and
-          has("capital") and has("townspot") and
-          has("generic_shield-1char") and has("generic_shield-2char") and
-          has("generic_shield-3char") and has("generic_shield-4char") and
-          has("generic_shield-5char")
-        ' "$sprite" >/dev/null
-      done
-      cp vendor-basemap-assets/fonts/OFL.txt "$out/LICENSE.fonts-OFL"
-      cp vendor-basemap-assets/README.md "$out/LICENSE.basemap-assets-README"
-      ${writeEtags}
-
-      runHook postInstall
-    '';
-
-    passthru = {
-      inherit data;
-      inherit (data) lithuaniaPbf tests;
-    };
-
-    meta = {
-      description = "Everyday-service reachable networks and interactive map for a configured Lithuania snapshot region";
-      homepage = "https://www.openstreetmap.org/";
-      license = with lib.licenses; [
-        mit
-        odbl
-        bsd2
-        bsd3
-        ofl
-      ];
-      platforms = lib.platforms.linux;
-    };
-  };
-
-  compressed = compressDrvWeb www {
+  compressed = compressDrvWeb site {
     # Never add "pmtiles" here (or serve pmtiles pre-encoded): pmtiles.js
     # issues HTTP Range requests that must address identity bytes. A .br/.gz
     # sidecar would let the web server satisfy ranges over encoded bytes,
@@ -479,19 +258,61 @@ let
     ];
   };
 in
-runCommand "${compressed.name}-etag"
+runCommand "mapgames-${version}"
   {
-    # compressDrvWeb transforms the files but does not preserve custom
-    # passthru attributes. Keep the compressed payload below while carrying
-    # the web package identity/tests through the final etag wrapper.
-    inherit (www)
-      meta
-      passthru
-      pname
-      version
-      ;
+    # compressDrvWeb transforms the files but does not carry custom passthru.
+    # Keep the compressed payload while carrying the package identity/tests
+    # through the final etag wrapper. Static compression + ETags are the
+    # deployment layer: maps.jakstys.lt's `zig build` deliberately does not
+    # emit them, so they are produced here.
+    pname = "mapgames";
+    inherit version;
+    inherit (site) meta;
+    passthru = {
+      inherit site data;
+      tests = {
+        # `zig build test` is the comprehensive production + fixture/UI/native
+        # suite. It is reused against the already-generated `data` output via
+        # -Dsite-data so the country is not regenerated for the checks.
+        # The site-check/check fingerprint scopes additionally require the
+        # test-only tools node/strace/sqlite3 in PATH (wired below).
+        # TODO(owner): verify on a nix-daemon machine (never built here).
+        zigTest = stdenvNoCC.mkDerivation {
+          pname = "mapgames-zig-test";
+          inherit version;
+          src = mapsSrc;
+          nativeBuildInputs = [
+            zig
+            python
+            jq
+            nodejs
+            strace
+            sqlite
+          ];
+          # `test` is a non-default target; drive it explicitly but still use the
+          # hook's zigConfigurePhase (cache dir) + postConfigure dep link.
+          dontSetZigDefaultFlags = true;
+          postConfigure = linkZigDeps;
+          dontUseZigBuild = true;
+          buildPhase = ''
+            runHook preBuild
+            ${resolveConcurrency}
+            zig build test ${genFlagsEscaped} \
+              -Dconcurrency="$mapgames_concurrency" \
+              -Dsite-data=${data}
+            runHook postBuild
+          '';
+          dontUseZigInstall = true;
+          installPhase = ''
+            runHook preInstall
+            touch "$out"
+            runHook postInstall
+          '';
+        };
+      };
+    };
   }
   ''
-    cp -r --no-preserve=mode ${compressed} $out
+    cp -r --no-preserve=mode ${compressed} "$out"
     ${writeEtags}
   ''
