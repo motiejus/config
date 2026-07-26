@@ -105,10 +105,11 @@ let
             data = open(path, "rb").read()
             return {"length": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
-        def add(group_key, group_dir, role, ext, content, negotiated=False):
+        def add(group_key, role, ext, content, negotiated=False):
             h = hashlib.sha256(content).hexdigest()
             name = f"{role}-{h[:16]}.{ext}"
-            d = os.path.join(out, group_dir, "objects")
+            # Every content-addressed object lives in a single flat /_/ namespace.
+            d = os.path.join(out, "_")
             os.makedirs(d, exist_ok=True)
             p = os.path.join(d, name)
             with open(p, "wb") as fh:
@@ -124,18 +125,18 @@ let
 
         os.makedirs(out, exist_ok=True)
         # A negotiated app object (has a real .br sibling) …
-        add("app_objects", "app", "main", "js", ${builtins.toJSON appBody}.encode(),
+        add("app_objects", "main", "js", ${builtins.toJSON appBody}.encode(),
             negotiated=True)
-        add("search_objects", "search", "names", "mgs",
+        add("search_objects", "names", "mgs",
             ${builtins.toJSON searchBody}.encode(), negotiated=True)
         # … and an identity-only PMTiles object big enough for a real byte Range.
         pm = bytes(range(256)) * 16
         pm = ${builtins.toJSON pmtilesSeed}.encode() + pm[len(${builtins.toJSON pmtilesSeed}):]
-        add("map_objects", "map", "catalog", "pmtiles", pm)
+        add("map_objects", "catalog", "pmtiles", pm)
         # Optional filler objects: they make the staging copy long enough to be
         # observed live from outside the process.
         for i in range(${toString fillers}):
-            add("app_objects", "app", f"filler{i:04d}", "js",
+            add("app_objects", f"filler{i:04d}", "js",
                 (f"filler-{i}-" + "x" * 8192).encode())
 
         page = os.path.join(out, "index.html")
@@ -186,8 +187,8 @@ let
   # A deliberately broken candidate: web-graph.json declares an object whose
   # file is absent -> the publisher must fail closed before staging.
   candBroken = pkgs.runCommand "mapgames-candidate-broken" { } ''
-    mkdir -p $out/app/objects
-    printf 'x' > $out/app/objects/main-0000000000000000.js
+    mkdir -p $out/_
+    printf 'x' > $out/_/main-0000000000000000.js
     printf '<html>broken</html>' > $out/index.html
     cat > $out/web-graph.json <<'JSON'
     {"app_objects":{"ghost-1111111111111111.js":{"hash16":"1111111111111111","raw_length":1,"raw_sha256":"1111111111111111111111111111111111111111111111111111111111111111","representations":{"":{"length":1,"sha256":"1111111111111111111111111111111111111111111111111111111111111111"}},"role":"ghost"}},"bundles":{},"edges":{"metadata":[],"page":[],"worker":[]},"map_objects":{},"page":{"mutable":true,"representations":{"":{}}},"search_objects":{}}
@@ -370,7 +371,7 @@ pkgs.testers.runNixOSTest {
 
     with subtest("immutable object: one-year cache + a REAL 304 on revalidation"):
         obj = machine.succeed(
-            "cd /var/lib/mapgames/current && ls app/objects/main-*.js").strip()
+            "cd /var/lib/mapgames/current && ls _/main-*.js").strip()
         status, h = headers(machine, "/" + obj)
         assert "max-age=31536000" in h["cache-control"] and "immutable" in h["cache-control"]
         etag = h["etag"]
@@ -398,7 +399,7 @@ pkgs.testers.runNixOSTest {
 
     with subtest("identity-only PMTiles: Range/206 from the RAW file, no Vary"):
         pm = machine.succeed(
-            "cd /var/lib/mapgames/current && ls map/objects/catalog-*.pmtiles").strip()
+            "cd /var/lib/mapgames/current && ls _/catalog-*.pmtiles").strip()
         raw_len = machine.succeed(
             f"stat -Lc%s /var/lib/mapgames/current/{pm}").strip()
         # Plant a ROGUE .br sibling next to the object: identity-only formats are

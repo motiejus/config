@@ -139,7 +139,10 @@
         }
 
         # Every hash-named immutable object: one-year public immutable cache.
-        @immutable path /app/objects/* /search/objects/* /map/objects/*
+        # All content-addressed objects live in a single flat /_/ namespace
+        # (stagit-ng style), replacing the retired per-domain
+        # /app/objects, /map/objects and /search/objects trees.
+        @immutable path /_/*
         header @immutable Cache-Control "public, max-age=31536000, immutable"
 
         # Identity-only formats (§4.1): PMTiles/MGA/MGG are byte-Range fetched by
