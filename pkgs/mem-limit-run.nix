@@ -24,8 +24,24 @@ writeShellApplication {
     pool=''${MEM_POOL:-/sys/fs/cgroup/pool}
 
     if [ "$#" -eq 0 ]; then
-        echo "usage: mem-limit-run command [args...]" >&2
+        echo "usage: [MEM_POOL_SUB=name [MEM_POOL_SUB_MAX=bytes]] mem-limit-run command [args...]" >&2
         exit 2
+    fi
+
+    # Per-job accounting: when the pool is a non-leaf (controllers delegated to
+    # children) or a sub-group is requested, join a named leaf under it instead.
+    # The leaf is created on demand; MEM_POOL_SUB_MAX optionally caps it (the
+    # pool's aggregate cap always applies hierarchically on top).
+    if [ -n "''${MEM_POOL_SUB:-}" ] || [ -s "$pool/cgroup.subtree_control" ]; then
+        sub=''${MEM_POOL_SUB:-main}
+        mkdir -p "$pool/$sub" 2>/dev/null || true
+        if [ -n "''${MEM_POOL_SUB_MAX:-}" ] && [ -w "$pool/$sub/memory.max" ]; then
+            echo "''${MEM_POOL_SUB_MAX}" > "$pool/$sub/memory.max"
+        fi
+        aggregate_cap=$(cat "$pool/memory.max" 2>/dev/null || echo '?')
+        pool="$pool/$sub"
+    else
+        aggregate_cap=""
     fi
 
     if [ ! -w "$pool/cgroup.procs" ]; then
@@ -53,11 +69,14 @@ writeShellApplication {
     oom_after=$(read_oom)
     cap=$(cat "$pool/memory.max" 2>/dev/null || echo '?')
     cur=$(cat "$pool/memory.current" 2>/dev/null || echo '?')
+    if [ "$cap" = "max" ] && [ -n "''${aggregate_cap:-}" ]; then
+        cap="''${aggregate_cap} (aggregate)"
+    fi
 
-    # Shared pool: distinguish a pool-wide OOM (could be any agent's command)
-    # from this command's own SIGKILL.
+    # In a named leaf, memory.events is THIS job's subtree -- oom attribution
+    # is exact. Joined directly to a shared pool, it may be any agent's command.
     if [ "''${oom_after:-0}" -gt "''${oom_before:-0}" ]; then
-        echo "mem-limit-run: pool-wide oom_kill rose ''${oom_before}->''${oom_after} during this job (may be another agent's command). Pool current ''${cur} B, cap ''${cap} B." >&2
+        echo "mem-limit-run: oom_kill rose ''${oom_before}->''${oom_after} in '$pool' during this job. Current ''${cur} B, cap ''${cap} B." >&2
     fi
     if [ "$status" -eq 137 ]; then
         {
