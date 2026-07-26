@@ -66,12 +66,12 @@ let
   # (== what fetchgit produces); `nix build` prints the correct value if it ever
   # drifts.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  mapsRev = "28133f3efac9c54a29dfaa934ca38b12105621c8e46fb03916eb4942213ca611";
+  mapsRev = "0562a04ebb0361e1e7d1eb89fc4cadd0faadca0f364aa4c1a8eb627c36a885c5";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
     preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-IZ/Z7I+Um+M5D0zPd3YdKD5vGLfA8JKs3yuS6DTlFqE=";
+    hash = "sha256-aslfngl/A17t4rd+uNl1lbzXaHKURPQG5UbWtA3FFk4=";
   };
 
   # All build.zig.zon dependencies of the *root* package (native source
