@@ -2,6 +2,7 @@
   lib,
   stdenvNoCC,
   fetchgit,
+  fetchurl,
   jq,
   python3,
   runCommand,
@@ -16,9 +17,12 @@
   # unstable (zig.default == zig_0_16 == 0.16.0).
   pkgs-unstable,
   # Optional local lt-shelters snapshot (a directory with priedangos.jsonl,
-  # kas.jsonl, refreshed-at.txt and LICENSE-DATA.md). null keeps the pinned
-  # `lt_shelters` build.zig.zon dependency in the Zig build graph (the normal
-  # production path). Override with a checkout for shelter-data iteration.
+  # kas.jsonl, refreshed-at.txt and LICENSE-DATA.md). As of maps Phase 3
+  # (design §C.4 / decision 4) the snapshot left build.zig.zon: build.zig no
+  # longer fetches it and REQUIRES `-Dshelters=<dir>` for every data step. null
+  # therefore means "use the pinned sha256-object lt-shelters.git HEAD fetched
+  # by config below" (the normal production path). Override with a checkout for
+  # shelter-data iteration.
   sheltersSrc ? null,
   # null means "use $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
@@ -66,18 +70,20 @@ let
   # (== what fetchgit produces); `nix build` prints the correct value if it ever
   # drifts.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  mapsRev = "0562a04ebb0361e1e7d1eb89fc4cadd0faadca0f364aa4c1a8eb627c36a885c5";
+  mapsRev = "9f7d238f6fc7754c0727072e40a06085e052387132ff749c1e00458ecc8e848b";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
     preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-aslfngl/A17t4rd+uNl1lbzXaHKURPQG5UbWtA3FFk4=";
+    hash = "sha256-SBLjGilLn2ZOaKcq3A0kdNbpzY4xlemgvpbMswixXtQ=";
   };
 
   # All build.zig.zon dependencies of the *root* package (native source
-  # tarballs incl. Boost/SQLite/Valhalla/Tilemaker/osmium, browser-asset
-  # archives, the pinned Lithuania PBF, and lazy deps like the lt-shelters
-  # snapshot) as one fixed-output derivation.
+  # tarballs incl. Boost/SQLite/Valhalla/Tilemaker/osmium and the browser-asset
+  # archives) as one fixed-output derivation. As of maps Phase 3 the Lithuania
+  # PBF and lt-shelters snapshot are NO LONGER manifest deps (they left
+  # build.zig.zon, design §C.4); config fetches them separately (pbfSrc /
+  # shelters below) and passes them as -Dpbf/-Dshelters.
   #
   # This is nixpkgs' `zig.fetchDeps` (pkgs/development/compilers/zig/fetcher.nix)
   # inlined with ONE fix: `mkdir -p "$ZIG_GLOBAL_CACHE_DIR/tmp"`. Zig 0.16 writes
@@ -91,14 +97,16 @@ let
   #
   # `--fetch=all` (not `--fetch`) is REQUIRED: the Nix build phase has no network
   # -- only this FOD does -- so every dep Zig resolves at build time, including
-  # LAZY ones (lt-shelters etc.), must already be in the pre-fetched `p/`. (The
+  # any LAZY ones, must already be in the pre-fetched `p/`. (The
   # 12 nested `*-tests/build.zig.zon` manifests, used only by `zig build test`,
   # are a separate concern from the site/data build.)
   #
   # `outputHash` below is the NAR of the fetched `p/`, pinned from a real
   # `nix build`. Re-derive it (set to lib.fakeHash, read nix's reported value)
   # whenever build.zig.zon's dependency set changes -- typically with a mapsRev
-  # bump.
+  # bump. The 9f7d238f (Phase 3) bump SHRANK the set -- lithuania_pbf and
+  # lt_shelters left the manifest -- so the value below is STALE; the first
+  # `nix build` on a nix-daemon machine prints the correct hash to paste here.
   zigDeps =
     runCommand "mapgames-${version}-zig-deps"
       {
@@ -127,6 +135,38 @@ let
   # exports are needed -- the manual prelude that set them is gone.
   linkZigDeps = ''ln -s ${zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"'';
 
+  # Phase-3 REQUIRED external data inputs (design §C.4 / decision 4): build.zig
+  # no longer fetches these -- they left build.zig.zon -- so config supplies them
+  # as -Dpbf/-Dshelters on every data/site build (a data step requested without
+  # them fails loudly). `check`/`test` run over committed fixtures and need
+  # neither (the lazyDependency-orelse grace), so these flags are added ONLY to
+  # the data-building invocations below, never to the test path.
+  #
+  # pbfSrc: the raw Lithuania .osm.pbf via fetchurl (flat file, plain download --
+  # not a tarball; the old build.zig.zon pinned a .tar.gz of it, build.zig now
+  # takes the bare .pbf path).
+  pbfSrc = fetchurl {
+    url = "https://dl.jakstys.lt/maps/lithuania-260716.osm.pbf";
+    hash = "sha256-7X/oYyrVG9nVF8Qeqkof1OvPUi7KrNEjnxvqkZgG5fw=";
+  };
+
+  # shelters: the lt-shelters snapshot dir. Production default = the pinned
+  # sha256-object lt-shelters.git HEAD via fetchgit (verified to exist as a real
+  # sha256 repo; git.jakstys.lt is sha256 object format, so preFetch sets
+  # GIT_DEFAULT_HASH -- same proven pattern as mapsSrc). Override sheltersSrc with
+  # a local checkout for shelter-data iteration. Bump sheltersRev + hash together.
+  sheltersRev = "1131eb85efe466ca01a30bf6e761a09f5a8da9d42c28e1087540b0e0bb6f657e";
+  shelters =
+    if sheltersSrc != null then
+      sheltersSrc
+    else
+      fetchgit {
+        url = "https://git.jakstys.lt/lt-shelters.git";
+        rev = sheltersRev;
+        preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
+        hash = "sha256-UDz6jmf/KJvlzqKHZ5uAJHPazxP2GzZJRJVk+tQHLB4=";
+      };
+
   # Generation-tuning flags shared by every `zig build` invocation, as a Nix
   # list (fed directly to the hook via zigBuildFlags for the default `site`
   # target) and shell-escaped (for the explicit non-default data/test targets).
@@ -134,9 +174,16 @@ let
     "-Dbbox=${bbox}"
     "-Dexpansion-concurrency-cap=${toString expansionConcurrencyCap}"
     "-Dexpansion-batch-size=${toString expansionBatchSize}"
-  ]
-  ++ lib.optional (sheltersSrc != null) "-Dshelters=${sheltersSrc}";
+  ];
   genFlagsEscaped = lib.escapeShellArgs genFlagList;
+
+  # The REQUIRED data inputs, added ONLY to data-building targets (site, data) --
+  # NOT to the fixture-only `test`/`check` graph (design §C.4).
+  dataInputFlags = [
+    "-Dpbf=${pbfSrc}"
+    "-Dshelters=${shelters}"
+  ];
+  dataFlagsEscaped = lib.escapeShellArgs (genFlagList ++ dataInputFlags);
 
   # concurrency is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
   resolveConcurrency =
@@ -171,7 +218,7 @@ let
     # by suppressing the hook's default -Dcpu=baseline / --release=safe flags.
     dontSetZigDefaultFlags = true;
     postConfigure = linkZigDeps;
-    zigBuildFlags = genFlagList;
+    zigBuildFlags = genFlagList ++ dataInputFlags;
     # -Dconcurrency must resolve $NIX_BUILD_CORES at build time, so append it to
     # the array the hook concatenates rather than the eval-time list.
     preBuild = ''
@@ -225,7 +272,7 @@ let
     buildPhase = ''
       runHook preBuild
       ${resolveConcurrency}
-      zig build data ${genFlagsEscaped} -Dconcurrency="$mapgames_concurrency"
+      zig build data ${dataFlagsEscaped} -Dconcurrency="$mapgames_concurrency"
       runHook postBuild
     '';
 
