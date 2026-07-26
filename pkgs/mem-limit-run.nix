@@ -36,7 +36,21 @@ writeShellApplication {
         sub=''${MEM_POOL_SUB:-main}
         mkdir -p "$pool/$sub" 2>/dev/null || true
         if [ -n "''${MEM_POOL_SUB_MAX:-}" ] && [ -w "$pool/$sub/memory.max" ]; then
-            echo "''${MEM_POOL_SUB_MAX}" > "$pool/$sub/memory.max"
+            # memory.max accepts only a non-negative integer or the literal
+            # "max" -- validate before writing so a bad value fails loudly
+            # instead of silently leaving the leaf uncapped.
+            case "''${MEM_POOL_SUB_MAX}" in
+                max)
+                    echo "''${MEM_POOL_SUB_MAX}" > "$pool/$sub/memory.max"
+                    ;;
+                0 | *[!0-9]* | "")
+                    echo "mem-limit-run: invalid MEM_POOL_SUB_MAX=''${MEM_POOL_SUB_MAX} (want a positive integer byte count or 'max')" >&2
+                    exit 2
+                    ;;
+                *)
+                    echo "''${MEM_POOL_SUB_MAX}" > "$pool/$sub/memory.max"
+                    ;;
+            esac
         fi
         aggregate_cap=$(cat "$pool/memory.max" 2>/dev/null || echo '?')
         pool="$pool/$sub"

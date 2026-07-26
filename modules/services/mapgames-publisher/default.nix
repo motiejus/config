@@ -45,9 +45,10 @@ in
       default = pkgs.mapgames;
       description = ''
         The candidate served tree (the immutable content-addressed web graph
-        produced by build-web-graph.py). It is passed to the seed oneshot as an
-        explicit immutable Nix store input and drives restartTriggers, so a
-        changed candidate re-runs the seed before Caddy starts.
+        produced by the web-graph Zig build tool). It is passed to the seed
+        oneshot as an explicit immutable Nix store input and drives
+        restartTriggers, so a changed candidate re-runs the seed before Caddy
+        starts.
       '';
     };
 

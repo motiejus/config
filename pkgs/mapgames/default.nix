@@ -248,9 +248,10 @@ let
   publisherScript = "${mapsSrc}/mapgames-publisher.py";
 in
 # The deployable artifact is maps' own `zig build` output: the search-injected,
-# content-addressed object graph. inject-search.py and build-web-graph.py run
-# INSIDE maps' build now, so `zig-out/www` already contains the hash-named
-# objects, their allowlisted Brotli siblings and web-graph.json. The
+# content-addressed object graph. The inject-search and web-graph Zig build
+# tools (src/build_tools/inject_search.zig, web_graph.zig) run INSIDE maps'
+# build now, so `zig-out/www` already contains the hash-named objects, their
+# allowlisted Brotli siblings and web-graph.json. The
 # mapgames-publisher module consumes this as its `candidate`; Caddy serves the
 # atomically-seeded /var/lib/mapgames/current.
 #
