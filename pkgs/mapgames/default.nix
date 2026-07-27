@@ -114,7 +114,7 @@ let
         nativeBuildInputs = [ zig ];
         outputHashAlgo = null;
         outputHashMode = "recursive";
-        outputHash = "sha256-maNL06Do1YVZvy0jvS1TCQkityhEJz9XmdNOOfA5Bqs="; # zig-deps NAR
+        outputHash = "sha256-coWBU6PpXmiIqFY0En4pZxbwdQwOUwd25QwLiUdVcW8="; # zig-deps NAR
       }
       ''
         export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
