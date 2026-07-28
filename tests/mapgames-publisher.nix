@@ -4,7 +4,7 @@
 # It drives the SHIPPING artifacts, not paraphrases of them:
 #
 #   * the publisher state machine is the one that ships inside the maps source
-#     tree, exposed here as `pkgs.mapgames.publisherScript` — the exact copy the
+#     tree, exposed here as `pkgs.mapgames.publisher` (Zig binary) — the exact copy the
 #     mapgames-publisher module wraps in production;
 #   * the vhost body is taken verbatim out of `hosts/fwminex/caddy.nix`
 #     (`maps.jakstys.lt`), with only the production `tls` line removed — so the
@@ -43,9 +43,11 @@
 }:
 let
   inherit (pkgs) lib;
-  # The publisher state machine that ships inside maps (repo root), surfaced by
-  # the config overlay as a store path. This is the production copy under test.
-  publisherSrc = pkgs.mapgames.publisherScript;
+  # The publisher state machine that ships inside maps as a standalone Zig
+  # binary (the port of the retired mapgames-publisher.py), surfaced by the
+  # config overlay as `pkgs.mapgames.publisher` (a package with
+  # bin/mapgames-publisher). This is the production copy under test.
+  publisher = pkgs.mapgames.publisher;
 
   # ---------------------------------------------------------------------------
   # The SHIPPING Caddy policy, reused verbatim.
@@ -193,13 +195,6 @@ let
     cat > $out/web-graph.json <<'JSON'
     {"app_objects":{"ghost-1111111111111111.js":{"hash16":"1111111111111111","raw_length":1,"raw_sha256":"1111111111111111111111111111111111111111111111111111111111111111","representations":{"":{"length":1,"sha256":"1111111111111111111111111111111111111111111111111111111111111111"}},"role":"ghost"}},"bundles":{},"edges":{"metadata":[],"page":[],"worker":[]},"map_objects":{},"page":{"mutable":true,"representations":{"":{}}},"search_objects":{}}
     JSON
-  '';
-
-  publisher = pkgs.runCommand "mapgames-publisher" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
-    mkdir -p $out/bin $out/libexec
-    cp ${publisherSrc} $out/libexec/mapgames-publisher.py
-    makeWrapper ${pkgs.python3}/bin/python3 $out/bin/mapgames-publisher \
-      --add-flags $out/libexec/mapgames-publisher.py
   '';
 
   commonNode =

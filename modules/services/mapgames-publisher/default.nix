@@ -7,24 +7,16 @@
 let
   cfg = config.mj.services.mapgames-publisher;
 
-  # The stateful publisher is the sole writer of /var/lib/mapgames. It is a
-  # thin wrapper around the reviewed mapgames-publisher.py state machine; there
-  # is no daemon user and no Caddy-writable object directory.
+  # The stateful publisher is the sole writer of /var/lib/mapgames. It is the
+  # reviewed mapgames-publisher state machine; there is no daemon user and no
+  # Caddy-writable object directory.
   #
-  # The state-machine script ships inside the maps.jakstys.lt source tree now
-  # (repo root), not in this config repo; pkgs.mapgames exposes its store path
-  # as `publisherScript` so there is exactly one copy under version control.
-  publisher =
-    pkgs.runCommand "mapgames-publisher"
-      {
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-      }
-      ''
-        mkdir -p $out/bin $out/libexec
-        cp ${pkgs.mapgames.publisherScript} $out/libexec/mapgames-publisher.py
-        makeWrapper ${pkgs.python3}/bin/python3 $out/bin/mapgames-publisher \
-          --add-flags $out/libexec/mapgames-publisher.py
-      '';
+  # The state machine is now a standalone Zig binary built inside the
+  # maps.jakstys.lt source tree (the port of the retired mapgames-publisher.py).
+  # pkgs.mapgames exposes it -- sliced out of the Deriv 2 tree -- as `publisher`
+  # (a package with bin/mapgames-publisher), so there is exactly one copy under
+  # version control and no python interpreter in the wrapper anymore.
+  publisher = pkgs.mapgames.publisher;
 in
 {
   options.mj.services.mapgames-publisher = {
