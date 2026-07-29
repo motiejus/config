@@ -86,14 +86,14 @@ let
   # sha256-EEqDmzlPQKX9BVdXeynKX0rEGKMABvmBw1r/l27tX0g=) byte-for-byte before
   # trusting this one. Bump mapsRev + hash together when advancing the site.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  # main @ 419692f (P1+P2+P3a merged: zero .py outside benchmarks, checks are
-  # zig+node, one opt-in chromium e2e, publisher is a zig binary).
-  mapsRev = "419692f6865049a4d1d3754a5f6346ce2d29a8e84c38b33d22456c6c42d6e656";
+  # main @ e3d76fe (419692f + the result-row icon feature: shared sprite sheet
+  # extended with 9 mgs-* result glyphs, README recaptured to showcase them).
+  mapsRev = "e3d76fe6f0e01c8042e8e36a5009383e9caf1a82bc4b68cf67c47f4afed49c7c";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
     preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-6sHQKbsRQI3y1yOYO5A2j377RKF97BIG2fav52soHJk=";
+    hash = "sha256-h7f28aH+2r5ks5wTo1f4R9chvLfqpF7UvQLVyqftrco=";
   };
 
   # ── Deriv 1: zigDeps ──────────────────────────────────────────────────────
