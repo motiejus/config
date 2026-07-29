@@ -87,7 +87,7 @@ let
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
   # main @ 50ac9a4 (e3d76fe + delete the mapgames-publisher; the site derivation
   # is now served directly by Caddy as an immutable store path).
-  mapsRev = "50ac9a416641b58dc184789f91d0968d4eabcc09b2d25f700cc8606675395880";
+  mapsRev = "1mxpx2l7kacdviqs86qx59lkwjfzgjh4ai859x9lygpv9pyn0ii6";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
