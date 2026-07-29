@@ -80,31 +80,6 @@
     let
       myData = import ./data.nix;
 
-      # x86_64-linux package set with this flake's overlays, used to evaluate the
-      # deployed-package checks against the same locked mapgames overlay the host
-      # config uses. (Let bindings are mutually recursive, so referring to
-      # baseOverlays defined below is fine.)
-      mapgamesPkgs = import nixpkgs {
-        overlays = baseOverlays;
-        system = "x86_64-linux";
-        config.allowUnfree = true;
-      };
-
-      # Nix-side checks that exercise the DEPLOYED package rather than maps'
-      # in-repo build gates. The publisher VM test drives the real
-      # mapgames-publisher module + the shipping maps.jakstys.lt Caddy vhost +
-      # the seed-before-caddy ordering — none of which maps' `zig build` can
-      # cover. The search build/generation/format/ranking/browser gates all run
-      # inside maps' own `zig build test` now, so they are deliberately NOT
-      # re-derived here (they no longer have source in this repo). The old
-      # `mapgames-search-release-gate` app is likewise a maps-side artifact now:
-      # it depended on the in-tree source-closure.cc, check-search-*.py roles and
-      # the (bbox-buggy, since-fixed) searchArtifacts derivation, all of which
-      # moved to maps.
-      mapgamesChecks = {
-        mapgames-publisher = import ./tests/mapgames-publisher.nix { pkgs = mapgamesPkgs; };
-      };
-
       baseOverlays = [
         nur.overlays.default
         zig.overlays.default
@@ -359,7 +334,6 @@
             };
           };
         }
-        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") mapgamesChecks
       ) deploy-rs.lib;
     }
     // flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (

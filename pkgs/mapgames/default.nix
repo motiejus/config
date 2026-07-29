@@ -55,8 +55,7 @@ let
   # production path). This package mirrors that with four derivations:
   #
   #   Deriv 1  zigDeps   fetch FOD of build.zig.zon's dep set          [zig]
-  #   Deriv 2  mapmaker  the native tools + search.wasm + publisher    [zig]
-  #                      + the node-free publisher slim test. The
+  #   Deriv 2  mapmaker  the native tools + search.wasm. The            [zig]
   #                      rarely-changing cached foundation Deriv 3/4
   #                      consume via build.zig's `-Dmapmaker` handshake.
   #   Deriv 3  site/data generate + assemble the served www / data,    [zig]
@@ -82,18 +81,18 @@ let
   # `hash` is the NAR of a `.git`-stripped checkout of mapsRev (== what fetchgit
   # produces). It is computed OFF-DAEMON per AGENTS.md §8.1
   # (`git archive <rev> | tar -x -C d && nix-hash --type sha256 --sri d`); the
-  # method was validated by reproducing the previous pin (403a9ea6 ->
-  # sha256-EEqDmzlPQKX9BVdXeynKX0rEGKMABvmBw1r/l27tX0g=) byte-for-byte before
+  # method was validated by reproducing the previous pin (e3d76fe6 ->
+  # sha256-h7f28aH+2r5ks5wTo1f4R9chvLfqpF7UvQLVyqftrco=) byte-for-byte before
   # trusting this one. Bump mapsRev + hash together when advancing the site.
   mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  # main @ e3d76fe (419692f + the result-row icon feature: shared sprite sheet
-  # extended with 9 mgs-* result glyphs, README recaptured to showcase them).
-  mapsRev = "e3d76fe6f0e01c8042e8e36a5009383e9caf1a82bc4b68cf67c47f4afed49c7c";
+  # main @ 50ac9a4 (e3d76fe + delete the mapgames-publisher; the site derivation
+  # is now served directly by Caddy as an immutable store path).
+  mapsRev = "50ac9a416641b58dc184789f91d0968d4eabcc09b2d25f700cc8606675395880";
   mapsSrc = fetchgit {
     url = mapsRepo;
     rev = mapsRev;
     preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-h7f28aH+2r5ks5wTo1f4R9chvLfqpF7UvQLVyqftrco=";
+    hash = "sha256-JkZg/U37Pk9TTwVFRaB830k+aSodG6Rx3I2peajot9c=";
   };
 
   # ── Deriv 1: zigDeps ──────────────────────────────────────────────────────
@@ -120,10 +119,10 @@ let
   #
   # `outputHash` is the NAR of the fetched `p/`, pinned from a real `nix build`
   # (config commit 893104509cc9, the Phase-4 dep set). It only needs re-deriving
-  # when build.zig.zon's dependency set changes. For the 403a9ea6 -> 419692f
-  # (P3b) mapsRev bump `git diff` over build.zig.zon is EMPTY, so the dep set is
-  # unchanged and this value stands. Re-derive OFF-DAEMON (AGENTS.md §8.3) or
-  # via lib.fakeHash on the next set-changing bump.
+  # when build.zig.zon's dependency set changes. For the e3d76fe6 -> 50ac9a4
+  # (mapgames-publisher deletion) mapsRev bump `git diff` over build.zig.zon is
+  # EMPTY, so the dep set is unchanged and this value stands. Re-derive OFF-DAEMON
+  # (AGENTS.md §8.3) or via lib.fakeHash on the next set-changing bump.
   zigDeps =
     runCommand "mapgames-${version}-zig-deps"
       {
@@ -233,11 +232,9 @@ let
 
   # ── Deriv 2: mapmaker (ZIG ALONE) ─────────────────────────────────────────
   # Compiles the native tools + lib/search.wasm (the `mapmaker` step: bin/
-  # mapmaker-* + lib/*.a + lib/search.wasm), builds the Zig `mapgames-publisher`
-  # CLI, and runs the node-free publisher slim test (`mapgames-publisher-test`).
-  # NO data, NO node, NO browser. This is the rarely-changing cached foundation;
-  # its zig-out/ IS the `-Dmapmaker` D1 tree Deriv 3/4 consume. nativeBuildInputs:
-  # zig only.
+  # mapmaker-* + lib/*.a + lib/search.wasm). NO data, NO node, NO browser. This
+  # is the rarely-changing cached foundation; its zig-out/ IS the `-Dmapmaker`
+  # D1 tree Deriv 3/4 consume. nativeBuildInputs: zig only.
   mapmaker = stdenvNoCC.mkDerivation (
     zigCommon
     // {
@@ -246,29 +243,21 @@ let
       enableParallelBuilding = true;
       buildPhase = ''
         runHook preBuild
-        zig build mapmaker mapgames-publisher mapgames-publisher-test
+        zig build mapmaker
         runHook postBuild
       '';
       installPhase = ''
         runHook preInstall
         # The whole zig-out tree is the D1 `-Dmapmaker` contract: bin/mapmaker-*
-        # + bin/mapgames-publisher + lib/*.a + lib/search.wasm.
+        # + lib/*.a + lib/search.wasm.
         cp -r zig-out "$out"
         runHook postInstall
       '';
       meta = meta // {
-        description = "maps.jakstys.lt native mapmaker D1 tree (bin/mapmaker-* + lib/search.wasm) and the Zig mapgames-publisher CLI";
+        description = "maps.jakstys.lt native mapmaker D1 tree (bin/mapmaker-* + lib/search.wasm)";
       };
     }
   );
-
-  # The mapgames-publisher command, sliced out of the Deriv 2 tree so the NixOS
-  # module and its VM test wrap exactly one version-controlled binary (the Zig
-  # port of the retired mapgames-publisher.py; no python interpreter anymore).
-  publisher = runCommand "mapgames-publisher-bin" { } ''
-    mkdir -p $out/bin
-    cp ${mapmaker}/bin/mapgames-publisher $out/bin/mapgames-publisher
-  '';
 
   # ── Deriv 3: site + data (ZIG ALONE) ──────────────────────────────────────
   # `zig build site` generates the country data and assembles the deployable
@@ -397,10 +386,11 @@ let
 in
 # The deployable artifact is Deriv 3's zig-out/www: the search-injected,
 # content-addressed object graph (hash-named objects, their allowlisted Brotli
-# siblings and web-graph.json, all produced by the Zig site build tools). The
-# mapgames-publisher NixOS module consumes this as its `candidate`; Caddy serves
-# the atomically-seeded /var/lib/mapgames/current. passthru is metadata only, so
-# this override yields the SAME store path as `site` (no second heavy build).
+# `.br` siblings and web-graph.json, all produced by the Zig site build tools).
+# Caddy serves this store path directly (hosts/fwminex/caddy.nix); nix provides
+# atomic deploy + rollback + GC, so the retired mapgames-publisher's
+# publish/rollback/GC state machine is gone. passthru is metadata only, so this
+# override yields the SAME store path as `site` (no second heavy build).
 site.overrideAttrs (_: {
   passthru = {
     inherit
@@ -409,7 +399,6 @@ site.overrideAttrs (_: {
       mapmaker
       site
       data
-      publisher
       ;
     tests = {
       inherit checkers e2e;

@@ -116,16 +116,19 @@
         }
         encode gzip
       '';
-      # The map/search site is the content-addressed publisher tree
-      # (search-design.md §4.1). Caddy serves ONLY the atomically switched
-      # `current` symlink; it never writes into the object store and receives
-      # read/execute only after the publisher's atomic rename. All naming,
-      # hashing and validation are done by mapgames-publisher; Caddy applies the
-      # cache/Range/CSP delivery policy.
+      # The map/search site is served DIRECTLY from the `site` derivation's
+      # /nix/store path (pkgs.mapgames is the built www tree). nix provides the
+      # atomic deploy (a new immutable store path per generation), rollback
+      # (NixOS generations) and GC (nix-store), so the retired mapgames-publisher
+      # and its /var/lib/mapgames/current symlink are gone. The www tree already
+      # ships the content-addressed /_/ objects, their Brotli `.br` siblings and
+      # web-graph.json; Caddy applies exactly the same cache/Range/CSP delivery
+      # policy as before -- only the root moved from the publisher symlink to the
+      # immutable store path.
       "maps.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
 
-        root * /var/lib/mapgames/current
+        root * ${pkgs.mapgames}
 
         header {
           Strict-Transport-Security "max-age=15768000"
@@ -177,9 +180,9 @@
           }
         }
 
-        # The build manifest and the registry anchor are publisher state, not
-        # site content. The publisher keeps them under `state/` (outside the
-        # served root); this is the belt-and-braces refusal.
+        # The build manifest and the registry anchor are site-internal state, not
+        # served content. They live under the served root only incidentally; this
+        # is the belt-and-braces refusal.
         @private path /web-graph.json /release-manifest.json
         handle @private {
           respond 404
