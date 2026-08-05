@@ -59,7 +59,15 @@ writeShellApplication {
     fi
 
     if [ ! -w "$pool/cgroup.procs" ]; then
-        msg="mem-limit-run: shared memory pool '$pool' missing or not writable -- sandbox not extended with cgroup delegation (config: agent-mem-pool.service + pkgs/agent-sandboxes.nix)."
+        if [ -d "$pool" ] && [ ! -e "$pool/cgroup.procs" ]; then
+            # The pool dir is bind-mounted but its cgroup control files are gone:
+            # the mem-pool cgroup was recreated AFTER this sandbox launched, so
+            # the bind mount now pins a deleted inode. Nothing here can remount;
+            # only re-entering the sandbox re-binds the live pool.
+            msg="mem-limit-run: memory pool '$pool' is STALE -- its cgroup was recreated since this sandbox launched (the bind mount pins a now-deleted inode). RELAUNCH the agent session to re-bind the live pool."
+        else
+            msg="mem-limit-run: shared memory pool '$pool' missing or not writable -- sandbox not extended with cgroup delegation (config: agent-mem-pool.slice + pkgs/agent-sandboxes.nix)."
+        fi
         if [ "''${MEM_POOL_REQUIRED:-1}" = "0" ]; then
             echo "$msg Running UNCAPPED (MEM_POOL_REQUIRED=0)." >&2
             exec "$@"

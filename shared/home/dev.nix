@@ -24,64 +24,92 @@ let
   # into ONE pool cgroup, so the kernel bounds their AGGREGATE resident memory.
   # The agent sessions themselves (claude/codex/node) stay OUT of the pool.
   #
-  # NOTE: restarting this service (incl. a home-manager switch that changes the
-  # unit) SIGKILLs every process in the pool -- i.e. all in-flight builds of all
-  # agents -- and recreates the cgroup, leaving already-running sandboxes bound
-  # to a stale (deleted) cgroup dir until they are relaunched. Avoid gratuitous
-  # changes here while builds are running.
+  # The pool lives in a PERSISTENT slice (agent-mem-pool.slice), NOT inside this
+  # keeper service's own cgroup. That is deliberate: systemd destroys a service's
+  # cgroup subtree on every restart, but leaves the slice -- and thus the pool
+  # cgroup and every build parked in it -- intact. So restarting this keeper
+  # (on-failure, or a home-manager switch that changes only the keeper script) no
+  # longer SIGKILLs in-flight builds, and no longer strands already-running
+  # sandboxes on a deleted cgroup inode (a bind mount pins an inode; recreating
+  # the leaf under the service was what made it dangle). The ONE remaining
+  # destructive case is changing the SLICE unit itself (or logout/reboot): after
+  # such a change, relaunch the agent sandboxes once so they re-bind the freshly
+  # created pool.
   memPoolMaxBytes = 16 * 1024 * 1024 * 1024; # hard RESIDENT cap for the whole pool
   memPoolSwapBytes = 8 * 1024 * 1024 * 1024; # bounded swap the pool may use past the RSS cap
   memPoolScript = pkgs.writeShellScript "agent-mem-pool-setup" ''
     set -eu
 
-    # Started with Delegate=yes, so systemd created a cgroup for this service with
-    # the memory controller delegated and cgroup.subtree_control/procs owned by
-    # the user. Resolve it from our own /proc entry (0::<path>).
+    # This keeper runs inside the delegated slice agent-mem-pool.slice, in its own
+    # service cgroup (.../agent-mem-pool.slice/agent-mem-pool.service). Resolve
+    # that from our /proc entry (0::<path>), then step UP to the slice: the pool
+    # is created at the slice level so it outlives restarts of this service.
     cg="/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)"
+    slice="$(dirname "$cg")"
 
-    # Move our (main) process into a leaf. This does double duty: (1) a controller
-    # can only be enabled in a cgroup with no member processes, and (2) this
-    # process stays alive here as `sleep infinity`, which is what KEEPS the
-    # delegated subtree (incl. the pool) from being trimmed by systemd. A oneshot
-    # service leaves the cgroup empty on exit and systemd then recursively removes
-    # the empty pool/keep dirs -- hence a long-lived Type=simple service instead.
-    # The keeper lives OUTSIDE the pool, so a pool OOM can never kill it.
-    mkdir -p "$cg/keep"
-    echo $$ > "$cg/keep/cgroup.procs"
+    # Make the memory controller available to the slice's children so the pool
+    # leaf gets memory.*. Permitted because the slice has no member processes of
+    # its own (this keeper lives in a child cgroup). systemd also enables this
+    # when it sets up the delegated+accounted slice, so tolerate it being done
+    # already; the pool/memory.max write below is the real check (set -eu).
+    echo +memory > "$slice/cgroup.subtree_control" 2>/dev/null || true
 
-    # Make the memory controller available to children, then create the pool.
-    echo +memory > "$cg/cgroup.subtree_control"
-    mkdir -p "$cg/pool"
+    # Create the shared pool as a SIBLING of this service, directly under the
+    # slice -- NOT inside this service's own cgroup. This is the whole fix: a
+    # restart of this service recreates only .../agent-mem-pool.service and leaves
+    # .../pool untouched (mkdir -p preserves the existing inode), so builds parked
+    # in it survive and sandbox bind mounts stay live.
+    mkdir -p "$slice/pool"
 
     # Cap RESIDENT memory of the whole pool (memory.max) and allow a BOUNDED
     # amount of swap past it (memory.swap.max), so brief overshoots spill to swap
     # instead of an instant kill -- without letting the pool consume all system
     # swap. No memory.high: on a box whose swap can be full, the high..max band
     # only stalls; going straight to a clean memory.max OOM yields an
-    # attributable "cap death is a finding" kill (AGENTS.md §7).
-    echo ${toString memPoolMaxBytes}  > "$cg/pool/memory.max"
-    echo ${toString memPoolSwapBytes} > "$cg/pool/memory.swap.max"
+    # attributable "cap death is a finding" kill (AGENTS.md §7). Re-applied on
+    # every (re)start; harmless when unchanged.
+    echo ${toString memPoolMaxBytes}  > "$slice/pool/memory.max"
+    echo ${toString memPoolSwapBytes} > "$slice/pool/memory.swap.max"
 
     # Publish the resolved pool path so each bwrap launcher can bind it.
     mkdir -p "$XDG_RUNTIME_DIR"
-    printf '%s\n' "$cg/pool" > "$XDG_RUNTIME_DIR/mem-pool.cgroup"
+    printf '%s\n' "$slice/pool" > "$XDG_RUNTIME_DIR/mem-pool.cgroup"
 
-    # Stay alive so the delegated cgroup (and thus the pool) persists.
+    # Stay alive so the slice keeps an active unit. Even across this keeper's own
+    # restart the pool survives: systemd cannot trim the slice cgroup while the
+    # non-empty .../pool child exists.
     exec ${pkgs.coreutils}/bin/sleep infinity
   '';
 in
 {
-  # Provision the shared agent memory pool once per user session.
+  # Persistent home for the shared pool. Delegated (so the keeper below can
+  # create the pool leaf and set its limits) and memory-accounted (so the memory
+  # controller reaches the slice's children). A slice's cgroup is NOT destroyed
+  # when a service inside it restarts -- that is what makes the pool durable.
+  systemd.user.slices."agent-mem-pool" = {
+    Unit = {
+      Description = "Persistent cgroup v2 memory pool for agent-sandbox commands";
+      Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
+    };
+    Slice = {
+      Delegate = true;
+      MemoryAccounting = true;
+    };
+  };
+
+  # Keeper: provisions the pool under the slice and parks a `sleep infinity` so
+  # the slice always has an active unit. It creates nothing under its OWN cgroup
+  # (the pool is a slice sibling), so it needs no delegation of its own.
   systemd.user.services.agent-mem-pool = {
     Unit = {
       Description = "Shared cgroup v2 memory pool for agent-sandbox commands";
       Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
     };
     Service = {
-      # Long-lived (not oneshot): the ExecStart parks a `sleep infinity` in the
-      # delegated subtree so systemd does not trim the pool cgroup. See script.
+      # Long-lived (not oneshot): the ExecStart parks a `sleep infinity` so the
+      # slice keeps an active unit. See script.
       Type = "simple";
-      Delegate = true;
+      Slice = "agent-mem-pool.slice";
       MemoryAccounting = true;
       ExecStart = "${memPoolScript}";
       Restart = "on-failure";
