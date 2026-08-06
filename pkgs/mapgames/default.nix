@@ -23,7 +23,7 @@
   #   lib.cleanSourceWith { src = ../../../../maps.jakstys.lt; filter = path: type:
   #     let name = baseNameOf path; in
   #     !(name == ".git" || name == ".zig-cache" || name == "zig-out" || name == "zig-pkg"); }
-  mapsRev ? "50dfba72c49342ed51583378b74dda46ba7e4be8fb21e698514001df153d1319",
+  mapsRev ? "1603e63bb3becad8879a0a3bf1860b73a4b82b752c409bfaac51893b4e030906",
   mapsSrc ? null,
   # null means "use up to 8 $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
@@ -59,7 +59,7 @@ let
         url = "https://git.jakstys.lt/maps.jakstys.lt.git";
         rev = mapsRev;
         preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-        hash = "sha256-Unr3w7GpQLZYk57Uatcnblp3KyaBlo4rjp9iHYaTCvc=";
+        hash = "sha256-ZVe2YG4ucDOMA+aEmRX5ENgNS0nakGHy5RA8wCKCH+0=";
       };
 
   # Zig 0.16 from nixpkgs-unstable, used for dependency fetching and every
