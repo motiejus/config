@@ -28,6 +28,9 @@ let
         # needed for MapLibre map rendering in browser tests. Deliberately the
         # render node, not card0: this grants offscreen GPU compute/rendering
         # but not KMS/modesetting, i.e. no display control or screen capture.
+        # The device node alone is not enough -- mesa/libdrm also need the
+        # GPU's sysfs view (gpu_args below), and each browser needs a specific
+        # launch recipe: AGENTS.md "Browsers with hardware rendering".
         "--dev-bind-try /dev/dri/renderD128 /dev/dri/renderD128"
         # The GPU device alone isn't enough: the browser also needs the NixOS
         # graphics runtime (glvnd, EGL vendor ICDs, GBM, DRI drivers, GLX) at
@@ -35,8 +38,19 @@ let
         # headless. This is the standard surfaceless-EGL/GBM driver set.
         "--ro-bind-try /run/opengl-driver /run/opengl-driver"
         "--ro-bind-try /run/opengl-driver-32 /run/opengl-driver-32"
-        "--tmpfs /tmp"
+        # Fresh private /tmp per launch, DISK-backed (a tmpfs here would page
+        # out of the same scarce RAM the memory pool protects). Created below;
+        # abandoned dirs are reaped by the host's systemd-tmpfiles /tmp aging
+        # (`q /tmp 1777 root root 10d`, verified). Tradeoff vs the previous
+        # namespace-private tmpfs: sandbox /tmp contents now persist on host
+        # disk (same-uid readable) until exit+aging -- acceptable here because
+        # the same-uid boundary already includes the rw ~/code bind.
+        ''--bind "$sandbox_tmp" /tmp''
         ''--tmpfs "$HOME"''
+        # Runtime dir for wayland sockets: cage (headless compositor, the only
+        # route to hardware rendering in firefox) refuses to start without it.
+        "--perms 0700 --dir /tmp/xdg"
+        "--setenv XDG_RUNTIME_DIR /tmp/xdg"
       ]
       ++ map (variable: "--setenv ${variable.name} ${variable.value}") environment
       ++ [
@@ -83,9 +97,18 @@ let
         pkgs.chromium
         pkgs.firefox-bin
         pkgs.playwright-driver.browsers
+        # Headless wlroots compositor: gives firefox (or any headed-only app)
+        # a real wayland display whose output is a virtual, never-scanned-out
+        # buffer -- hardware rendering with no access to the real screen. The
+        # sandbox itself guarantees the "no real screen" part: it has no
+        # card0/KMS node and no seat, so no cage backend could reach the
+        # display even without WLR_BACKENDS=headless.
+        pkgs.cage
+        pkgs.grim # screenshot the cage output via wlr-screencopy
       ];
       text = ''
         mkdir -p ${tmpDir}
+        sandbox_tmp="$(mktemp -d /tmp/${tool}-sbx.XXXXXX)"
 
         # Bind the shared agent memory pool (cgroup v2) into the sandbox so
         # commands routed through ~/code/.mem-limit-run are accounted against ONE
@@ -102,9 +125,29 @@ let
           echo "agent-sandbox: WARNING -- memory pool unavailable ('$pool_host'); wrapped commands will refuse to run. Is agent-mem-pool.service active?" >&2
         fi
 
+        # Mesa/libdrm resolve the render node through sysfs
+        # (/sys/dev/char/<maj:min> -> .../drm/renderD128); without this
+        # chromium's hardware GL gets no context and wlroots (cage) finds no
+        # render node at all. Exposed surface is minimal: the GPU's own PCI
+        # device dir (read-only) plus ONE synthesized /sys/dev/char symlink
+        # for the render node -- no card0/KMS, no other devices' sysfs, so the
+        # no-display-control/no-screen-capture posture above still holds.
+        gpu_args=()
+        gpu_sys="$(readlink -f /sys/class/drm/renderD128/device 2>/dev/null || true)"
+        if [ -n "$gpu_sys" ]; then
+          gpu_args=(
+            --ro-bind "$gpu_sys" "$gpu_sys"
+            --symlink "$(readlink -f /sys/class/drm/renderD128)"
+            "/sys/dev/char/$(cat /sys/class/drm/renderD128/dev)"
+          )
+        else
+          echo "agent-sandbox: WARNING -- GPU render node sysfs not found; browsers will fall back to software rendering." >&2
+        fi
+
         exec ${pkgs.bubblewrap}/bin/bwrap \
           ${lib.concatStringsSep " \\\n          " bwrapArgs} \
           "''${pool_args[@]}" \
+          "''${gpu_args[@]}" \
           -- ${lib.escapeShellArgs command} "$@"
       '';
     };
