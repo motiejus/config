@@ -257,6 +257,45 @@ let
     }
   );
 
+  # ── Deriv 4: compressed (DEPLOYER-SIDE sidecars) ──────────────────────────
+  # Owner policy: all assets are served with precompressed sidecars in three
+  # codecs — zstd -19 (.zst), brotli max (.br), zopfli (.gz, best-possible
+  # gzip) — negotiated by Caddy's `precompressed` directive via Accept-Encoding.
+  # The maps BUILD stays raw (compression is the deployer's job — this
+  # derivation IS the deployer layer); the site derivation is symlinked and
+  # sidecars are added next to every file. Exclusions:
+  #   *.pmtiles — served identity-only with Range requests (the Caddy snippet
+  #   pins them to @identityOnly); a sidecar would never be used.
+  # A sidecar that fails to beat the original (already-compressed payloads,
+  # e.g. PNG) is dropped so Caddy falls back to identity or on-the-fly encode.
+  compressed =
+    runCommand "mapgames-${version}-www-compressed"
+      {
+        nativeBuildInputs = with pkgs-unstable; [
+          zstd
+          brotli
+          zopfli
+        ];
+      }
+      ''
+        mkdir -p "$out"
+        (cd ${site} && find . -type d) | while read -r d; do mkdir -p "$out/$d"; done
+        (cd ${site} && find . -type f) | while read -r f; do
+          src=${site}/"$f"
+          ln -s "$src" "$out/$f"
+          case "$f" in
+            *.pmtiles) continue ;;
+          esac
+          size=$(stat -Lc %s "$src")
+          zstd -19 -q -c "$src" > "$out/$f.zst"
+          [ "$(stat -c %s "$out/$f.zst")" -lt "$size" ] || rm "$out/$f.zst"
+          brotli -q 11 -c "$src" > "$out/$f.br"
+          [ "$(stat -c %s "$out/$f.br")" -lt "$size" ] || rm "$out/$f.br"
+          zopfli -c "$src" > "$out/$f.gz"
+          [ "$(stat -c %s "$out/$f.gz")" -lt "$size" ] || rm "$out/$f.gz"
+        done
+      '';
+
   # On-demand `zig build data` (zig-out/data): the generated JSON + PMTiles,
   # validated by the data-check gate. Exposed through passthru so the raw data
   # can be built/inspected without the browser-asset assembly.
@@ -298,6 +337,7 @@ site.overrideAttrs (_: {
       mapmaker
       site
       data
+      compressed
       ;
   };
 })
