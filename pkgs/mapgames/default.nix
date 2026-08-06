@@ -17,15 +17,14 @@
   # by config below" (the normal production path). Override with a checkout for
   # shelter-data iteration.
   sheltersSrc ? null,
-  mapsSrc ? lib.cleanSourceWith {
-    src = ../../../../maps.jakstys.lt;
-    filter =
-      path: type:
-      let
-        name = baseNameOf path;
-      in
-      !(name == ".git" || name == ".zig-cache" || name == "zig-out" || name == "zig-pkg");
-  },
+  # Production default: the pinned sha256-object maps.jakstys.lt HEAD.
+  # Override with the cleanSourceWith local-checkout expression below for
+  # iteration (kept here commented for copy-paste):
+  #   lib.cleanSourceWith { src = ../../../../maps.jakstys.lt; filter = path: type:
+  #     let name = baseNameOf path; in
+  #     !(name == ".git" || name == ".zig-cache" || name == "zig-out" || name == "zig-pkg"); }
+  mapsRev ? "50dfba72c49342ed51583378b74dda46ba7e4be8fb21e698514001df153d1319",
+  mapsSrc ? null,
   # null means "use up to 8 $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
   expansionConcurrencyCap ? 8,
@@ -48,6 +47,20 @@ assert lib.assertMsg (
 
 let
   version = "260716";
+
+  # The maps source: pinned fetchgit by default (rev+hash computed off-daemon
+  # per AGENTS.md §8.1, method validated against the prior pin), local
+  # checkout when the mapsSrc arg is supplied for iteration.
+  maps =
+    if mapsSrc != null then
+      mapsSrc
+    else
+      fetchgit {
+        url = "https://git.jakstys.lt/maps.jakstys.lt.git";
+        rev = mapsRev;
+        preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
+        hash = "sha256-Unr3w7GpQLZYk57Uatcnblp3KyaBlo4rjp9iHYaTCvc=";
+      };
 
   # Zig 0.16 from nixpkgs-unstable, used for dependency fetching and every
   # build. maps.jakstys.lt pins `minimum_zig_version = "0.16.0"`.
@@ -93,7 +106,7 @@ let
   zigDeps =
     runCommand "mapgames-${version}-zig-deps"
       {
-        src = mapsSrc;
+        src = maps;
         nativeBuildInputs = [ zig ];
         outputHashAlgo = null;
         outputHashMode = "recursive";
@@ -178,7 +191,7 @@ let
   # (the no-option build is ReleaseFast; build.zig owns the audit).
   zigCommon = {
     inherit version;
-    src = mapsSrc;
+    src = maps;
     dontSetZigDefaultFlags = true;
     postConfigure = linkZigDeps;
     dontUseZigBuild = true;
@@ -331,8 +344,8 @@ in
 # store path as `site` (no second heavy build).
 site.overrideAttrs (_: {
   passthru = {
+    mapsSrc = maps;
     inherit
-      mapsSrc
       zigDeps
       mapmaker
       site
