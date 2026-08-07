@@ -116,94 +116,12 @@
         }
         encode gzip
       '';
-      # The map/search site is served DIRECTLY from the `site` derivation's
-      # /nix/store path (pkgs.mapgames is the built www tree). nix provides the
-      # atomic deploy (a new immutable store path per generation), rollback
-      # (NixOS generations) and GC (nix-store), so the retired mapgames-publisher
-      # and its /var/lib/mapgames/current symlink are gone. The www tree already
-      # ships the content-addressed /_/ objects, their Brotli `.br` siblings and
-      # web-graph.json; Caddy applies exactly the same cache/Range/CSP delivery
-      # policy as before -- only the root moved from the publisher symlink to the
-      # immutable store path.
       "maps.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
-
-        root * ${pkgs.mapgames}
-
-        header {
-          Strict-Transport-Security "max-age=15768000"
-          # The narrow 'wasm-unsafe-eval' addition lets the search Wasm module
-          # instantiate; no 'unsafe-eval' and no remote script origin.
-          Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self'"
-          X-Content-Type-Options "nosniff"
-          X-Frame-Options "DENY"
-          Referrer-Policy "no-referrer"
-          Alt-Svc "h3=\":443\"; ma=86400"
-        }
-
-        # Every hash-named immutable object: one-year public immutable cache.
-        # All content-addressed objects live in a single flat /_/ namespace
-        # (stagit-ng style), replacing the retired per-domain
-        # /app/objects, /map/objects and /search/objects trees.
-        @immutable path /_/*
-        header @immutable Cache-Control "public, max-age=31536000, immutable"
-
-        # Identity-only formats (§4.1): PMTiles/MGA/MGG are byte-Range fetched by
-        # the client and MUST always be delivered identity. This is enforced by a
-        # MATCHER, never by the mere absence of a `.br` sibling: with a shared
-        # object store, a stray or hostile `catalog-<h>.pmtiles.br` next to the
-        # object would otherwise make the catch-all `precompressed br` answer a
-        # Range request with `Content-Encoding: br` over the COMPRESSED file —
-        # garbage to a PMTiles reader, and cached immutable for a year. They also
-        # never negotiate, so they must not advertise `Vary: Accept-Encoding`.
-        @identityOnly path *.pmtiles *.mga *.mgg
-        header @identityOnly -Vary
-
-        # index.html is the sole mutable URL: no-store, no validator, so it can
-        # never return a validator-based 304. The request validators are
-        # stripped so file_server cannot short-circuit to Not-Modified, and the
-        # ETag/Last-Modified responses are suppressed. Every REPRESENTATION of
-        # the page (`/`, `/index.html`, `/index.html.br`) is routed here, so the
-        # `.br` page is negotiated through the same rewrite and inherits exactly
-        # the same no-store/validator-free policy instead of being served as a
-        # separate, cacheable, ETag-carrying URL.
-        @index path / /index.html /index.html.br
-        handle @index {
-          request_header -If-None-Match
-          request_header -If-Modified-Since
-          header Cache-Control "no-store"
-          header -Etag
-          header -Last-Modified
-          rewrite * /index.html
-          file_server {
-            precompressed br
-          }
-        }
-
-        # The build manifest and the registry anchor are site-internal state, not
-        # served content. They live under the served root only incidentally; this
-        # is the belt-and-braces refusal.
-        @private path /web-graph.json /release-manifest.json
-        handle @private {
-          respond 404
-        }
-
-        # Identity-only objects: plain file_server, no precompression, so a
-        # sibling `.br` can never be selected and no `Vary` is emitted. Byte
-        # Range/206 is served from the RAW file.
-        handle @identityOnly {
-          file_server
-        }
-
-        # Everything else: raw+Brotli negotiation for the allowlisted objects
-        # (Caddy adds `Content-Encoding: br` + `Vary: Accept-Encoding` only when
-        # a `.br` sibling exists). No zstd/gzip precompression and no `.etag`
-        # sidecars participate.
-        handle {
-          file_server {
-            precompressed br
-          }
-        }
+        # Root is the sidecar-compressed view of the site (zstd/brotli/zopfli
+        # next to every asset); the snippet's `precompressed` directive serves
+        # them via Accept-Encoding. pmtiles stay identity+Range as before.
+        import ${pkgs.mapgames.passthru.mapsSrc}/deploy/Caddyfile.snippet ${pkgs.mapgames.passthru.compressed}
       '';
       "m.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem

@@ -4,12 +4,6 @@
   fetchgit,
   fetchurl,
   runCommand,
-  # Deriv 4 (checkers) foreign inputs. maps.jakstys.lt's production site/data
-  # path is now zig-only (P2/P3a removed python3/jq/sqlite/strace); the only
-  # non-zig test dependencies left are node (the Wasm/worker harnesses) and,
-  # for the opt-in browser e2e, chromium.
-  nodejs,
-  chromium,
   # nixpkgs-unstable package set (exposed by the flake overlay). Stable
   # nixpkgs 26.05 only ships zig <= 0.13; maps.jakstys.lt requires zig 0.16 and
   # the zig `fetchDeps` fixed-output-derivation helper, both of which live in
@@ -23,10 +17,18 @@
   # by config below" (the normal production path). Override with a checkout for
   # shelter-data iteration.
   sheltersSrc ? null,
-  # null means "use $NIX_BUILD_CORES at build time" for generation workers.
+  # Production default: the pinned sha256-object maps.jakstys.lt HEAD.
+  # Override with the cleanSourceWith local-checkout expression below for
+  # iteration (kept here commented for copy-paste):
+  #   lib.cleanSourceWith { src = ../../../../maps.jakstys.lt; filter = path: type:
+  #     let name = baseNameOf path; in
+  #     !(name == ".git" || name == ".zig-cache" || name == "zig-out" || name == "zig-pkg"); }
+  mapsRev ? "50dfba72c49342ed51583378b74dda46ba7e4be8fb21e698514001df153d1319",
+  mapsSrc ? null,
+  # null means "use up to 8 $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
   expansionConcurrencyCap ? 8,
-  expansionBatchSize ? 256,
+  expansionBatchSize ? 128,
   # Full Lithuania PBF extent. Build time and peak memory are measured per
   # phase by the native mapmaker programs.
   bbox ? "20.618591,53.892206,26.83873,56.45329",
@@ -46,54 +48,34 @@ assert lib.assertMsg (
 let
   version = "260716";
 
+  # The maps source: pinned fetchgit by default (rev+hash computed off-daemon
+  # per AGENTS.md §8.1, method validated against the prior pin), local
+  # checkout when the mapsSrc arg is supplied for iteration.
+  maps =
+    if mapsSrc != null then
+      mapsSrc
+    else
+      fetchgit {
+        url = "https://git.jakstys.lt/maps.jakstys.lt.git";
+        rev = mapsRev;
+        preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
+        hash = "sha256-Unr3w7GpQLZYk57Uatcnblp3KyaBlo4rjp9iHYaTCvc=";
+      };
+
   # Zig 0.16 from nixpkgs-unstable, used for dependency fetching and every
   # build. maps.jakstys.lt pins `minimum_zig_version = "0.16.0"`.
   zig = pkgs-unstable.zig_0_16;
 
-  # ── P3b: the 4-derivation split ──────────────────────────────────────────
-  # maps.jakstys.lt is now a zig+node artifact (python/jq/osmium gone from the
-  # production path). This package mirrors that with four derivations:
-  #
-  #   Deriv 1  zigDeps   fetch FOD of build.zig.zon's dep set          [zig]
-  #   Deriv 2  mapmaker  the native tools + search.wasm. The            [zig]
-  #                      rarely-changing cached foundation Deriv 3/4
-  #                      consume via build.zig's `-Dmapmaker` handshake.
-  #   Deriv 3  site/data generate + assemble the served www / data,    [zig]
-  #                      reusing Deriv 2 (`-Dmapmaker`, relink not recompile).
-  #   Deriv 4  checkers  the node Wasm/worker suite (+ opt-in chromium  [zig
-  #                      e2e), run over Deriv 2's binaries / Deriv 3's www. node
-  #                                                                      chromium]
-  #
-  # `-Dmapmaker=<tree>` (build.zig, contract version 1): a prebuilt D1 tree of
-  # bin/mapmaker-* + lib/search.wasm that build.zig probes (each binary reports
-  # its MAPMAKER_CONTRACT_VERSION; a mismatch fails configuration loudly) and
-  # consumes instead of recompiling the heavy native programs. Deriv 2 emits
-  # exactly that tree; Deriv 3/4 pass it back in.
-
-  # Whole maps.jakstys.lt source tree at a pinned revision, via fetchgit.
-  #
-  # git.jakstys.lt uses sha256 git objects; fetchgit's `git init` defaults to
-  # sha1 and then rejects the sha256 pack. nixpkgs has no object-format knob, so
-  # set git's algorithm via preFetch -- the same proven pattern as
-  # pkgs/stagit-ng.nix. (`GIT_DEFAULT_HASH=sha256 nix-prefetch-git` clone-verifies
-  # this flat, non-owner-qualified URL.)
-  #
-  # `hash` is the NAR of a `.git`-stripped checkout of mapsRev (== what fetchgit
-  # produces). It is computed OFF-DAEMON per AGENTS.md §8.1
-  # (`git archive <rev> | tar -x -C d && nix-hash --type sha256 --sri d`); the
-  # method was validated by reproducing the previous pin (e3d76fe6 ->
-  # sha256-h7f28aH+2r5ks5wTo1f4R9chvLfqpF7UvQLVyqftrco=) byte-for-byte before
-  # trusting this one. Bump mapsRev + hash together when advancing the site.
-  mapsRepo = "https://git.jakstys.lt/maps.jakstys.lt.git";
-  # main @ 50ac9a4 (e3d76fe + delete the mapgames-publisher; the site derivation
-  # is now served directly by Caddy as an immutable store path).
-  mapsRev = "50ac9a416641b58dc184789f91d0968d4eabcc09b2d25f700cc8606675395880";
-  mapsSrc = fetchgit {
-    url = mapsRepo;
-    rev = mapsRev;
-    preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-    hash = "sha256-JkZg/U37Pk9TTwVFRaB830k+aSodG6Rx3I2peajot9c=";
-  };
+  # maps.jakstys.lt is a static site generated by Zig. The package is split so
+  # deps and CODE live in their own derivations and a data-input bump (pbf /
+  # shelters snapshot) rebuilds only the data/site derivations:
+  #   1. zigDeps   -- build.zig.zon dependency FOD          (src + network)
+  #   2. mapmaker  -- every compiled pipeline program        (src + zigDeps)
+  #   3. site/data -- generation only, consumes the prebuilt programs via
+  #                   -Dmapmaker=${mapmaker}                 (+ pbf, shelters)
+  # site/data still link zigDeps (build.zig has no lazy deps, and the cheap
+  # host-side site tools compile in-graph), but none of the heavy native code
+  # (valhalla/tilemaker/luajit/mapmaker) recompiles when only data changes.
 
   # ── Deriv 1: zigDeps ──────────────────────────────────────────────────────
   # All build.zig.zon dependencies of the *root* package (native source
@@ -117,20 +99,18 @@ let
   # -- only this FOD does -- so every dep Zig resolves at build time, including
   # any LAZY ones, must already be in the pre-fetched `p/`.
   #
-  # `outputHash` is the NAR of the fetched `p/`, pinned from a real `nix build`
-  # (config commit 893104509cc9, the Phase-4 dep set). It only needs re-deriving
-  # when build.zig.zon's dependency set changes. For the e3d76fe6 -> 50ac9a4
-  # (mapgames-publisher deletion) mapsRev bump `git diff` over build.zig.zon is
-  # EMPTY, so the dep set is unchanged and this value stands. Re-derive OFF-DAEMON
-  # (AGENTS.md §8.3) or via lib.fakeHash on the next set-changing bump.
+  # `outputHash` is the NAR of the fetched `p/`. The method was validated by
+  # reproducing the previous hash
+  # sha256-coWBU6PpXmiIqFY0En4pZxbwdQwOUwd25QwLiUdVcW8= from the old pinned tree,
+  # then re-run against the staged static-site dependency set.
   zigDeps =
     runCommand "mapgames-${version}-zig-deps"
       {
-        src = mapsSrc;
+        src = maps;
         nativeBuildInputs = [ zig ];
         outputHashAlgo = null;
         outputHashMode = "recursive";
-        outputHash = "sha256-coWBU6PpXmiIqFY0En4pZxbwdQwOUwd25QwLiUdVcW8="; # zig-deps NAR
+        outputHash = "sha256-YE89PdbXTLRWDAnPzRWsRu0La1b5Jv+oBoNSI/+j234="; # zig-deps NAR (maps 61cccfc4: GEOS/proj/bzip2/host-sqlite packages dropped from build.zig.zon)
       }
       ''
         export ZIG_GLOBAL_CACHE_DIR=$(mktemp -d)
@@ -151,12 +131,8 @@ let
   # exports are needed.
   linkZigDeps = ''ln -s ${zigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"'';
 
-  # Phase-3 REQUIRED external data inputs (design §C.4 / decision 4): build.zig
-  # no longer fetches these -- they left build.zig.zon -- so config supplies them
-  # as -Dpbf/-Dshelters on every data/site build (a data step requested without
-  # them fails loudly). `test` runs over committed fixtures and needs neither
-  # (the lazyDependency-orelse grace), so these flags go ONLY to the
-  # data-building invocations below, never to the Deriv 2 / Deriv 4 test paths.
+  # build.zig no longer fetches data inputs; config supplies them as
+  # -Dpbf/-Dshelters on every data/site build.
   #
   # pbfSrc: the raw Lithuania .osm.pbf via fetchurl (flat file, plain download --
   # not a tarball; build.zig takes the bare .pbf path). Unchanged across the
@@ -200,18 +176,22 @@ let
   # concurrency is resolved in-shell so it can honor $NIX_BUILD_CORES when unset.
   resolveConcurrency =
     if concurrency == null then
-      ''mapgames_concurrency="$NIX_BUILD_CORES"''
+      ''
+        mapgames_concurrency="$NIX_BUILD_CORES"
+        if [ "$mapgames_concurrency" -gt 8 ]; then
+          mapgames_concurrency=8
+        fi
+      ''
     else
       "mapgames_concurrency=${toString concurrency}";
 
-  # Shared skeleton for the explicit-target zig derivations (mapmaker, data,
-  # site, checkers, e2e): the nixpkgs zig setup-hook still runs its
+  # Shared skeleton for the explicit-target zig derivations. The nixpkgs zig setup-hook still runs its
   # zigConfigurePhase (ZIG_GLOBAL_CACHE_DIR) and we link the pre-fetched deps in
   # postConfigure; dontSetZigDefaultFlags keeps maps' own optimize/cpu selection
-  # (README: the no-option build is ReleaseSafe; build.zig owns the audit).
+  # (the no-option build is ReleaseFast; build.zig owns the audit).
   zigCommon = {
     inherit version;
-    src = mapsSrc;
+    src = maps;
     dontSetZigDefaultFlags = true;
     postConfigure = linkZigDeps;
     dontUseZigBuild = true;
@@ -230,11 +210,13 @@ let
     platforms = [ "x86_64-linux" ];
   };
 
-  # ── Deriv 2: mapmaker (ZIG ALONE) ─────────────────────────────────────────
-  # Compiles the native tools + lib/search.wasm (the `mapmaker` step: bin/
-  # mapmaker-* + lib/*.a + lib/search.wasm). NO data, NO node, NO browser. This
-  # is the rarely-changing cached foundation; its zig-out/ IS the `-Dmapmaker`
-  # D1 tree Deriv 3/4 consume. nativeBuildInputs: zig only.
+  # ── Deriv 2: mapmaker (CODE) ──────────────────────────────────────────────
+  # `zig build mapmaker` compiles and installs the complete pipeline-program
+  # roster (build.zig MapmakerExes: 11 mapmaker-* binaries plus their native
+  # deps -- valhalla, tilemaker, luajit, sqlite...). Depends on mapsSrc +
+  # zigDeps ONLY -- no pbf/shelters -- so data-snapshot bumps reuse it from
+  # cache. build.zig validates the tree at configure time (regular, non-empty,
+  # executable) when site/data consume it via -Dmapmaker.
   mapmaker = stdenvNoCC.mkDerivation (
     zigCommon
     // {
@@ -248,24 +230,19 @@ let
       '';
       installPhase = ''
         runHook preInstall
-        # The whole zig-out tree is the D1 `-Dmapmaker` contract: bin/mapmaker-*
-        # + lib/*.a + lib/search.wasm.
         cp -r zig-out "$out"
         runHook postInstall
       '';
       meta = meta // {
-        description = "maps.jakstys.lt native mapmaker D1 tree (bin/mapmaker-* + lib/search.wasm)";
+        description = "Compiled maps.jakstys.lt pipeline programs (bin/mapmaker-*), data-input independent";
       };
     }
   );
 
-  # ── Deriv 3: site + data (ZIG ALONE) ──────────────────────────────────────
+  # ── Deriv 3: site + data (generation only) ────────────────────────────────
   # `zig build site` generates the country data and assembles the deployable
-  # zig-out/www (browser vendoring + native metadata enrichment happen inside
-  # the Zig site-assemble tool). It reuses Deriv 2 via -Dmapmaker (relink, not
-  # recompile of the heavy native programs) and takes the two external data
-  # inputs as -Dpbf/-Dshelters. nativeBuildInputs: zig only (P2 removed
-  # python3/jq from the site path).
+  # zig-out/www. It takes the two external data inputs as -Dpbf/-Dshelters and
+  # runs the prebuilt pipeline programs from the mapmaker derivation.
   site = stdenvNoCC.mkDerivation (
     zigCommon
     // {
@@ -293,10 +270,48 @@ let
     }
   );
 
+  # ── Deriv 4: compressed (DEPLOYER-SIDE sidecars) ──────────────────────────
+  # Owner policy: all assets are served with precompressed sidecars in three
+  # codecs — zstd -19 (.zst), brotli max (.br), zopfli (.gz, best-possible
+  # gzip) — negotiated by Caddy's `precompressed` directive via Accept-Encoding.
+  # The maps BUILD stays raw (compression is the deployer's job — this
+  # derivation IS the deployer layer); the site derivation is symlinked and
+  # sidecars are added next to every file. Exclusions:
+  #   *.pmtiles — served identity-only with Range requests (the Caddy snippet
+  #   pins them to @identityOnly); a sidecar would never be used.
+  # A sidecar that fails to beat the original (already-compressed payloads,
+  # e.g. PNG) is dropped so Caddy falls back to identity or on-the-fly encode.
+  compressed =
+    runCommand "mapgames-${version}-www-compressed"
+      {
+        nativeBuildInputs = with pkgs-unstable; [
+          zstd
+          brotli
+          zopfli
+        ];
+      }
+      ''
+        mkdir -p "$out"
+        (cd ${site} && find . -type d) | while read -r d; do mkdir -p "$out/$d"; done
+        (cd ${site} && find . -type f) | while read -r f; do
+          src=${site}/"$f"
+          ln -s "$src" "$out/$f"
+          case "$f" in
+            *.pmtiles) continue ;;
+          esac
+          size=$(stat -Lc %s "$src")
+          zstd -19 -q -c "$src" > "$out/$f.zst"
+          [ "$(stat -c %s "$out/$f.zst")" -lt "$size" ] || rm "$out/$f.zst"
+          brotli -q 11 -c "$src" > "$out/$f.br"
+          [ "$(stat -c %s "$out/$f.br")" -lt "$size" ] || rm "$out/$f.br"
+          zopfli -c "$src" > "$out/$f.gz"
+          [ "$(stat -c %s "$out/$f.gz")" -lt "$size" ] || rm "$out/$f.gz"
+        done
+      '';
+
   # On-demand `zig build data` (zig-out/data): the generated JSON + PMTiles,
   # validated by the data-check gate. Exposed through passthru so the raw data
-  # can be built/inspected without the browser-asset assembly. Same Deriv 2
-  # reuse + external inputs as `site`.
+  # can be built/inspected without the browser-asset assembly.
   data = stdenvNoCC.mkDerivation (
     zigCommon
     // {
@@ -320,88 +335,22 @@ let
       };
     }
   );
-
-  # ── Deriv 4: checkers (node) ──────────────────────────────────────────────
-  # `zig build test` is the comprehensive fixture/unit/provider + Wasm/worker
-  # battery. It runs with NO -Dpbf/-Dshelters (committed fixtures only) and
-  # reuses Deriv 2's binaries via -Dmapmaker, so the heavy native programs are
-  # not recompiled -- only the checkers' own glue plus the node harnesses
-  # (run_wasm_goldens/search/address + check-search-worker.mjs) run. The only
-  # non-zig dependency is node. NO python/jq/sqlite/strace/chromium.
-  checkers = stdenvNoCC.mkDerivation (
-    zigCommon
-    // {
-      pname = "mapgames-checkers";
-      nativeBuildInputs = [
-        zig
-        nodejs
-      ];
-      buildPhase = ''
-        runHook preBuild
-        zig build test -Dmapmaker=${mapmaker}
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        touch "$out"
-        runHook postInstall
-      '';
-      meta = meta // {
-        description = "maps.jakstys.lt node/Wasm/worker check battery (zig build test) over the Deriv 2 tree";
-      };
-    }
-  );
-
-  # Opt-in browser e2e: a single lean CDP-driven Chromium session over the
-  # served site (`zig build e2e`). node is already a checkers dependency;
-  # chromium is the only extra foreign input. Drives Deriv 3's www; reuses
-  # Deriv 2 via -Dmapmaker so nothing native recompiles.
-  e2e = stdenvNoCC.mkDerivation (
-    zigCommon
-    // {
-      pname = "mapgames-e2e";
-      nativeBuildInputs = [
-        zig
-        nodejs
-        chromium
-      ];
-      buildPhase = ''
-        runHook preBuild
-        zig build e2e \
-          -Dmapmaker=${mapmaker} \
-          -Dchromium-bin=${chromium}/bin/chromium \
-          -De2e-www=${site}
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        touch "$out"
-        runHook postInstall
-      '';
-      meta = meta // {
-        description = "Opt-in headless-Chromium browser e2e over the served maps.jakstys.lt site";
-      };
-    }
-  );
 in
-# The deployable artifact is Deriv 3's zig-out/www: the search-injected,
-# content-addressed object graph (hash-named objects, their allowlisted Brotli
-# `.br` siblings and web-graph.json, all produced by the Zig site build tools).
-# Caddy serves this store path directly (hosts/fwminex/caddy.nix); nix provides
-# atomic deploy + rollback + GC, so the retired mapgames-publisher's
-# publish/rollback/GC state machine is gone. passthru is metadata only, so this
-# override yields the SAME store path as `site` (no second heavy build).
+# The deployable artifact is zig-out/www: a content-addressed object graph
+# (hash-named objects and web-graph.json, all produced by the Zig site build
+# tools). Compression is the deployer's job.
+# Production Caddy imports mapsSrc/deploy/Caddyfile.snippet and serves this store
+# path directly. passthru is metadata only, so this override yields the SAME
+# store path as `site` (no second heavy build).
 site.overrideAttrs (_: {
   passthru = {
+    mapsSrc = maps;
     inherit
-      mapsSrc
       zigDeps
       mapmaker
       site
       data
+      compressed
       ;
-    tests = {
-      inherit checkers e2e;
-    };
   };
 })
