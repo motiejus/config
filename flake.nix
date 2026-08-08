@@ -100,7 +100,9 @@
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
             mapgames = super.callPackage ./pkgs/mapgames {
-              inherit (final) pkgs-unstable;
+              # zigpkgs comes from zig.overlays.default above: maps builds with
+              # a pinned upstream zig release, not nixpkgs-unstable's zig.
+              inherit (final) pkgs-unstable zigpkgs;
             };
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
