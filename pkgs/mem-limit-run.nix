@@ -24,16 +24,23 @@ writeShellApplication {
     pool=''${MEM_POOL:-/sys/fs/cgroup/pool}
 
     if [ "$#" -eq 0 ]; then
-        echo "usage: [MEM_POOL_SUB=name [MEM_POOL_SUB_MAX=bytes]] mem-limit-run command [args...]" >&2
+        echo "usage: MEM_POOL_SUB=name [MEM_POOL_SUB_MAX=bytes] mem-limit-run command [args...]" >&2
         exit 2
     fi
 
-    # Per-job accounting: when the pool is a non-leaf (controllers delegated to
-    # children) or a sub-group is requested, join a named leaf under it instead.
+    # Per-job accounting: the shared pool is a delegated parent (controllers
+    # enabled for children), so processes must join a named leaf under it --
+    # cgroup v2 forbids processes in the parent itself. A leaf name is
+    # REQUIRED; there is no shared default, so every job is attributable.
     # The leaf is created on demand; MEM_POOL_SUB_MAX optionally caps it (the
-    # pool's aggregate cap always applies hierarchically on top).
-    if [ -n "''${MEM_POOL_SUB:-}" ] || [ -s "$pool/cgroup.subtree_control" ]; then
-        sub=''${MEM_POOL_SUB:-main}
+    # pool's aggregate cap always applies hierarchically on top). Cannot test
+    # subtree_control with [ -s ]: cgroupfs files always stat as size 0.
+    if [ -n "''${MEM_POOL_SUB:-}" ] || [ -n "$(cat "$pool/cgroup.subtree_control" 2>/dev/null)" ]; then
+        if [ -z "''${MEM_POOL_SUB:-}" ]; then
+            echo "mem-limit-run: pool '$pool' delegates controllers to per-job leaves -- set MEM_POOL_SUB=<job-name> (or point MEM_POOL at a leaf)." >&2
+            exit 2
+        fi
+        sub=''${MEM_POOL_SUB}
         mkdir -p "$pool/$sub" 2>/dev/null || true
         if [ -n "''${MEM_POOL_SUB_MAX:-}" ] && [ -w "$pool/$sub/memory.max" ]; then
             # memory.max accepts only a non-negative integer or the literal
