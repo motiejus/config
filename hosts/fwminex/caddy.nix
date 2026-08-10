@@ -118,10 +118,10 @@
       '';
       "maps.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
-        # Root is the sidecar-compressed view of the site (zstd/brotli/zopfli
-        # next to every asset); the snippet's `precompressed` directive serves
-        # them via Accept-Encoding. pmtiles stay identity+Range as before.
-        import ${pkgs.mapgames.passthru.mapsSrc}/deploy/Caddyfile.snippet ${pkgs.mapgames.passthru.compressed}
+        # The compressed derivation includes sidecars; its Caddy snippet serves
+        # them by Accept-Encoding while keeping pmtiles on identity encoding
+        # for Range requests.
+        import ${pkgs.lt-maps.caddyfile} ${pkgs.lt-maps}
       '';
       "m.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem

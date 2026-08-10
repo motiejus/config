@@ -14,6 +14,7 @@ rec {
     borgstor = 504;
 
     jakstpub = 505;
+    lt-shelters = 506;
   };
 
   ports = {

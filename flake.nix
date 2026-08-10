@@ -46,6 +46,12 @@
     nix-index-database.url = "github:Mic92/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
+    lt-maps = {
+      url = "git+https://git.jakstys.lt/lt-maps.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.zig.follows = "zig";
+    };
+
     pre-commit-hooks = {
       url = "github:cachix/pre-commit-hooks.nix";
       inputs = {
@@ -92,11 +98,7 @@
             weather = super.callPackage ./pkgs/weather { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
-            mapgames = super.callPackage ./pkgs/mapgames {
-              # zigpkgs comes from zig.overlays.default above: maps builds with
-              # a pinned upstream zig release, not nixpkgs-unstable's zig.
-              inherit (final) zigpkgs;
-            };
+            lt-maps = inputs.lt-maps.packages.${final.stdenv.hostPlatform.system}.compressed;
           }
           // super.lib.optionalAttrs super.stdenv.isDarwin {
             # fish gets SIGKILL in nix sandbox on darwin, breaking direnv tests
@@ -367,33 +369,36 @@
     )
 
     // {
-      packages = nixpkgs.lib.genAttrs [
-        "x86_64-linux"
-        "aarch64-linux"
-        "aarch64-darwin"
-      ] (
-        system:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = baseOverlays;
-          };
-        in
-        {
-          inherit (pkgs) mapgames;
-        }
-        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-          inherit (pkgs)
-            lt-shelters
-            weather
-            gamja
-            chronoctl
-            mrescue-alpine
-            mrescue-debian-xfce
-            mrescue-nixos
-            ;
-        }
-      );
+      packages =
+        nixpkgs.lib.genAttrs
+          [
+            "x86_64-linux"
+            "aarch64-linux"
+            "aarch64-darwin"
+          ]
+          (
+            system:
+            let
+              pkgs = import nixpkgs {
+                inherit system;
+                overlays = baseOverlays;
+              };
+            in
+            {
+              inherit (pkgs) lt-maps;
+            }
+            // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+              inherit (pkgs)
+                lt-shelters
+                weather
+                gamja
+                chronoctl
+                mrescue-alpine
+                mrescue-debian-xfce
+                mrescue-nixos
+                ;
+            }
+          );
     };
 
 }

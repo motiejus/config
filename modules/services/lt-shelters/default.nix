@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  myData,
   ...
 }:
 let
@@ -47,68 +48,142 @@ let
     name = "update-lt-shelters";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.curl
+      pkgs.diffutils
+      pkgs.findutils
       pkgs.git
+      pkgs.gnutar
+      pkgs.gnused
+      pkgs.jq
+      pkgs.nix
       cfg.package
       pkgs.openssh
     ];
     text = ''
-      repo="$STATE_DIRECTORY/repo"
+      shelters_repo="$STATE_DIRECTORY/repo"
+      lt_maps_repo="$STATE_DIRECTORY/lt-maps"
+      publish_dir=/var/www/dl/maps
       export GIT_SSH_COMMAND="ssh -i $CREDENTIALS_DIRECTORY/ssh-key -o IdentitiesOnly=yes -o SendEnv=GIT_DEFAULT_HASH"
 
-      if [ ! -d "$repo/.git" ]; then
-        mkdir -p "$repo"
-        git -C "$repo" init --object-format=sha256 --initial-branch=main
-      fi
+      shelters_tree=
+      pbf_tmp=
+      md5_tmp=
+      publish_tmp=
+      manifest_tmp=
+      cleanup() {
+        for path in "$pbf_tmp" "$md5_tmp" "$publish_tmp" "$manifest_tmp"; do
+          if [ -n "$path" ]; then
+            rm -f -- "$path"
+          fi
+        done
+        if [ -n "$shelters_tree" ]; then
+          rm -rf -- "$shelters_tree"
+        fi
+      }
+      trap cleanup EXIT
 
-      # Complete a partially initialized state and follow configuration if the
-      # destination changes later.
-      if git -C "$repo" remote get-url origin >/dev/null 2>&1; then
-        git -C "$repo" remote set-url origin ${lib.escapeShellArg cfg.repo}
+      mkdir -p "$publish_dir"
+      find "$publish_dir" -maxdepth 1 -type f -name '.tmp-*' -delete
+
+      if [ ! -d "$shelters_repo/.git" ]; then
+        mkdir -p "$shelters_repo"
+        git -C "$shelters_repo" init --object-format=sha256 --initial-branch=main
+      fi
+      test "$(git -C "$shelters_repo" rev-parse --show-object-format)" = sha256
+      if git -C "$shelters_repo" remote get-url origin >/dev/null 2>&1; then
+        git -C "$shelters_repo" remote set-url origin ${lib.escapeShellArg cfg.repo}
       else
-        git -C "$repo" remote add origin ${lib.escapeShellArg cfg.repo}
+        git -C "$shelters_repo" remote add origin ${lib.escapeShellArg cfg.repo}
+      fi
+      if git -C "$shelters_repo" fetch origin main; then
+        git -C "$shelters_repo" reset --hard origin/main
       fi
 
-      # The remote repository or its main branch may not exist yet, and a
-      # previous initial push may have failed after creating the local commit.
-      # Preserve that commit and retry the push instead of stranding it.
-      if git -C "$repo" fetch origin main; then
-        git -C "$repo" reset --hard origin/main
+      git -C "$shelters_repo" config user.name ${lib.escapeShellArg cfg.gitUserName}
+      git -C "$shelters_repo" config user.email ${lib.escapeShellArg cfg.gitUserEmail}
+      install -m 0644 ${readme} "$shelters_repo/README.md"
+      install -m 0644 ${dataLicense} "$shelters_repo/LICENSE-DATA.md"
+      fetch-priedangos "$shelters_repo/priedangos.jsonl"
+      fetch-kas "$shelters_repo/kas.jsonl"
+      date -u +%Y-%m-%dT%H:%M:%SZ > "$shelters_repo/refreshed-at.txt"
+      git -C "$shelters_repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl refreshed-at.txt
+      if ! git -C "$shelters_repo" diff --cached --quiet; then
+        git -C "$shelters_repo" commit -m "Update PAGD shelter data"
       fi
 
-      test "$(git -C "$repo" rev-parse --show-object-format)" = sha256
-      git -C "$repo" config user.name ${lib.escapeShellArg cfg.gitUserName}
-      git -C "$repo" config user.email ${lib.escapeShellArg cfg.gitUserEmail}
+      shelters_rev=$(git -C "$shelters_repo" rev-parse HEAD)
+      shelters_tree=$(mktemp -d "$STATE_DIRECTORY/shelters-tree.XXXXXX")
+      git -C "$shelters_repo" archive "$shelters_rev" | tar -x -C "$shelters_tree"
+      shelters_hash=$(nix-hash --type sha256 --sri "$shelters_tree")
+      rm -rf "$shelters_tree"
+      shelters_tree=
 
-      install -m 0644 ${readme} "$repo/README.md"
-      install -m 0644 ${dataLicense} "$repo/LICENSE-DATA.md"
-      fetch-priedangos "$repo/priedangos.jsonl"
-      fetch-kas "$repo/kas.jsonl"
+      # Make the shelter revision reachable before lt-maps is allowed to
+      # reference it.
+      GIT_DEFAULT_HASH=sha256 git -C "$shelters_repo" push --set-upstream origin main
 
-      # Record the UTC completion time of this refresh. mapgames bakes this
-      # into the map's data-sources line, so it must advance on every
-      # successful refresh even when the source bytes did not change. Both
-      # fetchers replace their file atomically and fail without touching it, so
-      # reaching this point means both snapshots are current as of now.
-      date -u +%Y-%m-%dT%H:%M:%SZ > "$repo/refreshed-at.txt"
+      pbf_tmp=$(mktemp "$STATE_DIRECTORY/lithuania.XXXXXX.osm.pbf")
+      md5_tmp=$(mktemp "$STATE_DIRECTORY/lithuania.XXXXXX.md5")
+      curl --fail --location --retry 4 --retry-all-errors --connect-timeout 30 --max-time 7200 --output "$pbf_tmp" https://download.geofabrik.de/europe/lithuania-latest.osm.pbf
+      curl --fail --location --retry 4 --retry-all-errors --connect-timeout 30 --max-time 300 --output "$md5_tmp" https://download.geofabrik.de/europe/lithuania-latest.osm.pbf.md5
+      upstream_md5=$(sed -n 's/^\([0-9a-fA-F]\{32\}\).*/\1/p' "$md5_tmp" | head -n 1)
+      test -n "$upstream_md5"
+      printf '%s  %s\n' "$upstream_md5" "$pbf_tmp" | md5sum --check --status -
 
-      git -C "$repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl refreshed-at.txt
-      # refreshed-at.txt changes every run, so there is normally always
-      # something to commit; the guard still skips an empty commit if a run
-      # somehow left the tree identical (e.g. a manual re-run within the same
-      # second after a no-op).
-      if ! git -C "$repo" diff --cached --quiet; then
-        git -C "$repo" commit -m "Update PAGD shelter data"
+      pbf_hash=$(nix-hash --flat --type sha256 --sri "$pbf_tmp")
+      pbf_hex=$(sha256sum "$pbf_tmp" | cut -d' ' -f1)
+      pbf_name="lithuania-$pbf_hex.osm.pbf"
+      pbf_target="$publish_dir/$pbf_name"
+      publish_tmp=$(mktemp "$publish_dir/.tmp-pbf.XXXXXX")
+      install -m 0644 "$pbf_tmp" "$publish_tmp"
+      if [ -e "$pbf_target" ]; then
+        cmp "$publish_tmp" "$pbf_target"
+        rm "$publish_tmp"
+      else
+        mv "$publish_tmp" "$pbf_target"
       fi
+      rm "$pbf_tmp" "$md5_tmp"
+      pbf_tmp=
+      md5_tmp=
+      publish_tmp=
+      pbf_url="https://dl.jakstys.lt/maps/$pbf_name"
 
-      # Always push: this is a no-op when origin is current, and retries a
-      # commit left behind by an earlier transport or create-on-push failure.
-      GIT_DEFAULT_HASH=sha256 git -C "$repo" push --set-upstream origin main
+      # lt-maps is an ordinary SHA-1 repository. Override the service-wide
+      # SHA-256 default used by the shelter repository when cloning it.
+      if [ ! -d "$lt_maps_repo/.git" ]; then
+        GIT_DEFAULT_HASH=sha1 git clone --branch main git@git.jakstys.lt:lt-maps.git "$lt_maps_repo"
+      else
+        GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" remote set-url origin git@git.jakstys.lt:lt-maps.git
+        GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" fetch origin main
+        GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" reset --hard origin/main
+      fi
+      test "$(git -C "$lt_maps_repo" rev-parse --show-object-format)" = sha1
+      manifest="$lt_maps_repo/nix/data-sources.json"
+      test -f "$manifest"
+      manifest_tmp=$(mktemp "$STATE_DIRECTORY/data-sources.XXXXXX")
+      jq --arg pbf_url "$pbf_url" --arg pbf_hash "$pbf_hash" --arg shelters_rev "$shelters_rev" --arg shelters_hash "$shelters_hash" '.osm.url = $pbf_url | .osm.hash = $pbf_hash | .shelters.url = "https://git.jakstys.lt/lt-shelters.git" | .shelters.rev = $shelters_rev | .shelters.hash = $shelters_hash' "$manifest" > "$manifest_tmp"
+      chmod 0644 "$manifest_tmp"
+      mv "$manifest_tmp" "$manifest"
+      manifest_tmp=
+
+      git -C "$lt_maps_repo" config user.name ${lib.escapeShellArg cfg.gitUserName}
+      git -C "$lt_maps_repo" config user.email ${lib.escapeShellArg cfg.gitUserEmail}
+      git -C "$lt_maps_repo" add -- nix/data-sources.json
+      if ! git -C "$lt_maps_repo" diff --cached --quiet; then
+        git -C "$lt_maps_repo" commit -m "Update Lithuania map data sources"
+      fi
+      GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" push --set-upstream origin main
+
+      # Keep the PBF referenced by the just-pushed manifest. Superseded PBFs
+      # remain downloadable for approximately three months.
+      find "$publish_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf' ! -name "$pbf_name" -mtime +93 -delete
+      trap - EXIT
     '';
   };
 in
 {
   options.mj.services.lt-shelters = {
-    enable = lib.mkEnableOption "periodic Lithuanian PAGD shelter dataset snapshots";
+    enable = lib.mkEnableOption "periodic Lithuanian shelter and map data snapshots";
     repo = lib.mkOption {
       type = lib.types.str;
       default = "git@git.jakstys.lt:lt-shelters.git";
@@ -130,38 +205,56 @@ in
     sshKeyPath = lib.mkOption {
       type = lib.types.path;
       default = "/etc/ssh/ssh_host_ed25519_key";
-      description = "SSH private key used to push snapshots";
+      description = "SSH private key used to push shelters and lt-maps";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.lt-shelters = {
-      description = "Snapshot Lithuania's Priedanga and KAS open data";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      environment.GIT_DEFAULT_HASH = "sha256";
-      serviceConfig = {
-        Type = "oneshot";
-        DynamicUser = true;
-        StateDirectory = "lt-shelters";
-        WorkingDirectory = "/var/lib/lt-shelters";
-        LoadCredential = [ "ssh-key:${cfg.sshKeyPath}" ];
-        ExecStart = lib.getExe update;
-      };
+    users.users.lt-shelters = {
+      description = "Lithuanian shelter data bot";
+      isSystemUser = true;
+      group = "lt-shelters";
+      home = "/var/lib/lt-shelters";
+      uid = myData.uidgid.lt-shelters;
     };
+    users.groups.lt-shelters.gid = myData.uidgid.lt-shelters;
+    systemd = {
+      tmpfiles.rules = [
+        "d /var/www/dl/maps 0755 lt-shelters lt-shelters -"
+      ];
 
-    # Weekly: the source datasets change in infrequent batches (median
-    # active-day gaps of a few days), and each refresh now always commits to
-    # record refreshed-at.txt, so a seven-day cadence keeps the "refreshed"
-    # date current without accumulating daily no-op commits. Jitter avoids a
-    # fixed portal spike.
-    systemd.timers.lt-shelters = {
-      description = "Weekly Lithuanian shelter data snapshot";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "Mon *-*-* 04:17:00 Europe/Vilnius";
-        Persistent = true;
-        RandomizedDelaySec = "30m";
+      services.lt-shelters = {
+        description = "Snapshot Lithuanian shelters and update map data pins";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        environment.GIT_DEFAULT_HASH = "sha256";
+        serviceConfig = {
+          Type = "oneshot";
+          User = "lt-shelters";
+          Group = "lt-shelters";
+          StateDirectory = "lt-shelters";
+          WorkingDirectory = "/var/lib/lt-shelters";
+          LoadCredential = [ "ssh-key:${cfg.sshKeyPath}" ];
+          ExecStart = lib.getExe update;
+          TimeoutStartSec = "3h";
+          UMask = "0022";
+          NoNewPrivileges = true;
+          PrivateDevices = true;
+          PrivateTmp = true;
+          ProtectHome = true;
+          ProtectSystem = "strict";
+          ReadWritePaths = [ "/var/www/dl/maps" ];
+        };
+      };
+
+      timers.lt-shelters = {
+        description = "Weekly Lithuanian shelter and map data snapshot";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "Mon *-*-* 04:17:00 Europe/Vilnius";
+          Persistent = true;
+          RandomizedDelaySec = "30m";
+        };
       };
     };
 
