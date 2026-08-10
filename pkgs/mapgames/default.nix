@@ -30,7 +30,7 @@
   #   lib.cleanSourceWith { src = ../../../../maps.jakstys.lt; filter = path: type:
   #     let name = baseNameOf path; in
   #     !(name == ".git" || name == ".zig-cache" || name == "zig-out" || name == "zig-pkg"); }
-  mapsRev ? "b6f3da1aa90448826c782725fa6aae946dbb3709e1b879695769880c2c2bbe28",
+  mapsRev ? "c5c80994a14711cd8123db97bdbcd409ccb494ca175f472afd06bff7c64bc817",
   mapsSrc ? null,
   # null means "use up to 8 $NIX_BUILD_CORES at build time" for generation workers.
   concurrency ? null,
@@ -66,7 +66,7 @@ let
         url = "https://git.jakstys.lt/maps.jakstys.lt.git";
         rev = mapsRev;
         preFetch = "export GIT_DEFAULT_HASH=sha256"; # repo is sha256 object format
-        hash = "sha256-NoSBgTY0TnXB8SUdSbKbmlqz8NeQz3X+PNao+gVhHa0=";
+        hash = "sha256-aVfJqOek6sZdwlKBwKKIbzps6CQzZZKkZT/yMgMGxho=";
       };
 
   # Zig 0.16.0 from zig-overlay (upstream's release tarball), used for
