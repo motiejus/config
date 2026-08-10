@@ -92,6 +92,11 @@
             weather = super.callPackage ./pkgs/weather { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
+            mapgames = super.callPackage ./pkgs/mapgames {
+              # zigpkgs comes from zig.overlays.default above: maps builds with
+              # a pinned upstream zig release, not nixpkgs-unstable's zig.
+              inherit (final) zigpkgs;
+            };
           }
           // super.lib.optionalAttrs super.stdenv.isDarwin {
             # fish gets SIGKILL in nix sandbox on darwin, breaking direnv tests
@@ -99,11 +104,6 @@
             xscreensaver-mac = super.callPackage ./pkgs/xscreensaver-mac.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
-            mapgames = super.callPackage ./pkgs/mapgames {
-              # zigpkgs comes from zig.overlays.default above: maps builds with
-              # a pinned upstream zig release, not nixpkgs-unstable's zig.
-              inherit (final) pkgs-unstable zigpkgs;
-            };
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
             mem-limit-run = super.callPackage ./pkgs/mem-limit-run.nix { };
@@ -366,17 +366,24 @@
       }
     )
 
-    // (
-      let
-        pkgs = import nixpkgs {
-          overlays = baseOverlays;
-          system = "x86_64-linux";
-        };
-      in
-      {
-        packages.x86_64-linux = {
+    // {
+      packages = nixpkgs.lib.genAttrs [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ] (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = baseOverlays;
+          };
+        in
+        {
+          inherit (pkgs) mapgames;
+        }
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           inherit (pkgs)
-            mapgames
             lt-shelters
             weather
             gamja
@@ -385,8 +392,8 @@
             mrescue-debian-xfce
             mrescue-nixos
             ;
-        };
-      }
-    );
+        }
+      );
+    };
 
 }
