@@ -92,7 +92,6 @@ let
     name = "update-lt-maps";
     runtimeInputs = [
       pkgs.coreutils
-      pkgs.diffutils
       pkgs.findutils
       pkgs.git
       pkgs.gnutar
@@ -111,16 +110,14 @@ let
       export GIT_SSH_COMMAND="ssh -i $CREDENTIALS_DIRECTORY/ssh-key -o IdentitiesOnly=yes -o SendEnv=GIT_DEFAULT_HASH"
 
       tmp_dir=$(mktemp -d "$STATE_DIRECTORY/update.XXXXXX")
-      publish_tmp=
       cleanup() {
         rm -rf -- "$tmp_dir"
-        test -z "$publish_tmp" || rm -f -- "$publish_tmp"
       }
       publish_file() {
+        local publish_tmp
         publish_tmp=$(mktemp "$publish_dir/.tmp-publish.XXXXXX")
         install -m 0644 "$1" "$publish_tmp"
         mv -f "$publish_tmp" "$2"
-        publish_tmp=
       }
       trap cleanup EXIT
 
@@ -135,35 +132,31 @@ let
 
       sync_repo sha1 git@git.jakstys.lt:lt-maps.git "$lt_maps_repo"
       manifest="$lt_maps_repo/nix/data-sources.json"
-      pbf_name=$(jq --raw-output '.osm.url | split("/")[-1]' "$manifest")
-      case "$pbf_name" in
-        lithuania-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf) ;;
-        *) echo "unexpected current PBF filename: $pbf_name" >&2; exit 1 ;;
-      esac
 
       geofabrik=https://download.geofabrik.de/europe
       wget_args=(--progress=dot:giga --tries=5 --timeout=30 --retry-connrefused --retry-on-host-error "--retry-on-http-error=429,500,502,503,504")
       remote_md5_file="$tmp_dir/lithuania-latest.osm.pbf.md5"
       wget "''${wget_args[@]}" --output-document="$remote_md5_file" "$geofabrik/lithuania-latest.osm.pbf.md5"
-      read -r remote_md5 remote_name < "$remote_md5_file"
-      if [[ ! "$remote_md5" =~ ^[0-9a-fA-F]{32}$ || "$remote_name" != lithuania-latest.osm.pbf ]]; then
+      read -r remote_md5 _ < "$remote_md5_file"
+      if [[ ! "$remote_md5" =~ ^[0-9a-fA-F]{32}$ ]]; then
         echo "unexpected Geofabrik checksum: $(cat "$remote_md5_file")" >&2
         exit 1
       fi
       remote_md5="''${remote_md5,,}"
 
-      pbf_target="$publish_dir/$pbf_name"
-      md5_target="$pbf_target.md5"
-      local_md5=
-      if [ -e "$pbf_target" ]; then
-        if [ -e "$md5_target" ]; then
-          read -r local_md5 _ < "$md5_target"
-        else
-          local_md5=$(md5sum "$pbf_target" | cut -d' ' -f1)
+      pbf_name=
+      for candidate_md5_target in "$publish_dir"/lithuania-*.osm.pbf.md5; do
+        [ -e "$candidate_md5_target" ] || continue
+        read -r candidate_md5 _ < "$candidate_md5_target" || continue
+        if [ "''${candidate_md5,,}" = "$remote_md5" ]; then
+          pbf_target="''${candidate_md5_target%.md5}"
+          [ -e "$pbf_target" ] || continue
+          pbf_name="''${pbf_target##*/}"
+          break
         fi
-      fi
+      done
 
-      if [ "$local_md5" != "$remote_md5" ]; then
+      if [ -z "$pbf_name" ]; then
         wget "''${wget_args[@]}" --trust-server-names --directory-prefix="$tmp_dir" "$geofabrik/lithuania-latest.osm.pbf"
         pbf_tmp=$(find "$tmp_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf' -print -quit)
         pbf_name="''${pbf_tmp##*/}"
@@ -171,23 +164,15 @@ let
           lithuania-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf) ;;
           *) echo "unexpected Geofabrik filename: $pbf_name" >&2; exit 1 ;;
         esac
-        test "$(md5sum "$pbf_tmp" | cut -d' ' -f1)" = "$remote_md5"
-        pbf_target="$publish_dir/$pbf_name"
-        md5_target="$pbf_target.md5"
-        if [ -e "$pbf_target" ]; then
-          test "$(md5sum "$pbf_target" | cut -d' ' -f1)" = "$remote_md5" || {
-            echo "refusing to replace published PBF: $pbf_target" >&2
-            exit 1
-          }
-        else
-          publish_file "$pbf_tmp" "$pbf_target"
+        if [ "$(md5sum "$pbf_tmp" | cut -d' ' -f1)" != "$remote_md5" ]; then
+          echo "downloaded PBF checksum does not match Geofabrik checksum" >&2
+          exit 1
         fi
-      fi
-
-      md5_tmp="$tmp_dir/$pbf_name.md5"
-      printf '%s  %s\n' "$remote_md5" "$pbf_name" > "$md5_tmp"
-      if ! cmp --silent "$md5_tmp" "$md5_target"; then
-        publish_file "$md5_tmp" "$md5_target"
+        pbf_target="$publish_dir/$pbf_name"
+        md5_tmp="$tmp_dir/$pbf_name.md5"
+        printf '%s  %s\n' "$remote_md5" "$pbf_name" > "$md5_tmp"
+        publish_file "$pbf_tmp" "$pbf_target"
+        publish_file "$md5_tmp" "$pbf_target.md5"
       fi
 
       pbf_hex=$(sha256sum "$pbf_target" | cut -d' ' -f1)
@@ -209,7 +194,8 @@ let
 
       # Keep the PBF referenced by the current manifest. Superseded PBFs and
       # their checksums remain downloadable for approximately three months.
-      find "$publish_dir" -maxdepth 1 -type f \( -name 'lithuania-*.osm.pbf' -o -name 'lithuania-*.osm.pbf.md5' \) ! -name "$pbf_name" ! -name "$pbf_name.md5" -mtime +93 -delete
+      find "$publish_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf.md5' ! -name "$pbf_name.md5" -mtime +93 -delete
+      find "$publish_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf' ! -name "$pbf_name" -mtime +93 -delete
     '';
   };
   mkUpdaterService =
