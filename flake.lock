@@ -129,6 +129,29 @@
         "type": "github"
       }
     },
+    "lt-maps": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "zig": [
+          "zig"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786423480,
+        "narHash": "sha256-wUq4oLHba42P0XlJH86tSvctvpuqZ18jcNgxrfql9C8=",
+        "ref": "refs/heads/main",
+        "rev": "5341d78ca1a3a7bfec0f16c89e8d38d108d026ba",
+        "revCount": 497,
+        "type": "git",
+        "url": "https://git.jakstys.lt/lt-maps.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.jakstys.lt/lt-maps.git"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -299,6 +322,7 @@
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "home-manager": "home-manager",
+        "lt-maps": "lt-maps",
         "nix-darwin": "nix-darwin",
         "nix-index-database": "nix-index-database",
         "nixos-hardware": "nixos-hardware",
