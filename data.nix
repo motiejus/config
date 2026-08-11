@@ -15,6 +15,7 @@ rec {
 
     jakstpub = 505;
     lt-shelters = 506;
+    lt-maps = 507;
   };
 
   ports = {
