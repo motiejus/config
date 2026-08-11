@@ -4,10 +4,23 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    systems = {
+      url = "github:nix-systems/default";
+      flake = false;
+    };
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
     flake-compat.url = "github:nix-community/flake-compat";
-    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
-    nur.url = "github:nix-community/NUR";
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
@@ -18,6 +31,7 @@
         nixpkgs.follows = "nixpkgs";
         home-manager.follows = "home-manager";
         darwin.follows = "nix-darwin";
+        systems.follows = "systems";
       };
     };
 
@@ -35,6 +49,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-compat.follows = "flake-compat";
+        systems.follows = "systems";
       };
     };
 
@@ -49,7 +64,6 @@
     lt-maps = {
       url = "git+https://git.jakstys.lt/lt-maps.git?shallow=0";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.zig.follows = "zig";
     };
 
     pre-commit-hooks = {

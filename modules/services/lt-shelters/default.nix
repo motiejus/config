@@ -137,7 +137,12 @@ let
       pbf_hex=$(sha256sum "$pbf_tmp" | cut -d' ' -f1)
       pbf_hash=$(nix hash convert --hash-algo sha256 --from base16 --to sri "$pbf_hex")
       pbf_target="$publish_dir/$pbf_name"
-      if ! cmp --silent "$pbf_tmp" "$pbf_target" 2>/dev/null; then
+      if [ -e "$pbf_target" ]; then
+        cmp --silent "$pbf_tmp" "$pbf_target" || {
+          echo "refusing to replace published PBF: $pbf_target" >&2
+          exit 1
+        }
+      else
         publish_tmp=$(mktemp "$publish_dir/.tmp-pbf.XXXXXX")
         install -m 0644 "$pbf_tmp" "$publish_tmp"
         mv -f "$publish_tmp" "$pbf_target"
@@ -155,6 +160,7 @@ let
       git -C "$lt_maps_repo" config user.email lt-maps@jakstys.lt
       git -C "$lt_maps_repo" add -- nix/data-sources.json
       if ! git -C "$lt_maps_repo" diff --cached --quiet; then
+        (cd "$lt_maps_repo"; nix build --accept-flake-config --no-link .#e2e-test)
         git -C "$lt_maps_repo" commit -m "Update Lithuania map data sources"
         GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" push origin main
       fi
