@@ -19,12 +19,12 @@ let
       # namespace is deployed — this owner-qualified form then only works
       # via the temporary @oldclone redirect and blocks its removal.
       url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "cd5158597107b55c02c928a4e12015f77b22af1fbebb02dd1cd4390adf986720";
+      rev = "f378996a9b8fbf9299923294143a09d491e7445378a2896b317406a9f98fa454";
       # The repo is in sha256 object format; fetchgit's `git init` defaults
       # to sha1 and then rejects the sha256 pack ("pack is corrupted").
       # nixpkgs has no object-format knob, so set git's via preFetch.
       preFetch = "export GIT_DEFAULT_HASH=sha256";
-      hash = "sha256-GT4z5nbQQSVjUrbi6I/RcPqjNwKNgglxv/UTeKXE90M=";
+      hash = "sha256-CZr4C/eGIRXraYpHdN9Zyoh6OHMuXJq1wgslnqlfHh4=";
     };
 
     nativeBuildInputs = [ zig_0_16 ];
