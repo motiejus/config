@@ -66,6 +66,8 @@ let
       pkgs.openssh
     ];
     text = ''
+      set -x
+
       ${syncRepo}
       shelters_repo="$STATE_DIRECTORY/repo"
       export GIT_SSH_COMMAND="ssh -i $CREDENTIALS_DIRECTORY/ssh-key -o IdentitiesOnly=yes -o SendEnv=GIT_DEFAULT_HASH"
@@ -90,7 +92,6 @@ let
     name = "update-lt-maps";
     runtimeInputs = [
       pkgs.coreutils
-      pkgs.curl
       pkgs.diffutils
       pkgs.findutils
       pkgs.git
@@ -98,8 +99,11 @@ let
       pkgs.jq
       pkgs.nix
       pkgs.openssh
+      pkgs.wget
     ];
     text = ''
+      set -x
+
       ${syncRepo}
       shelters_repo="$STATE_DIRECTORY/lt-shelters"
       lt_maps_repo="$STATE_DIRECTORY/repo"
@@ -112,6 +116,12 @@ let
         rm -rf -- "$tmp_dir"
         test -z "$publish_tmp" || rm -f -- "$publish_tmp"
       }
+      publish_file() {
+        publish_tmp=$(mktemp "$publish_dir/.tmp-publish.XXXXXX")
+        install -m 0644 "$1" "$publish_tmp"
+        mv -f "$publish_tmp" "$2"
+        publish_tmp=
+      }
       trap cleanup EXIT
 
       find "$publish_dir" -maxdepth 1 -type f -name '.tmp-*' -delete
@@ -123,35 +133,67 @@ let
       git -C "$shelters_repo" archive "$shelters_rev" | tar -x -C "$shelters_tree"
       shelters_hash=$(nix-hash --type sha256 --sri "$shelters_tree")
 
-      geofabrik=https://download.geofabrik.de/europe
-      pbf_tmp=$(curl --fail --location --remote-name --remote-header-name --output-dir "$tmp_dir" --retry 4 --retry-all-errors --connect-timeout 30 --max-time 7200 --write-out '%{filename_effective}' "$geofabrik/lithuania-latest.osm.pbf")
-      pbf_name="''${pbf_tmp##*/}"
-      case "$pbf_name" in
-        lithuania-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf) ;;
-        *) echo "unexpected Geofabrik filename: $pbf_name" >&2; exit 1 ;;
-      esac
-      md5_tmp="$pbf_tmp.md5"
-      curl --fail --location --retry 4 --retry-all-errors --connect-timeout 30 --max-time 300 --output "$md5_tmp" "$geofabrik/$pbf_name.md5"
-      (cd "$tmp_dir"; md5sum --check --status "$pbf_name.md5")
-
-      pbf_hex=$(sha256sum "$pbf_tmp" | cut -d' ' -f1)
-      pbf_hash=$(nix hash convert --hash-algo sha256 --from base16 --to sri "$pbf_hex")
-      pbf_target="$publish_dir/$pbf_name"
-      if [ -e "$pbf_target" ]; then
-        cmp --silent "$pbf_tmp" "$pbf_target" || {
-          echo "refusing to replace published PBF: $pbf_target" >&2
-          exit 1
-        }
-      else
-        publish_tmp=$(mktemp "$publish_dir/.tmp-pbf.XXXXXX")
-        install -m 0644 "$pbf_tmp" "$publish_tmp"
-        mv -f "$publish_tmp" "$pbf_target"
-        publish_tmp=
-      fi
-      pbf_url="https://dl.jakstys.lt/maps/$pbf_name"
-
       sync_repo sha1 git@git.jakstys.lt:lt-maps.git "$lt_maps_repo"
       manifest="$lt_maps_repo/nix/data-sources.json"
+      pbf_name=$(jq --raw-output '.osm.url | split("/")[-1]' "$manifest")
+      case "$pbf_name" in
+        lithuania-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf) ;;
+        *) echo "unexpected current PBF filename: $pbf_name" >&2; exit 1 ;;
+      esac
+
+      geofabrik=https://download.geofabrik.de/europe
+      wget_args=(--progress=dot:giga --tries=5 --timeout=30 --retry-connrefused --retry-on-host-error "--retry-on-http-error=429,500,502,503,504")
+      remote_md5_file="$tmp_dir/lithuania-latest.osm.pbf.md5"
+      wget "''${wget_args[@]}" --output-document="$remote_md5_file" "$geofabrik/lithuania-latest.osm.pbf.md5"
+      read -r remote_md5 remote_name < "$remote_md5_file"
+      if [[ ! "$remote_md5" =~ ^[0-9a-fA-F]{32}$ || "$remote_name" != lithuania-latest.osm.pbf ]]; then
+        echo "unexpected Geofabrik checksum: $(cat "$remote_md5_file")" >&2
+        exit 1
+      fi
+      remote_md5="''${remote_md5,,}"
+
+      pbf_target="$publish_dir/$pbf_name"
+      md5_target="$pbf_target.md5"
+      local_md5=
+      if [ -e "$pbf_target" ]; then
+        if [ -e "$md5_target" ]; then
+          read -r local_md5 _ < "$md5_target"
+        else
+          local_md5=$(md5sum "$pbf_target" | cut -d' ' -f1)
+        fi
+      fi
+
+      if [ "$local_md5" != "$remote_md5" ]; then
+        wget "''${wget_args[@]}" --trust-server-names --directory-prefix="$tmp_dir" "$geofabrik/lithuania-latest.osm.pbf"
+        pbf_tmp=$(find "$tmp_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf' -print -quit)
+        pbf_name="''${pbf_tmp##*/}"
+        case "$pbf_name" in
+          lithuania-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf) ;;
+          *) echo "unexpected Geofabrik filename: $pbf_name" >&2; exit 1 ;;
+        esac
+        test "$(md5sum "$pbf_tmp" | cut -d' ' -f1)" = "$remote_md5"
+        pbf_target="$publish_dir/$pbf_name"
+        md5_target="$pbf_target.md5"
+        if [ -e "$pbf_target" ]; then
+          test "$(md5sum "$pbf_target" | cut -d' ' -f1)" = "$remote_md5" || {
+            echo "refusing to replace published PBF: $pbf_target" >&2
+            exit 1
+          }
+        else
+          publish_file "$pbf_tmp" "$pbf_target"
+        fi
+      fi
+
+      md5_tmp="$tmp_dir/$pbf_name.md5"
+      printf '%s  %s\n' "$remote_md5" "$pbf_name" > "$md5_tmp"
+      if ! cmp --silent "$md5_tmp" "$md5_target"; then
+        publish_file "$md5_tmp" "$md5_target"
+      fi
+
+      pbf_hex=$(sha256sum "$pbf_target" | cut -d' ' -f1)
+      pbf_hash=$(nix hash convert --hash-algo sha256 --from base16 --to sri "$pbf_hex")
+      pbf_url="https://dl.jakstys.lt/maps/$pbf_name"
+
       manifest_tmp="$tmp_dir/data-sources.json"
       jq --arg pbf_url "$pbf_url" --arg pbf_hash "$pbf_hash" --arg shelters_rev "$shelters_rev" --arg shelters_hash "$shelters_hash" '.osm.url = $pbf_url | .osm.hash = $pbf_hash | .shelters.url = "https://git.jakstys.lt/lt-shelters.git" | .shelters.rev = $shelters_rev | .shelters.hash = $shelters_hash' "$manifest" > "$manifest_tmp"
       mv "$manifest_tmp" "$manifest"
@@ -160,14 +202,14 @@ let
       git -C "$lt_maps_repo" config user.email lt-maps@jakstys.lt
       git -C "$lt_maps_repo" add -- nix/data-sources.json
       if ! git -C "$lt_maps_repo" diff --cached --quiet; then
-        (cd "$lt_maps_repo"; nix build --accept-flake-config --no-link .#e2e-test)
+        (cd "$lt_maps_repo"; nix build --no-warn-dirty --accept-flake-config --no-link .#e2e-test)
         git -C "$lt_maps_repo" commit -m "Update Lithuania map data sources"
         GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" push origin main
       fi
 
-      # Keep the PBF referenced by the current manifest. Superseded PBFs remain
-      # downloadable for approximately three months.
-      find "$publish_dir" -maxdepth 1 -type f -name 'lithuania-*.osm.pbf' ! -name "$pbf_name" -mtime +93 -delete
+      # Keep the PBF referenced by the current manifest. Superseded PBFs and
+      # their checksums remain downloadable for approximately three months.
+      find "$publish_dir" -maxdepth 1 -type f \( -name 'lithuania-*.osm.pbf' -o -name 'lithuania-*.osm.pbf.md5' \) ! -name "$pbf_name" ! -name "$pbf_name.md5" -mtime +93 -delete
     '';
   };
   mkUpdaterService =
