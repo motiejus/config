@@ -47,7 +47,7 @@
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
     lt-maps = {
-      url = "git+https://git.jakstys.lt/lt-maps.git";
+      url = "git+https://git.jakstys.lt/lt-maps.git?shallow=0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.zig.follows = "zig";
     };

@@ -144,10 +144,12 @@
         "ref": "refs/heads/main",
         "rev": "5341d78ca1a3a7bfec0f16c89e8d38d108d026ba",
         "revCount": 497,
+        "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"
       },
       "original": {
+        "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"
       }
