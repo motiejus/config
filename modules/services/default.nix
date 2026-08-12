@@ -21,6 +21,7 @@
     ./ping_exporter
     ./postfix
     ./printing
+    ./rita-jakst-publisher
     ./ssh8022
     ./syncthing
     ./syncthing-relay

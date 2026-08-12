@@ -102,9 +102,27 @@
       "rita.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         header Alt-Svc "h3=\":443\"; ma=86400"
-        root * /var/www/rita.jakstys.lt
-        file_server {
-          precompressed zstd br gzip
+        import ${pkgs.rita-jakst-publisher.caddyfile} /var/www/rita.jakstys.lt/site
+      '';
+      "rita-admin.jakstys.lt".extraConfig = ''
+        tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
+        route {
+          @denied not remote_ip ${myData.subnets.tailscale.cidr}
+          abort @denied
+
+          @assets path /static/admin.css /static/admin.js /assets/prose.css
+          handle @assets {
+            root * ${pkgs.rita-jakst-publisher.adminAssets}
+            header Cache-Control no-cache
+            file_server {
+              precompressed zstd br gzip
+              etag_file_extensions .etag
+            }
+          }
+          handle {
+            header Cache-Control no-store
+            reverse_proxy 127.0.0.1:${toString myData.ports.rita-jakst-publisher}
+          }
         }
       '';
       "dl.jakstys.lt".extraConfig = ''

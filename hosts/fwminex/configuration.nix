@@ -444,6 +444,8 @@ in
         acceptDNS = true;
       };
 
+      rita-jakst-publisher.enable = true;
+
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
@@ -493,6 +495,7 @@ in
                   "bitwarden_rs"
                   "matrix-synapse"
                   "private/soju"
+                  "rita.jakstys.lt"
 
                   # https://immich.app/docs/administration/backup-and-restore/
                   "immich/library"

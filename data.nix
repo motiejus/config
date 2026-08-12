@@ -16,6 +16,7 @@ rec {
     jakstpub = 505;
     lt-shelters = 506;
     lt-maps = 507;
+    rita-jakst-publisher = 508;
   };
 
   ports = {
@@ -31,6 +32,7 @@ rec {
     vaultwarden = 8222;
     headscale = 8080;
     plik = 8099;
+    rita-jakst-publisher = 8098;
     hass = 8123;
     prometheus = 9001;
     tailscale = 41641;
@@ -169,7 +171,7 @@ rec {
     ''
       $ORIGIN jakstys.lt.
       $TTL 3600
-      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026071700 86400 86400 86400 86400)
+      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026081200 86400 86400 86400 86400)
       @                       86400    NS     ns1.jakstys.lt.
       @                       86400    NS     ns2.jakstys.lt.
       @                             HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
@@ -183,6 +185,7 @@ rec {
       vpn                      3600    A     ${fra1c}
       rita                         HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       rita                             A     ${vno1}
+      rita-admin                       A     ${hosts."fwminex.jakst.vpn".jakstIP}
       r                            HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
       r                                A     ${vno1}
       git                              A     ${vno1}

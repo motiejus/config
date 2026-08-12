@@ -113,6 +113,7 @@
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
             lt-maps = inputs.lt-maps.packages.${final.stdenv.hostPlatform.system}.compressed;
+            rita-jakst-publisher = final.callPackage ./pkgs/rita-jakst-publisher.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isDarwin {
             # fish gets SIGKILL in nix sandbox on darwin, breaking direnv tests
