@@ -140,11 +140,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786542171,
-        "narHash": "sha256-BWHA4nDiKcmCZzRll19YmmLwqFPgAlbhVJjwJiiG/lw=",
+        "lastModified": 1786547380,
+        "narHash": "sha256-B0S0UdddMwAkeZRcxeTkHvknHwhgCfIRMoY4StAaknY=",
         "ref": "refs/heads/main",
-        "rev": "98b0c02c3e7da82ee832abd23087f0194d77d89c",
-        "revCount": 512,
+        "rev": "8210c3c73dd9c4966a6f94963f05e4a18aaaf55c",
+        "revCount": 514,
         "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"
@@ -203,11 +203,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786437054,
-        "narHash": "sha256-I++HzBBAgQ17UaLVU6aSm1/7LDo6c9xr8rAbpByWywE=",
+        "lastModified": 1786528975,
+        "narHash": "sha256-8KuasCs+mVQ7WbLONUf/QB7NZeQvovyXRyxAj4nOOzY=",
         "owner": "NixOS",
         "repo": "nixos-hardware",
-        "rev": "6ed13b1d888d5cb07dbb0723eb1df86bbacd0b9c",
+        "rev": "3e7edd9afe17e45521300e041c65de3015f4a302",
         "type": "github"
       },
       "original": {
@@ -257,11 +257,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786514245,
-        "narHash": "sha256-EzDpRNA5HRo+8AyF+krGy0Bg7/BAr2nY4YmJLqTnAwo=",
+        "lastModified": 1786547222,
+        "narHash": "sha256-y0tceXvNVcPd9dj5ZoyxmviQ/6Aydlq+6e1TSz/ZuKk=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "c5dd5bf1eee5f334e615da401801af944d2b31c9",
+        "rev": "3d347de8da3bdafed1350ae4ef5d4c1f49b89c42",
         "type": "github"
       },
       "original": {
@@ -341,11 +341,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786450958,
-        "narHash": "sha256-qtQFtQbfW8GMjCpWKGcHkkq2B5ayNS1Fb6zvSF3lyAk=",
+        "lastModified": 1786537416,
+        "narHash": "sha256-1CnyLA6qKAC2I0NuL20wKuLg5Gq6CCWlr1saOvZQzHA=",
         "owner": "mitchellh",
         "repo": "zig-overlay",
-        "rev": "3560c3990dd4ed1ac660d8c84c0ce256b1d20fee",
+        "rev": "85b40ca1018a7b0f05fb0cd9c07fec28b8d4f00e",
         "type": "github"
       },
       "original": {
