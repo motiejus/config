@@ -24,7 +24,7 @@ let
     done
   '';
 in
-buildGoModule {
+buildGoModule (finalAttrs: {
   pname = "rita-jakst-publisher";
   version = "0-unstable";
   inherit src;
@@ -39,6 +39,6 @@ buildGoModule {
 
   passthru = {
     inherit adminAssets;
-    caddyfile = "${placeholder "out"}/share/rita-jakst-publisher/Caddyfile.snippet";
+    caddyfile = "${finalAttrs.finalPackage}/share/rita-jakst-publisher/Caddyfile.snippet";
   };
-}
+})
