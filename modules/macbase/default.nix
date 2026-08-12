@@ -117,9 +117,10 @@ in
       shells = [ pkgs.bash ];
 
       systemPackages = with pkgs; [
+        mdr
+        watch
         gnutar
         (writeShellScriptBin "gtar" ''exec ${gnutar}/bin/tar "$@"'')
-        watch
       ];
     };
 
