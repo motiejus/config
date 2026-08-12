@@ -102,7 +102,7 @@
       "rita.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         header Alt-Svc "h3=\":443\"; ma=86400"
-        import ${pkgs.rita-jakst-publisher.caddyfile} /var/www/rita.jakstys.lt/site
+        import ${pkgs.rita-jakst-publisher.caddyfile} /var/www/rita.jakstys.lt
       '';
       "rita-admin.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
