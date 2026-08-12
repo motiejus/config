@@ -8,8 +8,8 @@
 let
   src = fetchgit {
     url = "https://git.jakstys.lt/rita.jakstys.lt.git";
-    rev = "f513c3c3613e5728bb8883d49eeead22e8b1a4fe";
-    hash = "sha256-4V4th2AjrQwDU53J1XXvoMw2bkkKXGkNtAQnpiksyyk=";
+    rev = "8b474837b83f14da5848b8faf32535e318b7a42c";
+    hash = "sha256-z6YRwvM2QxYGflbd03jdn7Fqs2mJqcwdB0/i9EFT41I=";
   };
   compressedAdminAssets = compressDrvWeb (runCommand "rita-jakst-publisher-admin-assets" { } ''
     mkdir -p $out/{static,assets}
