@@ -30,6 +30,18 @@ buildGoModule (finalAttrs: {
   inherit src;
   vendorHash = "sha256-v5NTABRYrLKNIpYkYy8SDOsx3o5WbHOZ8mRy1fa4/ko=";
 
+  # nixpkgs normally removes -trimpath for tests, invalidating the Go cache and
+  # recompiling go-sqlite3's large CGO amalgamation.
+  checkPhase = ''
+    runHook preCheck
+
+    for pkg in $(getGoDirs test); do
+      buildGoDir test "$pkg"
+    done
+
+    runHook postCheck
+  '';
+
   postInstall = ''
     install -Dm644 ${src}/deploy/Caddyfile.snippet \
       $out/share/rita-jakst-publisher/Caddyfile.snippet
