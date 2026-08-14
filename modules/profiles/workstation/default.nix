@@ -26,10 +26,6 @@ in
       };
     };
 
-    programs = {
-      ladybird.enable = true;
-    };
-
     services = {
       xserver = {
         windowManager.awesome.enable = true;
