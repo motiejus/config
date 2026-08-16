@@ -47,6 +47,10 @@ rec {
 
   bot_pubkeys = {
     nixbld_macworx = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1fp61KUCMPBBRNciKgbxwvRphtO5GKmCUKPJrfWRXb nixbld@macworx";
+
+    # vno3-nk reads fwminex's timelapse stills to fill its own outages.
+    # Private half: secrets/vno3-nk/timelapse-merger-key.age
+    timelapse_merger = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJzrMPdpXOC42lB849qONf5fjxjeADrpkr1mVj+dAGj/ timelapse-merger@vno3-nk";
   };
 
   people_pubkeys = {

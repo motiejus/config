@@ -38,6 +38,7 @@ in
   "secrets/vno3-nk/syncthing/key.pem.age"
   "secrets/vno3-nk/syncthing/cert.pem.age"
   "secrets/vno3-nk/borgbackup-password.age"
+  "secrets/vno3-nk/timelapse-merger-key.age"
 ]
 // mk ([ vno2-desk2 ] ++ motiejus) [
   "secrets/vno2-desk2/syncthing/key.pem.age"

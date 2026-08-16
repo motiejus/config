@@ -7,6 +7,7 @@
 
 let
   cfg = config.mj.services.timelapse-r11;
+  stateDir = "/var/lib/timelapse-r11";
 
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
@@ -39,6 +40,16 @@ in
     enable = lib.mkEnableOption "enable timelapse-r11";
     secretsEnv = lib.mkOption { type = path; };
     onCalendar = lib.mkOption { type = str; };
+    readerKeys = lib.mkOption {
+      type = listOf str;
+      default = [ ];
+      description = ''
+        SSH public keys allowed to read this host's stills, so that another host
+        can run timelapse-merger against it. Each key is pinned to a read-only
+        rrsync rooted at the state directory: it can run nothing but rsync, can
+        only read, and cannot address a path outside that directory.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -47,6 +58,11 @@ in
     users.users.timelapse-r11 = {
       isSystemUser = true;
       group = "timelapse-r11";
+      # sshd runs the forced command through the account's shell.
+      shell = lib.mkIf (cfg.readerKeys != [ ]) pkgs.bashInteractive;
+      openssh.authorizedKeys.keys = map (
+        k: ''command="${pkgs.rrsync}/bin/rrsync -ro ${stateDir}",restrict ${k}''
+      ) cfg.readerKeys;
     };
 
     users.groups.timelapse-r11 = {

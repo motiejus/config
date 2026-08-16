@@ -390,6 +390,8 @@ in
         enable = true;
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
+        # vno3-nk pulls the 5-minute stills from here to fill its own outages.
+        readerKeys = [ myData.bot_pubkeys.timelapse_merger ];
       };
 
       immich = {

@@ -126,6 +126,12 @@
             mem-limit-run = super.callPackage ./pkgs/mem-limit-run.nix { };
             inherit (super.callPackage ./pkgs/agent-sandboxes.nix { inherit mem-limit-run; }) claudes codexs;
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
+            inherit (super.callPackage ./pkgs/timelapse { })
+              timelapse-merger
+              timelapse-videomaker
+              timelapse-daily
+              timelapse-reap
+              ;
             mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 
             mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };

@@ -20,6 +20,7 @@ in
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     timelapse.file = ../../secrets/timelapse.age;
+    timelapse-merger-key.file = ../../secrets/vno3-nk/timelapse-merger-key.age;
     syncthing-key.file = ../../secrets/vno3-nk/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/vno3-nk/syncthing/cert.pem.age;
     ssh8022-server = {
@@ -125,6 +126,17 @@ in
                     paths = [ "vno3-shared" ];
                     backup_at = "*-*-* 01:00:01 UTC";
                   }
+                  {
+                    # The finished timelapse videos are the only copy once
+                    # timelapse-reap deletes the stills, and nothing else on
+                    # this host backs up /var/lib. Snapshotted through / rather
+                    # than /var/lib, which is not a subvolume here.
+                    subvolume = "/";
+                    repo = "${prefix}-timelapse";
+                    paths = [ "var/lib/timelapse-r11/videos" ];
+                    backup_at = "*-*-* 03:20:00 UTC";
+                    compression = "none";
+                  }
                 ]
               )
               [
@@ -200,6 +212,12 @@ in
     systemPackages = with pkgs; [
       yt-dlp
       intel-gpu-tools
+
+      # run by hand for now; the timer that drives them comes later
+      timelapse-merger
+      timelapse-videomaker
+      timelapse-daily
+      timelapse-reap
     ];
   };
 
