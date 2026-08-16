@@ -611,7 +611,6 @@ in
       graphicsmagick
       ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
       age-plugin-yubikey
-      pkgs-unstable.codex
     ];
   };
 

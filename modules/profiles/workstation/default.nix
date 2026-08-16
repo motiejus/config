@@ -61,6 +61,7 @@ in
         tracy
         mbpoll # modbus poll
         kicad
+        #qwens
         codexs
         claudes
         mem-limit-run

@@ -157,7 +157,7 @@ in
     name = "claudes";
     tool = "claude";
     command = [
-      "claude"
+      (lib.getExe pkgs.pkgs-unstable.claude-code)
       "--dangerously-skip-permissions"
     ];
     statePaths = [
@@ -176,7 +176,7 @@ in
     name = "codexs";
     tool = "codex";
     command = [
-      "codex"
+      (lib.getExe pkgs.pkgs-unstable.codex)
       "--dangerously-bypass-approvals-and-sandbox"
     ];
     statePaths = [ ".codex" ];

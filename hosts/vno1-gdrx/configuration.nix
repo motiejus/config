@@ -149,15 +149,6 @@ in
   programs.steam.enable = true;
 
   environment.systemPackages = with pkgs; [
-    pkgs-unstable.codex
-
-    # maps.jakstys.lt
-    pkg-config
-    sqlite.dev
-    valhalla
-    rapidjson
-    boost.dev
-    libtiff.dev
   ];
 
   # Prototyping: let `pkg-config` find .pc files from systemPackages' dev
