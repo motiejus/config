@@ -20,7 +20,12 @@ in
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     timelapse.file = ../../secrets/timelapse.age;
-    timelapse-merger-key.file = ../../secrets/vno3-nk/timelapse-merger-key.age;
+    # owned by the capture user, so every timelapse tool runs as that user and
+    # nothing in its tree ends up owned by root
+    timelapse-merger-key = {
+      file = ../../secrets/vno3-nk/timelapse-merger-key.age;
+      owner = "timelapse-r11";
+    };
     syncthing-key.file = ../../secrets/vno3-nk/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/vno3-nk/syncthing/cert.pem.age;
     ssh8022-server = {

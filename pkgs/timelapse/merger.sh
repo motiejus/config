@@ -7,7 +7,6 @@
 
 MIN_GAP=10 # minutes; shorter holes make no visible difference in the video
 SSH_KEY=/run/agenix/timelapse-merger-key
-OWNER=timelapse-r11 # the capture unit runs as this and must keep writing here
 
 usage() {
   cat <<'EOF'
@@ -19,7 +18,8 @@ minutes the local tree does not already cover. Existing local files are never
 touched.
 
 The remote is reached with /run/agenix/timelapse-merger-key, so this runs as
-root. Nothing but rsync happens over that connection: the far end pins the key
+the timelapse-r11 user, the same one that owns the photos and takes them.
+Nothing but rsync happens over that connection: the far end pins the key
 to a read-only rrsync rooted at its own timelapse directory
 (mj.services.timelapse-r11.readerKeys), which is why no remote path is given
 here and none can be reached.
@@ -58,7 +58,7 @@ esac
 
 export TZ=UTC
 parse_period
-[ -r "$SSH_KEY" ] || die "cannot read $SSH_KEY (run as root, on a host where agenix provides it)"
+[ -r "$SSH_KEY" ] || die "cannot read $SSH_KEY (run as the timelapse-r11 user)"
 find_cameras
 
 ssh_cmd=(ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes)
@@ -126,10 +126,9 @@ for cam in "${cameras[@]}"; do
   [ "$n_sel" -gt 0 ] || continue
 
   # rsync does not reliably create the day directories from --files-from paths.
-  xargs -a "$sel_list" -r dirname | sort -u |
-    (cd "$ROOT" && xargs -r install -d -o "$OWNER" -g "$OWNER" --)
+  xargs -a "$sel_list" -r dirname | sort -u | (cd "$ROOT" && xargs -r mkdir -p --)
 
-  rsync -rt --ignore-existing --out-format='%n' --chown="$OWNER:$OWNER" \
+  rsync -rt --ignore-existing --out-format='%n' \
     -e "${ssh_cmd[*]}" --files-from="$sel_list" \
     "$REMOTE:" "$ROOT/" >"$tmp/copied" || die "$cam: rsync failed"
   copied=$(grep -c '\.jpg$' "$tmp/copied" || true)
