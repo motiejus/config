@@ -6,20 +6,28 @@
   ...
 }:
 let
+  # The uid/gid the sandbox presents inside its user namespace. Republished as
+  # passthru so modules/profiles/coding-agent can declare the matching
+  # `coding-agent` entry from this one definition.
+  agentUid = 1001;
+
   # Fonts for headless-browser screenshot/pixel tests (e.g. stagit-ng).
   # DOM/text tests work without it; this only silences HarfBuzz tofu.
   fontsConf = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
 
+  # Each sandbox ships the agent CLI it wraps, so one systemPackages entry
+  # puts both the sandbox (`claudes`) and the naked tool (`claude`) on $PATH.
   mkAgentSandbox =
     {
       name,
-      tool,
-      command,
+      package,
+      args ? [ ],
       statePaths,
       environment ? [ ],
     }:
     let
-      tmpDir = "/tmp/${tool}-1001";
+      tool = package.meta.mainProgram;
+      tmpDir = "/tmp/${tool}-${toString agentUid}";
       bwrapArgs = [
         "--proc /proc"
         "--dev /dev"
@@ -66,6 +74,9 @@ let
         "--ro-bind /nix/var/nix/db /nix/var/nix/db"
         "--ro-bind /run/wrappers /run/wrappers"
         "--ro-bind /etc/resolv.conf /etc/resolv.conf"
+        # Holds the host's `coding-agent` entry for agentUid: tools that look
+        # up their own user (node's os.userInfo(), called by qwen-code at
+        # import time) abort without one.
         "--ro-bind /etc/passwd /etc/passwd"
         "--ro-bind /etc/group /etc/group"
         "--ro-bind /etc/nix /etc/nix"
@@ -82,84 +93,90 @@ let
         "--die-with-parent"
         ''--chdir "$PWD"''
         "--unshare-user"
-        "--uid 1001"
-        "--gid 1001"
+        "--uid ${toString agentUid}"
+        "--gid ${toString agentUid}"
         "--cap-add CAP_SYS_PTRACE"
       ];
+      sandbox = writeShellApplication {
+        inherit name;
+        # Browser and Node versions come from the flake rather than the user's
+        # imperative profile. The Nix store is already visible inside bwrap.
+        runtimeInputs = [
+          mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
+          pkgs.nodejs
+          pkgs.chromium
+          pkgs.firefox-bin
+          pkgs.playwright-driver.browsers
+          # Headless wlroots compositor: gives firefox (or any headed-only app)
+          # a real wayland display whose output is a virtual, never-scanned-out
+          # buffer -- hardware rendering with no access to the real screen. The
+          # sandbox itself guarantees the "no real screen" part: it has no
+          # card0/KMS node and no seat, so no cage backend could reach the
+          # display even without WLR_BACKENDS=headless.
+          pkgs.cage
+          pkgs.grim # screenshot the cage output via wlr-screencopy
+        ];
+        text = ''
+          mkdir -p ${tmpDir}
+          sandbox_tmp="$(mktemp -d /tmp/${tool}-sbx.XXXXXX)"
+
+          # Bind the shared agent memory pool (cgroup v2) into the sandbox so
+          # commands routed through ~/code/.mem-limit-run are accounted against ONE
+          # kernel-enforced aggregate RSS cap shared by all agents. The pool is
+          # provisioned by the `agent-mem-pool` user service, which publishes its
+          # resolved path here. Bound read-write: uid 1001 maps to the host user
+          # (1000) that owns the pool, so it can join and size it. The agent
+          # session itself is NOT placed in the pool -- only wrapped commands are.
+          pool_args=()
+          pool_host="$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mem-pool.cgroup" 2>/dev/null || true)"
+          if [ -n "$pool_host" ] && [ -w "$pool_host/cgroup.procs" ]; then
+            pool_args=(--bind "$pool_host" /sys/fs/cgroup/pool --setenv MEM_POOL /sys/fs/cgroup/pool)
+          else
+            echo "agent-sandbox: WARNING -- memory pool unavailable ('$pool_host'); wrapped commands will refuse to run. Is agent-mem-pool.service active?" >&2
+          fi
+
+          # Mesa/libdrm resolve the render node through sysfs
+          # (/sys/dev/char/<maj:min> -> .../drm/renderD128); without this
+          # chromium's hardware GL gets no context and wlroots (cage) finds no
+          # render node at all. Exposed surface is minimal: the GPU's own PCI
+          # device dir (read-only) plus ONE synthesized /sys/dev/char symlink
+          # for the render node -- no card0/KMS, no other devices' sysfs, so the
+          # no-display-control/no-screen-capture posture above still holds.
+          gpu_args=()
+          gpu_sys="$(readlink -f /sys/class/drm/renderD128/device 2>/dev/null || true)"
+          if [ -n "$gpu_sys" ]; then
+            gpu_args=(
+              --ro-bind "$gpu_sys" "$gpu_sys"
+              --symlink "$(readlink -f /sys/class/drm/renderD128)"
+              "/sys/dev/char/$(cat /sys/class/drm/renderD128/dev)"
+            )
+          else
+            echo "agent-sandbox: WARNING -- GPU render node sysfs not found; browsers will fall back to software rendering." >&2
+          fi
+
+          exec ${pkgs.bubblewrap}/bin/bwrap \
+            ${lib.concatStringsSep " \\\n          " bwrapArgs} \
+            "''${pool_args[@]}" \
+            "''${gpu_args[@]}" \
+            -- ${lib.escapeShellArgs ([ (lib.getExe package) ] ++ args)} "$@"
+        '';
+      };
     in
-    writeShellApplication {
+    pkgs.symlinkJoin {
       inherit name;
-      # Browser and Node versions come from the flake rather than the user's
-      # imperative profile. The Nix store is already visible inside bwrap.
-      runtimeInputs = [
-        mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
-        pkgs.nodejs
-        pkgs.chromium
-        pkgs.firefox-bin
-        pkgs.playwright-driver.browsers
-        # Headless wlroots compositor: gives firefox (or any headed-only app)
-        # a real wayland display whose output is a virtual, never-scanned-out
-        # buffer -- hardware rendering with no access to the real screen. The
-        # sandbox itself guarantees the "no real screen" part: it has no
-        # card0/KMS node and no seat, so no cage backend could reach the
-        # display even without WLR_BACKENDS=headless.
-        pkgs.cage
-        pkgs.grim # screenshot the cage output via wlr-screencopy
-      ];
-      text = ''
-        mkdir -p ${tmpDir}
-        sandbox_tmp="$(mktemp -d /tmp/${tool}-sbx.XXXXXX)"
-
-        # Bind the shared agent memory pool (cgroup v2) into the sandbox so
-        # commands routed through ~/code/.mem-limit-run are accounted against ONE
-        # kernel-enforced aggregate RSS cap shared by all agents. The pool is
-        # provisioned by the `agent-mem-pool` user service, which publishes its
-        # resolved path here. Bound read-write: uid 1001 maps to the host user
-        # (1000) that owns the pool, so it can join and size it. The agent
-        # session itself is NOT placed in the pool -- only wrapped commands are.
-        pool_args=()
-        pool_host="$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mem-pool.cgroup" 2>/dev/null || true)"
-        if [ -n "$pool_host" ] && [ -w "$pool_host/cgroup.procs" ]; then
-          pool_args=(--bind "$pool_host" /sys/fs/cgroup/pool --setenv MEM_POOL /sys/fs/cgroup/pool)
-        else
-          echo "agent-sandbox: WARNING -- memory pool unavailable ('$pool_host'); wrapped commands will refuse to run. Is agent-mem-pool.service active?" >&2
-        fi
-
-        # Mesa/libdrm resolve the render node through sysfs
-        # (/sys/dev/char/<maj:min> -> .../drm/renderD128); without this
-        # chromium's hardware GL gets no context and wlroots (cage) finds no
-        # render node at all. Exposed surface is minimal: the GPU's own PCI
-        # device dir (read-only) plus ONE synthesized /sys/dev/char symlink
-        # for the render node -- no card0/KMS, no other devices' sysfs, so the
-        # no-display-control/no-screen-capture posture above still holds.
-        gpu_args=()
-        gpu_sys="$(readlink -f /sys/class/drm/renderD128/device 2>/dev/null || true)"
-        if [ -n "$gpu_sys" ]; then
-          gpu_args=(
-            --ro-bind "$gpu_sys" "$gpu_sys"
-            --symlink "$(readlink -f /sys/class/drm/renderD128)"
-            "/sys/dev/char/$(cat /sys/class/drm/renderD128/dev)"
-          )
-        else
-          echo "agent-sandbox: WARNING -- GPU render node sysfs not found; browsers will fall back to software rendering." >&2
-        fi
-
-        exec ${pkgs.bubblewrap}/bin/bwrap \
-          ${lib.concatStringsSep " \\\n          " bwrapArgs} \
-          "''${pool_args[@]}" \
-          "''${gpu_args[@]}" \
-          -- ${lib.escapeShellArgs command} "$@"
-      '';
+      paths = [ sandbox ];
+      # Only the CLI's main binary comes along, not the rest of its bin/:
+      # codex ships a `logs_client` that has no business on a system $PATH.
+      postBuild = "ln -s ${lib.getExe package} $out/bin/${tool}";
+      passthru = { inherit agentUid; };
+      meta.mainProgram = name;
     };
 in
 {
   claudes = mkAgentSandbox {
     name = "claudes";
-    tool = "claude";
-    command = [
-      (lib.getExe pkgs.pkgs-unstable.claude-code)
-      "--dangerously-skip-permissions"
-    ];
+    package = pkgs.pkgs-unstable.claude-code;
+    args = [ "--dangerously-skip-permissions" ];
     statePaths = [
       ".claude.json"
       ".claude"
@@ -174,11 +191,15 @@ in
 
   codexs = mkAgentSandbox {
     name = "codexs";
-    tool = "codex";
-    command = [
-      (lib.getExe pkgs.pkgs-unstable.codex)
-      "--dangerously-bypass-approvals-and-sandbox"
-    ];
+    package = pkgs.pkgs-unstable.codex;
+    args = [ "--dangerously-bypass-approvals-and-sandbox" ];
     statePaths = [ ".codex" ];
+  };
+
+  qwens = mkAgentSandbox {
+    name = "qwens";
+    package = pkgs.pkgs-unstable.qwen-code;
+    args = [ "--yolo" ];
+    statePaths = [ ".qwen" ];
   };
 }

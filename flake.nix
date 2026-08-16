@@ -124,7 +124,11 @@
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
             nicer = super.callPackage ./pkgs/nicer.nix { };
             mem-limit-run = super.callPackage ./pkgs/mem-limit-run.nix { };
-            inherit (super.callPackage ./pkgs/agent-sandboxes.nix { inherit mem-limit-run; }) claudes codexs;
+            inherit (super.callPackage ./pkgs/agent-sandboxes.nix { inherit mem-limit-run; })
+              claudes
+              codexs
+              qwens
+              ;
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
             inherit (super.callPackage ./pkgs/timelapse { })
               timelapse-merger
