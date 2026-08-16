@@ -54,6 +54,11 @@ in
     nginx.serviceConfig.BindPaths = [ "/home/motiejus/www:/var/run/nginx/motiejus" ];
   };
 
+  virtualisation.podman = {
+    enable = true;
+    defaultNetwork.settings.dns_enabled = true;
+  };
+
   mj = {
     profiles.desktop.enableUserServices = true;
 
