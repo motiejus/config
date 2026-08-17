@@ -618,9 +618,9 @@ in
       ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
       age-plugin-yubikey
 
-      # For pulling vno3-nk's minutely stills into this tree, so that neither
-      # host is the only copy of a minute. Only the merger: this host has no
-      # archive timer and must never turn its stills into video and reap them,
+      # Run by hand to pull vno3-nk's minutely stills into this tree, so neither
+      # host is the only copy of a minute. Only the merger, and deliberately no
+      # timer: this host must never turn its stills into video and reap them,
       # because they are what vno3-nk's own backfill draws on.
       timelapse-merger
     ];

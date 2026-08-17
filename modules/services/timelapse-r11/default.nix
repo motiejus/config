@@ -34,8 +34,13 @@ let
     '';
   };
 
-  # Shared by the two units below: same user, same kind of work, one sandbox.
-  hardening = {
+  # Shared by the two units below: same user, same state directory, same sandbox.
+  common = {
+    StateDirectory = "timelapse-r11";
+    StateDirectoryMode = "0750";
+    User = "timelapse-r11";
+    Group = "timelapse-r11";
+
     ProtectSystem = "strict";
     ProtectHome = true;
     PrivateTmp = true;
@@ -125,7 +130,7 @@ in
       timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
-        serviceConfig = {
+        serviceConfig = common // {
           ExecStart = [
             "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
             (lib.getExe pkgs.timelapse-reap)
@@ -137,11 +142,6 @@ in
           TimeoutStartSec = "infinity";
           Nice = 19;
           IOSchedulingClass = "idle";
-          Environment = [ "TZ=UTC" ];
-          StateDirectory = "timelapse-r11";
-          StateDirectoryMode = "0750";
-          User = "timelapse-r11";
-          Group = "timelapse-r11";
 
           # AF_UNIX on top of the capture unit's set: resolving the other host's
           # name goes through a local socket before any packet is sent.
@@ -150,21 +150,18 @@ in
             "AF_INET"
             "AF_INET6"
           ];
-        }
-        // hardening;
+        };
       };
       timelapse-r11 = {
         preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
-        serviceConfig = {
+        serviceConfig = common // {
           ExecStart = lib.getExe timelapseScript;
+          # This one shells out to bare date, so it needs telling; the archive
+          # tools export TZ themselves.
           Environment = [ "TZ=UTC" ];
           EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
           LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
           RuntimeDirectory = "timelapse-r11";
-          StateDirectory = "timelapse-r11";
-          StateDirectoryMode = "0750";
-          User = "timelapse-r11";
-          Group = "timelapse-r11";
           Type = "simple";
           RuntimeMaxSec = "55s";
 
@@ -173,8 +170,7 @@ in
             "AF_INET"
             "AF_INET6"
           ];
-        }
-        // hardening;
+        };
       };
     };
 

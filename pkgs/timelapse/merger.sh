@@ -136,10 +136,6 @@ for cam in "${cameras[@]}"; do
   log "$cam $PERIOD: copied $copied photos"
 done
 
-# Proof for timelapse-videomaker that this period has been reconciled with the
-# other host, which is what it requires before joining a month for good. Written
-# last on purpose: any failure above exits non-zero and leaves none.
-mkdir -p "$MERGED"
-: >"$MERGED/$PERIOD"
-
+# Exiting zero here is what lets the caller pass --reconciled to
+# timelapse-videomaker: any failure above stops this script instead.
 log "done: $total photos copied into $ROOT"

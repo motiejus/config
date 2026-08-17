@@ -17,8 +17,6 @@
 let
   # The shared parts live in one store directory that the tools source at
   # startup, so the fiddly bits — the month arithmetic above all — exist once.
-  # They are checked here rather than in each consumer: SC2034 is excluded
-  # because a library exists precisely to define values its callers use.
   timelapseLib = runCommand "timelapse-lib" { nativeBuildInputs = [ shellcheck ]; } ''
     install -Dm444 ${./common.sh} $out/common.sh
     install -Dm444 ${./verify.sh} $out/verify.sh
@@ -101,9 +99,7 @@ in
     body = ./daily.sh;
     inputs = [
       coreutils
-      ffmpeg-headless
       findutils
-      gnugrep
       gnused
       merger
       videomaker

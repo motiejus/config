@@ -35,8 +35,14 @@ LOCAL_TZ=Europe/Vilnius # the red clock burnt into missing frames reads local ti
 
 usage() {
   cat <<'EOF'
-Usage: timelapse-videomaker YYYY-MM-DD    encode one day
-       timelapse-videomaker YYYY-MM       join that month's days into one video
+Usage: timelapse-videomaker YYYY-MM-DD                encode one day
+       timelapse-videomaker --reconciled YYYY-MM      join that month for good
+
+  --reconciled   the other host has just been asked for everything it holds for
+                 this month, so the joined video may be made final. Required to
+                 join, because a joined month is never rebuilt. By hand:
+                 timelapse-merger --missing-from=HOST 2026-07 &&
+                   timelapse-videomaker --reconciled 2026-07
 
 Day videos go to /var/lib/timelapse-r11/videos/days/<camera>-<date>.mkv and
 month videos to /var/lib/timelapse-r11/videos/<camera>-<month>.mkv, each with a
@@ -45,22 +51,22 @@ month videos to /var/lib/timelapse-r11/videos/<camera>-<month>.mkv, each with a
 
 One frame per 5 minutes of wall-clock time, so a day is 288 frames and one
 second of video is two hours. Missing stretches keep the pace: the last photo is
-held for up to 10 minutes, then greyed out and stamped with a red UTC clock
-until the camera comes back. A day with no photos at all is greyed end to end
-over the last picture the camera took, whenever that was.
+held for up to 10 minutes, then greyed out and stamped with a red Europe/Vilnius
+clock until the camera comes back. A day with no photos at all is greyed end to
+end over the last picture the camera took, whenever that was.
 
 A finished video is not rebuilt, except that a day is re-encoded when photos
 have appeared for slots it calls missing. Joining a month needs every one of its
-days, and a timelapse-merger run that has just reconciled that month with the
-other host: the joined video is final, so it is never made behind the back of a
-host that may still hold the photos for an outage. timelapse-daily normally
-drives both steps; timelapse-reap checks the result.
+days. timelapse-daily normally drives both steps; timelapse-reap checks the
+result.
 EOF
 }
 
 PERIOD=""
+RECONCILED=0
 while [ $# -gt 0 ]; do
   case "$1" in
+  --reconciled) RECONCILED=1 ;;
   -h | --help)
     usage
     exit 0
@@ -75,20 +81,16 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$PERIOD" ] || die "missing YYYY-MM[-DD] argument (try --help)"
 
-export TZ=UTC
 parse_period
 [ "$END" -le "$(date -u +%s)" ] || die "period $PERIOD has not finished yet; wait until it has"
 find_cameras
 
-geometry() { ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$1"; }
-
-# The slots of one day that have a photo on disk, ascending.
-photo_slots() { # cam day
-  local f
-  while read -r f; do
-    set_slot "$f"
-    echo "$slot"
-  done < <(list_photos "$ROOT/$1/$2") | sort -un
+# Width, height and pixel format of a photo. The black filler has to match all
+# three: a change mid-concat reinitialises the filter graph, setpts starts
+# counting from zero again, and cfr drops the frame whose timestamp went
+# backwards. Cameras do not all encode their JPEGs the same way, so read it.
+geometry() {
+  ffprobe -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt -of csv=s=,:p=0 "$1"
 }
 
 # Newest photo strictly before $2, as <date>/<file>, or nothing. Crosses month
@@ -104,22 +106,6 @@ previous_photo() { # cam day
       return
     }
   done < <(list_days "$ROOT/$1" | sort -r)
-}
-
-# Oldest photo strictly after $2. Only ever used for its geometry, to size the
-# black filler for days that precede the first picture the camera ever took —
-# the days before it was installed, which still have to exist as video for their
-# month to be joinable.
-next_photo() { # cam day
-  local d f
-  while read -r d; do
-    [[ "$d" > "$2" ]] || continue
-    f=$(list_photos "$ROOT/$1/$d")
-    [ -z "$f" ] || {
-      echo "$d/${f%%$'\n'*}"
-      return
-    }
-  done < <(list_days "$ROOT/$1" | sort)
 }
 
 # One line per slot: index, clock, status, source. The only place the
@@ -181,12 +167,12 @@ encode_day() { # cam day
   local cam="$1" day="$2"
   local video="$DAYS/$cam-$day.mkv" manifest_final="$DAYS/$cam-$day.tsv"
   local manifest="$tmp/manifest" concat="$tmp/concat"
-  local seed seed_age=0 ref res black vf enable stamp work
+  local seed seed_age=0 ref w h pix_fmt black vf enable stamp work
 
   if [ -e "$video" ] && [ -e "$manifest_final" ]; then
     # comm compares as text, so both sides sort the same plain way. The grep
     # matches nothing on an all-missing day, which is not an error.
-    photo_slots "$cam" "$day" | sort >"$tmp/ondisk"
+    slots_on_disk "$cam" >"$tmp/ondisk"
     { grep -P '\tphoto\t' "$manifest_final" || true; } | cut -f1 | sort >"$tmp/invideo"
     [ -n "$(comm -13 "$tmp/invideo" "$tmp/ondisk")" ] || return 0
     log "$cam $day: photos appeared for slots it calls missing, re-encoding"
@@ -206,18 +192,20 @@ encode_day() { # cam day
   elif [ -n "$seed" ]; then
     ref="$ROOT/$cam/$seed"
   else
-    # Nothing here and nothing before: a day from before the camera existed.
-    # It still gets a video, black end to end, so its month can be joined.
-    ref=$(next_photo "$cam" "$day")
+    # Nothing here and nothing before: a day from before the camera existed. It
+    # still gets a video, black end to end, so its month can be joined. Any
+    # photo will do, since only its geometry is read. Assigned before it is
+    # trimmed because head would close the pipe and take sort down with it.
+    ref=$(photos_in "$cam" "" | sort)
     [ -n "$ref" ] || {
       log "$cam $day: this camera has no photos at all, skipping"
       return 0
     }
-    ref="$ROOT/$cam/$ref"
+    ref="${ref%%$'\n'*}"
   fi
-  res=$(geometry "$ref")
+  IFS=, read -r w h pix_fmt <<<"$(geometry "$ref")"
   black="$tmp/black.jpg"
-  ffmpeg -v error -y -f lavfi -i "color=black:s=$res" -frames:v 1 "$black"
+  ffmpeg -v error -y -f lavfi -i "color=black:s=${w}x${h}" -pix_fmt "$pix_fmt" -frames:v 1 "$black"
 
   write_manifest "$cam" "$day" "$seed" "$seed_age" >"$manifest"
   manifest_to_concat "$cam" "$black" <"$manifest" >"$concat"
@@ -247,7 +235,7 @@ encode_day() { # cam day
 
   local progress=(-nostats)
   [ ! -t 2 ] || progress=(-stats -stats_period 10)
-  work="$DAYS/.$cam-$day.part.mkv"
+  work="$DAYS/.$cam-$day.$$.part.mkv"
   log "$cam $day: encoding into $SLOTS_PER_DAY frames"
   TZ=$LOCAL_TZ ffmpeg -hide_banner -loglevel warning "${progress[@]}" -y \
     -f concat -safe 0 -i "$concat" -r "$FPS" -fps_mode cfr -vf "$vf" \
@@ -258,6 +246,16 @@ encode_day() { # cam day
     rm -f "$work"
     die "$cam $day: encode failed, see ffmpeg above"
   }
+  # One frame per manifest row, checked while the work file can still be thrown
+  # away: cfr silently drops a frame whose timestamp went backwards, and once the
+  # month is joined nothing will rebuild the day.
+  [ "$(ffprobe -v error -count_packets -select_streams v:0 \
+    -show_entries stream=nb_read_packets -of csv=p=0 "$work")" = "$(wc -l <"$manifest")" ] || {
+    rm -f "$work"
+    die "$cam $day: encoder produced the wrong number of frames, most likely a
+  photo of a different size or pixel format than ${ref##*/} among this day's own
+  or in the last one before it"
+  }
 
   # Manifest first: a video without one is treated as unfinished.
   cp "$manifest" "$manifest_final"
@@ -267,18 +265,17 @@ encode_day() { # cam day
 
 join_month() { # cam
   local cam="$1" day i=0
-  local video="$OUT/$cam-$PERIOD.mkv" manifest="$tmp/month.tsv" work="$OUT/.$cam-$PERIOD.part.mkv"
+  local video="$OUT/$cam-$PERIOD.mkv" manifest="$tmp/month.tsv" work="$OUT/.$cam-$PERIOD.$$.part.mkv"
 
   [ ! -e "$video" ] || {
     log "$cam $PERIOD: already joined, skipping"
     return 0
   }
-  # A month is joined once and never rebuilt, so it may only be joined while the
-  # other host is known to have nothing left to give: timelapse-merger leaves
-  # this file behind when it succeeds, and timelapse-daily deletes every one of
-  # them as it starts, so finding one means the backfill just worked.
-  [ -e "$MERGED/$PERIOD" ] || {
-    log "$cam $PERIOD: not joining, timelapse-merger has not just reconciled it with the other host"
+  # This video is final: nothing rebuilds a joined month, so its holes can never
+  # be filled in afterwards. Only a caller that has just reconciled the month
+  # with the other host may ask for it.
+  [ "$RECONCILED" = 1 ] || {
+    log "$cam $PERIOD: not joining, --reconciled not given (merge from the other host first)"
     return 0
   }
   for day in "${days[@]}"; do

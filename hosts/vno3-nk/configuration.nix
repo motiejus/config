@@ -220,6 +220,7 @@ in
     enableDebugInfo = true;
     systemPackages = with pkgs; [
       yt-dlp
+      ffmpeg-headless # ffprobe/ffmpeg by hand; the timelapse tools carry their own
       intel-gpu-tools
 
       # timelapse-archive.service drives these nightly; here for running a

@@ -46,75 +46,61 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-export TZ=UTC
 find_cameras
 
-# A month may only be joined on the heels of a successful backfill, so the proof
-# timelapse-merger leaves behind never outlives one run of this tool. Without
-# --missing-from nothing writes one and no month is ever joined, which is the
-# safe way round: photos pile up, none are lost.
-rm -rf "$MERGED"
-
-# Only days that have ended can be encoded.
-today=$(date -u +%F)
-last_day=$(date -u -d "@$(($(date -u -d "$today 00:00:00" +%s) - 86400))" +%F)
-
-# Start at the oldest day any camera still has stills for; anything older has
-# already become video and had its stills reaped. Round back to the 1st of that
-# month: a month is only joinable once every one of its days is a video, so the
-# days before the camera was installed have to be encoded too, black.
-oldest_photo_day() { # cam
-  local d
-  while read -r d; do
-    [ -z "$(list_photos "$ROOT/$1/$d")" ] || {
-      echo "$d"
-      return
-    }
-  done < <(list_days "$ROOT/$1" | sort)
-}
-first_day=$(for cam in "${cameras[@]}"; do oldest_photo_day "$cam"; done | sort | head -n1)
-[ -n "$first_day" ] || {
+# Start at the oldest month any camera still has photographs for; anything older
+# has already become video and had its stills reaped. Whole months, because a
+# month is only joinable once every one of its days is a video, so the days
+# before the camera was installed have to be encoded too, black.
+first_month=$(photo_months)
+[ -n "$first_month" ] || {
   log "no stills anywhere, nothing to do"
   exit 0
 }
-first_day="${first_day%-*}-01"
+first_month="${first_month%%$'\n'*}"
+today=$(date -u +%F)
+this_month=${today%-*}
 
-# 0. Backfill, oldest month first. Only a month that is not yet a single video
-# can still take photos, so those are the only ones worth asking about; a joined
-# month is final. Asking again every night is what makes a late outage on the
-# other host heal itself.
+# 0. Backfill, oldest month first, and remember which months that covered. Only
+# a month that is not yet a single video can still take photos, so those are the
+# only ones worth asking about; a joined month is final. Asking again every night
+# is what makes a late outage on the other host heal itself.
 #
 # A failure here stops the whole run on purpose. Encoding is idempotent and
 # catches up tomorrow, whereas a month joined while the other host was
 # unreachable is permanent: its holes can never be filled in.
-this_month=$(date -u +%Y-%m)
-m="${first_day%-*}"
+reconciled=()
+m="$first_month"
 while [ -n "$MERGE_FROM" ] && [[ "$m" < "$this_month" || "$m" == "$this_month" ]]; do
-  for cam in "${cameras[@]}"; do
-    [ -e "$OUT/$cam-$m.mkv" ] || {
-      timelapse-merger --missing-from="$MERGE_FROM" "$m"
-      break
-    }
-  done
+  joined "$m" || {
+    timelapse-merger --missing-from="$MERGE_FROM" "$m"
+    reconciled+=("$m")
+  }
   m=$(next_month "$m")
 done
 
 # 1. Encode. timelapse-videomaker decides per camera what is actually needed,
 # including whether a day must be redone because photos turned up for slots it
-# calls missing, so it is simply asked about every day.
-d="$first_day"
-while [[ "$d" < "$last_day" || "$d" == "$last_day" ]]; do
+# calls missing, so it is simply asked about every day that has ended.
+d="$first_month-01"
+while [[ "$d" < "$today" ]]; do
   timelapse-videomaker "$d"
   d=$(date -u -d "@$(($(date -u -d "$d 00:00:00" +%s) + 86400))" +%F)
 done
 
 # 2. Join whole months, discovered from the day videos on disk so a backlog is
-# worked through oldest first.
+# worked through oldest first. Only the months backfilled a moment ago may be
+# made final, which is why a run without --missing-from joins nothing at all:
+# photos pile up instead, and none are lost.
+# The month is read off the end of the name, not the front: a camera directory is
+# free to have a hyphen in it, and cutting from the left would then take the
+# wrong two fields and silently never join that month.
 mapfile -t months < <(find "$DAYS" -maxdepth 1 -name '[!.]*.mkv' -printf '%f\n' 2>/dev/null |
   sed -E 's/^.*-([0-9]{4}-[0-9]{2})-[0-9]{2}\.mkv$/\1/' | sort -u)
 for m in "${months[@]}"; do
-  [ "$m" != "$(date -u +%Y-%m)" ] || continue # not over yet
-  timelapse-videomaker "$m"
+  [ "$m" != "$this_month" ] || continue # not over yet
+  [[ " ${reconciled[*]} " == *" $m "* ]] || continue
+  timelapse-videomaker --reconciled "$m"
 done
 
 # 3. Drop the day videos of a month that is now a single video. Safe to do

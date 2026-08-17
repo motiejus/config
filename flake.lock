@@ -140,11 +140,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786979469,
-        "narHash": "sha256-PX/MtBMKjPqWtBkribo1BJazVkeLT71r+8ma+N5SNTc=",
+        "lastModified": 1786986611,
+        "narHash": "sha256-+bWNVf3QbmguXzoF5u5URYUO7aqrXXQBOmiukwbyJBY=",
         "ref": "refs/heads/main",
-        "rev": "bc8490e39027f3bfffe19ba6f3c42de80007a512",
-        "revCount": 570,
+        "rev": "3e4fc1dd5dae8af016f59ca79099405db7ca7d5a",
+        "revCount": 575,
         "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"

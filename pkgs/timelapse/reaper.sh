@@ -10,16 +10,19 @@
 # deleted too. That is the trade this tool exists to make, so it says so out
 # loud and refuses unless everything below holds.
 
-KEEP_MONTHS=3 # whole months of stills kept behind the current one, untouched
+# Whole months of stills kept behind the current one, purely so recent days can
+# still be looked at as photographs. Nothing repairs a video with them: a month
+# is reconciled with the other host and joined long before this.
+KEEP_MONTHS=3
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Usage: timelapse-reap [--dry-run] [YYYY-MM[-DD]]
 
 Delete the stills for a period whose video is finished and verified. With no
 period, every month that is old enough to let go of: the current month and the
-3 before it are always kept as photos, and a month still waiting for its video
-is left alone.
+$KEEP_MONTHS before it are always kept as photos, and a month still waiting for
+its video is left alone.
 
 For each camera, from scratch:
 
@@ -30,7 +33,9 @@ For each camera, from scratch:
     so nothing that arrived after the encode is thrown away
 
 Only then are the period's photos deleted, including the ones between samples
-that the video never contained.
+that the video never contained. Files whose names are not timestamps are not
+photographs to any of these tools: never counted, never deleted, never in a
+video. Rename them if you want them archived.
 
   -n, --dry-run   run every check and report, delete nothing
 EOF
@@ -53,47 +58,29 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-export TZ=UTC
-[ -d "$ROOT" ] || die "no such directory: $ROOT"
 find_cameras
 
-# Months that still have stills and are far enough in the past to give up, oldest
-# first. A month whose video is not finished yet is skipped rather than refused:
-# it is timelapse-daily's turn, not an error. Logs go to stderr, the months
-# themselves to stdout.
+# Months that still hold photographs and are far enough in the past to give up,
+# oldest first. A month whose video is not finished yet is skipped rather than
+# refused: it is timelapse-daily's turn, not an error. Logs go to stderr, the
+# months themselves to stdout.
 due_months() {
-  local newest month cam i
+  local newest month i
   # The current month and KEEP_MONTHS whole ones behind it are kept.
   i=$((10#$(date -u +%Y) * 12 + 10#$(date -u +%m) - 1 - KEEP_MONTHS - 1))
   newest=$(printf '%d-%02d' $((i / 12)) $((i % 12 + 1)))
   while read -r month; do
     [[ "$month" < "$newest" || "$month" == "$newest" ]] || continue
-    for cam in "${cameras[@]}"; do
-      [ -e "$OUT/$cam-$month.mkv" ] || {
-        log "$month: old enough to reap, but not joined into a video yet" >&2
-        continue 2
-      }
-    done
+    joined "$month" || {
+      log "$month: old enough to reap, but not joined into a video yet" >&2
+      continue
+    }
     echo "$month"
-  done < <(for cam in "${cameras[@]}"; do list_days "$ROOT/$cam"; done |
-    cut -d- -f1,2 | sort -u)
-}
-
-# Slots of the whole period that have a photo on disk, ascending. Slots are
-# numbered from the start of the period, so each day contributes its own 288.
-slots_on_disk() { # cam
-  local day f i=0
-  for day in "${days[@]}"; do
-    while read -r f; do
-      set_slot "$f"
-      echo $((i * SLOTS_PER_DAY + slot))
-    done < <(list_photos "$ROOT/$1/$day")
-    i=$((i + 1))
-  done | sort -un
+  done < <(photo_months)
 }
 
 reap_camera() { # cam
-  local cam="$1" video manifest n_photos decoded missed kept
+  local cam="$1" video manifest n_photos strays decoded missed kept
 
   if [ "$PERIOD_MODE" = month ]; then
     video="$OUT/$cam-$PERIOD.mkv"
@@ -103,11 +90,19 @@ reap_camera() { # cam
     manifest="$DAYS/$cam-$PERIOD.tsv"
   fi
 
-  n_photos=$(find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f -name "$PERIOD*.jpg" 2>/dev/null | wc -l)
+  n_photos=$(photos_in "$cam" "$PERIOD" | wc -l)
   [ "$n_photos" -gt 0 ] || {
     log "$cam $PERIOD: no stills left, nothing to do"
     return 0
   }
+  # Anything named otherwise is not a photograph to these tools, so it is neither
+  # in the video nor ever deleted. Say so: on 2025-04-06 that is 1343 real
+  # pictures per camera, and a silent write-off is how they would be lost.
+  strays=$(find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f -name "*.jpg" \
+    ! -name "$PHOTO_GLOB" -path "*/$PERIOD*" | wc -l)
+  [ "$strays" -eq 0 ] ||
+    log "$cam $PERIOD: $strays files are not named as timestamps, so they are in no video; rename them to keep them"
+
   [ -f "$video" ] || die "$cam $PERIOD: $video does not exist; make the video first"
   [ -f "$manifest" ] || die "$cam $PERIOD: $manifest does not exist"
   [ "$(grep -vc '^#' "$manifest")" -eq "$NSLOTS" ] ||
@@ -126,7 +121,7 @@ reap_camera() { # cam
   # comm compares as text, so both sides sort the same plain way. The grep
   # matches nothing when the whole period is missing, which is not an error.
   { grep -P '\tphoto\t' "$manifest" || true; } | cut -f1 | sort >"$tmp/invideo"
-  slots_on_disk "$cam" | sort >"$tmp/ondisk"
+  slots_on_disk "$cam" >"$tmp/ondisk"
   missed=$(comm -13 "$tmp/invideo" "$tmp/ondisk" | wc -l)
   [ "$missed" -eq 0 ] ||
     die "$cam $PERIOD: $missed slots have photos on disk that the video does not use.
@@ -141,7 +136,7 @@ reap_camera() { # cam
     log "$cam $PERIOD: dry run, deleting nothing"
     return 0
   }
-  find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f -name "$PERIOD*.jpg" -delete
+  photos_in "$cam" "$PERIOD" -delete
   # Only this period's day directories: an empty one elsewhere in the tree may
   # be today's, made seconds ago by the capture unit and still waiting for its
   # first photo.
@@ -149,15 +144,9 @@ reap_camera() { # cam
   log "$cam $PERIOD: deleted $n_photos stills"
 }
 
-if [ -n "$PERIOD" ]; then
-  periods=("$PERIOD")
-else
-  mapfile -t periods < <(due_months)
-  [ "${#periods[@]}" -gt 0 ] || {
-    log "no month is both old enough to reap and finished as video"
-    exit 0
-  }
-fi
+periods=("$PERIOD")
+[ -n "$PERIOD" ] || mapfile -t periods < <(due_months)
+[ "${#periods[@]}" -gt 0 ] || log "no month is both old enough to reap and finished as video"
 
 failed=0
 for PERIOD in "${periods[@]}"; do
