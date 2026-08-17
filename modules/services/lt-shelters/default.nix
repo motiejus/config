@@ -80,7 +80,7 @@ let
       install -m 0644 ${dataLicense} "$shelters_repo/LICENSE-DATA.md"
       fetch-priedangos "$shelters_repo/priedangos.jsonl"
       fetch-kas "$shelters_repo/kas.jsonl"
-      date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$shelters_repo/refreshed-at.txt"
+      date -u +%Y-%m-%dT%H:%M:%SZ > "$shelters_repo/refreshed-at.txt"
       git -C "$shelters_repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl refreshed-at.txt
       if ! git -C "$shelters_repo" diff --cached --quiet; then
         git -C "$shelters_repo" commit -m "Update PAGD shelter data"
