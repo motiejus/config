@@ -93,6 +93,7 @@ in
   "secrets/fwminex/up.jakstys.lt.env.age"
   "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/grafana-secret-key.age"
+  "secrets/fwminex/timelapse-merger-key.age"
 ]
 // mk (
   [

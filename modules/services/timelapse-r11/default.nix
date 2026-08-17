@@ -34,12 +34,53 @@ let
     '';
   };
 
+  # Shared by the two units below: same user, same kind of work, one sandbox.
+  hardening = {
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    PrivateTmp = true;
+    RemoveIPC = true;
+    NoNewPrivileges = true;
+    ProtectKernelTunables = true;
+    ProtectKernelModules = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    ProtectHostname = true;
+    RestrictSUIDSGID = true;
+    RestrictNamespaces = true;
+    RestrictRealtime = true;
+    SystemCallFilter = [
+      "@system-service"
+      "~@privileged"
+    ];
+    SystemCallArchitectures = "native";
+    PrivateUsers = true;
+    PrivateDevices = true;
+    MemoryDenyWriteExecute = true;
+    LockPersonality = true;
+    CapabilityBoundingSet = "";
+  };
+
 in
 {
   options.mj.services.timelapse-r11 = with lib.types; {
     enable = lib.mkEnableOption "enable timelapse-r11";
     secretsEnv = lib.mkOption { type = path; };
     onCalendar = lib.mkOption { type = str; };
+    archiveFrom = lib.mkOption {
+      type = nullOr str;
+      default = null;
+      example = "timelapse-r11@fwminex.jakst.vpn";
+      description = ''
+        [USER@]HOST keeping a second copy of the same cameras' stills. Setting it
+        turns on the nightly archive job: backfill this host's outages from
+        there, turn finished days and months into video, and delete the stills of
+        any month that is old enough and whose video verifies. Null leaves the
+        archive to be driven by hand.
+      '';
+    };
+
     readerKeys = lib.mkOption {
       type = listOf str;
       default = [ ];
@@ -53,7 +94,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    mj.base.unitstatus.units = [ "timelapse-r11" ];
+    mj.base.unitstatus.units = [
+      "timelapse-r11"
+    ]
+    ++ lib.optional (cfg.archiveFrom != null) "timelapse-archive";
 
     users.users.timelapse-r11 = {
       isSystemUser = true;
@@ -69,54 +113,83 @@ in
       members = [ "motiejus" ];
     };
 
-    systemd.timers.timelapse-r11 = {
-      timerConfig.OnCalendar = cfg.onCalendar;
-      wantedBy = [ "timers.target" ];
+    systemd.services = {
+
+      # One pass over the whole archive: backfill, encode the days that ended,
+      # join the months that are complete, then delete the stills of a month old
+      # enough to give up and verified frame by frame.
+      #
+      # Deleting is its own ExecStart on purpose. Drop that line and the archive
+      # keeps building itself while every photo stays on disk; nothing else about
+      # the job changes.
+      timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        serviceConfig = {
+          ExecStart = [
+            "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
+            (lib.getExe pkgs.timelapse-reap)
+          ];
+          Type = "oneshot";
+          # A day of footage is minutes of encoding per camera and a first run has
+          # the entire backlog to work through, so there is no useful timeout: the
+          # work is idempotent and the next run picks up wherever this one stopped.
+          TimeoutStartSec = "infinity";
+          Nice = 19;
+          IOSchedulingClass = "idle";
+          Environment = [ "TZ=UTC" ];
+          StateDirectory = "timelapse-r11";
+          StateDirectoryMode = "0750";
+          User = "timelapse-r11";
+          Group = "timelapse-r11";
+
+          # AF_UNIX on top of the capture unit's set: resolving the other host's
+          # name goes through a local socket before any packet is sent.
+          RestrictAddressFamilies = [
+            "AF_UNIX"
+            "AF_INET"
+            "AF_INET6"
+          ];
+        }
+        // hardening;
+      };
+      timelapse-r11 = {
+        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
+        serviceConfig = {
+          ExecStart = lib.getExe timelapseScript;
+          Environment = [ "TZ=UTC" ];
+          EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
+          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+          RuntimeDirectory = "timelapse-r11";
+          StateDirectory = "timelapse-r11";
+          StateDirectoryMode = "0750";
+          User = "timelapse-r11";
+          Group = "timelapse-r11";
+          Type = "simple";
+          RuntimeMaxSec = "55s";
+
+          # The camera is addressed by IP, so this one needs no name resolution.
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+          ];
+        }
+        // hardening;
+      };
     };
 
-    systemd.services.timelapse-r11 = {
-      preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
-      serviceConfig = {
-        ExecStart = lib.getExe timelapseScript;
-        Environment = [ "TZ=UTC" ];
-        EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
-        LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
-        RuntimeDirectory = "timelapse-r11";
-        StateDirectory = "timelapse-r11";
-        StateDirectoryMode = "0750";
-        User = "timelapse-r11";
-        Group = "timelapse-r11";
-        Type = "simple";
-        RuntimeMaxSec = "55s";
+    systemd.timers = {
+      timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
+        timerConfig = {
+          OnCalendar = "*-*-* 04:00:00 UTC";
+          Persistent = true;
+        };
+        wantedBy = [ "timers.target" ];
+      };
 
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        RemoveIPC = true;
-        NoNewPrivileges = true;
-        ProtectKernelTunables = true;
-        ProtectKernelModules = true;
-        ProtectKernelLogs = true;
-        ProtectControlGroups = true;
-        ProtectClock = true;
-        ProtectHostname = true;
-        RestrictSUIDSGID = true;
-        RestrictNamespaces = true;
-        RestrictRealtime = true;
-        RestrictAddressFamilies = [
-          "AF_INET"
-          "AF_INET6"
-        ];
-        SystemCallFilter = [
-          "@system-service"
-          "~@privileged"
-        ];
-        SystemCallArchitectures = "native";
-        PrivateUsers = true;
-        PrivateDevices = true;
-        MemoryDenyWriteExecute = true;
-        LockPersonality = true;
-        CapabilityBoundingSet = "";
+      timelapse-r11 = {
+        timerConfig.OnCalendar = cfg.onCalendar;
+        wantedBy = [ "timers.target" ];
       };
     };
 

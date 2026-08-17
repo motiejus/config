@@ -1,7 +1,8 @@
 # timelapse-daily: keep the video archive caught up with the stills.
 #
-# Three things, oldest work first:
+# Four things, oldest work first:
 #
+#   0. backfill the months that can still change from the other host
 #   1. encode every finished day whose month is not yet a single video
 #   2. join a finished month once all of its days exist
 #   3. drop the day videos of a month that has been joined
@@ -17,26 +18,42 @@
 
 usage() {
   cat <<'EOF'
-Usage: timelapse-daily
+Usage: timelapse-daily [--missing-from=[USER@]HOST]
 
 Encode any finished day that has no video, join a month once all its days are
 encoded, and remove the day videos of a month that has been joined. Intended to
-run daily, after timelapse-merger. Deleting stills is timelapse-reap's job.
+run daily. Deleting stills is timelapse-reap's job.
+
+  --missing-from=[USER@]HOST   first run timelapse-merger against HOST for every
+                               month that is not yet a single video
+
+Without --missing-from no month is joined at all: a month video is final, and
+making one while the other host is unreachable would freeze an outage that could
+still have been filled in.
 EOF
 }
 
-[ $# -eq 0 ] || {
+MERGE_FROM=""
+while [ $# -gt 0 ]; do
   case "$1" in
+  --missing-from=*) MERGE_FROM="${1#*=}" ;;
   -h | --help)
     usage
     exit 0
     ;;
   *) die "unexpected argument: $1 (try --help)" ;;
   esac
-}
+  shift
+done
 
 export TZ=UTC
 find_cameras
+
+# A month may only be joined on the heels of a successful backfill, so the proof
+# timelapse-merger leaves behind never outlives one run of this tool. Without
+# --missing-from nothing writes one and no month is ever joined, which is the
+# safe way round: photos pile up, none are lost.
+rm -rf "$MERGED"
 
 # Only days that have ended can be encoded.
 today=$(date -u +%F)
@@ -61,6 +78,26 @@ first_day=$(for cam in "${cameras[@]}"; do oldest_photo_day "$cam"; done | sort 
   exit 0
 }
 first_day="${first_day%-*}-01"
+
+# 0. Backfill, oldest month first. Only a month that is not yet a single video
+# can still take photos, so those are the only ones worth asking about; a joined
+# month is final. Asking again every night is what makes a late outage on the
+# other host heal itself.
+#
+# A failure here stops the whole run on purpose. Encoding is idempotent and
+# catches up tomorrow, whereas a month joined while the other host was
+# unreachable is permanent: its holes can never be filled in.
+this_month=$(date -u +%Y-%m)
+m="${first_day%-*}"
+while [ -n "$MERGE_FROM" ] && [[ "$m" < "$this_month" || "$m" == "$this_month" ]]; do
+  for cam in "${cameras[@]}"; do
+    [ -e "$OUT/$cam-$m.mkv" ] || {
+      timelapse-merger --missing-from="$MERGE_FROM" "$m"
+      break
+    }
+  done
+  m=$(next_month "$m")
+done
 
 # 1. Encode. timelapse-videomaker decides per camera what is actually needed,
 # including whether a day must be redone because photos turned up for slots it

@@ -5,6 +5,7 @@ TOOL=${0##*/}
 ROOT=/var/lib/timelapse-r11
 OUT=$ROOT/videos
 DAYS=$OUT/days
+MERGED=$OUT/merged # one file per month timelapse-merger has reconciled, see join_month
 SLOT_MINUTES=5
 SLOTS_PER_DAY=288 # 1440 / SLOT_MINUTES
 MIN_BYTES=1024    # a failed capture leaves a 0-byte file; anything this small is not a photo
@@ -18,26 +19,29 @@ log() { echo "$TOOL: $*"; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
+# The month after $1 (YYYY-MM).
+#
+# Never use date's relative syntax for this: in "2026-07-01 00:00:00 + 1 month"
+# the "+ 1" is read as a UTC offset and the month silently comes out an hour
+# short. Roll the month over by hand; a UTC day is always exactly 86400 seconds.
+next_month() {
+  local year="${1%%-*}" month=$((10#${1#*-}))
+  if [ "$month" -eq 12 ]; then
+    echo "$((year + 1))-01"
+  else
+    printf '%s-%02d\n' "$year" "$((month + 1))"
+  fi
+}
+
 # From $PERIOD (YYYY-MM or YYYY-MM-DD), set the half-open window [START, END),
 # how many slots it holds, and the days it spans.
-#
-# Never use date's relative syntax here: in "2026-07-01 00:00:00 + 1 month" the
-# "+ 1" is read as a UTC offset and the month silently comes out an hour short.
-# Roll the month over by hand; a UTC day is always exactly 86400 seconds.
 parse_period() {
-  local year month end_date t
+  local t
   case "$PERIOD" in
   [0-9][0-9][0-9][0-9]-[0-9][0-9])
     PERIOD_MODE=month
-    year="${PERIOD%%-*}"
-    month=$((10#${PERIOD#*-}))
-    if [ "$month" -eq 12 ]; then
-      end_date="$((year + 1))-01-01"
-    else
-      end_date="$year-$(printf '%02d' "$((month + 1))")-01"
-    fi
     START=$(date -u -d "$PERIOD-01 00:00:00" +%s) || die "invalid period: $PERIOD"
-    END=$(date -u -d "$end_date 00:00:00" +%s)
+    END=$(date -u -d "$(next_month "$PERIOD")-01 00:00:00" +%s)
     ;;
   [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9])
     PERIOD_MODE=day

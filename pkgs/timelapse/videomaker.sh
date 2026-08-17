@@ -51,8 +51,10 @@ over the last picture the camera took, whenever that was.
 
 A finished video is not rebuilt, except that a day is re-encoded when photos
 have appeared for slots it calls missing. Joining a month needs every one of its
-days. timelapse-daily normally drives both steps; timelapse-reap checks the
-result.
+days, and a timelapse-merger run that has just reconciled that month with the
+other host: the joined video is final, so it is never made behind the back of a
+host that may still hold the photos for an outage. timelapse-daily normally
+drives both steps; timelapse-reap checks the result.
 EOF
 }
 
@@ -269,6 +271,14 @@ join_month() { # cam
 
   [ ! -e "$video" ] || {
     log "$cam $PERIOD: already joined, skipping"
+    return 0
+  }
+  # A month is joined once and never rebuilt, so it may only be joined while the
+  # other host is known to have nothing left to give: timelapse-merger leaves
+  # this file behind when it succeeds, and timelapse-daily deletes every one of
+  # them as it starts, so finding one means the backfill just worked.
+  [ -e "$MERGED/$PERIOD" ] || {
+    log "$cam $PERIOD: not joining, timelapse-merger has not just reconciled it with the other host"
     return 0
   }
   for day in "${days[@]}"; do

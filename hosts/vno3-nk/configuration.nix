@@ -85,6 +85,10 @@ in
         enable = true;
         onCalendar = "*-*-* *:*:30"; # 30'th second every minute
         secretsEnv = config.age.secrets.timelapse.path;
+        archiveFrom = "timelapse-r11@fwminex.jakst.vpn";
+        # and the other way round: fwminex fills its 5-minute tree from this
+        # one, so a month can be reconstructed from either host.
+        readerKeys = [ myData.bot_pubkeys.timelapse_merger_fwminex ];
       };
 
       ssh8022.server = {
@@ -218,7 +222,8 @@ in
       yt-dlp
       intel-gpu-tools
 
-      # run by hand for now; the timer that drives them comes later
+      # timelapse-archive.service drives these nightly; here for running a
+      # single period by hand
       timelapse-merger
       timelapse-videomaker
       timelapse-daily

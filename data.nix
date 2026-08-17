@@ -48,9 +48,11 @@ rec {
   bot_pubkeys = {
     nixbld_macworx = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1fp61KUCMPBBRNciKgbxwvRphtO5GKmCUKPJrfWRXb nixbld@macworx";
 
-    # vno3-nk reads fwminex's timelapse stills to fill its own outages.
-    # Private half: secrets/vno3-nk/timelapse-merger-key.age
-    timelapse_merger = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJzrMPdpXOC42lB849qONf5fjxjeADrpkr1mVj+dAGj/ timelapse-merger@vno3-nk";
+    # Each host reads the other's timelapse stills to fill its own outages, so
+    # neither tree is the only copy of a minute. Private halves:
+    # secrets/<host>/timelapse-merger-key.age
+    timelapse_merger_vno3_nk = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJzrMPdpXOC42lB849qONf5fjxjeADrpkr1mVj+dAGj/ timelapse-merger@vno3-nk";
+    timelapse_merger_fwminex = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHi2kkUi9Qxjx45qAxPk6QJXSO2WFzuqo4RJQRgPQ4Mp timelapse-merger@fwminex";
   };
 
   people_pubkeys = {

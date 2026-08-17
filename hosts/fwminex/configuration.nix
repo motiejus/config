@@ -31,6 +31,12 @@ in
     syncthing-cert.file = ../../secrets/fwminex/syncthing/cert.pem.age;
     frigate.file = ../../secrets/frigate.age;
     timelapse.file = ../../secrets/timelapse.age;
+    # owned by the capture user, so timelapse-merger runs as the user that owns
+    # the photos and nothing in the tree ends up owned by root
+    timelapse-merger-key = {
+      file = ../../secrets/fwminex/timelapse-merger-key.age;
+      owner = "timelapse-r11";
+    };
     plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
     r1-htpasswd = {
       file = ../../secrets/r1-htpasswd.age;
@@ -391,7 +397,7 @@ in
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
         # vno3-nk pulls the 5-minute stills from here to fill its own outages.
-        readerKeys = [ myData.bot_pubkeys.timelapse_merger ];
+        readerKeys = [ myData.bot_pubkeys.timelapse_merger_vno3_nk ];
       };
 
       immich = {
@@ -611,6 +617,12 @@ in
       graphicsmagick
       ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
       age-plugin-yubikey
+
+      # For pulling vno3-nk's minutely stills into this tree, so that neither
+      # host is the only copy of a minute. Only the merger: this host has no
+      # archive timer and must never turn its stills into video and reap them,
+      # because they are what vno3-nk's own backfill draws on.
+      timelapse-merger
     ];
   };
 

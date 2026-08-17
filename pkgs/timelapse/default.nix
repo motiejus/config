@@ -66,11 +66,7 @@ let
       gnugrep
     ];
   };
-in
-{
-  timelapse-videomaker = videomaker;
-
-  timelapse-merger = mkTool {
+  merger = mkTool {
     name = "timelapse-merger";
     body = ./merger.sh;
     inputs = [
@@ -82,6 +78,10 @@ in
       rsync
     ];
   };
+in
+{
+  timelapse-videomaker = videomaker;
+  timelapse-merger = merger;
 
   timelapse-reap = mkTool {
     name = "timelapse-reap";
@@ -105,6 +105,7 @@ in
       findutils
       gnugrep
       gnused
+      merger
       videomaker
     ];
   };

@@ -10,12 +10,18 @@
 # deleted too. That is the trade this tool exists to make, so it says so out
 # loud and refuses unless everything below holds.
 
+KEEP_MONTHS=3 # whole months of stills kept behind the current one, untouched
+
 usage() {
   cat <<'EOF'
-Usage: timelapse-reap [--dry-run] YYYY-MM[-DD]
+Usage: timelapse-reap [--dry-run] [YYYY-MM[-DD]]
 
-Delete the stills for a period whose video is finished and verified. For each
-camera, from scratch:
+Delete the stills for a period whose video is finished and verified. With no
+period, every month that is old enough to let go of: the current month and the
+3 before it are always kept as photos, and a month still waiting for its video
+is left alone.
+
+For each camera, from scratch:
 
   * the video and its .frames.tsv exist and agree on length
   * every frame of the video decodes
@@ -47,12 +53,31 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ -n "$PERIOD" ] || die "missing YYYY-MM[-DD] argument (try --help)"
-
 export TZ=UTC
-parse_period
 [ -d "$ROOT" ] || die "no such directory: $ROOT"
 find_cameras
+
+# Months that still have stills and are far enough in the past to give up, oldest
+# first. A month whose video is not finished yet is skipped rather than refused:
+# it is timelapse-daily's turn, not an error. Logs go to stderr, the months
+# themselves to stdout.
+due_months() {
+  local newest month cam i
+  # The current month and KEEP_MONTHS whole ones behind it are kept.
+  i=$((10#$(date -u +%Y) * 12 + 10#$(date -u +%m) - 1 - KEEP_MONTHS - 1))
+  newest=$(printf '%d-%02d' $((i / 12)) $((i % 12 + 1)))
+  while read -r month; do
+    [[ "$month" < "$newest" || "$month" == "$newest" ]] || continue
+    for cam in "${cameras[@]}"; do
+      [ -e "$OUT/$cam-$month.mkv" ] || {
+        log "$month: old enough to reap, but not joined into a video yet" >&2
+        continue 2
+      }
+    done
+    echo "$month"
+  done < <(for cam in "${cameras[@]}"; do list_days "$ROOT/$cam"; done |
+    cut -d- -f1,2 | sort -u)
+}
 
 # Slots of the whole period that have a photo on disk, ascending. Slots are
 # numbered from the start of the period, so each day contributes its own 288.
@@ -117,10 +142,26 @@ reap_camera() { # cam
     return 0
   }
   find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f -name "$PERIOD*.jpg" -delete
-  find "$ROOT/$cam" -mindepth 1 -maxdepth 1 -type d -empty -delete
+  # Only this period's day directories: an empty one elsewhere in the tree may
+  # be today's, made seconds ago by the capture unit and still waiting for its
+  # first photo.
+  find "$ROOT/$cam" -mindepth 1 -maxdepth 1 -type d -name "$PERIOD*" -empty -delete
   log "$cam $PERIOD: deleted $n_photos stills"
 }
 
+if [ -n "$PERIOD" ]; then
+  periods=("$PERIOD")
+else
+  mapfile -t periods < <(due_months)
+  [ "${#periods[@]}" -gt 0 ] || {
+    log "no month is both old enough to reap and finished as video"
+    exit 0
+  }
+fi
+
 failed=0
-for cam in "${cameras[@]}"; do (reap_camera "$cam") || failed=1; done
+for PERIOD in "${periods[@]}"; do
+  parse_period
+  for cam in "${cameras[@]}"; do (reap_camera "$cam") || failed=1; done
+done
 exit "$failed"
