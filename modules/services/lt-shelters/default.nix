@@ -57,6 +57,20 @@ let
       test "$(git -C "$repo" rev-parse --show-object-format)" = "$object_format"
     }
   '';
+  # Daily timer, weekly work: a failed run retries tomorrow, not next week.
+  # Half a day under a week so a slightly later start still counts as due and
+  # the cadence cannot ratchet to eight days. $2 is the job's own output; a
+  # path no commit ever touched reads as due, which is what :-0 buys -- drop
+  # it and the arithmetic errors to stderr and runs on, gating nothing. Call
+  # only after sync_repo, which fails first on a repo git cannot read.
+  refreshGate = ''
+    exit_unless_due() {
+      local committed_at
+      committed_at=$(git -C "$1" log -1 --format=%ct -- "$2")
+      [ $(( $(date +%s) - ''${committed_at:-0} )) -ge $(( 7 * 86400 - 12 * 3600 )) ] ||
+        { echo "$2 is fresh; not querying upstream"; exit 0; }
+    }
+  '';
   updateShelters = pkgs.writeShellApplication {
     name = "update-lt-shelters";
     runtimeInputs = [
@@ -69,10 +83,13 @@ let
       set -x
 
       ${syncRepo}
+      ${refreshGate}
       shelters_repo="$STATE_DIRECTORY/repo"
       export GIT_SSH_COMMAND="ssh -i $CREDENTIALS_DIRECTORY/ssh-key -o IdentitiesOnly=yes -o SendEnv=GIT_DEFAULT_HASH"
 
       sync_repo sha256 git@git.jakstys.lt:lt-shelters.git "$shelters_repo"
+
+      exit_unless_due "$shelters_repo" refreshed-at.txt
 
       git -C "$shelters_repo" config user.name "Lithuanian shelter data bot"
       git -C "$shelters_repo" config user.email lt-shelters@jakstys.lt
@@ -104,6 +121,7 @@ let
       set -x
 
       ${syncRepo}
+      ${refreshGate}
       shelters_repo="$STATE_DIRECTORY/lt-shelters"
       lt_maps_repo="$STATE_DIRECTORY/repo"
       publish_dir=/var/www/dl/maps
@@ -121,6 +139,10 @@ let
       }
       trap cleanup EXIT
 
+      sync_repo sha1 git@git.jakstys.lt:lt-maps.git "$lt_maps_repo"
+      exit_unless_due "$lt_maps_repo" nix/data-sources.json
+      manifest="$lt_maps_repo/nix/data-sources.json"
+
       find "$publish_dir" -maxdepth 1 -type f -name '.tmp-*' -delete
 
       sync_repo sha256 https://git.jakstys.lt/lt-shelters.git "$shelters_repo"
@@ -129,9 +151,6 @@ let
       mkdir "$shelters_tree"
       git -C "$shelters_repo" archive "$shelters_rev" | tar -x -C "$shelters_tree"
       shelters_hash=$(nix-hash --type sha256 --sri "$shelters_tree")
-
-      sync_repo sha1 git@git.jakstys.lt:lt-maps.git "$lt_maps_repo"
-      manifest="$lt_maps_repo/nix/data-sources.json"
 
       geofabrik=https://download.geofabrik.de/europe
       wget_args=(--progress=dot:giga --tries=5 --timeout=30 --retry-connrefused --retry-on-host-error "--retry-on-http-error=429,500,502,503,504")
@@ -274,11 +293,13 @@ in
         readWritePaths = [ "/var/www/dl/maps" ];
       };
 
+      # Geofabrik publishes the Lithuania extract overnight; run after it
+      # lands, on Geofabrik's own clock so summer time cannot eat the margin.
       timers.lt-shelters = {
-        description = "Weekly Lithuanian shelter data snapshot";
+        description = "Daily attempt at a Lithuanian shelter and map data refresh";
         wantedBy = [ "timers.target" ];
         timerConfig = {
-          OnCalendar = "Mon *-*-* 04:17:00 Europe/Vilnius";
+          OnCalendar = "*-*-* 04:00:00 UTC";
           Persistent = true;
           RandomizedDelaySec = "30m";
         };
