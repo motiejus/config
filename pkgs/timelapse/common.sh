@@ -94,14 +94,17 @@ photo_months() {
     -size "+$((MIN_BYTES - 1))c" -printf '%f\n' | cut -d- -f1,2 | sort -u
 }
 
-# Whether month $1 is already a single video for every camera that has photos in
-# it. A camera with nothing that month is not waited on: it will never get a
-# video, so a stray directory beside the cameras cannot freeze the archive.
+# Whether month $1 is already a single video for every camera. A camera with no
+# photographs at all is not waited on: a stray directory beside the cameras, or
+# one taken out of service, can never get a video, and waiting for one waits
+# forever. Any camera that has photographs anywhere is waited on for every month,
+# including a month it has none of: the other host may hold the only copy of it,
+# and a month skipped here is skipped for good.
 joined() { # month
   local cam
   for cam in "${cameras[@]}"; do
     [ ! -e "$OUT/$cam-$1.mkv" ] || continue
-    [ -z "$(photos_in "$cam" "$1" -printf . -quit)" ] || return 1
+    [ -z "$(photos_in "$cam" "" -printf . -quit)" ] || return 1
   done
 }
 

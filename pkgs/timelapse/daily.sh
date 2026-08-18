@@ -65,13 +65,14 @@ first_month="${first_month%%$'\n'*}"
 today=$(date -u +%F)
 this_month=${today%-*}
 
-# The days of month $1 that have ended, oldest first. Stepped by 86400 seconds
-# rather than with date's relative syntax, for the reason next_month gives.
+# The days of month $1 that have ended, oldest first. PERIOD and days are local,
+# so the caller's own keep whatever they held while parse_period spans the month.
 ended_days() { # month
-  local d="$1-01"
-  while [[ "$d" == "$1-"* ]] && [[ "$d" < "$today" ]]; do
+  local PERIOD=$1 days d
+  parse_period
+  for d in "${days[@]}"; do
+    [[ "$d" < "$today" ]] || break
     echo "$d"
-    d=$(date -u -d "@$(($(date -u -d "$d 00:00:00" +%s) + 86400))" +%F)
   done
 }
 
@@ -80,6 +81,9 @@ ended_days() { # month
 # can always be encoded again.
 drop_day_videos() { # month
   local cam dayfiles
+  # The directory is removed once the last day video in it goes, and find would
+  # complain about its absence every night after.
+  [ -d "$DAYS" ] || return 0
   for cam in "${cameras[@]}"; do
     [ -e "$OUT/$cam-$1.mkv" ] || continue
     mapfile -t dayfiles < <(find "$DAYS" -maxdepth 1 -name "$cam-$1-[0-9][0-9].mkv" | sort)
@@ -90,25 +94,21 @@ drop_day_videos() { # month
 }
 
 m="$first_month"
-while [[ "$m" < "$this_month" ]]; do
-  if joined "$m"; then
+while [[ ! "$this_month" < "$m" ]]; do
+  if [[ "$m" < "$this_month" ]] && joined "$m"; then
     drop_day_videos "$m"
   else
     timelapse-merger --missing-from="$MERGE_FROM" "$m" ||
       die "$m: nothing merged, so nothing of it can be encoded"
+    # A list, not a pipe: ffmpeg reads stdin, and a while-read loop around it
+    # would lose every day after the first.
     mapfile -t ended < <(ended_days "$m")
     for d in "${ended[@]}"; do timelapse-videomaker "$d"; done
+    [[ "$m" < "$this_month" ]] || break # this month is not over: never joined
     timelapse-videomaker "$m"
     drop_day_videos "$m"
   fi
   m=$(next_month "$m")
 done
-
-# The current month is merged and the days of it that have ended encoded, and
-# never joined: a month video is final, and this month is not over.
-timelapse-merger --missing-from="$MERGE_FROM" "$this_month" ||
-  die "$this_month: nothing merged, so nothing of it can be encoded"
-mapfile -t ended < <(ended_days "$this_month")
-for d in "${ended[@]}"; do timelapse-videomaker "$d"; done
 
 rmdir "$DAYS" 2>/dev/null || true

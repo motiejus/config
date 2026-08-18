@@ -139,6 +139,6 @@ for cam in "${cameras[@]}"; do
   log "$cam $PERIOD: copied $copied photos"
 done
 
-# Exiting zero here is what lets the caller pass --reconciled to
-# timelapse-videomaker: any failure above stops this script instead.
+# Exiting zero here is what lets timelapse-daily go on to encode this month: any
+# failure above stops this script instead, and nothing of the month is encoded.
 log "done: $total photos copied into $ROOT"

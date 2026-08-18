@@ -72,8 +72,10 @@ alone, so each of them says everything about itself.
 A finished video is never rebuilt. timelapse-daily merges a month from the other
 host before it encodes any of its days, so every photograph a day will ever have
 is already on disk when it is made. Joining a month needs every one of its days,
-and by then each of them has been made that way. timelapse-daily normally drives
-both steps; timelapse-reap checks the result.
+and by then each of them has been made that way. A day whose video turns out to
+be older than a photograph of that day is dropped instead of joined, and made
+again after the next merge. timelapse-daily normally drives both steps;
+timelapse-reap checks the result.
 EOF
 }
 
@@ -254,8 +256,9 @@ encode_day() { # cam day
   # ICQ, QVBR, -compression_level, -tiles and B-frames.
   local -a codec=(-c:v av1_vaapi -rc_mode CQP -global_quality "$QINDEX" -g 1)
   # The CPU ladder, kept for the day this process is proven and the encoder moves
-  # back off the GPU:
-  # CRF=35 PRESET=2
+  # back off the GPU. Restoring it also means the vf tail below going back to
+  # format=yuv420p10le and -vaapi_device dropped from the ffmpeg call:
+  # local CRF=35 PRESET=2
   # local -a codec=(-c:v libsvtav1 -preset "$PRESET" -crf "$CRF"
   #   -pix_fmt yuv420p10le -g $((FPS * 10)))
   # The filters run on CPU frames -- the dimming timelapse-reap's pixel check
@@ -370,7 +373,7 @@ write_chapters() { # chapters
 }
 
 join_month() { # cam
-  local cam="$1" day i=0 w h
+  local cam="$1" day i=0 w h late s
   local video="$OUT/$cam-$PERIOD.mkv" manifest="$tmp/month.tsv" work="$OUT/.$cam-$PERIOD.$$.part.mkv"
 
   [ ! -e "$video" ] || {
@@ -378,8 +381,8 @@ join_month() { # cam
     return 0
   }
   # This video is final: nothing rebuilds a joined month. Every one of its days
-  # being a video is the whole of the gate, because a day is only encoded after
-  # its month has been merged from the other host.
+  # being a video is the whole of the gate here; that each of them was encoded
+  # after its month was merged is what the check below the manifest enforces.
   for day in "${days[@]}"; do
     [ -e "$DAYS/$cam-$day.mkv" ] || {
       log "$cam $PERIOD: not joining, $day is not encoded yet"
@@ -404,6 +407,20 @@ join_month() { # cam
         '{ printf "%04d %s %-23s\n", $1 + base, $2, $3 }' "$tmp/day.tsv"
     done
   } >"$manifest"
+
+  # Merge-before-encode says every photograph of these days was already on disk
+  # when each of them was encoded. A slot holding one the month claims nothing for
+  # says it was not, so those days go: the next run encodes them after merging and
+  # joins the month then.
+  photo_slots "$manifest" >"$tmp/invideo"
+  slots_on_disk "$cam" >"$tmp/ondisk"
+  mapfile -t late < <(comm -13 "$tmp/invideo" "$tmp/ondisk" |
+    while read -r s; do echo "${days[s / SLOTS_PER_DAY]}"; done | sort -u)
+  [ "${#late[@]}" -eq 0 ] || {
+    for day in "${late[@]}"; do rm -f "$DAYS/$cam-$day.mkv"; done
+    log "$cam $PERIOD: photographs arrived after ${late[*]} were encoded; dropped those day videos to encode again after the next merge"
+    return 0
+  }
 
   # Made again from the month's own manifest rather than carried over from the
   # days: an outage across midnight is one gap, and the two days either side of it

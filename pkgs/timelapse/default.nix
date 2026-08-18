@@ -9,7 +9,6 @@
   findutils,
   gawk,
   gnugrep,
-  gnused,
   openssh,
   rsync,
   tzdata,
@@ -55,6 +54,10 @@ let
       # Without this glibc reads "Europe/Vilnius" as a bare POSIX zone name with
       # no offset, and every gap caption silently comes out in UTC.
       TZDIR = "${tzdata}/share/zoneinfo";
+      # fwminex has libva-vdpau-driver installed beside mesa, and libva autodetects
+      # that one: naming the driver is what keeps av1_vaapi on the Radeon whose
+      # render node the script asks for by name.
+      LIBVA_DRIVER_NAME = "radeonsi";
     };
     inputs = [
       coreutils
@@ -98,7 +101,6 @@ in
     inputs = [
       coreutils
       findutils
-      gnused
       merger
       videomaker
     ];
