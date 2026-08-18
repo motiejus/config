@@ -94,6 +94,9 @@ drop_day_videos() { # month
 }
 
 m="$first_month"
+# A photograph dated in the future would otherwise leave nothing for the loop to
+# do and nothing said about it.
+[[ ! "$m" > "$this_month" ]] || m="$this_month"
 while [[ ! "$this_month" < "$m" ]]; do
   if [[ "$m" < "$this_month" ]] && joined "$m"; then
     drop_day_videos "$m"

@@ -198,9 +198,10 @@ encode_day() { # cam day
   local manifest="$tmp/manifest" concat="$tmp/concat"
   local seed seed_age=0 ref w h pix_fmt black vf enable work
 
-  # A day video that exists is final: its month was merged from the other host
-  # before it was made, so every photograph it will ever have was already there.
-  # A photograph that turns up afterwards is timelapse-reap's to refuse.
+  # A day video that exists is not made again here: its month was merged from the
+  # other host before it was made, so every photograph it will ever have was
+  # already there. One that turns up regardless is join_month's to catch, and it
+  # drops this video so the next run encodes the day again.
   [ ! -e "$video" ] || return 0
 
   local day_epoch
@@ -373,7 +374,7 @@ write_chapters() { # chapters
 }
 
 join_month() { # cam
-  local cam="$1" day i=0 w h late s
+  local cam="$1" day i=0 w h late late_days s
   local video="$OUT/$cam-$PERIOD.mkv" manifest="$tmp/month.tsv" work="$OUT/.$cam-$PERIOD.$$.part.mkv"
 
   [ ! -e "$video" ] || {
@@ -381,8 +382,8 @@ join_month() { # cam
     return 0
   }
   # This video is final: nothing rebuilds a joined month. Every one of its days
-  # being a video is the whole of the gate here; that each of them was encoded
-  # after its month was merged is what the check below the manifest enforces.
+  # has to be a video before there is anything to join at all; whether each of
+  # them was encoded after the merge is the check below the manifest.
   for day in "${days[@]}"; do
     [ -e "$DAYS/$cam-$day.mkv" ] || {
       log "$cam $PERIOD: not joining, $day is not encoded yet"
@@ -414,11 +415,14 @@ join_month() { # cam
   # joins the month then.
   photo_slots "$manifest" >"$tmp/invideo"
   slots_on_disk "$cam" >"$tmp/ondisk"
-  mapfile -t late < <(comm -13 "$tmp/invideo" "$tmp/ondisk" |
+  # Assigned rather than read through a process substitution, whose status a
+  # mapfile throws away: a mapping that failed would come back empty and join.
+  late=$(comm -13 "$tmp/invideo" "$tmp/ondisk" |
     while read -r s; do echo "${days[s / SLOTS_PER_DAY]}"; done | sort -u)
-  [ "${#late[@]}" -eq 0 ] || {
-    for day in "${late[@]}"; do rm -f "$DAYS/$cam-$day.mkv"; done
-    log "$cam $PERIOD: photographs arrived after ${late[*]} were encoded; dropped those day videos to encode again after the next merge"
+  [ -z "$late" ] || {
+    mapfile -t late_days <<<"$late"
+    for day in "${late_days[@]}"; do rm -f "$DAYS/$cam-$day.mkv"; done
+    log "$cam $PERIOD: dropped the day videos of ${late_days[*]}: a photograph arrived after each was encoded, so they are made again after the next merge"
     return 0
   }
 

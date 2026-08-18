@@ -130,16 +130,20 @@ photo_slots() { # manifest
 }
 
 # The slots of $PERIOD that have a photo on disk, ascending. Slots are numbered
-# from the start of the period, so each day contributes its own 288. Which day a
-# photo belongs to is read from its name, not from the directory it sits in, so
-# this asks exactly the question the deletion answers: a photograph filed under
-# another day is judged in the period that will delete it. Sorted as text, which
-# is what comm needs from both of its inputs.
+# from the start of the period, so each day contributes its own 288, and which day
+# a photograph belongs to is its own name: that is the question the deletion
+# answers too. A name the directory it sits in disagrees with is refused rather
+# than numbered -- an encode reads a day out of that day's directory, so such a
+# file can never be a frame, and a gate that counted it would ask forever about a
+# slot nothing can fill. Sorted as text, which is what comm needs from both.
 slots_on_disk() { # cam
-  local f day i=0
+  local rel f day i=0
   local -A day_index=()
   for day in "${days[@]}"; do day_index[$day]=$((i++)); done
-  while read -r f; do
+  while read -r rel; do
+    f=${rel##*/}
+    [ "${rel%/*}" = "${f:0:10}" ] ||
+      die "$1 $PERIOD: $rel is not in the day its own name gives; move it"
     day=${f:0:10}
     [ -n "${day_index[$day]:-}" ] ||
       die "$1 $PERIOD: $f is named for $day, which is not a day of $PERIOD"
@@ -147,12 +151,14 @@ slots_on_disk() { # cam
     # A name the glob admits but the clock does not -- 23:60 onwards, not just an
     # hour past 23 -- gives a slot past its own day, which would otherwise land on
     # another day's row and ask about a frame this photo has nothing to do with.
-    # Nothing downstream would notice: errexit is inert in reap_camera, because it
-    # is called as (reap_camera "$cam") || failed=1, so every check here has to be
-    # an explicit || die.
+    # Every check here is fatal to the run that hits it, on purpose: one camera in
+    # the reaper, which calls (reap_camera "$cam") || failed=1, and the whole
+    # nightly run in a join. A photograph these tools cannot place stops the
+    # archive until somebody moves it, which loses nothing: the stills are still
+    # here and so is the other host's copy.
     ((slot < SLOTS_PER_DAY)) ||
       die "$1 $PERIOD: $f is not named with a time of day; rename it"
     echo $((day_index[$day] * SLOTS_PER_DAY + slot))
-  done < <(photos_in "$1" "$PERIOD" -printf '%f\n') >"$tmp/disk-slots"
+  done < <(photos_in "$1" "$PERIOD" -printf '%P\n') >"$tmp/disk-slots"
   sort -u "$tmp/disk-slots"
 }
