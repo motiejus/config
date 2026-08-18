@@ -7,43 +7,6 @@
 }:
 let
   cfg = config.mj.services.lt-shelters;
-  readme = pkgs.writeText "lt-shelters-README.md" ''
-    # Lithuanian public shelter data
-
-    Full-country snapshots of Lithuania's official Priedanga (short-term
-    protection) and KAS (collective protection structure) datasets. Files are
-    kept as source JSON Lines without re-encoding.
-
-    Sources:
-
-    - Priedanga: https://data.gov.lt/datasets/2852/
-    - KAS: https://data.gov.lt/datasets/2878/
-
-    The snapshots are refreshed every seven days. Each successful refresh writes
-    its UTC completion time to `refreshed-at.txt` and creates a commit even when
-    the source bytes did not change. See LICENSE-DATA.md for reuse terms and
-    attribution.
-  '';
-  dataLicense = pkgs.writeText "lt-shelters-LICENSE-DATA.md" ''
-    # Data licence and attribution
-
-    The source datasets are published under the Creative Commons Attribution
-    4.0 International licence (CC BY 4.0):
-    https://creativecommons.org/licenses/by/4.0/
-
-    Attribution: Priešgaisrinės apsaugos ir gelbėjimo departamentas
-    (PAGD), Valstybės duomenų agentūra, and Lietuvos atvirų duomenų
-    portalas; source datasets “Priedangos” and “Kolektyvinės apsaugos
-    statiniai”.
-
-    Source catalogue records:
-
-    - https://data.gov.lt/datasets/2852/
-    - https://data.gov.lt/datasets/2878/
-
-    These repository snapshots are automated, unmodified downloads. The Git
-    history and repository metadata are not part of the source datasets.
-  '';
   syncRepo = ''
     sync_repo() {
       local object_format="$1" url="$2" repo="$3"
@@ -93,12 +56,8 @@ let
 
       git -C "$shelters_repo" config user.name "Lithuanian shelter data bot"
       git -C "$shelters_repo" config user.email lt-shelters@jakstys.lt
-      install -m 0644 ${readme} "$shelters_repo/README.md"
-      install -m 0644 ${dataLicense} "$shelters_repo/LICENSE-DATA.md"
-      fetch-priedangos "$shelters_repo/priedangos.jsonl"
-      fetch-kas "$shelters_repo/kas.jsonl"
-      date -u +%Y-%m-%dT%H:%M:%SZ > "$shelters_repo/refreshed-at.txt"
-      git -C "$shelters_repo" add README.md LICENSE-DATA.md priedangos.jsonl kas.jsonl refreshed-at.txt
+      refresh "$shelters_repo"
+      git -C "$shelters_repo" add priedangos.jsonl kas.jsonl refreshed-at.txt
       if ! git -C "$shelters_repo" diff --cached --quiet; then
         git -C "$shelters_repo" commit -m "Update PAGD shelter data"
         GIT_DEFAULT_HASH=sha256 git -C "$shelters_repo" push origin main

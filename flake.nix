@@ -108,7 +108,7 @@
           final: super:
           rec {
             gamja = super.callPackage ./pkgs/gamja.nix { };
-            lt-shelters = super.callPackage ./pkgs/lt-shelters { };
+            lt-shelters = super.callPackage ./pkgs/lt-shelters.nix { };
             weather = super.callPackage ./pkgs/weather { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
