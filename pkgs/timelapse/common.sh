@@ -141,6 +141,14 @@ slots_on_disk() { # cam
     [ -n "${day_index[$day]:-}" ] ||
       die "$1 $PERIOD: $f is named for $day, which is not a day of $PERIOD"
     set_slot "$f"
+    # A name the glob admits but the clock does not -- 23:60 onwards, not just an
+    # hour past 23 -- gives a slot past its own day, which would otherwise land on
+    # another day's row and ask about a frame this photo has nothing to do with.
+    # Nothing downstream would notice: errexit is inert in reap_camera, because it
+    # is called as (reap_camera "$cam") || failed=1, so every check here has to be
+    # an explicit || die.
+    ((slot < SLOTS_PER_DAY)) ||
+      die "$1 $PERIOD: $f is not named with a time of day; rename it"
     echo $((day_index[$day] * SLOTS_PER_DAY + slot))
   done < <(photos_in "$1" "$PERIOD" -printf '%f\n') >"$tmp/disk-slots"
   sort -u "$tmp/disk-slots"

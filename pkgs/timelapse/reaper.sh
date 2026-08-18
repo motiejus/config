@@ -110,12 +110,17 @@ reap_camera() { # cam
     die "$cam $PERIOD: $(basename "$video") carries no manifest of its own"
   [ "$(stat -c %s "$manifest")" -eq "$((NSLOTS * MANIFEST_ROW))" ] ||
     die "$cam $PERIOD: the manifest in the video is not $NSLOTS fixed-width rows"
-  # And it has to be this period's manifest: nothing else here ties the two
-  # together, so a video that was renamed or restored into the wrong place would
-  # otherwise verify against its own photographs and delete somebody else's.
-  [ "$(awk -v p="$PERIOD" \
-    '$2 == "P" && substr($3, 1, length(p)) != p' "$manifest" | wc -l)" -eq 0 ] ||
-    die "$cam $PERIOD: the manifest in the video is for a different period"
+  # And every 288-row block has to be the day it sits at: nothing else here ties
+  # the video to what it claims to be, so one renamed, restored into the wrong
+  # place, or joined from swapped days would otherwise verify against its own
+  # photographs and delete somebody else's. Per day rather than per period,
+  # because the names carry the day and a swap inside a month is invisible to a
+  # month-wide check.
+  [ "$(awk -v days="${days[*]}" -v n="$SLOTS_PER_DAY" \
+    'BEGIN { split(days, d, " ") }
+     $2 == "P" && substr($3, 1, 10) != d[int(($1 + 0) / n) + 1]' \
+    "$manifest" | wc -l)" -eq 0 ] ||
+    die "$cam $PERIOD: the manifest in the video is not the days of $PERIOD"
 
   # Demuxing every packet both counts the frames and reads the whole file, so
   # btrfs checksums each extent on the way past: a decode of every frame costs
