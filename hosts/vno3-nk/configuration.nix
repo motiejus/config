@@ -85,9 +85,8 @@ in
         enable = true;
         onCalendar = "*-*-* *:*:30"; # 30'th second every minute
         secretsEnv = config.age.secrets.timelapse.path;
-        archiveFrom = "timelapse-r11@fwminex.jakst.vpn";
-        # and the other way round: fwminex fills its 5-minute tree from this
-        # one, so a month can be reconstructed from either host.
+        # This host only captures. fwminex builds the videos, pulling whatever
+        # its own 5-minute tree missed from here, so it needs read access.
         readerKeys = [ myData.bot_pubkeys.timelapse_merger_fwminex ];
       };
 
@@ -223,12 +222,9 @@ in
       ffmpeg-headless # ffprobe/ffmpeg by hand; the timelapse tools carry their own
       intel-gpu-tools
 
-      # timelapse-archive.service drives these nightly; here for running a
-      # single period by hand
+      # for filling this host's own gaps by hand; the archive itself is built on
+      # fwminex, which is where the other three tools live
       timelapse-merger
-      timelapse-videomaker
-      timelapse-daily
-      timelapse-reap
     ];
   };
 

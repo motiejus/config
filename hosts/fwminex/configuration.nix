@@ -396,7 +396,11 @@ in
         enable = true;
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
-        # vno3-nk pulls the 5-minute stills from here to fill its own outages.
+        # This host builds the archive. Its own capture is one photo per 5
+        # minutes, which is exactly one per video slot, and vno3-nk's minutely
+        # tree fills whatever this one missed.
+        archiveFrom = "timelapse-r11@vno3-nk.jakst.vpn";
+        # and the other way round, so vno3-nk can fill its own gaps by hand
         readerKeys = [ myData.bot_pubkeys.timelapse_merger_vno3_nk ];
       };
 
@@ -618,11 +622,12 @@ in
       ffmpeg_7-headless # Pin to FFmpeg 7 due to FFmpeg 8 RTSP issues
       age-plugin-yubikey
 
-      # Run by hand to pull vno3-nk's minutely stills into this tree, so neither
-      # host is the only copy of a minute. Only the merger, and deliberately no
-      # timer: this host must never turn its stills into video and reap them,
-      # because they are what vno3-nk's own backfill draws on.
+      # timelapse-archive.service drives these nightly; here for running a
+      # single period by hand
       timelapse-merger
+      timelapse-videomaker
+      timelapse-daily
+      timelapse-reap
     ];
   };
 
