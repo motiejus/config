@@ -393,7 +393,7 @@ in
       };
 
       timelapse-r11 = {
-        enable = true;
+        enable = false;
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
         # This host builds the archive. Its own capture is one photo per 5
