@@ -6,16 +6,27 @@
 # the photos the manifest claims they came from.
 #
 # Calibration on this footage: a correctly encoded frame scores ~0.99, a frame
-# greyed out by mistake ~0.66, and a frame from the wrong slot ~0.77.
+# greyed out by mistake ~0.66, and one from a different day ~0.77. It is aimed at
+# that scale of error — a video that is self-consistent and visibly wrong, which
+# has happened once. A frame one slot out cannot be told apart this way on idle
+# footage, and does not need to be: the only way to shift is to lose or gain a
+# frame, which the frame count catches.
 
 SAMPLES=6
 MIN_SSIM=0.90
 
+# ssim reports at info level, so -v error would silently swallow it.
+ssim_of() { # frame photo
+  { ffmpeg -hide_banner -i "$1" -i "$2" \
+    -lavfi "[0:v]format=yuv420p[a];[1:v]format=yuv420p[b];[a][b]ssim" -f null - 2>&1 ||
+    true; } | { grep -o 'All:[0-9.]*' || true; } | cut -d: -f2
+}
+
 verify_pixels() { # video manifest cam
   local video="$1" manifest="$2" cam="$3"
-  local rows picks slots sel p n=0 checked=0 got matched rel frame ssim
+  local rows picks slots sel p n=0 checked=0 skipped=0 got matched slot rel frame ssim
 
-  { grep -P '\tphoto\t' "$manifest" || true; } >"$tmp/photorows"
+  { grep '^.... P ' "$manifest" || true; } >"$tmp/photorows"
   rows=$(wc -l <"$tmp/photorows")
   if [ "$rows" -eq 0 ]; then
     log "  nothing but missing frames here, no pixels to check"
@@ -31,7 +42,7 @@ verify_pixels() { # video manifest cam
 
   slots=()
   for p in "${picks[@]}"; do
-    slots+=("$(cut -f1 <<<"$p")")
+    slots+=("$((10#$(cut -c1-4 <<<"$p")))")
     sel="${sel:-}+eq(n\\,${slots[-1]})"
   done
   rm -f "$tmp"/pix*.png
@@ -55,22 +66,24 @@ verify_pixels() { # video manifest cam
 
   for p in "${picks[@]}"; do
     n=$((n + 1))
-    rel=$(cut -f4 <<<"$p")
+    read -r slot _ rel <<<"$p"
+    slot=$((10#$slot))
     frame=$(printf '%s/pix%02d.png' "$tmp" "$n")
-    [ -f "$ROOT/$cam/$rel" ] || continue # stills already reaped
-    # ssim reports at info level, so -v error would silently swallow it
-    ssim=$({ ffmpeg -hide_banner -i "$frame" -i "$ROOT/$cam/$rel" \
-      -lavfi "[0:v]format=yuv420p[a];[1:v]format=yuv420p[b];[a][b]ssim" -f null - 2>&1 ||
-      true; } | { grep -o 'All:[0-9.]*' || true; } | cut -d: -f2)
-    [ -n "$ssim" ] || die "cannot compare frame ${slots[n - 1]} against $rel"
+    [ -f "$ROOT/$cam/${rel:0:10}/$rel" ] || {
+      skipped=$((skipped + 1))
+      continue
+    }
+    ssim=$(ssim_of "$frame" "$ROOT/$cam/${rel:0:10}/$rel")
+    [ -n "$ssim" ] || die "cannot compare frame $slot against $rel"
     awk -v s="$ssim" -v m="$MIN_SSIM" 'BEGIN { exit !(s + 0 >= m + 0) }' ||
-      die "frame ${slots[n - 1]} does not look like $rel (ssim $ssim < $MIN_SSIM)"
+      die "frame $slot does not look like $rel (ssim $ssim < $MIN_SSIM)"
+
     checked=$((checked + 1))
   done
 
-  if [ "$checked" -eq 0 ]; then
-    log "  stills are gone, could not re-check the pixels"
-  else
-    log "  $checked sampled frames match their source photos"
-  fi
+  # Skipping every sample used to pass. The caller only gets here with photos on
+  # disk, so a named photo that is missing is a disagreement, not a reaped period.
+  [ "$checked" -gt 0 ] ||
+    die "$(basename "$video"): none of the $rows sampled photos are on disk; nothing was checked"
+  log "  $checked sampled frames match their source photos${skipped:+, $skipped skipped}"
 }

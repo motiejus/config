@@ -12,7 +12,7 @@
 # replacing it has been checked. Doing nothing is the normal outcome.
 #
 # Days with no photos at all are encoded too, as a full day of greyed picture
-# with a red clock. That is what keeps a month joinable, and it is why an outage
+# captioned NO DATA. That is what keeps a month joinable, and it is why an outage
 # straddling the turn of a month needs no special handling: the days either side
 # are ordinary days that happen to have no photos.
 
@@ -111,7 +111,7 @@ for m in "${months[@]}"; do
     [ -e "$OUT/$cam-$m.mkv" ] || continue
     mapfile -t dayfiles < <(find "$DAYS" -maxdepth 1 -name "$cam-$m-[0-9][0-9].mkv" | sort)
     [ "${#dayfiles[@]}" -gt 0 ] || continue
-    for f in "${dayfiles[@]}"; do rm -f "$f" "${f%.mkv}.tsv"; done
+    rm -f "${dayfiles[@]}"
     log "$cam $m: dropped ${#dayfiles[@]} day videos, the month video covers them"
   done
 done
