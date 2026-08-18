@@ -1,15 +1,19 @@
 # timelapse-daily: keep the video archive caught up with the stills.
 #
-# Four things, oldest work first:
+# One whole month at a time, oldest first, and always in this order: merge that
+# month from the other host, encode the days it has no video for, join it, then
+# drop the day videos the month video now covers.
 #
-#   0. backfill the months that can still change from the other host
-#   1. encode every finished day whose month is not yet a single video
-#   2. join a finished month once all of its days exist
-#   3. drop the day videos of a month that has been joined
+# Both hosts hold every photograph they will ever hold for a day within minutes
+# of that day ending, so a month merged after it is over has nothing more coming:
+# every day encoded from it is final, and a month whose day videos all exist is
+# reconciled by induction and joinable without asking the other host again. That
+# is why nothing here revisits a day or a month, and why a merge that fails stops
+# the run — nothing after it can be encoded safely. Encoding is idempotent, the
+# failure is mailed, and tomorrow's run starts over.
 #
-# Every step is safe to interrupt and safe to repeat: work already done is
-# recognised by the files it left behind, and nothing is deleted until the video
-# replacing it has been checked. Doing nothing is the normal outcome.
+# The current month is merged and its finished days encoded, but never joined: it
+# is not over. Deleting stills is timelapse-reap's job.
 #
 # Days with no photos at all are encoded too, as a full day of greyed picture
 # captioned NO DATA. That is what keeps a month joinable, and it is why an outage
@@ -18,18 +22,17 @@
 
 usage() {
   cat <<'EOF'
-Usage: timelapse-daily [--missing-from=[USER@]HOST]
+Usage: timelapse-daily --missing-from=[USER@]HOST
 
-Encode any finished day that has no video, join a month once all its days are
-encoded, and remove the day videos of a month that has been joined. Intended to
-run daily. Deleting stills is timelapse-reap's job.
+Merge every month that is not yet a single video from HOST, encode the days that
+have ended, join a month once all of its days are encoded, and drop the day
+videos a month video covers. Intended to run daily. Deleting stills is
+timelapse-reap's job.
 
-  --missing-from=[USER@]HOST   first run timelapse-merger against HOST for every
-                               month that is not yet a single video
+  --missing-from=[USER@]HOST   the other host keeping a copy of these stills
 
-Without --missing-from no month is joined at all: a month video is final, and
-making one while the other host is unreachable would freeze an outage that could
-still have been filled in.
+Required, and not a flag to work around: a month video is final, so a day is
+encoded only after the month it belongs to has been asked of the other host.
 EOF
 }
 
@@ -45,6 +48,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+[ -n "$MERGE_FROM" ] || die "--missing-from is required (try --help)"
 
 find_cameras
 
@@ -61,58 +65,48 @@ first_month="${first_month%%$'\n'*}"
 today=$(date -u +%F)
 this_month=${today%-*}
 
-# 0. Backfill, oldest month first, and remember which months that covered. Only
-# a month that is not yet a single video can still take photos, so those are the
-# only ones worth asking about; a joined month is final. Asking again every night
-# is what makes a late outage on the other host heal itself.
-#
-# A failure here stops the whole run on purpose. Encoding is idempotent and
-# catches up tomorrow, whereas a month joined while the other host was
-# unreachable is permanent: its holes can never be filled in.
-reconciled=()
+# The days of month $1 that have ended, oldest first. Stepped by 86400 seconds
+# rather than with date's relative syntax, for the reason next_month gives.
+ended_days() { # month
+  local d="$1-01"
+  while [[ "$d" == "$1-"* ]] && [[ "$d" < "$today" ]]; do
+    echo "$d"
+    d=$(date -u -d "@$(($(date -u -d "$d 00:00:00" +%s) + 86400))" +%F)
+  done
+}
+
+# The day videos a month video has taken over. Safe unchecked: the stills are
+# still on disk until timelapse-reap has looked at the month and agreed, so a day
+# can always be encoded again.
+drop_day_videos() { # month
+  local cam dayfiles
+  for cam in "${cameras[@]}"; do
+    [ -e "$OUT/$cam-$1.mkv" ] || continue
+    mapfile -t dayfiles < <(find "$DAYS" -maxdepth 1 -name "$cam-$1-[0-9][0-9].mkv" | sort)
+    [ "${#dayfiles[@]}" -gt 0 ] || continue
+    rm -f "${dayfiles[@]}"
+    log "$cam $1: dropped ${#dayfiles[@]} day videos, the month video covers them"
+  done
+}
+
 m="$first_month"
-while [ -n "$MERGE_FROM" ] && [[ "$m" < "$this_month" || "$m" == "$this_month" ]]; do
-  joined "$m" || {
-    timelapse-merger --missing-from="$MERGE_FROM" "$m"
-    reconciled+=("$m")
-  }
+while [[ "$m" < "$this_month" ]]; do
+  if joined "$m"; then
+    drop_day_videos "$m"
+  else
+    timelapse-merger --missing-from="$MERGE_FROM" "$m" ||
+      die "$m: nothing merged, so nothing of it can be encoded"
+    mapfile -t ended < <(ended_days "$m")
+    for d in "${ended[@]}"; do timelapse-videomaker "$d"; done
+    timelapse-videomaker "$m"
+    drop_day_videos "$m"
+  fi
   m=$(next_month "$m")
 done
 
-# 1. Encode. timelapse-videomaker decides per camera what is actually needed,
-# including whether a day must be redone because photos turned up for slots it
-# calls missing, so it is simply asked about every day that has ended.
-d="$first_month-01"
-while [[ "$d" < "$today" ]]; do
-  timelapse-videomaker "$d"
-  d=$(date -u -d "@$(($(date -u -d "$d 00:00:00" +%s) + 86400))" +%F)
-done
+timelapse-merger --missing-from="$MERGE_FROM" "$this_month" ||
+  die "$this_month: nothing merged, so nothing of it can be encoded"
+mapfile -t ended < <(ended_days "$this_month")
+for d in "${ended[@]}"; do timelapse-videomaker "$d"; done
 
-# 2. Join whole months, discovered from the day videos on disk so a backlog is
-# worked through oldest first. Only the months backfilled a moment ago may be
-# made final, which is why a run without --missing-from joins nothing at all:
-# photos pile up instead, and none are lost.
-# The month is read off the end of the name, not the front: a camera directory is
-# free to have a hyphen in it, and cutting from the left would then take the
-# wrong two fields and silently never join that month.
-mapfile -t months < <(find "$DAYS" -maxdepth 1 -name '[!.]*.mkv' -printf '%f\n' 2>/dev/null |
-  sed -E 's/^.*-([0-9]{4}-[0-9]{2})-[0-9]{2}\.mkv$/\1/' | sort -u)
-for m in "${months[@]}"; do
-  [ "$m" != "$this_month" ] || continue # not over yet
-  [[ " ${reconciled[*]} " == *" $m "* ]] || continue
-  timelapse-videomaker --reconciled "$m"
-done
-
-# 3. Drop the day videos of a month that is now a single video. Safe to do
-# unchecked: the stills are still on disk until timelapse-reap has looked at the
-# month and agreed, so a day can always be encoded again.
-for m in "${months[@]}"; do
-  for cam in "${cameras[@]}"; do
-    [ -e "$OUT/$cam-$m.mkv" ] || continue
-    mapfile -t dayfiles < <(find "$DAYS" -maxdepth 1 -name "$cam-$m-[0-9][0-9].mkv" | sort)
-    [ "${#dayfiles[@]}" -gt 0 ] || continue
-    rm -f "${dayfiles[@]}"
-    log "$cam $m: dropped ${#dayfiles[@]} day videos, the month video covers them"
-  done
-done
 rmdir "$DAYS" 2>/dev/null || true

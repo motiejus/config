@@ -80,8 +80,7 @@ in
       description = ''
         [USER@]HOST keeping a second copy of the same cameras' stills. Setting it
         turns on the nightly archive job: backfill this host's outages from
-        there, turn finished days and months into video, and delete the stills of
-        any month that is old enough and whose video verifies. Null leaves the
+        there and turn finished days and months into video. Null leaves the
         archive to be driven by hand.
       '';
     };
@@ -120,20 +119,19 @@ in
 
     systemd.services = {
 
-      # One pass over the whole archive: backfill, encode the days that ended,
-      # join the months that are complete, then delete the stills of a month old
-      # enough to give up and verified frame by frame.
+      # One pass over the whole archive, oldest month first: backfill it from the
+      # other host, encode the days that ended, join the months that are complete.
       #
-      # Deleting is its own ExecStart on purpose. Drop that line and the archive
-      # keeps building itself while every photo stays on disk; nothing else about
-      # the job changes.
+      # Deleting is its own ExecStart on purpose, and it is commented out: the
+      # archive keeps building itself while every photograph stays on disk, which
+      # is where this stays until the pipeline has been watched for a while.
       timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
         serviceConfig = common // {
           ExecStart = [
             "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
-            (lib.getExe pkgs.timelapse-reap)
+            # (lib.getExe pkgs.timelapse-reap)
           ];
           Type = "oneshot";
           # A day of footage is minutes of encoding per camera and a first run has
@@ -152,6 +150,15 @@ in
           # is idempotent and the next one resumes from the files on disk, and the
           # failure is mailed instead of being absorbed by everything else here.
           MemoryMax = "10G";
+
+          # The encoder runs on the GPU, so the render node has to be reachable at
+          # all: PrivateDevices replaces /dev with a set that has no render node in
+          # it, and the node is root:render 0660. Nothing else in the sandbox above
+          # is in the way -- traced through a real av1_vaapi encode, mesa maps no
+          # page write+executable and uses no privileged syscall.
+          PrivateDevices = false;
+          DeviceAllow = [ "/dev/dri/renderD128 rw" ];
+          SupplementaryGroups = [ "render" ];
 
           # AF_UNIX on top of the capture unit's set: resolving the other host's
           # name goes through a local socket before any packet is sent.

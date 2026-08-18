@@ -32,8 +32,7 @@
 
 # Frozen by measurement. The day-level frame check below counts packets, which
 # equals decoded frames for these settings; re-check that if they ever change.
-CRF=35
-PRESET=2
+QINDEX=121 # av1_vaapi CQP index, one value for both cameras
 FPS=24
 DUR=0.041666667      # one frame at 24 fps, written out because FPS is not a knob
 # Half an hour of gap is held rather than marked: a flash reads worse than a stale
@@ -41,7 +40,7 @@ DUR=0.041666667      # one frame at 24 fps, written out because FPS is not a kno
 HOLD=6               # missing slots one photograph may stand in for
 LOCAL_TZ=Europe/Vilnius # the gap captions read local time
 
-ENCODED_AS="svt-av1 crf=$CRF preset=$PRESET 10-bit"
+ENCODED_AS="av1_vaapi cqp qindex=$QINDEX all-intra 10-bit"
 
 # The subtitle track, the same in a day video and in a month. Default, because a
 # viewer should not have to go looking for it, and copied rather than encoded: only
@@ -51,14 +50,8 @@ SUB_TRACK=(-c:s copy -disposition:s:0 default
 
 usage() {
   cat <<'EOF'
-Usage: timelapse-videomaker YYYY-MM-DD                 encode one day
-       timelapse-videomaker --reconciled YYYY-MM          join that month for good
-
-  --reconciled     the other host has just been asked for everything it holds for
-                   this month, so the joined video may be made final. Required to
-                   join, because a joined month is never rebuilt. By hand:
-                   timelapse-merger --missing-from=HOST 2026-07 &&
-                     timelapse-videomaker --reconciled 2026-07
+Usage: timelapse-videomaker YYYY-MM-DD   encode one day
+       timelapse-videomaker YYYY-MM      join that month's days into one video
 
 Day videos go to /var/lib/timelapse-r11/videos/days/<camera>-<date>.mkv and
 month videos to /var/lib/timelapse-r11/videos/<camera>-<month>.mkv, each carrying
@@ -76,18 +69,17 @@ and a red banner naming every outage with its local start time and length. A
 month video also has a chapter per day. A joined month is read from the day videos
 alone, so each of them says everything about itself.
 
-A finished video is not rebuilt, except that a day is re-encoded when photos
-have appeared for slots it calls missing. Joining a month needs every one of its
-days. timelapse-daily normally drives both steps; timelapse-reap checks the
-result.
+A finished video is never rebuilt. timelapse-daily merges a month from the other
+host before it encodes any of its days, so every photograph a day will ever have
+is already on disk when it is made. Joining a month needs every one of its days,
+and by then each of them has been made that way. timelapse-daily normally drives
+both steps; timelapse-reap checks the result.
 EOF
 }
 
 PERIOD=""
-RECONCILED=0
 while [ $# -gt 0 ]; do
   case "$1" in
-  --reconciled) RECONCILED=1 ;;
   -h | --help)
     usage
     exit 0
@@ -107,9 +99,9 @@ parse_period
 find_cameras
 
 # Width, height and pixel format of a photo. The black filler has to match all
-# three: a change mid-concat reinitialises the filter graph and cfr then drops a
-# frame, which the frame count below catches. Cameras do not all encode their
-# JPEGs the same way, so read it.
+# three, and so does every photograph of a day: a change mid-concat reinitialises
+# the filter graph, which cannot be done with a hardware upload in it, and the
+# encode fails. Cameras do not all encode their JPEGs the same way, so read it.
 geometry() {
   ffprobe -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt -of csv=s=,:p=0 "$1"
 }
@@ -204,14 +196,10 @@ encode_day() { # cam day
   local manifest="$tmp/manifest" concat="$tmp/concat"
   local seed seed_age=0 ref w h pix_fmt black vf enable work
 
-  # What the video calls a photo slot comes out of the video: a day whose
-  # manifest is unreadable is unfinished, and is encoded again.
-  if manifest_of "$video" "$tmp/day.tsv"; then
-    slots_on_disk "$cam" >"$tmp/ondisk"
-    photo_slots "$tmp/day.tsv" >"$tmp/invideo"
-    [ -n "$(comm -13 "$tmp/invideo" "$tmp/ondisk")" ] || return 0
-    log "$cam $day: photos appeared for slots it calls missing, re-encoding"
-  fi
+  # A day video that exists is final: its month was merged from the other host
+  # before it was made, so every photograph it will ever have was already there.
+  # A photograph that turns up afterwards is timelapse-reap's to refuse.
+  [ ! -e "$video" ] || return 0
 
   local day_epoch
   day_epoch=$(date -u -d "$day 00:00:00" +%s)
@@ -253,14 +241,26 @@ encode_day() { # cam day
     # frames the manifest calls missing, so static text is all that is needed.
     vf="hue=s=0:enable=$enable,eq=brightness=-0.25:contrast=0.85:enable=$enable"
     # Opaque box, not a translucent one: flat black behind bright red is cheap
-    # to code and survives crf 35 on a dimmed static frame.
+    # to code and survives this quantizer on a dimmed static frame.
     vf="$vf,drawtext=fontfile=$TIMELAPSE_FONT:text='NO DATA':fontcolor=red"
     vf="$vf:fontsize=h/18:box=1:boxcolor=black:boxborderw=18"
     vf="$vf:x=(w-text_w)/2:y=h-text_h-40:enable=$enable,"
   fi
-  local -a codec=(-c:v libsvtav1 -preset "$PRESET" -crf "$CRF"
-    -pix_fmt yuv420p10le -g $((FPS * 10)))
-  vf="${vf}format=yuv420p10le"
+  # Measured on this footage and this silicon (Radeon 780M): 170 MB a day against
+  # 119 for svt-av1, every sampled frame scoring 0.989 or better against its own
+  # photograph, in four seconds instead of minutes. -g 1 is not a knob: an
+  # inter-predicted frame following a dimmed one scores 0.81, under the floor
+  # timelapse-reap holds videos to. The driver silently ignores -qp and refuses
+  # ICQ, QVBR, -compression_level, -tiles and B-frames.
+  local -a codec=(-c:v av1_vaapi -rc_mode CQP -global_quality "$QINDEX" -g 1)
+  # The CPU ladder, kept for the day this process is proven and the encoder moves
+  # back off the GPU:
+  # CRF=35 PRESET=2
+  # local -a codec=(-c:v libsvtav1 -preset "$PRESET" -crf "$CRF"
+  #   -pix_fmt yuv420p10le -g $((FPS * 10)))
+  # The filters run on CPU frames -- the dimming timelapse-reap's pixel check
+  # reads is drawn there -- and only the upload to the encoder comes after them.
+  vf="${vf}format=p010,hwupload"
 
   write_cues "$manifest" "$tmp/cues.ass" "$w" "$h"
 
@@ -269,8 +269,10 @@ encode_day() { # cam day
   work="$DAYS/.$cam-$day.$$.part.mkv"
   log "$cam $day: encoding into $SLOTS_PER_DAY frames"
   # Every input before any output option: one written after an -i is read as an
-  # input option for that input instead.
+  # input option for that input instead. The render node is named rather than
+  # guessed, because ffmpeg picks no VAAPI device on its own.
   ffmpeg -hide_banner -loglevel warning "${progress[@]}" -y \
+    -vaapi_device /dev/dri/renderD128 \
     -f concat -safe 0 -i "$concat" -i "$tmp/cues.ass" \
     -r "$FPS" -fps_mode cfr -vf "$vf" -map 0:v -map 1 \
     "${codec[@]}" "${SUB_TRACK[@]}" \
@@ -375,13 +377,9 @@ join_month() { # cam
     log "$cam $PERIOD: already joined, skipping"
     return 0
   }
-  # This video is final: nothing rebuilds a joined month, so its holes can never
-  # be filled in afterwards. Only a caller that has just reconciled the month
-  # with the other host may ask for it.
-  [ "$RECONCILED" = 1 ] || {
-    log "$cam $PERIOD: not joining, --reconciled not given (merge from the other host first)"
-    return 0
-  }
+  # This video is final: nothing rebuilds a joined month. Every one of its days
+  # being a video is the whole of the gate, because a day is only encoded after
+  # its month has been merged from the other host.
   for day in "${days[@]}"; do
     [ -e "$DAYS/$cam-$day.mkv" ] || {
       log "$cam $PERIOD: not joining, $day is not encoded yet"
