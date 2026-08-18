@@ -146,7 +146,7 @@ in
           # threads either way, so the bound has to come from the cgroup. A cpuset
           # caps how much of the machine it can take without CPUQuota throttling
           # every thread each period. Sized for fwminex (8 cores/16 threads).
-          AllowedCPUs = "0-3";
+          AllowedCPUs = "0-7";
           # Measured peak is 7.8G for a day of 5376x1520 at these four cores, so
           # this is headroom, not a target. Being killed costs one night: the run
           # is idempotent and the next one resumes from the files on disk, and the
