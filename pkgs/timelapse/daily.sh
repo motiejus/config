@@ -104,6 +104,8 @@ while [[ "$m" < "$this_month" ]]; do
   m=$(next_month "$m")
 done
 
+# The current month is merged and the days of it that have ended encoded, and
+# never joined: a month video is final, and this month is not over.
 timelapse-merger --missing-from="$MERGE_FROM" "$this_month" ||
   die "$this_month: nothing merged, so nothing of it can be encoded"
 mapfile -t ended < <(ended_days "$this_month")
