@@ -1,21 +1,19 @@
-# timelapse-merger: fill real gaps in the local timelapse tree from a remote one.
+# timelapse-merger: fill this host's empty slots from a remote timelapse tree.
 #
-# Only photos that land inside a genuine outage are copied. A minute or two of
-# drift between two hosts is not worth a file, and a photo for a minute already
-# covered locally is worse than useless: the video keeps one frame per slot, so
-# it would cross the network only to be ignored.
+# The video keeps one frame per 5-minute slot, so exactly one photo per slot is
+# worth having and a second is worth nothing. That makes the rule simple: copy
+# one photo for every slot this host has no photo for, and nothing else. Which
+# host captures more often stops mattering, and so does clock drift between them.
 
-MIN_GAP=10 # minutes; shorter holes make no visible difference in the video
 SSH_KEY=/run/agenix/timelapse-merger-key
 
 usage() {
   cat <<'EOF'
 Usage: timelapse-merger --missing-from=[USER@]HOST YYYY-MM[-DD]
 
-Copy photos from a remote timelapse tree into /var/lib/timelapse-r11, but only
-where the local tree is missing more than 10 minutes in a row, and only for
-minutes the local tree does not already cover. Existing local files are never
-touched.
+Copy photos from a remote timelapse tree into /var/lib/timelapse-r11, one for
+every 5-minute slot this host has no photo for, and none for a slot it already
+covers. Existing local files are never touched.
 
 The remote is reached with /run/agenix/timelapse-merger-key, so this runs as
 the timelapse-r11 user, the same one that owns the photos and takes them.
@@ -56,8 +54,7 @@ case "$REMOTE" in
 *[\'\"\\\ /:]*) die "--missing-from takes [USER@]HOST only, no path" ;;
 esac
 
-export TZ=UTC
-parse_period
+parse_period # for the format check; this tool needs no date arithmetic
 [ -r "$SSH_KEY" ] || die "cannot read $SSH_KEY (run as the timelapse-r11 user)"
 find_cameras
 
@@ -65,15 +62,24 @@ ssh_cmd=(ssh -i "$SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes)
 total=0
 
 for cam in "${cameras[@]}"; do
+  # A joined month is final, and fetching a photo for it only makes the reaper
+  # refuse that month forever. Coverage is judged per month across all cameras,
+  # so one camera can still be waiting while this one is already done.
+  month=$PERIOD
+  [ "$PERIOD_MODE" = month ] || month=${PERIOD%-*}
+  [ ! -e "$OUT/$cam-$month.mkv" ] || {
+    log "$cam $PERIOD: $month is already a single video, nothing to backfill"
+    continue
+  }
+
+  declare -A have=() take=()
   local_list="$tmp/local"
   remote_list="$tmp/remote"
   sel_list="$tmp/select"
 
   # Photos are named after their own date, so the period doubles as a filename
   # prefix: 2026-07 matches 2026-07*.jpg, 2026-07-03 matches 2026-07-03*.jpg.
-  find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f \
-    -name "$PERIOD*.jpg" -size "+$((MIN_BYTES - 1))c" -printf '%f\n' |
-    sort >"$local_list"
+  photos_in "$cam" "$PERIOD" -printf '%f\n' | sort >"$local_list"
 
   # rsync is the only thing this key may run on the far end, so the listing
   # comes from rsync too. --list-only prints the long format, reduced here to
@@ -87,39 +93,36 @@ for cam in "${cameras[@]}"; do
   while read -r perms size _ _ name; do
     [ "${perms:0:1}" = - ] || continue         # directories
     [ "${size//,/}" -ge "$MIN_BYTES" ] || continue
-    echo "${name##*/}"
+    echo "$name"
   done <"$tmp/listing" | sort >"$remote_list"
 
-  gawk -v start="$START" -v end="$END" -v mingap="$((MIN_GAP * 60))" -v cam="$cam" '
-    function ts(fn) {
-      return mktime(substr(fn, 1, 4) " " substr(fn, 6, 2) " " substr(fn, 9, 2) " " \
-                    substr(fn, 12, 2) " " substr(fn, 15, 2) " " substr(fn, 18, 2))
+  # The slots this host already has a photo for. A slot is a day plus its index
+  # within that day, which needs no date arithmetic at all.
+  while read -r name; do
+    set_slot "$name"
+    have["${name:0:10}_$slot"]=1
+  done <"$local_list"
+
+  # One remote photo per slot still empty. The list is sorted, and a photo's name
+  # is its timestamp, so the first one seen for a slot is the earliest — the same
+  # one the videomaker would pick.
+  : >"$sel_list"
+  while read -r rel; do
+    name=${rel##*/}
+    # shellcheck disable=SC2053 # the far end's names are untrusted; globbing is the point
+    [[ $name == $PHOTO_GLOB ]] || continue
+    # A photo the far end filed under the wrong day would be asked for by a path
+    # that does not exist there, and rsync failing takes the whole run with it.
+    [ "${rel%/*}" = "${name:0:10}" ] || {
+      log "$cam: $rel is not in the day its own name gives, skipping"
+      continue
     }
-    # Pass 1: local coverage, as a timeline and as a set of covered minutes.
-    ARGIND == 1 {
-      t = ts($0)
-      if (t >= start && t < end) { local_ts[++n] = t; covered[int(t / 60)] = 1 }
-      next
-    }
-    # Pass 2 starts: turn local coverage into the gaps worth filling. A photo
-    # exactly at the period start belongs to the leading gap, hence start - 1.
-    ARGIND == 2 && FNR == 1 {
-      prev = start - 1
-      for (i = 1; i <= n; i++) {
-        if (local_ts[i] - prev > mingap) { lo[++g] = prev; hi[g] = local_ts[i] }
-        prev = local_ts[i]
-      }
-      if (end - prev > mingap) { lo[++g] = prev; hi[g] = end }
-    }
-    ARGIND == 2 {
-      t = ts($0)
-      if (t < start || t >= end) next
-      # One frame per slot: a minute already covered locally cannot use another.
-      if (int(t / 60) in covered) next
-      for (i = 1; i <= g; i++)
-        if (t > lo[i] && t < hi[i]) { print cam "/" substr($0, 1, 10) "/" $0; break }
-    }
-  ' "$local_list" "$remote_list" >"$sel_list"
+    set_slot "$name"
+    key="${name:0:10}_$slot"
+    [ -z "${have[$key]:-}" ] && [ -z "${take[$key]:-}" ] || continue
+    take[$key]=1
+    printf '%s/%s\n' "$cam" "$rel" >>"$sel_list"
+  done <"$remote_list"
 
   n_sel=$(wc -l <"$sel_list")
   log "$cam $PERIOD: local=$(wc -l <"$local_list") remote=$(wc -l <"$remote_list") to-copy=$n_sel"

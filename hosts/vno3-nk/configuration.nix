@@ -135,10 +135,10 @@ in
                     backup_at = "*-*-* 01:00:01 UTC";
                   }
                   {
-                    # The finished timelapse videos are the only copy once
-                    # timelapse-reap deletes the stills, and nothing else on
-                    # this host backs up /var/lib. Snapshotted through / rather
-                    # than /var/lib, which is not a subvolume here.
+                    # fwminex builds the videos now; this keeps whatever this
+                    # host holds. Retention is the module default, so anything
+                    # older than four weeks goes. Snapshotted through / rather
+                    # than /var/lib, not a subvolume here.
                     subvolume = "/";
                     repo = "${prefix}-timelapse";
                     paths = [ "var/lib/timelapse-r11/videos" ];

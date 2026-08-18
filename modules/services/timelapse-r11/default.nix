@@ -142,6 +142,16 @@ in
           TimeoutStartSec = "infinity";
           Nice = 19;
           IOSchedulingClass = "idle";
+          # Neither -threads nor svt's lp bounds the encoder: it starts ~127
+          # threads either way, so the bound has to come from the cgroup. A cpuset
+          # caps how much of the machine it can take without CPUQuota throttling
+          # every thread each period. Sized for fwminex (8 cores/16 threads).
+          AllowedCPUs = "0-3";
+          # Measured peak is 7.8G for a day of 5376x1520 at these four cores, so
+          # this is headroom, not a target. Being killed costs one night: the run
+          # is idempotent and the next one resumes from the files on disk, and the
+          # failure is mailed instead of being absorbed by everything else here.
+          MemoryMax = "10G";
 
           # AF_UNIX on top of the capture unit's set: resolving the other host's
           # name goes through a local socket before any packet is sent.

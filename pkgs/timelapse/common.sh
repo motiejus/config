@@ -7,6 +7,7 @@ OUT=$ROOT/videos
 DAYS=$OUT/days
 SLOT_MINUTES=5
 SLOTS_PER_DAY=288 # 1440 / SLOT_MINUTES
+MANIFEST_ROW=31   # bytes per manifest line: "NNNN S " + 23-char name + newline
 MIN_BYTES=1024    # a failed capture leaves a 0-byte file; anything this small is not a photo
 
 # A photo's name is its timestamp, and a slot is read straight out of fixed
@@ -14,8 +15,8 @@ MIN_BYTES=1024    # a failed capture leaves a 0-byte file; anything this small i
 # to sit there. Recovery copies prefixed "local-" exist in this tree.
 PHOTO_GLOB='[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9].jpg'
 
-# Every timestamp handled here is UTC. Only the clock burnt into a missing frame
-# is local, and that conversion happens inside ffmpeg.
+# Every timestamp handled here is UTC. Only the gap captions of a month video
+# read local time.
 export TZ=UTC
 
 die() {
@@ -109,16 +110,38 @@ joined() { # month
 # because it is called once per photo, and a subshell per photo is not free.
 set_slot() { slot=$(((10#${1:11:2} * 60 + 10#${1:14:2}) / SLOT_MINUTES)); }
 
+# The manifest a video carries, written to $2, false when it carries none.
+# -dump_attachment writes the file and then exits non-zero for want of an output
+# file, so the file is what there is to test.
+manifest_of() { # video out
+  rm -f "$2"
+  ffmpeg -v error -y -dump_attachment:t:0 "$2" -i "$1" 2>/dev/null || true
+  [ -s "$2" ]
+}
+
+# The slots a manifest holds a photograph for, numbered the way slots_on_disk
+# numbers them and sorted the same plain way, which is what comm needs of both.
+# Prints nothing when the whole period is missing, which is not an error.
+photo_slots() { # manifest
+  awk '$2 == "P" { print $1 + 0 }' "$1" | sort
+}
+
 # The slots of $PERIOD that have a photo on disk, ascending. Slots are numbered
-# from the start of the period, so each day contributes its own 288. Sorted as
-# text, which is what comm needs from both of its inputs.
+# from the start of the period, so each day contributes its own 288. Which day a
+# photo belongs to is read from its name, not from the directory it sits in, so
+# this asks exactly the question the deletion answers: a photograph filed under
+# another day is judged in the period that will delete it. Sorted as text, which
+# is what comm needs from both of its inputs.
 slots_on_disk() { # cam
-  local day f i=0
-  for day in "${days[@]}"; do
-    while read -r f; do
-      set_slot "$f"
-      echo $((i * SLOTS_PER_DAY + slot))
-    done < <(list_photos "$ROOT/$1/$day")
-    i=$((i + 1))
-  done | sort -u
+  local f day i=0
+  local -A day_index=()
+  for day in "${days[@]}"; do day_index[$day]=$((i++)); done
+  while read -r f; do
+    day=${f:0:10}
+    [ -n "${day_index[$day]:-}" ] ||
+      die "$1 $PERIOD: $f is named for $day, which is not a day of $PERIOD"
+    set_slot "$f"
+    echo $((day_index[$day] * SLOTS_PER_DAY + slot))
+  done < <(photos_in "$1" "$PERIOD" -printf '%f\n') >"$tmp/disk-slots"
+  sort -u "$tmp/disk-slots"
 }

@@ -53,7 +53,7 @@ let
     runtimeEnv = {
       TIMELAPSE_FONT = "${dejavu_fonts.minimal}/share/fonts/truetype/DejaVuSans.ttf";
       # Without this glibc reads "Europe/Vilnius" as a bare POSIX zone name with
-      # no offset, and the red clock silently comes out in UTC labelled "Europe".
+      # no offset, and every gap caption silently comes out in UTC.
       TZDIR = "${tzdata}/share/zoneinfo";
     };
     inputs = [
@@ -61,7 +61,6 @@ let
       ffmpeg-headless
       findutils
       gawk
-      gnugrep
     ];
   };
   merger = mkTool {
@@ -70,7 +69,6 @@ let
     inputs = [
       coreutils
       findutils
-      gawk
       gnugrep
       openssh
       rsync

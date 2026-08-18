@@ -26,8 +26,8 @@ its video is left alone.
 
 For each camera, from scratch:
 
-  * the video and its .frames.tsv exist and agree on length
-  * every frame of the video decodes
+  * the video carries its own frame manifest
+  * the video holds one frame per manifest row, and reads without error
   * a sample of frames still looks like the photo the manifest names
   * every 5-minute slot with photos on disk is a "photo" slot in the manifest,
     so nothing that arrived after the encode is thrown away
@@ -80,14 +80,13 @@ due_months() {
 }
 
 reap_camera() { # cam
-  local cam="$1" video manifest n_photos strays decoded missed kept
+  local cam="$1" video manifest n_photos strays packets missed kept deleted
 
+  manifest="$tmp/manifest" # filled from the video itself, below
   if [ "$PERIOD_MODE" = month ]; then
     video="$OUT/$cam-$PERIOD.mkv"
-    manifest="$OUT/$cam-$PERIOD.frames.tsv"
   else
     video="$DAYS/$cam-$PERIOD.mkv"
-    manifest="$DAYS/$cam-$PERIOD.tsv"
   fi
 
   n_photos=$(photos_in "$cam" "$PERIOD" | wc -l)
@@ -96,37 +95,45 @@ reap_camera() { # cam
     return 0
   }
   # Anything named otherwise is not a photograph to these tools, so it is neither
-  # in the video nor ever deleted. Say so: on 2025-04-06 that is 1343 real
-  # pictures per camera, and a silent write-off is how they would be lost.
+  # in the video nor ever deleted. Say so out loud: a silent write-off is how real
+  # pictures would be lost.
   strays=$(find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f -name "*.jpg" \
     ! -name "$PHOTO_GLOB" -path "*/$PERIOD*" | wc -l)
   [ "$strays" -eq 0 ] ||
     log "$cam $PERIOD: $strays files are not named as timestamps, so they are in no video; rename them to keep them"
 
   [ -f "$video" ] || die "$cam $PERIOD: $video does not exist; make the video first"
-  [ -f "$manifest" ] || die "$cam $PERIOD: $manifest does not exist"
-  [ "$(grep -vc '^#' "$manifest")" -eq "$NSLOTS" ] ||
-    die "$cam $PERIOD: manifest is not $NSLOTS rows"
 
-  log "$cam $PERIOD: decoding every frame of $(basename "$video")"
-  decoded=$(ffprobe -v error -count_frames -select_streams v:0 \
-    -show_entries stream=nb_read_frames -of csv=p=0 "$video")
-  [ "$decoded" = "$NSLOTS" ] || die "$cam $PERIOD: only $decoded of $NSLOTS frames decode"
-  ffmpeg -v error -xerror -i "$video" -f null - ||
-    die "$cam $PERIOD: the video does not decode cleanly"
+  # Everything below is judged against the manifest the video carries, which is
+  # the only copy of it there is.
+  manifest_of "$video" "$manifest" ||
+    die "$cam $PERIOD: $(basename "$video") carries no manifest of its own"
+  [ "$(stat -c %s "$manifest")" -eq "$((NSLOTS * MANIFEST_ROW))" ] ||
+    die "$cam $PERIOD: the manifest in the video is not $NSLOTS fixed-width rows"
+  # And it has to be this period's manifest: nothing else here ties the two
+  # together, so a video that was renamed or restored into the wrong place would
+  # otherwise verify against its own photographs and delete somebody else's.
+  [ "$(awk -v p="$PERIOD" \
+    '$2 == "P" && substr($3, 1, length(p)) != p' "$manifest" | wc -l)" -eq 0 ] ||
+    die "$cam $PERIOD: the manifest in the video is for a different period"
+
+  # Demuxing every packet both counts the frames and reads the whole file, so
+  # btrfs checksums each extent on the way past: a decode of every frame costs
+  # minutes per month and catches nothing this does not.
+  packets=$(ffprobe -v error -count_packets -select_streams v:0 \
+    -show_entries stream=nb_read_packets -of csv=p=0 "$video")
+  [ "$packets" = "$NSLOTS" ] || die "$cam $PERIOD: $packets frames, expected $NSLOTS"
 
   # Every slot with a photo on disk must be a photo slot in the video. This is
   # what catches a video encoded before the stills were complete, e.g. before
   # timelapse-merger backfilled an outage from the other host.
-  # comm compares as text, so both sides sort the same plain way. The grep
-  # matches nothing when the whole period is missing, which is not an error.
-  { grep -P '\tphoto\t' "$manifest" || true; } | cut -f1 | sort >"$tmp/invideo"
+  photo_slots "$manifest" >"$tmp/invideo"
   slots_on_disk "$cam" >"$tmp/ondisk"
   missed=$(comm -13 "$tmp/invideo" "$tmp/ondisk" | wc -l)
   [ "$missed" -eq 0 ] ||
     die "$cam $PERIOD: $missed slots have photos on disk that the video does not use.
   Photos arrived after it was made, most likely from timelapse-merger. Delete
-  $video and its .frames.tsv, then run timelapse-daily to build it again."
+  $video, then run timelapse-daily to build it again."
 
   verify_pixels "$video" "$manifest" "$cam"
 
@@ -136,12 +143,17 @@ reap_camera() { # cam
     log "$cam $PERIOD: dry run, deleting nothing"
     return 0
   }
-  photos_in "$cam" "$PERIOD" -delete
+  # One pass takes the failed captures too: they are photographs to nobody, so
+  # nothing else would remove them, and one keeps its day directory alive for good.
+  deleted=$(find "$ROOT/$cam" -mindepth 2 -maxdepth 2 -type f \
+    -name "$PERIOD*" -name "$PHOTO_GLOB" -printf . -delete | wc -c)
+  # Work files from an encode that was killed between writing and renaming.
+  rm -f "$DAYS/.$cam-$PERIOD"*.part.mkv "$OUT/.$cam-$PERIOD"*.part.mkv
   # Only this period's day directories: an empty one elsewhere in the tree may
   # be today's, made seconds ago by the capture unit and still waiting for its
   # first photo.
   find "$ROOT/$cam" -mindepth 1 -maxdepth 1 -type d -name "$PERIOD*" -empty -delete
-  log "$cam $PERIOD: deleted $n_photos stills"
+  log "$cam $PERIOD: deleted $deleted files, $n_photos of them photographs"
 }
 
 periods=("$PERIOD")
