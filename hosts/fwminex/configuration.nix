@@ -482,53 +482,42 @@ in
           enable = true;
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
-          dirs = [
-            {
-              subvolume = "/var/lib";
-              repo = "${vno3-nk}:${this}-var_lib_lesser";
-              paths = [
-                "prometheus2"
-                "timelapse-r11"
-              ];
-              backup_at = "*-*-* 02:01:00 UTC";
-              compression = "none";
-            }
-          ]
-          ++ (builtins.concatMap
-            (host: [
-              {
-                subvolume = "/var/lib";
-                repo = "${host}:${this}-var_lib";
-                paths = [
-                  "hass"
-                  "git"
-                  "caddy"
-                  "grafana"
-                  "bitwarden_rs"
-                  "matrix-synapse"
-                  "private/soju"
-                  "rita.jakstys.lt"
+          dirs =
+            builtins.concatMap
+              (host: [
+                {
+                  subvolume = "/var/lib";
+                  repo = "${host}:${this}-var_lib";
+                  paths = [
+                    "hass"
+                    "git"
+                    "caddy"
+                    "grafana"
+                    "prometheus2"
+                    "bitwarden_rs"
+                    "matrix-synapse"
+                    "private/soju"
+                    "rita.jakstys.lt"
 
-                  # https://immich.app/docs/administration/backup-and-restore/
-                  "immich/library"
-                  "immich/upload"
-                  "immich/profile"
-                  "postgresql"
-                ];
-                backup_at = "*-*-* 01:00:01 UTC";
-              }
-              {
-                subvolume = "/home";
-                repo = "${host}:${this}-home-motiejus-annex2";
-                paths = [ "motiejus/annex2" ];
-                backup_at = "*-*-* 02:30:01 UTC";
-              }
-            ])
-            [
-              rsync-net
-              vno3-nk
-            ]
-          );
+                    # https://immich.app/docs/administration/backup-and-restore/
+                    "immich/library"
+                    "immich/upload"
+                    "immich/profile"
+                    "postgresql"
+                  ];
+                  backup_at = "*-*-* 01:00:01 UTC";
+                }
+                {
+                  subvolume = "/home";
+                  repo = "${host}:${this}-home-motiejus-annex2";
+                  paths = [ "motiejus/annex2" ];
+                  backup_at = "*-*-* 02:30:01 UTC";
+                }
+              ])
+              [
+                rsync-net
+                vno3-nk
+              ];
 
         };
 
