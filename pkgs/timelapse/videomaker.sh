@@ -37,7 +37,6 @@
 
 # Frozen by measurement. The day-level frame check below counts packets, which
 # equals decoded frames for these settings; re-check that if they ever change.
-QINDEX=121 # av1_vaapi CQP index, one value for both cameras
 FPS=24
 DUR=0.041666667      # one frame at 24 fps, written out because FPS is not a knob
 # Half an hour of gap is held rather than marked: a flash reads worse than a stale
@@ -45,7 +44,25 @@ DUR=0.041666667      # one frame at 24 fps, written out because FPS is not a kno
 HOLD=6               # missing slots one photograph may stand in for
 LOCAL_TZ=Europe/Vilnius # the gap captions read local time
 
-ENCODED_AS="av1_vaapi cqp qindex=$QINDEX all-intra 10-bit"
+# The one switch, and everything it touches. software is the archive ladder:
+# smaller and better, minutes a day. hardware is av1_vaapi on the render node,
+# for bulk backfill: seconds a day, ~40% bigger at matched quality, and all
+# intra because an inter-predicted frame after a dimmed one scores 0.81, under
+# timelapse-reap's floor. The driver silently ignores -qp and refuses ICQ,
+# QVBR, -compression_level, -tiles and B-frames. Measured 2026-08, Radeon 780M:
+# 119 MB and ~4 min a day against 170 MB and 4 s.
+ENCODER=software
+if [ "$ENCODER" = software ]; then
+  ENCODED_AS="svt-av1 crf=35 preset=2 10-bit"
+  CODEC=(-c:v libsvtav1 -preset 2 -crf 35 -pix_fmt yuv420p10le -g $((FPS * 10)))
+  VF_TAIL="format=yuv420p10le"
+  DEVICE=()
+else
+  ENCODED_AS="av1_vaapi cqp qindex=121 all-intra 10-bit"
+  CODEC=(-c:v av1_vaapi -rc_mode CQP -global_quality 121 -g 1)
+  VF_TAIL="format=p010,hwupload" # the filters stay on CPU frames; only the upload moves
+  DEVICE=(-vaapi_device /dev/dri/renderD128)
+fi
 
 # The subtitle track, the same in a day video and in a month. Default, because a
 # viewer should not have to go looking for it, and copied rather than encoded: only
@@ -110,8 +127,9 @@ find_cameras
 
 # Width, height and pixel format of a photo. The black filler has to match all
 # three, and so does every photograph of a day: a change mid-concat reinitialises
-# the filter graph, which cannot be done with a hardware upload in it, and the
-# encode fails. Cameras do not all encode their JPEGs the same way, so read it.
+# the filter graph -- with a hardware upload in it that fails outright, and in
+# software cfr drops a frame, which the frame count below catches. Cameras do
+# not all encode their JPEGs the same way, so read it.
 geometry() {
   ffprobe -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt -of csv=s=,:p=0 "$1"
 }
@@ -266,22 +284,7 @@ encode_day() { # cam day
     # missing, so the photographs themselves are untouched.
     vf="hue=s=0:enable=$enable,eq=brightness=-0.25:contrast=0.85:enable=$enable,"
   fi
-  # Measured on this footage and this silicon (Radeon 780M): 170 MB a day against
-  # 119 for svt-av1, every sampled frame scoring 0.989 or better against its own
-  # photograph, in four seconds instead of minutes. -g 1 is not a knob: an
-  # inter-predicted frame following a dimmed one scores 0.81, under the floor
-  # timelapse-reap holds videos to. The driver silently ignores -qp and refuses
-  # ICQ, QVBR, -compression_level, -tiles and B-frames.
-  local -a codec=(-c:v av1_vaapi -rc_mode CQP -global_quality "$QINDEX" -g 1)
-  # The CPU ladder, kept for the day this process is proven and the encoder moves
-  # back off the GPU. Restoring it also means the vf tail below going back to
-  # format=yuv420p10le and -vaapi_device dropped from the ffmpeg call:
-  # local CRF=35 PRESET=2
-  # local -a codec=(-c:v libsvtav1 -preset "$PRESET" -crf "$CRF"
-  #   -pix_fmt yuv420p10le -g $((FPS * 10)))
-  # The filters run on CPU frames -- the dimming timelapse-reap's pixel check
-  # reads is drawn there -- and only the upload to the encoder comes after them.
-  vf="${vf}format=p010,hwupload"
+  vf="${vf}${VF_TAIL}"
 
   write_cues "$manifest" "$tmp/cues.ass" "$w" "$h"
 
@@ -290,13 +293,11 @@ encode_day() { # cam day
   work="$DAYS/.$cam-$day.$$.part.mkv"
   log "$cam $day: encoding into $SLOTS_PER_DAY frames"
   # Every input before any output option: one written after an -i is read as an
-  # input option for that input instead. The render node is named rather than
-  # guessed, because ffmpeg picks no VAAPI device on its own.
-  ffmpeg -hide_banner -loglevel warning "${progress[@]}" -y \
-    -vaapi_device /dev/dri/renderD128 \
+  # input option for that input instead.
+  ffmpeg -hide_banner -loglevel warning "${progress[@]}" -y "${DEVICE[@]}" \
     -f concat -safe 0 -i "$concat" -i "$tmp/cues.ass" \
     -r "$FPS" -fps_mode cfr -vf "$vf" -map 0:v -map 1 \
-    "${codec[@]}" "${SUB_TRACK[@]}" \
+    "${CODEC[@]}" "${SUB_TRACK[@]}" \
     -attach "$manifest" -metadata:s:t:0 mimetype=text/plain \
     -metadata:s:t:0 filename="$cam-$day.frames.tsv" -metadata "title=$cam $day" \
     "$work" || {
@@ -332,17 +333,15 @@ ass_time() { # frame
 # and past a day 5d or 5d 5h, where minutes are noise beside days. In $gap.
 # Assigns for the same reason ass_time does.
 gap_length() { # minutes
+  # Fixed width within each regime, zeroes and all: the caption counts up in
+  # place, and a field that narrows on round numbers makes the text wander.
   local h=$(($1 / 60)) d=$(($1 / 1440))
   if [ "$1" -lt 60 ]; then
-    printf -v gap '%dm' "$1"
-  elif [ "$1" -lt 1440 ] && [ $(($1 % 60)) -eq 0 ]; then
-    printf -v gap '%dh' "$h"
+    printf -v gap '%02dm' "$1"
   elif [ "$1" -lt 1440 ]; then
-    printf -v gap '%dh %dm' "$h" $(($1 % 60))
-  elif [ $((h % 24)) -eq 0 ]; then
-    printf -v gap '%dd' "$d"
+    printf -v gap '%02dh %02dm' "$h" $(($1 % 60))
   else
-    printf -v gap '%dd %dh' "$d" $((h % 24))
+    printf -v gap '%dd %02dh' "$d" $((h % 24))
   fi
 }
 
