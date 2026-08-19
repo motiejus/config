@@ -367,7 +367,7 @@ gap_length() { # minutes
 # also what lets the outage count up instead of stating a total, which is what a
 # gap being watched rather than read wants.
 write_cues() { # manifest out width height
-  local frame start end ass gap since ri=0 rfirst=-1 rlast=-1 rheld=""
+  local frame start end ass gap since epoch ri=0 rfirst=-1 rlast=-1 rheld=""
   local rsince=0 rlocal="" rday=""
   local -a runs=() badges=()
   cat >"$2" <<EOF
@@ -420,15 +420,17 @@ EOF
         ri=$((ri + 1))
         rsince=$((START + rfirst * SLOT_MINUTES * 60))
         [ -z "$rheld" ] || { photo_epoch "$rheld"; rsince=$epoch; }
-        rlocal=$(TZ=$LOCAL_TZ date -d "@$rsince" +'%H:%M %Z')
-        rday=$(TZ=$LOCAL_TZ date -d "@$rsince" +%m-%d)
+        # One spawn for both faces, and rday takes the badge's own shape, so the
+        # comparison below cannot rot if the badge format ever changes.
+        IFS=';' read -r rday rlocal < \
+          <(LC_ALL=C TZ=$LOCAL_TZ date -d "@$rsince" +'%a %F;%H:%M %Z')
       done
       ((frame >= rfirst && frame <= rlast)) || continue
       # A bare time is read as today's, so one from another day says which. The
       # comparison is per frame: a gap that runs over midnight is bare while it is
       # still the same day and dated from there on.
       since=$rlocal
-      [ "$rday" = "${badges[frame]:9:5}" ] || since="$rday $rlocal"
+      [ "$rday" = "${badges[frame]}" ] || since="${rday:9:5} $rlocal"
       # To the nearest minute: a camera that fires two seconds into its slot would
       # otherwise read a minute short of the truth.
       gap_length $(((START + frame * SLOT_MINUTES * 60 - rsince + 30) / 60))
