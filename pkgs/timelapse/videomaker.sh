@@ -17,6 +17,9 @@
 # sits in are subtitles instead -- one event per frame, because a player that seeks
 # past the start of an event is never sent it.
 #
+# Every time and date a viewer reads is local, LOCAL_TZ. UTC is for the machinery:
+# the slots, the manifest, the chapter arithmetic, the provenance metadata.
+#
 # Both the encoder's input list and the frame ranges the greying filter is
 # switched on for are derived from the manifest, so the picture cannot disagree
 # with it. That is a mistake this code has made before, back when the two were
@@ -364,9 +367,9 @@ gap_length() { # minutes
 # also what lets the outage count up instead of stating a total, which is what a
 # gap being watched rather than read wants.
 write_cues() { # manifest out width height
-  local i frame start end ass gap since ri=0 rfirst=-1 rlast=-1 rheld=""
+  local frame start end ass gap since ri=0 rfirst=-1 rlast=-1 rheld=""
   local rsince=0 rlocal="" rday=""
-  local -a texts=() runs=() localdays=()
+  local -a runs=() badges=()
   cat >"$2" <<EOF
 [Script Info]
 ScriptType: v4.00+
@@ -381,18 +384,18 @@ Style: Outage,DejaVu Sans,$(($4 / 18)),&H000000FF,&H000000FF,&H00000000,&H800000
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 EOF
-  for ((i = 0; i < ${#days[@]}; i++)); do
-    texts[i]=$(LC_ALL=C date -u -d "${days[i]}" +'%a %F')
-  done
-  # Still the runs of missing frames, so the filter that greys them and the
-  # subtitles that name them cannot disagree about when an outage began.
+  # The runs of missing frames, so the filter that greys them and the subtitles
+  # that name them cannot disagree about when an outage began.
   mapfile -t runs < <(missing_runs <"$1")
-  # The local date of every frame, to say when a caption is not talking about the
-  # day being watched. One call: date reads a list of instants on stdin, and a
-  # subshell per frame would cost more than the encode does.
-  mapfile -t localdays < <(for ((frame = 0; frame < NSLOTS; frame++)); do
+  # The badge of every frame: the day it belongs to where the camera stands, which
+  # is what somebody reading it means by today. A day video is still a UTC day and
+  # so are its chapters -- only this line is for a human -- so the badge turns over
+  # part way through, at local midnight, and the captions below agree with it.
+  # One call: date reads a list of instants on stdin, and a subshell per frame
+  # would cost more than the encode does.
+  mapfile -t badges < <(for ((frame = 0; frame < NSLOTS; frame++)); do
     echo "@$((START + frame * SLOT_MINUTES * 60))"
-  done | TZ=$LOCAL_TZ date -f - +%m-%d)
+  done | LC_ALL=C TZ=$LOCAL_TZ date -f - +'%a %F')
   # In timestamp order, which is what muxing them demands, and one open file.
   {
     ass_time 0
@@ -404,7 +407,7 @@ EOF
       ass_time "$((frame + 1))"
       end=$ass
       printf 'Dialogue: 0,%s,%s,Date,,0,0,0,,%s\n' \
-        "$start" "$end" "${texts[frame / SLOTS_PER_DAY]}"
+        "$start" "$end" "${badges[frame]}"
 
       # The outage banner, all of it: which run this frame falls in, when the
       # camera last managed a photograph, and how long ago that is by this frame.
@@ -425,7 +428,7 @@ EOF
       # comparison is per frame: a gap that runs over midnight is bare while it is
       # still the same day and dated from there on.
       since=$rlocal
-      [ "$rday" = "${localdays[frame]}" ] || since="$rday $rlocal"
+      [ "$rday" = "${badges[frame]:9:5}" ] || since="$rday $rlocal"
       # To the nearest minute: a camera that fires two seconds into its slot would
       # otherwise read a minute short of the truth.
       gap_length $(((START + frame * SLOT_MINUTES * 60 - rsince + 30) / 60))
@@ -437,6 +440,12 @@ EOF
 
 # A chapter per day, for a month only: a chapter over a whole 12-second day video
 # would be no navigation at all.
+#
+# A viewer reads local dates, and this title is a UTC one -- which here is the same
+# thing. A chapter opens at 00:00 UTC of its day, which is 02:00 or 03:00 that same
+# morning in Vilnius at either offset, DST switch days included, so the UTC date it
+# names is the local date the chapter opens on. Nothing to convert; if the zone
+# ever moved west of UTC, this would have to be localised like the badge.
 write_chapters() { # chapters
   local i=0 day
   echo ';FFMETADATA1' >"$1"
@@ -510,7 +519,9 @@ join_month() { # cam
   write_chapters "$tmp/chapters.txt"
 
   # The video stream is copied through untouched; the subtitles and chapters ride
-  # beside it, and the manifest stays the first attachment, where readers look.
+  # beside it, and the manifest stays the first attachment, where readers look. The
+  # comment is provenance for whatever reads this file later, so it is in UTC and
+  # says so; everything a person reads off the picture is local.
   log "$cam $PERIOD: joining ${#days[@]} days"
   ffmpeg -hide_banner -loglevel warning -nostats -y \
     -f concat -safe 0 -i "$tmp/chunks" -i "$tmp/cues.ass" -i "$tmp/chapters.txt" \
