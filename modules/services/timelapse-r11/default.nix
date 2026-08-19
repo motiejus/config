@@ -161,6 +161,10 @@ in
           PrivateDevices = false;
           DeviceAllow = [ "/dev/dri/renderD128 rw" ];
           SupplementaryGroups = [ "render" ];
+          # Mesa opens a shader cache at startup even though VCN compiles no
+          # shaders; without a writable one it warns into the journal every night.
+          CacheDirectory = "timelapse-r11";
+          Environment = [ "XDG_CACHE_HOME=/var/cache/timelapse-r11" ];
 
           # AF_UNIX on top of the capture unit's set: resolving the other host's
           # name goes through a local socket before any packet is sent.
