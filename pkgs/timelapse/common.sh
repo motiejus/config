@@ -113,6 +113,9 @@ joined() { # month
 # because it is called once per photo, and a subshell per photo is not free.
 set_slot() { slot=$(((10#${1:11:2} * 60 + 10#${1:14:2}) / SLOT_MINUTES)); }
 
+# And $epoch to the instant that name gives, out of the same fixed positions.
+photo_epoch() { epoch=$(date -u -d "${1:0:10} ${1:11:2}:${1:14:2}:${1:17:2}" +%s); }
+
 # The manifest a video carries, written to $2, false when it carries none.
 # -dump_attachment writes the file and then exits non-zero for want of an output
 # file, so the file is what there is to test.

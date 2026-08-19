@@ -6,14 +6,16 @@
 # The timeline is wall-clock: frame N is 5-minute slot N of the period, always.
 # Where several photos fall in one slot the earliest wins; the rest are not in
 # the video. A photo stands in for up to HOLD slots of missing ones, beyond
-# which the picture is greyed out and captioned, so an outage looks like an
-# outage instead of a frozen camera. A day with no photos at all is a full day
-# of that treatment, greyed over the last picture the camera managed to take,
-# which may be days or months earlier.
+# which the picture is greyed out, so an outage looks like an outage instead of a
+# frozen camera. A day with no photos at all is a full day of that treatment,
+# greyed over the last picture the camera managed to take, which may be days or
+# months earlier.
 #
-# Nothing is ever drawn on the pixels of a real photograph: what the camera burnt
-# into it is all the picture says. Which day a frame belongs to and where the
-# camera was down are subtitle tracks, carried by every video this makes.
+# No text is ever drawn into the pixels: what the camera burnt into a photograph is
+# all the picture says, and the only mark this makes on an invented frame is the
+# greying, which timelapse-reap reads. The day a frame belongs to and the outage it
+# sits in are subtitles instead -- one event per frame, because a player that seeks
+# past the start of an event is never sent it.
 #
 # Both the encoder's input list and the frame ranges the greying filter is
 # switched on for are derived from the manifest, so the picture cannot disagree
@@ -60,14 +62,17 @@ attachment. Nothing about a video is kept outside it.
 
 One frame per 5 minutes of wall-clock time, so a day is 288 frames and one
 second of video is two hours. Missing stretches keep the pace: the last photo is
-held for up to 30 minutes, then greyed out and captioned NO DATA until the camera
-comes back. A day with no photos at all is greyed end to end over the last
-picture the camera took, whenever that was.
+held for up to 30 minutes, then greyed out until the camera comes back. A day with
+no photos at all is greyed end to end over the last picture the camera took,
+whenever that was. Nothing is written into the picture itself.
 
-Every video carries one subtitle track: the day a frame belongs to, in a corner,
-and a red banner naming every outage with its local start time and length. A
-month video also has a chapter per day. A joined month is read from the day videos
-alone, so each of them says everything about itself.
+Every video carries one subtitle track, with an event for every single frame: the
+day that frame belongs to, in a corner, and while the camera is down a red banner
+saying when it went and how long it has been down by then, counting up. Per frame
+because seeking is how these are watched, and a player is only sent the events
+that start after where it landed. A month video also has a chapter per day. A
+joined month is read from the day videos alone, so each of them says everything
+about itself.
 
 A finished video is never rebuilt. timelapse-daily merges a month from the other
 host before it encodes any of its days, so every photograph a day will ever have
@@ -174,25 +179,33 @@ manifest_to_concat() { # cam black < manifest
   done
 }
 
-# Every run of consecutive missing frames, as "first last": the filter that marks
-# them and the subtitles that name them cannot then disagree about an outage.
+# Every run of consecutive missing frames, as "first last source": the filter that
+# marks them and the subtitles that name them cannot then disagree about an outage.
+#
+# The source is the photograph those frames are standing in for, which every
+# missing row names, and it is when the data really stopped -- a run begins HOLD
+# slots after it, so the run's own first frame is half an hour of lie. Empty when
+# the camera had taken nothing at all yet.
 missing_runs() { # < manifest
-  local frame state start=-1 prev=-1
-  while read -r frame state _; do
+  local frame state name start=-1 prev=-1 held=""
+  while read -r frame state name; do
     if [ "$state" = M ]; then
-      [ "$start" -ge 0 ] || start=$((10#$frame))
+      [ "$start" -ge 0 ] || {
+        start=$((10#$frame))
+        held=$name
+      }
       prev=$((10#$frame))
     elif [ "$start" -ge 0 ]; then
-      echo "$start $prev"
+      echo "$start $prev $held"
       start=-1
     fi
   done
-  [ "$start" -lt 0 ] || echo "$start $prev"
+  [ "$start" -lt 0 ] || echo "$start $prev $held"
 }
 
 runs_to_enable() { # < missing_runs
   local first last out=""
-  while read -r first last; do out="$out+between(n\\,$first\\,$last)"; done
+  while read -r first last _; do out="$out+between(n\\,$first\\,$last)"; done
   echo "${out#+}"
 }
 
@@ -200,7 +213,7 @@ encode_day() { # cam day
   local cam="$1" day="$2"
   local video="$DAYS/$cam-$day.mkv"
   local manifest="$tmp/manifest" concat="$tmp/concat"
-  local seed seed_age=0 ref w h pix_fmt black vf enable work
+  local seed seed_age=0 epoch ref w h pix_fmt black vf enable work
 
   # A day video that exists is not made again here: its month was merged from the
   # other host before it was made, so every photograph it will ever have was
@@ -211,10 +224,10 @@ encode_day() { # cam day
   local day_epoch
   day_epoch=$(date -u -d "$day 00:00:00" +%s)
   seed=$(previous_photo "$cam" "$day")
-  [ -z "$seed" ] ||
-    seed_age=$(((day_epoch -
-      $(date -u -d "${seed:0:10} ${seed:11:2}:${seed:14:2}:${seed:17:2}" +%s) +
-      60 * SLOT_MINUTES - 1) / 60 / SLOT_MINUTES))
+  [ -z "$seed" ] || {
+    photo_epoch "$seed"
+    seed_age=$(((day_epoch - epoch + 60 * SLOT_MINUTES - 1) / 60 / SLOT_MINUTES))
+  }
 
   ref=$(list_photos "$ROOT/$cam/$day")
   if [ -n "$ref" ]; then
@@ -243,15 +256,12 @@ encode_day() { # cam day
 
   vf=""
   if [ -n "$enable" ]; then
-    # The dimming is what timelapse-reap's pixel check sees a wrongly marked
-    # frame by; the caption alone is invisible to it. Both run only over the
-    # frames the manifest calls missing, so static text is all that is needed.
-    vf="hue=s=0:enable=$enable,eq=brightness=-0.25:contrast=0.85:enable=$enable"
-    # Opaque box, not a translucent one: flat black behind bright red is cheap
-    # to code and survives this quantizer on a dimmed static frame.
-    vf="$vf,drawtext=fontfile=$TIMELAPSE_FONT:text='NO DATA':fontcolor=red"
-    vf="$vf:fontsize=h/18:box=1:boxcolor=black:boxborderw=18"
-    vf="$vf:x=(w-text_w)/2:y=h-text_h-40:enable=$enable,"
+    # The one mark on an invented frame, and not decoration: the greying is what
+    # timelapse-reap's pixel check sees a wrongly marked frame by. What the outage
+    # was is said by the subtitle, which no quantizer can smear and no viewer has
+    # to read out of the picture. Runs only over the frames the manifest calls
+    # missing, so the photographs themselves are untouched.
+    vf="hue=s=0:enable=$enable,eq=brightness=-0.25:contrast=0.85:enable=$enable,"
   fi
   # Measured on this footage and this silicon (Radeon 780M): 170 MB a day against
   # 119 for svt-av1, every sampled frame scoring 0.989 or better against its own
@@ -306,21 +316,30 @@ encode_day() { # cam day
   log "$cam $day: wrote $video ($(du -h "$video" | cut -f1))"
 }
 
-# Frame $1 as an ASS timestamp.
+# Frame $1 as an ASS timestamp, in $ass. Assigns rather than echoes, like
+# set_slot: there are two of these for every frame of every video, and a subshell
+# each would cost more than the encode.
 ass_time() { # frame
   local cs=$(($1 * 100 / FPS))
-  printf '%d:%02d:%02d.%02d' \
+  printf -v ass '%d:%02d:%02d.%02d' \
     $((cs / 360000)) $((cs / 6000 % 60)) $((cs / 100 % 60)) $((cs % 100))
 }
 
-# How long an outage lasted, in the units a reader wants: 45m, 2h, 2h 15m.
+# How long an outage has run by now, in the units a reader wants: 45m, 2h, 2h 15m,
+# and past a day 5d or 5d 5h, where minutes are noise beside days. In $gap.
+# Assigns for the same reason ass_time does.
 gap_length() { # minutes
+  local h=$(($1 / 60)) d=$(($1 / 1440))
   if [ "$1" -lt 60 ]; then
-    printf '%dm' "$1"
-  elif [ $(($1 % 60)) -eq 0 ]; then
-    printf '%dh' $(($1 / 60))
+    printf -v gap '%dm' "$1"
+  elif [ "$1" -lt 1440 ] && [ $(($1 % 60)) -eq 0 ]; then
+    printf -v gap '%dh' "$h"
+  elif [ "$1" -lt 1440 ]; then
+    printf -v gap '%dh %dm' "$h" $(($1 % 60))
+  elif [ $((h % 24)) -eq 0 ]; then
+    printf -v gap '%dd' "$d"
   else
-    printf '%dh %dm' $(($1 / 60)) $(($1 % 60))
+    printf -v gap '%dd %dh' "$d" $((h % 24))
   fi
 }
 
@@ -330,12 +349,24 @@ gap_length() { # minutes
 # are muxed into, and every video carries them -- a day video has to say
 # everything about itself, because it is all the join reads.
 #
-# The date sits bottom left, clear of the clock the camera burns into the top
-# right; an outage is red across the middle. The styles are in the frame's own
+# Both sit along the bottom, clear of the clock the camera burns into the top
+# right: the date far left, the outage red and centred, which at either camera's
+# width leaves the two of them a wide gap. Out of the middle of the picture, since
+# a dimmed frame is still worth watching. The styles are in the frame's own
 # coordinates so the text keeps its proportions, and the font is named rather than
 # embedded, since any player has something close to hand.
+#
+# One event per frame, both kinds. Matroska hands a subtitle event to the player as
+# a single packet at its start time, so a player that seeks past that point is
+# never sent it: a date event spanning a day left the date blank for anyone who
+# scrubbed into that day, and an outage event spanning a gap showed nothing until
+# the next gap began. A frame of dialogue means every seek lands inside one. It is
+# also what lets the outage count up instead of stating a total, which is what a
+# gap being watched rather than read wants.
 write_cues() { # manifest out width height
-  local i=0 day first last
+  local i frame start end ass gap since ri=0 rfirst=-1 rlast=-1 rheld=""
+  local rsince=0 rlocal="" rday=""
+  local -a texts=() runs=() localdays=()
   cat >"$2" <<EOF
 [Script Info]
 ScriptType: v4.00+
@@ -345,23 +376,63 @@ PlayResY: $4
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Date,DejaVu Sans,$(($4 / 24)),&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,1,20,20,20,1
-Style: Outage,DejaVu Sans,$(($4 / 12)),&H000000FF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,3,0,5,20,20,20,1
+Style: Outage,DejaVu Sans,$(($4 / 18)),&H000000FF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,3,0,2,20,20,20,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 EOF
-  for day in "${days[@]}"; do
-    printf 'Dialogue: 0,%s,%s,Date,,0,0,0,,%s\n' \
-      "$(ass_time $((i * SLOTS_PER_DAY)))" "$(ass_time $(((i + 1) * SLOTS_PER_DAY)))" \
-      "$(LC_ALL=C date -u -d "$day" +'%a %F')" >>"$2"
-    i=$((i + 1))
+  for ((i = 0; i < ${#days[@]}; i++)); do
+    texts[i]=$(LC_ALL=C date -u -d "${days[i]}" +'%a %F')
   done
-  while read -r first last; do
-    printf 'Dialogue: 0,%s,%s,Outage,,0,0,0,,no data since %s (%s)\n' \
-      "$(ass_time "$first")" "$(ass_time $((last + 1)))" \
-      "$(TZ=$LOCAL_TZ date -d "@$((START + first * SLOT_MINUTES * 60))" +'%H:%M %Z')" \
-      "$(gap_length $(((last - first + 1) * SLOT_MINUTES)))" >>"$2"
-  done < <(missing_runs <"$1")
+  # Still the runs of missing frames, so the filter that greys them and the
+  # subtitles that name them cannot disagree about when an outage began.
+  mapfile -t runs < <(missing_runs <"$1")
+  # The local date of every frame, to say when a caption is not talking about the
+  # day being watched. One call: date reads a list of instants on stdin, and a
+  # subshell per frame would cost more than the encode does.
+  mapfile -t localdays < <(for ((frame = 0; frame < NSLOTS; frame++)); do
+    echo "@$((START + frame * SLOT_MINUTES * 60))"
+  done | TZ=$LOCAL_TZ date -f - +%m-%d)
+  # In timestamp order, which is what muxing them demands, and one open file.
+  {
+    ass_time 0
+    end=$ass
+    for ((frame = 0; frame < NSLOTS; frame++)); do
+      # The end of one frame is the start of the next, so it is computed once. At
+      # the top of the loop, because the outage below leaves it by continue.
+      start=$end
+      ass_time "$((frame + 1))"
+      end=$ass
+      printf 'Dialogue: 0,%s,%s,Date,,0,0,0,,%s\n' \
+        "$start" "$end" "${texts[frame / SLOTS_PER_DAY]}"
+
+      # The outage banner, all of it: which run this frame falls in, when the
+      # camera last managed a photograph, and how long ago that is by this frame.
+      # The last photograph rather than the run's own start, because the held
+      # frames between them are that same picture and the data stopped when it was
+      # taken. It may be from another day, or from before the archive begins, in
+      # which case there is nothing to count from but the run itself.
+      while ((rlast < frame)) && ((ri < ${#runs[@]})); do
+        read -r rfirst rlast rheld <<<"${runs[ri]}"
+        ri=$((ri + 1))
+        rsince=$((START + rfirst * SLOT_MINUTES * 60))
+        [ -z "$rheld" ] || { photo_epoch "$rheld"; rsince=$epoch; }
+        rlocal=$(TZ=$LOCAL_TZ date -d "@$rsince" +'%H:%M %Z')
+        rday=$(TZ=$LOCAL_TZ date -d "@$rsince" +%m-%d)
+      done
+      ((frame >= rfirst && frame <= rlast)) || continue
+      # A bare time is read as today's, so one from another day says which. The
+      # comparison is per frame: a gap that runs over midnight is bare while it is
+      # still the same day and dated from there on.
+      since=$rlocal
+      [ "$rday" = "${localdays[frame]}" ] || since="$rday $rlocal"
+      # To the nearest minute: a camera that fires two seconds into its slot would
+      # otherwise read a minute short of the truth.
+      gap_length $(((START + frame * SLOT_MINUTES * 60 - rsince + 30) / 60))
+      printf 'Dialogue: 0,%s,%s,Outage,,0,0,0,,no data since %s (%s)\n' \
+        "$start" "$end" "$since" "$gap"
+    done
+  } >>"$2"
 }
 
 # A chapter per day, for a month only: a chapter over a whole 12-second day video

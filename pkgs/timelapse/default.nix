@@ -4,7 +4,6 @@
   shellcheck,
   writeShellApplication,
   coreutils,
-  dejavu_fonts,
   ffmpeg-headless,
   findutils,
   gawk,
@@ -50,7 +49,6 @@ let
     name = "timelapse-videomaker";
     body = ./videomaker.sh;
     runtimeEnv = {
-      TIMELAPSE_FONT = "${dejavu_fonts.minimal}/share/fonts/truetype/DejaVuSans.ttf";
       # Without this glibc reads "Europe/Vilnius" as a bare POSIX zone name with
       # no offset, and every gap caption silently comes out in UTC.
       TZDIR = "${tzdata}/share/zoneinfo";

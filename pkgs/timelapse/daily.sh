@@ -15,10 +15,10 @@
 # The current month is merged and its finished days encoded, but never joined: it
 # is not over. Deleting stills is timelapse-reap's job.
 #
-# Days with no photos at all are encoded too, as a full day of greyed picture
-# captioned NO DATA. That is what keeps a month joinable, and it is why an outage
-# straddling the turn of a month needs no special handling: the days either side
-# are ordinary days that happen to have no photos.
+# Days with no photos at all are encoded too, as a full day of greyed picture with
+# the outage named in the subtitles. That is what keeps a month joinable, and it is
+# why an outage straddling the turn of a month needs no special handling: the days
+# either side are ordinary days that happen to have no photos.
 
 usage() {
   cat <<'EOF'
