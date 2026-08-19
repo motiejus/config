@@ -396,11 +396,7 @@ in
         enable = true;
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
-        # This host builds the archive. Its own capture is one photo per 5
-        # minutes, which is exactly one per video slot, and vno3-nk's minutely
-        # tree fills whatever this one missed. Off for now, driven by hand:
-        # archiveFrom = "timelapse-r11@vno3-nk.jakst.vpn";
-        # and the other way round, so vno3-nk can fill its own gaps by hand
+        archiveFrom = "timelapse-r11@vno3-nk.jakst.vpn";
         readerKeys = [ myData.bot_pubkeys.timelapse_merger_vno3_nk ];
       };
 
