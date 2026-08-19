@@ -116,6 +116,10 @@ previous_photo() { # cam day
   while read -r d; do
     [[ "$d" < "$2" ]] || continue
     f=$(list_photos "$ROOT/$1/$d" | tail -1)
+    # A seed is read back as a path built from its name, so one whose directory
+    # disagrees names either nothing or another day's picture.
+    [ -z "$f" ] || [ "${f:0:10}" = "$d" ] ||
+      die "$1: $d/$f is not in the day its own name gives; move it"
     [ -z "$f" ] || {
       echo "$f"
       return
@@ -374,7 +378,7 @@ write_chapters() { # chapters
 }
 
 join_month() { # cam
-  local cam="$1" day i=0 w h late late_days s
+  local cam="$1" day i=0 w h late late_days
   local video="$OUT/$cam-$PERIOD.mkv" manifest="$tmp/month.tsv" work="$OUT/.$cam-$PERIOD.$$.part.mkv"
 
   [ ! -e "$video" ] || {

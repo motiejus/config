@@ -146,7 +146,7 @@ slots_on_disk() { # cam
       die "$1 $PERIOD: $rel is not in the day its own name gives; move it"
     day=${f:0:10}
     [ -n "${day_index[$day]:-}" ] ||
-      die "$1 $PERIOD: $f is named for $day, which is not a day of $PERIOD"
+      die "$1 $PERIOD: $rel is named for $day, which is not a day of $PERIOD"
     set_slot "$f"
     # A name the glob admits but the clock does not -- 23:60 onwards, not just an
     # hour past 23 -- gives a slot past its own day, which would otherwise land on
