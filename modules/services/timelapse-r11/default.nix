@@ -140,17 +140,7 @@ in
           TimeoutStartSec = "infinity";
           Nice = 19;
           IOSchedulingClass = "idle";
-          # The encode is on the GPU, so what is bounded here is the merger, the
-          # join and the ffprobe passes over a month. A cpuset caps how much of the
-          # machine any of that can take without CPUQuota throttling every thread
-          # each period. Sized for fwminex (8 cores/16 threads), and generous
-          # enough for the CPU encoder to come back to.
-          AllowedCPUs = "0-7";
-          # Measured peak is 514 MB for a real day through av1_vaapi (uncapped
-          # cgroup leaf, memory.peak, 2026-08-18), so this is a bound, not a
-          # target. Being killed costs one night: the run is idempotent and the
-          # next one resumes from the files on disk, and the failure is mailed
-          # instead of being absorbed by everything else here.
+          AllowedCPUs = "0-11";
           MemoryMax = "10G";
 
           # The encoder runs on the GPU, so the render node has to be reachable at
