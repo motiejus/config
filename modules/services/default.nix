@@ -5,6 +5,7 @@
     ./btrfsborg
     ./btrfssnapshot
     ./deployerbot
+    ./dl-mirror
     ./frigate
     ./git
     ./grafana
