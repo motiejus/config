@@ -138,6 +138,9 @@ in
           # the entire backlog to work through, so there is no useful timeout: the
           # work is idempotent and the next run picks up wherever this one stopped.
           TimeoutStartSec = "infinity";
+          # The package override fixes natural EOF, but even fixed libsvtav1 cannot
+          # interrupt an active encode promptly; bound SIGKILL escalation separately.
+          TimeoutStopSec = "10s";
           Nice = 19;
           IOSchedulingClass = "idle";
           AllowedCPUs = "0-11";

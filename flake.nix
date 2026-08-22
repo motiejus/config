@@ -130,7 +130,12 @@
               qwens
               ;
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
-            inherit (super.callPackage ./pkgs/timelapse { })
+            # Drop once stable ffmpeg-headless links SVT-AV1 v4.0.1+ (or backports
+            # merged MRs !2572 and !2600): the EOF fix and its slot-0 correction.
+            # Stable version/status:
+            # https://github.com/NixOS/nixpkgs/blob/nixos-26.05/pkgs/by-name/sv/svt-av1/package.nix
+            inherit
+              (super.callPackage ./pkgs/timelapse { ffmpeg-headless = final.pkgs-unstable.ffmpeg-headless; })
               timelapse-merger
               timelapse-videomaker
               timelapse-daily
