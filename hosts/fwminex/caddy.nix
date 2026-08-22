@@ -9,6 +9,7 @@ let
     + "aąbcčdeęėfghiįyjklmnoprsštuųūvzžwxq"
     + "0123456789"
     + " .,:;!?'\"()[]-–—…/@&*+=%#";
+  valkyrieCharsetFile = pkgs.writeText "valkyrie-charset" valkyrieCharset;
   valkyrieDir = "/var/lib/jakstys-www/fonts";
   valkyriePython = pkgs.python3.withPackages (ps: [
     ps.fonttools
@@ -19,7 +20,8 @@ let
     from fontTools import subset
     from fontTools.ttLib import TTFont
 
-    src, dst, text = sys.argv[1:4]
+    src, dst, charset = sys.argv[1:4]
+    text = open(charset, encoding="utf-8").read()
     font = TTFont(src)
     subsetter = subset.Subsetter(
         options=subset.Options(
@@ -52,7 +54,7 @@ in
         rm -f "$tmp"
         if [ ! -r "$src" ]; then
           echo "$src is not readable; keeping any existing $2" >&2
-        elif ! ${valkyriePython}/bin/python ${valkyrieSubset} "$src" "$tmp" "${valkyrieCharset}"; then
+        elif ! ${valkyriePython}/bin/python ${valkyrieSubset} "$src" "$tmp" ${valkyrieCharsetFile}; then
           echo "subsetting $1 failed; keeping any existing $2" >&2
         elif [ ! -s "$tmp" ]; then
           echo "subsetting $1 produced an empty file; keeping any existing $2" >&2
