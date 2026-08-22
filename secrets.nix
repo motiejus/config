@@ -101,6 +101,14 @@ in
   ]
   ++ motiejus
 ) [ "secrets/fra1-c/borgbackup-password.age" ]
+// mk (
+  [
+    fwminex
+    vno1-gdrx
+    vno2-desk2
+  ]
+  ++ motiejus
+) [ "secrets/mb-type-key.age" ]
 // mk (systems ++ motiejus) [
   "secrets/motiejus_passwd_hash.age"
   "secrets/root_passwd_hash.age"

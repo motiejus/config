@@ -454,6 +454,8 @@ in
 
       rita-jakst-publisher.enable = true;
 
+      mb-type-fonts.enable = true;
+
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
