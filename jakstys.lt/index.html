@@ -4,99 +4,176 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jakštys</title>
+    <link rel="icon" href="data:,">
     <style>
+        :root {
+            color-scheme: light dark;
+            --ink: #172033;
+            --bg: #fff;
+            --rule: #cbd5e1;
+            --badge: #fffaf1;
+            --people: #1d4e89;
+            --git: #475569;
+            --maps: #087985;
+            --hover: #b45309;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ink: #cbd5e1;
+                --bg: #131a24;
+                --rule: #2b3746;
+                --badge: transparent;
+                --people: #7fabe4;
+                --git: #a3b3c6;
+                --maps: #4bbcc8;
+                --hover: #eda45f;
+            }
+        }
+
         * {
             box-sizing: border-box;
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-
         body {
+            margin: 0;
+            min-height: 100dvh;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
             line-height: 1.5;
-            color: #333;
-            background-color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            color: var(--ink);
+            background-color: var(--bg);
+            display: grid;
+            place-items: center;
+            padding: 1.5rem 1.25rem;
         }
 
-        .container {
-            text-align: center;
-            max-width: 600px;
-            width: 100%;
-        }
-
-        .links {
+        main, .people {
             display: flex;
             flex-direction: column;
-            gap: 2rem;
-            margin-top: 2rem;
+            align-items: center;
         }
+
+        main { gap: 2rem; }
 
         a {
-            display: block;
-            font-size: 3rem;
-            font-weight: 500;
-            color: #0071eb;
             text-decoration: none;
-            padding: 1rem;
-            transition: color 0.2s ease;
+            transition: color 0.2s;
         }
 
-        a:hover {
-            color: #f80;
+        :focus-visible {
+            outline: 3px solid var(--hover);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+
+        .people { gap: 1.25rem; }
+
+        .people a {
+            color: var(--people);
+            font-family: Charter, "Bitstream Charter", "Iowan Old Style", Constantia, Georgia, serif;
+            font-size: clamp(2rem, 9vw, 3rem);
+            line-height: 1.1;
+            padding: 0.25rem 0.5rem;
+        }
+
+        a:hover, a:focus-visible {
+            color: var(--hover);
+        }
+
+        .people a:hover, .people a:focus-visible {
             text-decoration: underline;
         }
 
-        @media (max-width: 600px) {
-            a {
-                font-size: 2.5rem;
-            }
+        hr {
+            width: 3.5rem;
+            margin: 0;
+            border: 0;
+            border-top: 1px solid var(--rule);
         }
 
-        @media (max-width: 400px) {
-            a {
-                font-size: 2rem;
-            }
+        .places {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem 1.75rem;
         }
 
-        @media (max-height: 500px) {
-            .links {
+        .places a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 44px;
+            padding: 0.35rem 0.6rem;
+            font-size: clamp(1.25rem, 5vw, 1.6rem);
+            font-weight: 500;
+        }
+
+        .places a span {
+            border-bottom: 1px solid transparent;
+        }
+
+        .places a:hover span, .places a:focus-visible span {
+            border-bottom-color: currentColor;
+        }
+
+        .places svg {
+            width: 1.7em;
+            height: 1.7em;
+        }
+
+        .places .badge {
+            fill: var(--badge);
+        }
+
+        .git { color: var(--git); }
+        .maps { color: var(--maps); }
+
+        @media (max-height: 540px) {
+            main { gap: 1.25rem; }
+
+            .people {
                 flex-direction: row;
-                gap: 1.5rem;
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                color: #ccc;
-                background-color: #222;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem 1.5rem;
             }
 
-            a {
-                color: #007bff;
-            }
-
-            a:hover {
-                color: #f80;
-            }
+            .people a { font-size: clamp(1.5rem, 5vw, 2rem); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="links">
+    <main>
+        <nav class="people" aria-label="People">
             <a href="https://jonas.jakstys.lt">Jonas</a>
             <a href="https://m.jakstys.lt">Motiejus</a>
             <a href="https://rita.jakstys.lt">Rita</a>
             <a href="https://rolandas.jakstys.lt">Rolandas</a>
-        </div>
-    </div>
+        </nav>
+        <hr>
+        <nav class="places" aria-label="Sites">
+            <a class="git" href="https://git.jakstys.lt">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle class="badge" cx="12" cy="12" r="11" stroke-width="1.5"/>
+                    <path d="M8.8 6.4V17.6" stroke-width="2"/>
+                    <path d="M8.8 13.8C13.8 13.8 16.2 12.9 16.2 10.1" stroke-width="2"/>
+                    <circle cx="8.8" cy="6.4" r="2.35" fill="currentColor"/>
+                    <circle cx="8.8" cy="17.6" r="2.35" fill="currentColor"/>
+                    <circle cx="16.2" cy="7.8" r="2.35" fill="currentColor"/>
+                </svg>
+                <span>git</span>
+            </a>
+            <a class="maps" href="https://maps.jakstys.lt">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle class="badge" cx="12" cy="12" r="11" stroke-width="1.5"/>
+                    <path d="M12 18.8c2.9-3.7 4.3-6.2 4.3-8.2a4.3 4.3 0 1 0-8.6 0c0 2 1.4 4.5 4.3 8.2Z" stroke-width="1.9"/>
+                    <circle cx="12" cy="10.4" r="1.7" fill="currentColor" stroke="none"/>
+                </svg>
+                <span>maps</span>
+            </a>
+        </nav>
+    </main>
 </body>
 </html>
