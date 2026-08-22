@@ -55,7 +55,9 @@
         };
       in
       py.withPackages (
-        ps: with ps; [
+        ps:
+        with ps;
+        [
           numpy
           pyyaml
           plotly
@@ -63,7 +65,9 @@
           ipython
           pymodbus
           matplotlib
+          fonttools
         ]
+        ++ fonttools.optional-dependencies.woff
       )
     )
   ];
