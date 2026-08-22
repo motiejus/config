@@ -92,7 +92,7 @@
 
           root * ${gamja}
           file_server browse {
-              precompressed zstd br gzip
+              precompressed br zstd gzip
           }
         '';
       "r.jakstys.lt".extraConfig = ''
@@ -115,7 +115,7 @@
             root * ${pkgs.rita-jakst-publisher.adminAssets}
             header Cache-Control no-cache
             file_server {
-              precompressed zstd br gzip
+              precompressed br zstd gzip
               etag_file_extensions .etag
             }
           }
@@ -154,7 +154,7 @@
 
         root * /var/www/m.jakstys.lt
         file_server {
-          precompressed zstd br gzip
+          precompressed br zstd gzip
         }
       '';
       "jakstys.lt".extraConfig =
@@ -237,7 +237,7 @@
 
           root * ${jakstysLandingPage}
           file_server {
-            precompressed zstd br gzip
+            precompressed br zstd gzip
           }
 
           @matrixMatch {
