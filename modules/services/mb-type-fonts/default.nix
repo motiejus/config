@@ -47,10 +47,12 @@ in
       # decrypted zip never lands on disk. bsdtar can do that because the
       # archive carries its sizes in the local headers (no data descriptors).
       #
-      # The OTF directory is searched for rather than named: it sits under the
+      # The generation directory is named after a store path, so each format
+      # gets a stable name beside it: otf (what fontconfig reads), ttf, woff2.
+      # They are searched for rather than named, because they sit below the
       # archive's own dated top-level directory. Sorted, so a future archive
-      # with two matches picks the same one every time rather than following
-      # readdir order. An empty or missing one is fatal here because neither a
+      # with two matches resolves the same way every time rather than following
+      # readdir order. An empty or missing one is fatal because neither a
       # dangling symlink nor fontconfig would report it.
       script = ''
         set -euo pipefail
@@ -66,12 +68,19 @@ in
           mv -T "$new.tmp" "$new"
         fi
 
-        otf=$(find "$new" -maxdepth 2 -type d -name 'OTF font files*' | sort | sed -n 1p)
-        [ -n "$otf" ] && [ -n "$(find "$otf" -name '*.otf' -print -quit)" ] || {
-          echo "no OTF fonts under $new" >&2
-          exit 1
+        link() {
+          d=$(find "$new" -maxdepth 2 -type d -name "$2" | sort | sed -n 1p)
+          [ -n "$d" ] && [ -n "$(find "$d" -name "$3" -print -quit)" ] || {
+            echo "no $3 under $new" >&2
+            exit 1
+          }
+          ln -sfnT "$d" ${root}/"$1"
         }
-        ln -sfnT "$otf" ${root}/otf
+
+        link otf 'OTF font files*' '*.otf'
+        link ttf 'TTF font files*' '*.ttf'
+        link woff2 'WOFF2 font files*' '*.woff2'
+
         find ${root} -maxdepth 1 -name '*-mb-type-*' ! -name "$(basename "$new")" \
           -exec rm -rf {} +
         ${pkgs.fontconfig}/bin/fc-cache -sf
