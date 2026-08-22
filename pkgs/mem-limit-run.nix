@@ -88,8 +88,10 @@ writeShellApplication {
 
     # Join the pool in a subshell, then exec so the PID (and its descendants)
     # stay accounted. Writing $BASHPID before exec guarantees the command starts
-    # inside the pool.
-    ( echo "$BASHPID" > "$pool/cgroup.procs" && exec "$@" ) &
+    # inside the pool. The <&0 is load-bearing: an asynchronous list gets
+    # /dev/null on stdin unless stdin is redirected explicitly, which silently
+    # starved every piped or heredoc'd command (git commit -F -, python3 -).
+    ( echo "$BASHPID" > "$pool/cgroup.procs" && exec "$@" ) <&0 &
     child=$!
     trap 'kill -TERM "$child" 2>/dev/null' INT TERM HUP
     wait "$child"
