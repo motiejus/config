@@ -3,7 +3,72 @@
   myData,
   ...
 }:
+let
+  valkyrieCharset =
+    "AĄBCČDEĘĖFGHIĮYJKLMNOPRSŠTUŲŪVZŽWXQ"
+    + "aąbcčdeęėfghiįyjklmnoprsštuųūvzžwxq"
+    + "0123456789"
+    + " .,:;!?'\"()[]-–—…/@&*+=%#";
+  valkyrieDir = "/var/lib/jakstys-www/fonts";
+  valkyriePython = pkgs.python3.withPackages (ps: [
+    ps.fonttools
+    ps.brotli
+  ]);
+  valkyrieSubset = pkgs.writeText "valkyrie-subset.py" ''
+    import sys
+    from fontTools import subset
+    from fontTools.ttLib import TTFont
+
+    src, dst, text = sys.argv[1:4]
+    font = TTFont(src)
+    subsetter = subset.Subsetter(
+        options=subset.Options(
+            flavor="woff2", desubroutinize=True, layout_features=["kern", "liga"]
+        )
+    )
+    subsetter.populate(text=text)
+    subsetter.subset(font)
+    font.flavor = "woff2"
+    font.save(dst)
+  '';
+in
 {
+  systemd.services.jakstys-valkyrie = {
+    description = "trim Valkyrie Caps for the jakstys.lt landing page";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "mb-type-fonts.service" ];
+    wants = [ "mb-type-fonts.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      StateDirectory = "jakstys-www/fonts";
+      UMask = "0022";
+    };
+    script = ''
+      subset() {
+        src="/var/lib/mb-type/woff2/$1"
+        tmp=${valkyrieDir}/.new
+
+        rm -f "$tmp"
+        if [ ! -r "$src" ]; then
+          echo "$src is not readable; keeping any existing $2" >&2
+        elif ! ${valkyriePython}/bin/python ${valkyrieSubset} "$src" "$tmp" "${valkyrieCharset}"; then
+          echo "subsetting $1 failed; keeping any existing $2" >&2
+        elif [ ! -s "$tmp" ]; then
+          echo "subsetting $1 produced an empty file; keeping any existing $2" >&2
+        else
+          chmod 0444 "$tmp"
+          mv -f "$tmp" ${valkyrieDir}/"$2"
+        fi
+        rm -f "$tmp"
+      }
+
+      subset "Valkyrie A/valkyrie_a_regular.woff2" valkyrie-a.woff2
+      subset "Valkyrie A Caps/valkyrie_a_caps_regular.woff2" valkyrie-a-caps.woff2
+      exit 0
+    '';
+  };
+
   services.caddy = {
     enable = true;
     email = "motiejus+acme@jakstys.lt";
@@ -227,12 +292,17 @@
 
           header {
             Strict-Transport-Security "max-age=15768000"
-            Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
             X-Content-Type-Options "nosniff"
             X-Frame-Options "DENY"
             Alt-Svc "h3=\":443\"; ma=86400"
 
             /_/* Cache-Control "public, max-age=31536000, immutable"
+          }
+
+          handle_path /fonts/* {
+            root * ${valkyrieDir}
+            header Cache-Control "no-cache"
+            file_server
           }
 
           root * ${jakstysLandingPage}
