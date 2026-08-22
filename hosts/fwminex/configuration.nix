@@ -458,6 +458,7 @@ in
         enable = true;
         destination = "dl-receiver@fra1-c.jakst.vpn";
       };
+      mb-type-fonts.enable = true;
 
       nsd-acme =
         let

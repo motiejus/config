@@ -181,6 +181,8 @@
             { nixpkgs.overlays = baseOverlays; }
             ./hosts/vm/configuration.nix
             home-manager.nixosModules.home-manager
+
+            agenix.nixosModules.default
           ];
           specialArgs = {
             inherit myData;

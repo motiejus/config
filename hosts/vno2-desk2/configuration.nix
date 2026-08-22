@@ -145,6 +145,8 @@ in
     };
 
     services = {
+      mb-type-fonts.enable = true;
+
       node_exporter.enable = true;
       ping_exporter.enable = true;
 

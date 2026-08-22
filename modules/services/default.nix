@@ -15,6 +15,7 @@
     ./ipxe
     ./jakstpub
     ./lt-shelters
+    ./mb-type-fonts
     ./matrix-synapse
     ./minidlna
     ./node_exporter

@@ -73,6 +73,8 @@ in
     };
 
     services = {
+      mb-type-fonts.enable = true;
+
       ping_exporter.enable = true;
 
       ipxe = {
