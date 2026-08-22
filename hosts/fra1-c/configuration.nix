@@ -73,6 +73,12 @@ in
     };
 
     services = {
+      dl-mirror.receiver = {
+        enable = true;
+        domain = "dl2.jakstys.lt";
+        senderKey = myData.hosts."fwminex.jakst.vpn".publicKey;
+      };
+
       node_exporter.enable = true;
       ping_exporter.enable = true;
       tailscale.enable = true;

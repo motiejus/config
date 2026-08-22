@@ -454,6 +454,11 @@ in
 
       rita-jakst-publisher.enable = true;
 
+      dl-mirror.sender = {
+        enable = true;
+        destination = "dl-receiver@fra1-c.jakst.vpn";
+      };
+
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;
