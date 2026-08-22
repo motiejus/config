@@ -119,11 +119,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787146702,
-        "narHash": "sha256-YbRcLdU/yK4gWsQg7V8WTKZHfXL33g8+wSFUX3wyevs=",
+        "lastModified": 1787377438,
+        "narHash": "sha256-Sxu1NLTD/Ern6hFGLlZmtKCSct3YQXZI/lls8RE1XeM=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "173b7e8d40fdc8c296a9c99854314f17a3a1704c",
+        "rev": "65258d5c65a250189fde2e35f490d15e064c4c62",
         "type": "github"
       },
       "original": {
@@ -140,11 +140,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787341239,
-        "narHash": "sha256-/Gfamoa5boI79ww8ClE7KTqWnGJCQtqEZ0ekRZlCUss=",
+        "lastModified": 1787346162,
+        "narHash": "sha256-PPxISj60RMm2/F5ayRqcsrPctijSMXYp4F4TSuwQEkI=",
         "ref": "refs/heads/main",
-        "rev": "6f4308176d67aa78d431052ee6eabb589522041a",
-        "revCount": 600,
+        "rev": "9d1a7a4f665cc712198369bc5fe4aa44d0c9df09",
+        "revCount": 607,
         "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"
@@ -257,11 +257,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787344422,
-        "narHash": "sha256-Dg9/+gPI/hKGYD9dG2GKZYPDhgQytlNm6nGHHqeOmyQ=",
+        "lastModified": 1787378288,
+        "narHash": "sha256-Ctglu6DvhOLbr83mvQT/yZS81z3NlIf83E/ay4w4HbM=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "aff761bb77f20a7d3bb31b4a2993f358b90bffad",
+        "rev": "136a03e6e9ed3f15e7ecf3a542537a08dafce75b",
         "type": "github"
       },
       "original": {
@@ -341,11 +341,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787185267,
-        "narHash": "sha256-1I+ewjAECdVTHSaeViyKOup7MK1pxLyfuJ5dlsMAEfU=",
+        "lastModified": 1787358041,
+        "narHash": "sha256-wtJSCG4zDXZ7QOB4MEOHx/PZVLpf4JifylOUv0pPggc=",
         "owner": "mitchellh",
         "repo": "zig-overlay",
-        "rev": "6b5e8a65de00723fae1f3c6d6434469ac754715c",
+        "rev": "a202c7f7acc8debc84560ae04ee85f57e6830931",
         "type": "github"
       },
       "original": {
