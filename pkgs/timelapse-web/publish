@@ -19,6 +19,7 @@ video_root=$(cd -- "${1:?usage: publish VIDEO_ROOT}" && pwd)
 # installed service supplies TIMELAPSE_WEB_ROOT instead, keeping media writes
 # out of the immutable package store.
 www=${TIMELAPSE_WEB_ROOT:-$(pwd -P)/www}
+artifact_root=
 fps=24
 frame_interval=300
 declare -A month_ranges=()
@@ -76,8 +77,8 @@ utc_for_epoch() {
 
 range_end_epoch() {
   local start_epoch=$1 source=$2 duration frames
-  duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source")
-  frames=$(awk "BEGIN { printf \"%.0f\", $duration * $fps }")
+  duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source") || return
+  frames=$(awk "BEGIN { printf \"%.0f\", $duration * $fps }") || return
   printf '%s\n' "$((start_epoch + frames * frame_interval))"
 }
 
@@ -115,7 +116,7 @@ write_master() {
 
 publish_video() {
   local camera=$1 range=$2 source=$3 base width height bitrate rendition
-  base="$www/video/$camera-$range"
+  base="$artifact_root/video/$camera-$range"
   mkdir -p "$base"
   while read -r width; do
     read -r width height bitrate < <(dimensions "$camera" "$width")
@@ -134,13 +135,13 @@ publish_video() {
       -hls_segment_filename "$rendition/stream.mp4" "$rendition/stream.m3u8"
   done < <(widths "$camera")
 
-  write_master "$camera" "$base"
+  [[ -f "$base/master.m3u8" ]] || write_master "$camera" "$base"
 }
 
 publish_fast_video() {
   local camera=$1 range=$2 source=$3 stride=$4
   local base width height bitrate rendition
-  base="$www/video/$camera-$range/x$stride"
+  base="$artifact_root/video/$camera-$range/x$stride"
   while read -r width; do
     read -r width height bitrate < <(dimensions "$camera" "$width")
     rendition="$base/$width"
@@ -160,7 +161,7 @@ publish_fast_video() {
 
   # Fast profiles differ only by source-frame selection.  Keep their ABR
   # ladder byte-for-byte equivalent to the ordinary x1 master.
-  write_master "$camera" "$base"
+  [[ -f "$base/master.m3u8" ]] || write_master "$camera" "$base"
 }
 
 publish_thumbnails() {
@@ -180,12 +181,12 @@ publish_thumbnails() {
       seconds=$(awk "BEGIN { printf \"%.6f\", $frame_index / $fps }")
       missing=()
       for tier in 90 180 360; do
-        output="$www/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
+        output="$artifact_root/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
         [[ -e $output && ! "$source" -nt "$output" ]] || missing+=("$tier:$output")
       done
       if ((${#missing[@]})); then
         for tier in "${missing[@]}"; do mkdir -p "$(dirname -- "${tier#*:}")"; done
-        temporary=$(mktemp -d "${TMPDIR:-/tmp}/timelapse-jpeg.XXXXXX")
+        temporary=$(mktemp -d "$artifact_root/.jpeg.XXXXXX")
         # Decode and scale on VAAPI.  JPEG itself is software encoded because
         # the Radeon exposes no JPEG encoder.  Deliberately keep the ASS
         # metadata stream out: its NODATA text remains the viewer's VTT
@@ -198,8 +199,9 @@ publish_thumbnails() {
           command+=(-map "[v$tier]" -frames:v 1 -q:v 3 -update 1 "$temporary/h$tier.jpg")
         done
         "${command[@]}"
+        chmod 0644 "$temporary"/h{90,180,360}.jpg
         for tier in 90 180 360; do
-          mv -f "$temporary/h$tier.jpg" "$www/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
+          mv -f "$temporary/h$tier.jpg" "$artifact_root/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
         done
         rm -rf "$temporary"
       fi
@@ -210,25 +212,14 @@ publish_thumbnails() {
   done
 }
 
-remove_legacy_thumbnails() {
-  local camera=$1 tier
-  for tier in 90 180 360; do
-    # These patterns cover only the two superseded contracts: a daily noon
-    # image and a local-time four-per-day image. Neither matches the UTC
-    # contract, whose final timestamp component always ends in a literal Z.
-    rm -f -- "$www/thumbnails/h$tier/$camera"-????-??-??.jpg \
-      "$www/thumbnails/h$tier/$camera"-????-??-??-??.jpg
-  done
-}
-
 publish_subtitles() {
   # The panorama and PTZ subtitle timelines are aligned, so publish one small
   # range-level sidecar from panorama rather than duplicating it per camera.
   local range=$1 source=$2 output temporary
-  output="$www/subtitles/$range.vtt"
+  output="$artifact_root/subtitles/$range.vtt"
   [[ -f "$output" && ! "$source" -nt "$output" ]] && return
   mkdir -p "$(dirname -- "$output")"
-  temporary=$(mktemp "$www/subtitles/.$range.XXXXXX")
+  temporary=$(mktemp "$artifact_root/subtitles/.$range.XXXXXX")
   {
     printf 'WEBVTT\n\n'
     # ASS's Outage style is the source-of-truth signal for NODATA frames.
@@ -256,53 +247,146 @@ publish_subtitles() {
   mv -f "$temporary" "$output"
 }
 
-for month in "${!month_ranges[@]}"; do
-  # Promotion makes the root monthly pair authoritative. Remove only complete,
-  # normal-name daily pairs; partial uploads and unmatched files stay intact.
+legacy_video_complete() {
+  local camera=$1 range=$2 source=$3 base mode width
+  for mode in '' /x6 /x36; do
+    base="$www/video/$camera-$range$mode"
+    [[ -f "$base/master.m3u8" ]] || return 1
+    while read -r width; do
+      [[ -f "$base/$width/stream.m3u8" && -f "$base/$width/stream.mp4" && ! "$source" -nt "$base/$width/stream.m3u8" ]] || return 1
+    done < <(widths "$camera")
+  done
+}
+
+seed_legacy_range() {
+  local range=$1 panorama_source=$2 ptz_source=$3 camera tier
+  local -a images=()
+  mkdir -p "$artifact_root/video" "$artifact_root/subtitles"
+  legacy_video_complete panorama "$range" "$panorama_source" && cp -al "$www/video/panorama-$range" "$artifact_root/video/"
+  legacy_video_complete ptz "$range" "$ptz_source" && cp -al "$www/video/ptz-$range" "$artifact_root/video/"
+  [[ ! -f "$www/subtitles/$range.vtt" ]] || cp -al "$www/subtitles/$range.vtt" "$artifact_root/subtitles/"
+  for tier in 90 180 360; do
+    for camera in panorama ptz; do
+      images=("$www/thumbnails/h$tier/$camera-$range"-*Z.jpg)
+      if ((${#images[@]})); then
+        mkdir -p "$artifact_root/thumbnails/h$tier"
+        cp -al "${images[@]}" "$artifact_root/thumbnails/h$tier/"
+      fi
+    done
+  done
+}
+
+remove_superseded_daily() {
+  local month=$1 panorama_daily day ptz_daily tier
+  # A completed monthly range supersedes daily inputs and derived assets only
+  # after its replacement is already visible through catalog.json.
   for panorama_daily in "$video_root/days/panorama-$month"-??.mkv; do
     day=${panorama_daily##*/panorama-}
     ptz_daily="$video_root/days/ptz-$day"
     [[ -f "$ptz_daily" ]] && rm -f -- "$panorama_daily" "$ptz_daily"
   done
-
-  superseded_daily=0
-  for artifact in "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??; do
-    [[ -e $artifact ]] && { superseded_daily=1; break; }
+  rm -rf -- "$www/ranges/$month"-??
+  rm -rf "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??
+  rm -f "$www/subtitles/$month"-??.vtt
+  for tier in 90 180 360; do
+    rm -f "$www/thumbnails/h$tier/panorama-$month"-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??.jpg \
+      "$www/thumbnails/h$tier/panorama-$month"-??-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??.jpg \
+      "$www/thumbnails/h$tier/panorama-$month"-??-??Z.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??Z.jpg
   done
-  if ((superseded_daily)); then
-    rm -rf "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??
-    rm -f "$www/subtitles/$month"-??.vtt
-    for tier in 90 180 360; do
-      # The local contracts end in .jpg after HH; UTC assets end in HHZ.jpg.
-      rm -f "$www/thumbnails/h$tier/panorama-$month"-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??.jpg \
-        "$www/thumbnails/h$tier/panorama-$month"-??-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??.jpg
-    done
-  fi
-done
+}
 
-catalog=$(mktemp "$www/.catalog.XXXXXX")
-printf '{\n  "cameras": ["panorama", "ptz"],\n  "ranges": [' >"$catalog"
-separator=
+mkdir -p "$www/ranges"
+declare -A catalog_entries=()
+declare -A desired_ranges=()
+catalog=
+stage=
+cleanup_catalog_staging() {
+  rm -f -- "$catalog"
+  [[ -z $stage ]] || rm -rf -- "$stage"
+}
+trap cleanup_catalog_staging EXIT
+
+load_catalog() {
+  local id entry
+  [[ -f "$www/catalog.json" ]] || return 0
+  while IFS=$'\t' read -r id entry; do
+    catalog_entries[$id]=$entry
+  done < <(
+    awk '
+      match($0, /\{"id":"[0-9]{4}-[0-9]{2}(-[0-9]{2})?",("layout":"ranges",)?"start":"[^"]+","end":"[^"]+"\}/) {
+        entry = substr($0, RSTART, RLENGTH)
+        match(entry, /"id":"([^"]+)"/, value)
+        printf "%s\t%s\n", value[1], entry
+      }
+    ' "$www/catalog.json"
+  )
+}
+
+publish_catalog() {
+  local id separator=
+  local -a ids=("${!catalog_entries[@]}")
+  if ((${#ids[@]})); then mapfile -t ids < <(printf '%s\n' "${ids[@]}" | sort); fi
+  catalog=$(mktemp "$www/.catalog.XXXXXX")
+  {
+    printf '{\n  "cameras": ["panorama", "ptz"],\n  "ranges": ['
+    for id in "${ids[@]}"; do
+      printf '%s\n    %s' "$separator" "${catalog_entries[$id]}"
+      separator=,
+    done
+    printf '\n  ]\n}\n'
+  } >"$catalog"
+  chmod 0644 "$catalog"
+  mv -f "$catalog" "$www/catalog.json"
+  catalog=
+}
+
+load_catalog
 for range in "${ranges[@]}"; do
+  desired_ranges[$range]=1
   start_epoch=$(epoch_for_range "$range")
   panorama_source=$(source_path panorama "$range")
   ptz_source=$(source_path ptz "$range")
-  end_epoch=$(range_end_epoch "$start_epoch" "$panorama_source")
-  printf '%s\n    {"id":"%s","start":"%s","end":"%s"}' "$separator" "$range" "$(utc_for_epoch "$start_epoch")" "$(utc_for_epoch "$end_epoch")" >>"$catalog"
-  separator=,
-  publish_video panorama "$range" "$panorama_source"
-  publish_video ptz "$range" "$ptz_source"
-  publish_fast_video panorama "$range" "$panorama_source" 6
-  publish_fast_video panorama "$range" "$panorama_source" 36
-  publish_fast_video ptz "$range" "$ptz_source" 6
-  publish_fast_video ptz "$range" "$ptz_source" 36
-  publish_subtitles "$range" "$panorama_source"
-  publish_thumbnails panorama "$panorama_source" "$start_epoch" "$end_epoch"
-  publish_thumbnails ptz "$ptz_source" "$start_epoch" "$end_epoch"
+  range_dir="$www/ranges/$range"
+  if [[ -f "$range_dir/.complete" ]]; then
+    read -r end_epoch <"$range_dir/.complete"
+  else
+    [[ ! -e $range_dir ]] || {
+      echo "incomplete range already exists: $range_dir" >&2
+      exit 1
+    }
+    stage=$(mktemp -d "$www/.range-$range.XXXXXX")
+    artifact_root=$stage
+    end_epoch=$(range_end_epoch "$start_epoch" "$panorama_source")
+    seed_legacy_range "$range" "$panorama_source" "$ptz_source"
+    publish_video panorama "$range" "$panorama_source"
+    publish_video ptz "$range" "$ptz_source"
+    publish_fast_video panorama "$range" "$panorama_source" 6
+    publish_fast_video panorama "$range" "$panorama_source" 36
+    publish_fast_video ptz "$range" "$ptz_source" 6
+    publish_fast_video ptz "$range" "$ptz_source" 36
+    publish_subtitles "$range" "$panorama_source"
+    publish_thumbnails panorama "$panorama_source" "$start_epoch" "$end_epoch"
+    publish_thumbnails ptz "$ptz_source" "$start_epoch" "$end_epoch"
+    printf '%s\n' "$end_epoch" >"$stage/.complete"
+    chmod 0644 "$stage/.complete"
+    chmod 0755 "$stage"
+    mv -T "$stage" "$range_dir"
+    stage=
+  fi
+  if [[ $range == ????-?? ]]; then
+    for id in "${!catalog_entries[@]}"; do
+      [[ $id == "$range"-?? ]] && unset "catalog_entries[$id]"
+    done
+  fi
+  printf -v entry '{"id":"%s","layout":"ranges","start":"%s","end":"%s"}' "$range" "$(utc_for_epoch "$start_epoch")" "$(utc_for_epoch "$end_epoch")"
+  catalog_entries[$range]=$entry
+  publish_catalog
+  [[ $range == ????-?? ]] && remove_superseded_daily "$range"
 done
-# Remove obsolete pre-UTC thumbnail names after every replacement is ready.
-remove_legacy_thumbnails panorama
-remove_legacy_thumbnails ptz
-printf '\n  ]\n}\n' >>"$catalog"
-chmod 0644 "$catalog"
-mv -f "$catalog" "$www/catalog.json"
+for id in "${!catalog_entries[@]}"; do
+  [[ -v "desired_ranges[$id]" ]] || unset "catalog_entries[$id]"
+done
+publish_catalog
+# Legacy paths can still be needed by entries preserved during a failed run.
+# A fully successful run has replaced or removed every such entry.
+rm -rf -- "$www/video" "$www/subtitles" "$www/thumbnails"

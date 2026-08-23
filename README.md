@@ -1,6 +1,27 @@
 Config
 ------
 
+Timelapse archive
+-----------------
+
+`catalog.json` is atomically exposed after every complete input range: a
+monthly source pair is one range, and otherwise each dated daily pair is one
+range (there is no within-month splitting). Input range files are final and
+immutable. The publisher builds each range below a hidden name, atomically
+renames it to `ranges/<range>`, and only then replaces the catalog. Existing
+ranges therefore do no media work.
+
+A run starts from the visible catalog: each completed range replaces only its
+own entry, so later old entries remain usable if a later new range fails. New
+ranges appear only when complete. When a monthly pair supersedes daily pairs,
+their catalog entries are replaced in the monthly catalog swap and the daily
+ranges and inputs are removed afterward. Complete legacy artifacts are
+hard-linked into their range once without re-encoding. A fully successful run
+drops stale catalog entries and legacy root artifacts; failed runs retain any
+legacy paths still referenced by the catalog. While the first range of a fresh
+archive is building, the viewer retries a missing catalog instead of showing
+an error.
+
 Flakes:
 
     $ deploy --interactive '#fwminex'

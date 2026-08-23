@@ -4,9 +4,7 @@
   const QUALITY_LADDERS = Object.freeze({ panorama: Object.freeze([[480, 136], [960, 272], [1920, 544], [3840, 1086]]), ptz: Object.freeze([[320, 180], [640, 360], [1280, 720], [1920, 1080]]) });
   const DEFAULT_SOURCE_TIME = Date.parse('2025-03-18T06:00:00Z');
   const root = document.querySelector('#app');
-  const archiveBase = new URL(location.href);
-  archiveBase.username = archiveBase.password = '';
-  const archiveUrl = (path) => new URL(path, archiveBase).href;
+  const archiveUrl = (path) => new URL(path, location.origin + location.pathname).href;
   const hlsReady = window.Hls || window.timelapseHlsSettled ? Promise.resolve() : new Promise((resolve) => window.addEventListener('hls-ready', resolve, { once: true }));
   const partsFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -18,14 +16,16 @@
     return { mode: 'x36', stride: 36, direct: false };
   }
   const isFirefoxMac = () => /Firefox/.test(navigator.userAgent) && /Macintosh/.test(navigator.userAgent);
-  const sourceKey = (range, profile) => `${range.id}:${profile.mode}`;
+  const sourceKey = (range, profile) => `${range.id}:${range.layout || 'legacy'}:${profile.mode}`;
   const qualityLadder = (camera) => QUALITY_LADDERS[camera] || [];
+  const pathPart = (value) => encodeURIComponent(value);
+  const rangeUrl = (range, path) => archiveUrl(range.layout === 'ranges' ? `ranges/${pathPart(range.id)}/${path}` : path);
   const playlistPath = (camera, range, profile, quality, direct = profile.direct) => {
-    const base = `video/${camera}-${range.id}`, modeBase = profile.mode === 'x1' || profile.direct ? base : `${base}/${profile.mode}`;
-    if (direct) return archiveUrl(`${modeBase}/${quality !== 'auto' ? quality : camera === 'panorama' ? 3840 : isFirefoxMac() ? 1280 : 1920}/stream.m3u8`);
-    return archiveUrl(`${modeBase}/master.m3u8?full`);
+    const base = `video/${pathPart(camera)}-${pathPart(range.id)}`, modeBase = profile.mode === 'x1' || profile.direct ? base : `${base}/${profile.mode}`;
+    if (direct) return rangeUrl(range, `${modeBase}/${quality !== 'auto' ? quality : camera === 'panorama' ? 3840 : isFirefoxMac() ? 1280 : 1920}/stream.m3u8`);
+    return `${rangeUrl(range, `${modeBase}/master.m3u8`)}?full`;
   };
-  const thumbnailPath = (height, camera, key) => archiveUrl(`thumbnails/h${height}/${camera}-${key}.jpg`);
+  const thumbnailPath = (height, camera, thumbnail) => rangeUrl(thumbnail.range, `thumbnails/h${height}/${pathPart(camera)}-${pathPart(thumbnail.key)}.jpg`);
   const utcThumbnailKey = (value) => `${new Date(Math.round(value / THUMBNAIL_INTERVAL_MS) * THUMBNAIL_INTERVAL_MS).toISOString().slice(0, 13).replace('T', '-')}Z`;
   const html = (text) => String(text).replace(/[&<>"']/g, (letter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[letter]);
   const zoneParts = (value) => Object.fromEntries(partsFormat.formatToParts(value).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
@@ -64,6 +64,7 @@
     return `<section class="watch"><div class="panes">${cameras.map((camera) => renderPane(camera, cameras)).join('<div class="pane-splitter" aria-label="Resize panes"></div>')}</div>${renderTimeline(total, cameras)}<div id="camera-statuses" class="camera-statuses" aria-live="polite"></div><output id="touch-seek-feedback" class="touch-seek-feedback" aria-live="polite"></output></section>`;
   }
   function renderError(message) { return `<p class="error">Could not open the archive: ${html(message)}</p>`; }
+  function renderPreparing() { return '<p class="preparing">Archive is being prepared…</p>'; }
 
   class Pane {
     constructor(element, camera, onTime, onEnded, onStatus, onStream, onTouchTap) {
@@ -165,7 +166,14 @@
     paint() { const rect = this.element.getBoundingClientRect(), x = rect.width * (this.scale - 1) / 2, y = rect.height * (this.scale - 1) / 2, transform = `translate(${clamp(this.panX, -x, x)}px,${clamp(this.panY, -y, y)}px) scale(${this.scale})`; this.panX = clamp(this.panX, -x, x); this.panY = clamp(this.panY, -y, y); this.video.style.transform = transform; this.freeze.style.transform = transform; this.preview.style.transform = transform; this.element.dataset.zoomed = this.scale > 1 ? 'true' : 'false'; }
   }
 
-  fetch(archiveUrl('catalog.json')).then((response) => { if (!response.ok) throw new Error(`catalog.json: ${response.status}`); return response.json(); }).then(start).catch((error) => { root.innerHTML = renderError(error.message); });
+  function loadCatalog() {
+    fetch(archiveUrl('catalog.json'), { cache: 'no-store' }).then((response) => {
+      if (response.status === 404) { root.innerHTML = renderPreparing(); window.setTimeout(loadCatalog, 3000); return null; }
+      if (!response.ok) throw new Error(`catalog.json: ${response.status}`);
+      return response.json();
+    }).then((catalog) => { if (catalog) start(catalog); }).catch((error) => { root.innerHTML = renderError(error.message); });
+  }
+  loadCatalog();
 
   function start(catalog) {
     const cameras = catalog.cameras.map((camera) => typeof camera === 'string' ? camera : camera.id).slice(0, 2);
@@ -181,7 +189,7 @@
         const noon = localNoon(day).getTime();
         if (noon >= range.startMs && noon < range.endMs) days.push({ day, slot: slotForTime(noon) });
       }
-      for (let at = Math.ceil(range.startMs / THUMBNAIL_INTERVAL_MS) * THUMBNAIL_INTERVAL_MS; at < range.endMs; at += THUMBNAIL_INTERVAL_MS) thumbnails.push({ key: utcThumbnailKey(at), slot: slotForTime(at) });
+      for (let at = Math.ceil(range.startMs / THUMBNAIL_INTERVAL_MS) * THUMBNAIL_INTERVAL_MS; at < range.endMs; at += THUMBNAIL_INTERVAL_MS) thumbnails.push({ key: utcThumbnailKey(at), range, slot: slotForTime(at) });
     });
     const months = days.filter((item, index) => index === 0 || item.day.slice(0, 7) !== days[index - 1].day.slice(0, 7));
     const shortArchive = lastMs - firstMs <= 186 * 24 * 60 * 60 * 1000;
@@ -207,12 +215,12 @@
     const panes = cameras.map((camera) => new Pane(root.querySelector(`.pane[data-camera="${CSS.escape(camera)}"]`), camera, syncTime, syncEnded, renderCameraStatuses, renderStreamInfo, handlePaneTap));
     const outageTrack = document.createElement('track'); outageTrack.kind = 'metadata'; panes[0].video.append(outageTrack); outageTrack.track.mode = 'hidden';
     function renderOutage() { const seconds = choice(slot).frame / FPS, text = dragging ? '' : [...(outageTrack.track.cues || [])].filter((cue) => cue.startTime <= seconds && seconds < cue.endTime).map((cue) => cue.text).join('\n'); outages.forEach((outage) => { outage.textContent = text; outage.hidden = !text; }); }
-    function loadOutages(range) { if (loadedOutageRange === range.id) return; loadedOutageRange = range.id; outages.forEach((outage) => { outage.hidden = true; }); outageTrack.src = archiveUrl(`subtitles/${range.id}.vtt`); outageTrack.track.mode = 'hidden'; }
+    function loadOutages(range) { const key = `${range.id}:${range.layout || 'legacy'}`; if (loadedOutageRange === key) return; loadedOutageRange = key; outages.forEach((outage) => { outage.hidden = true; }); outageTrack.src = rangeUrl(range, `subtitles/${pathPart(range.id)}.vtt`); outageTrack.track.mode = 'hidden'; }
     outageTrack.addEventListener('load', renderOutage);
     function renderCameraStatuses() { const text = { thumbnail: 'thumbnail…', video: 'video…', waiting: 'network…', error: 'failed' }; statuses.innerHTML = panes.filter((pane) => pane.status).map((pane) => `<span class="camera-status ${pane.status}">${html(cameraLabel(pane.camera))}: ${text[pane.status]}${pane.status === 'error' ? ` <button type="button" data-retry="${html(pane.camera)}">Retry</button>` : ''}</span>`).join(''); }
     function renderStreamInfo(pane, stream) { const resolution = stream.width && stream.height ? `${stream.width}×${stream.height}` : '—', text = `${cameraLabel(pane.camera)} · ${stream.codec} · ${resolution}`; streamInfo.filter((entry) => entry.dataset.streamCamera === pane.camera).forEach((entry) => { entry.textContent = text; }); }
     function thumbnailIndexFor(value) { return thumbnails.length ? thumbnails.reduce((best, thumbnail, index) => Math.abs(thumbnail.slot - value) < Math.abs(thumbnails[best].slot - value) ? index : best, 0) : -1; }
-    function paintTimelinePreview(value = slot, fraction = total > 1 ? value / (total - 1) : 0) { const index = thumbnailIndexFor(value); if (index >= 0) { const key = thumbnails[index].key; if (key !== renderedPreviewKey) { renderedPreviewKey = key; preview.innerHTML = cameras.map((camera) => `<img alt="" src="${thumbnailPath(90, camera, key)}" srcset="${thumbnailPath(90, camera, key)} 1x, ${thumbnailPath(180, camera, key)} 2x, ${thumbnailPath(360, camera, key)} 4x">`).join(''); } const x = timelineTrack.offsetLeft + fraction * timelineTrack.clientWidth, half = Math.min(preview.offsetWidth / 2 + 2, timeline.clientWidth / 2); preview.style.setProperty('--preview-x', `${clamp(x, half, timeline.clientWidth - half)}px`); } }
+    function paintTimelinePreview(value = slot, fraction = total > 1 ? value / (total - 1) : 0) { const index = thumbnailIndexFor(value); if (index >= 0) { const thumbnail = thumbnails[index], key = `${thumbnail.range.id}:${thumbnail.range.layout || 'legacy'}:${thumbnail.key}`; if (key !== renderedPreviewKey) { renderedPreviewKey = key; preview.innerHTML = cameras.map((camera) => `<img alt="" src="${thumbnailPath(90, camera, thumbnail)}" srcset="${thumbnailPath(90, camera, thumbnail)} 1x, ${thumbnailPath(180, camera, thumbnail)} 2x, ${thumbnailPath(360, camera, thumbnail)} 4x">`).join(''); } const x = timelineTrack.offsetLeft + fraction * timelineTrack.clientWidth, half = Math.min(preview.offsetWidth / 2 + 2, timeline.clientWidth / 2); preview.style.setProperty('--preview-x', `${clamp(x, half, timeline.clientWidth - half)}px`); } }
     function hoverSlotAt(clientX) { const rect = timelineTrack.getBoundingClientRect(), fraction = clamp((clientX - rect.left) / rect.width, 0, 1), value = Math.round(fraction * (total - 1)), date = new Date(choice(value).sourceMs); hoverMarker.style.left = `${fraction * 100}%`; hoverDate.textContent = `${dateKey(date)} ${new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TIME_ZONE }).format(date)}`; paintTimelinePreview(value, fraction); return value; }
     const HOVER_DISTANCE = 72;
     function distanceToRect(x, y, rect) { const dx = Math.max(rect.left - x, 0, x - rect.right), dy = Math.max(rect.top - y, 0, y - rect.bottom); return Math.hypot(dx, dy); }
@@ -224,7 +232,7 @@
     function quantizedSlot(profile) { const current = choice(slot); return current.first + Math.floor(current.frame / profile.stride) * profile.stride; }
     function activeProfile() { return desiredPlaying ? playbackProfile(sourceFps) : EXACT_PROFILE; }
     function armPending(current = choice(slot), profile = activeProfile()) { pendingTarget = { sourceKey: sourceKey(current.range, profile), seconds: mediaSeconds(current, profile), slot }; }
-    function thumbnailFor(current) { const index = thumbnailIndexFor(slot); return index >= 0 ? thumbnails[index].key : utcThumbnailKey(current.sourceMs); }
+    function thumbnailFor(current) { const index = thumbnailIndexFor(slot); return index >= 0 ? thumbnails[index] : { key: utcThumbnailKey(current.sourceMs), range: current.range }; }
     function load() {
       if (dragging) return;
       const current = choice(slot), profile = activeProfile(), key = sourceKey(current.range, profile), at = mediaSeconds(current, profile), thumbnail = thumbnailFor(current), retainVideo = retainDecodedVideo;
@@ -233,7 +241,7 @@
       else panes.forEach((pane) => { pane.seekTarget(current.range, at, thumbnail, retainVideo); pane.setSourceFps(sourceFps); if (desiredPlaying) pane.play(); else pane.prebufferHighest(at); });
     }
     function scheduleLoad(immediate) { window.clearTimeout(loadTimer); if (immediate) load(); else loadTimer = window.setTimeout(load, 250); }
-    function showPanePreview() { const index = thumbnailIndexFor(slot); if (index < 0) return; const key = thumbnails[index].key; panes.forEach((pane) => pane.showPreview(key, false)); window.clearTimeout(previewTimer); previewTimer = window.setTimeout(() => { if (dragging) panes.forEach((pane) => pane.showPreview(key, true)); }, 180); }
+    function showPanePreview() { const index = thumbnailIndexFor(slot); if (index < 0) return; const thumbnail = thumbnails[index]; panes.forEach((pane) => pane.showPreview(thumbnail, false)); window.clearTimeout(previewTimer); previewTimer = window.setTimeout(() => { if (dragging) panes.forEach((pane) => pane.showPreview(thumbnail, true)); }, 180); }
     function setSlot(next, immediate = false, retainVideo = false) { slot = clamp(Math.round(next), 0, total - 1); if (desiredPlaying) slot = quantizedSlot(playbackProfile(sourceFps)); retainDecodedVideo = retainVideo; if (!dragging) armPending(); render(); if (dragging) showPanePreview(); else scheduleLoad(immediate); }
     function syncTime(source, seconds) {
       if (source !== panes[0] || dragging) return;
