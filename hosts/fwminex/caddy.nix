@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   myData,
   ...
 }:
@@ -10,67 +11,43 @@ let
     + "0123456789"
     + " .,:;!?'\"()[]-–—…/@&*+=%#";
   valkyrieCharsetFile = pkgs.writeText "valkyrie-charset" valkyrieCharset;
-  valkyrieDir = "/var/lib/jakstys-www/fonts";
-  valkyriePython = pkgs.python3.withPackages (ps: [
-    ps.fonttools
-    ps.brotli
-  ]);
-  valkyrieSubset = pkgs.writeText "valkyrie-subset.py" ''
-    import sys
-    from fontTools import subset
-    from fontTools.ttLib import TTFont
+  # Each face lands in $out/_ named {role}-{xxh3-64 of its own bytes}.woff2 and
+  # its URL in $out/{role}.path. Content-addressed, so the immutable
+  # Cache-Control the vhost sets on /_/* is safe. The URL follows the subsetted
+  # bytes, which a fonttools or nixpkgs bump need not change: --recalc-timestamp
+  # stamps SOURCE_DATE_EPOCH, and nixpkgs pins that to 315532800.
+  valkyrie =
+    pkgs.runCommand "valkyrie-subset"
+      {
+        nativeBuildInputs = [
+          (pkgs.python3.withPackages (ps: [
+            ps.fonttools
+            ps.brotli
+          ]))
+          pkgs.xxhash
+        ];
+      }
+      ''
+        mkdir -p $out/_
+        # --recalc-* restore fontTools' TTFont constructor defaults, which
+        # pyftsubset's own option defaults otherwise turn off.
+        subset() {
+          pyftsubset "${config.mj.services.mb-type-fonts.package}/woff2/$1" \
+            --output-file="$2.woff2" --text-file=${valkyrieCharsetFile} \
+            --flavor=woff2 --desubroutinize --layout-features=kern,liga \
+            --recalc-bounds --recalc-timestamp
+          # A non-digest here would serve mutable bytes under an immutable URL.
+          hash=$(xxhsum -H3 "$2.woff2" | sed 's/^XXH3_//; s/ .*//')
+          [[ $hash =~ ^[0-9a-f]{16}$ ]]
+          mv "$2.woff2" "$out/_/$2-$hash.woff2"
+          printf /_/%s-%s.woff2 "$2" "$hash" >"$out/$2.path"
+        }
 
-    src, dst, charset = sys.argv[1:4]
-    text = open(charset, encoding="utf-8").read()
-    font = TTFont(src)
-    subsetter = subset.Subsetter(
-        options=subset.Options(
-            flavor="woff2", desubroutinize=True, layout_features=["kern", "liga"]
-        )
-    )
-    subsetter.populate(text=text)
-    subsetter.subset(font)
-    font.flavor = "woff2"
-    font.save(dst)
-  '';
+        subset "Valkyrie A/valkyrie_a_regular.woff2" valkyrie
+        subset "Valkyrie A Caps/valkyrie_a_caps_regular.woff2" valkyrie-caps
+      '';
 in
 {
-  systemd.services.jakstys-valkyrie = {
-    description = "trim Valkyrie Caps for the jakstys.lt landing page";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "mb-type-fonts.service" ];
-    wants = [ "mb-type-fonts.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      StateDirectory = "jakstys-www/fonts";
-      UMask = "0022";
-    };
-    script = ''
-      subset() {
-        src="/var/lib/mb-type/woff2/$1"
-        tmp=${valkyrieDir}/.new
-
-        rm -f "$tmp"
-        if [ ! -r "$src" ]; then
-          echo "$src is not readable; keeping any existing $2" >&2
-        elif ! ${valkyriePython}/bin/python ${valkyrieSubset} "$src" "$tmp" ${valkyrieCharsetFile}; then
-          echo "subsetting $1 failed; keeping any existing $2" >&2
-        elif [ ! -s "$tmp" ]; then
-          echo "subsetting $1 produced an empty file; keeping any existing $2" >&2
-        else
-          chmod 0444 "$tmp"
-          mv -f "$tmp" ${valkyrieDir}/"$2"
-        fi
-        rm -f "$tmp"
-      }
-
-      subset "Valkyrie A/valkyrie_a_regular.woff2" valkyrie-a.woff2
-      subset "Valkyrie A Caps/valkyrie_a_caps_regular.woff2" valkyrie-a-caps.woff2
-      exit 0
-    '';
-  };
-
   services.caddy = {
     enable = true;
     email = "motiejus+acme@jakstys.lt";
@@ -216,8 +193,10 @@ in
           X-Content-Type-Options "nosniff"
           X-Frame-Options "DENY"
           Alt-Svc "h3=\":443\"; ma=86400"
-          /_/* Cache-Control "public, max-age=31536000, immutable"
         }
+        # Inside a header block this would parse as <field> <find> <replace>, not
+        # as a path matcher.
+        header /_/* Cache-Control "public, max-age=31536000, immutable"
 
         root * /var/www/m.jakstys.lt
         file_server {
@@ -237,7 +216,11 @@ in
               }
               ''
                 mkdir -p $out
-                cp ${../../jakstys.lt/index.html} $out/index.html
+                install -m644 ${../../jakstys.lt/index.html} $out/index.html
+                cp -rT ${valkyrie}/_ $out/_
+                substituteInPlace $out/index.html \
+                  --replace-fail '@valkyrie@' "$(cat ${valkyrie}/valkyrie.path)" \
+                  --replace-fail '@valkyrieCaps@' "$(cat ${valkyrie}/valkyrie-caps.path)"
                 cp ${../../jakstys.lt/robots.txt} $out/robots.txt
                 cp ${../../jakstys.lt/robots.txt} $out/googlebfa9b278b6db80a4.html
                 OUTS=(index.html robots.txt googlebfa9b278b6db80a4.html)
@@ -297,15 +280,8 @@ in
             X-Content-Type-Options "nosniff"
             X-Frame-Options "DENY"
             Alt-Svc "h3=\":443\"; ma=86400"
-
-            /_/* Cache-Control "public, max-age=31536000, immutable"
           }
-
-          handle_path /fonts/* {
-            root * ${valkyrieDir}
-            header Cache-Control "no-cache"
-            file_server
-          }
+          header /_/* Cache-Control "public, max-age=31536000, immutable"
 
           root * ${jakstysLandingPage}
           file_server {

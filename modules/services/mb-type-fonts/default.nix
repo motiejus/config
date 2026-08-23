@@ -7,99 +7,145 @@
 let
   cfg = config.mj.services.mb-type-fonts;
   root = "/var/lib/mb-type";
-  # On disk, so that a later build can read the plaintext by path.
-  zip = "${root}/mb-type-260526.zip";
-  blob = pkgs.fetchurl {
-    urls = [
-      "https://dl.jakstys.lt/mb/mb-type-260526.age"
-      "https://dl2.jakstys.lt/mb/mb-type-260526.age"
-    ];
-    # The download loop passes no timeout of its own, so a hung-but-listening
-    # first host would burn three --retry-all-errors attempts before failing
-    # over. dl2 only starts serving once the dl-mirror branch lands.
-    curlOpts = "--connect-timeout 15";
-    hash = "sha256-4Pb/XVdqjJ0nby+CjEBQUl8fnY7l/hpMHgPFgKfxo30=";
+
+  # The unit materialises every entry and the store package reads only
+  # activeVersion, so a bump is three ordinary deploys with no window in which
+  # evaluation wants a file no deploy has written yet: add the entry, repoint
+  # activeVersion, drop the old entry.
+  versions = {
+    "260526" = {
+      urls = [
+        "https://dl.jakstys.lt/mb/mb-type-260526.age"
+        "https://dl2.jakstys.lt/mb/mb-type-260526.age"
+      ];
+      # The download loop passes no timeout of its own, so a hung-but-listening
+      # first host would burn three --retry-all-errors attempts before failing
+      # over. dl2 only starts serving once the dl-mirror branch lands.
+      curlOpts = "--connect-timeout 15";
+      hash = "sha256-4Pb/XVdqjJ0nby+CjEBQUl8fnY7l/hpMHgPFgKfxo30=";
+      # Flat sha256 of the decrypted zip, from:
+      #   age -d -i /run/agenix/mb-type-key mb-type-260526.age |
+      #     sha256sum | cut -d' ' -f1 | xargs nix hash convert --hash-algo sha256
+      plaintextHash = "sha256-F4L295N0dpp/1/dTI5mGH/D+1iQXBVe2NqLTpO1QeJ8=";
+    };
   };
+
+  activeVersion = "260526";
+
+  zipName = version: "mb-type-${version}.zip";
+
+  blob = version: pkgs.fetchurl { inherit (versions.${version}) urls curlOpts hash; };
+
+  plaintextHex =
+    version:
+    builtins.convertHash {
+      hash = versions.${version}.plaintextHash;
+      hashAlgo = "sha256";
+      toHashFormat = "base16";
+    };
+
+  # An eval-time fetch rather than a derivation: the plaintext may not enter the
+  # build sandbox, and serving it over the network is ruled out. Pinning the flat
+  # hash is what makes reading mutable state sound — the hash, not the path,
+  # defines the content — and nothing checks the path first because pure
+  # evaluation reports every path outside the flake as missing, while a fetcher
+  # is exempt.
+  #
+  # The file is written by this module's own unit, so a host has to have
+  # deployed the staging commit before a build for it can evaluate at all; that
+  # ordering is the whole reason that commit is separate.
+  #
+  # Nix caches the failure as well as the file: a `hash mismatch in file
+  # downloaded from file://...` keeps being reported for tarball-ttl (1h) after
+  # the bytes on disk are fixed, naming a hash no longer there. `--refresh`
+  # clears it. The unit only re-verifies the file at boot and at activation, so
+  # an archive that goes bad in between blocks the very deploy that would repair
+  # it: `systemctl restart mb-type-fonts` re-verifies and re-decrypts it.
+  zip = builtins.fetchurl {
+    name = zipName activeVersion;
+    url = "file://${root}/${zipName activeVersion}";
+    sha256 = versions.${activeVersion}.plaintextHash;
+  };
+
+  # The format directories sit below the archive's own dated top-level directory
+  # and carry a parenthesised platform hint, so they are matched rather than named.
+  fonts =
+    pkgs.runCommand "mb-type-${activeVersion}"
+      {
+        nativeBuildInputs = [ pkgs.libarchive ];
+      }
+      ''
+        mkdir -p $out unpacked
+        bsdtar -x -f ${zip} -C unpacked --no-same-owner --no-same-permissions
+
+        take() {
+          src=$(find unpacked -mindepth 2 -maxdepth 2 -type d -name "$2" | sort | sed -n 1p)
+          # Fatal, because neither fontconfig nor a woff2 consumer reports an empty one.
+          [ -n "$src" ] && [ -n "$(find "$src" -name "$3" -print -quit)" ] || { echo "mb-type: no $3 under $2" >&2; exit 1; }
+          cp -r --no-preserve=mode "$src" "$out/$1"
+        }
+
+        take otf 'OTF font files*' '*.otf'
+        take ttf 'TTF font files*' '*.ttf'
+        take woff2 'WOFF2 font files*' '*.woff2'
+      '';
 in
 {
-  options.mj.services.mb-type-fonts.enable = lib.mkEnableOption "the MB Type font library";
+  options.mj.services.mb-type-fonts = {
+    enable = lib.mkEnableOption "the MB Type font library";
+    package = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      default =
+        if cfg.enable then
+          fonts
+        else
+          throw ''
+            mj.services.mb-type-fonts.package was read while
+            mj.services.mb-type-fonts.enable is false. Enable the module.
+          '';
+      description = "The unpacked MB Type tree. Reading this while the module is disabled is a build error by design.";
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     age.secrets.mb-type-key.file = ../../../secrets/mb-type-key.age;
 
     mj.base.unitstatus.units = [ "mb-type-fonts" ];
 
-    fonts.fontconfig.localConf = ''
-      <?xml version="1.0"?>
-      <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
-      <fontconfig>
-        <dir>${root}/otf</dir>
-      </fontconfig>
-    '';
+    # The otf subdir, not the package root: fontconfig recurses, so the root
+    # would surface every family three times, from otf/, ttf/ and woff2/.
+    fonts.packages = [ "${cfg.package}/otf" ];
 
     systemd.services.mb-type-fonts = {
-      description = "unpack the MB Type font library";
+      description = "decrypt the MB Type archives to ${root}";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         StateDirectory = "mb-type";
+        # The evaluator reads these as an unprivileged user; plaintext at rest
+        # on the hosts that hold the key is an accepted cost.
         UMask = "0022";
       };
-      # The plaintext archive is wanted on disk, so age decrypts to the zip
-      # instead of into a pipe. Written as .tmp and moved into place, so a
-      # partial decrypt never takes the final name; and a zip that does not
-      # yield the fonts is deleted along with its generation directory, because
-      # the size test that skips the decrypt cannot tell a truncated or wrong
-      # archive from a good one and would fail identically on every later start.
-      #
-      # The generation directory is named after a store path, so each format
-      # gets a stable name beside it: otf (what fontconfig reads), ttf, woff2.
-      # They are searched for rather than named, because they sit below the
-      # archive's own dated top-level directory. Sorted, so a future archive
-      # with two matches resolves the same way every time rather than following
-      # readdir order. An empty or missing one is fatal because neither a
-      # dangling symlink nor fontconfig would report it.
       script = ''
         set -euo pipefail
 
-        if [ ! -s ${zip} ]; then
-          ${pkgs.age}/bin/age -d -i ${config.age.secrets.mb-type-key.path} ${blob} \
-            >${zip}.tmp
-          mv -T ${zip}.tmp ${zip}
-        fi
+        ${lib.concatMapStrings (version: ''
+          # The pinned hash, not a size test: evaluation reads this file by
+          # content, and a truncated one is non-empty, so anything but the exact
+          # bytes has to be decrypted again.
+          if ! echo "${plaintextHex version}  ${root}/${zipName version}" |
+              sha256sum -c --status; then
+            ${pkgs.age}/bin/age -d -i ${config.age.secrets.mb-type-key.path} \
+              ${blob version} >${root}/${zipName version}.tmp
+            mv -T ${root}/${zipName version}.tmp ${root}/${zipName version}
+          fi
+        '') (lib.attrNames versions)}
 
-        new=${root}/$(basename ${blob} .age)
-
-        if [ ! -d "$new" ]; then
-          rm -rf "$new.tmp"
-          mkdir -p "$new.tmp"
-          ${pkgs.libarchive}/bin/bsdtar -x -f ${zip} -C "$new.tmp" \
-            --no-same-owner --no-same-permissions || {
-            rm -rf ${zip} "$new.tmp"
-            exit 1
-          }
-          mv -T "$new.tmp" "$new"
-        fi
-
-        link() {
-          d=$(find "$new" -maxdepth 2 -type d -name "$2" | sort | sed -n 1p)
-          [ -n "$d" ] && [ -n "$(find "$d" -name "$3" -print -quit)" ] || {
-            echo "no $3 under $new" >&2
-            rm -rf ${zip} "$new"
-            exit 1
-          }
-          ln -sfnT "$d" ${root}/"$1"
-        }
-
-        link otf 'OTF font files*' '*.otf'
-        link ttf 'TTF font files*' '*.ttf'
-        link woff2 'WOFF2 font files*' '*.woff2'
-
-        rm -f ${zip}.tmp
-        find ${root} -maxdepth 1 -name '*-mb-type-*' ! -name "$(basename "$new")" \
+        find ${root} -mindepth 1 -maxdepth 1 \
+          ${lib.concatMapStringsSep " " (version: "! -name ${zipName version}") (lib.attrNames versions)} \
           -exec rm -rf {} +
-        ${pkgs.fontconfig}/bin/fc-cache -sf
       '';
     };
   };
