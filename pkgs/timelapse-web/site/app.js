@@ -4,6 +4,9 @@
   const QUALITY_LADDERS = Object.freeze({ panorama: Object.freeze([[480, 136], [960, 272], [1920, 544], [3840, 1086]]), ptz: Object.freeze([[320, 180], [640, 360], [1280, 720], [1920, 1080]]) });
   const DEFAULT_SOURCE_TIME = Date.parse('2025-03-18T06:00:00Z');
   const root = document.querySelector('#app');
+  const archiveBase = new URL(location.href);
+  archiveBase.username = archiveBase.password = '';
+  const archiveUrl = (path) => new URL(path, archiveBase).href;
   const hlsReady = window.Hls || window.timelapseHlsSettled ? Promise.resolve() : new Promise((resolve) => window.addEventListener('hls-ready', resolve, { once: true }));
   const partsFormat = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -19,10 +22,10 @@
   const qualityLadder = (camera) => QUALITY_LADDERS[camera] || [];
   const playlistPath = (camera, range, profile, quality, direct = profile.direct) => {
     const base = `video/${camera}-${range.id}`, modeBase = profile.mode === 'x1' || profile.direct ? base : `${base}/${profile.mode}`;
-    if (direct) return `${modeBase}/${quality !== 'auto' ? quality : camera === 'panorama' ? 3840 : isFirefoxMac() ? 1280 : 1920}/stream.m3u8`;
-    return `${modeBase}/master.m3u8?full`;
+    if (direct) return archiveUrl(`${modeBase}/${quality !== 'auto' ? quality : camera === 'panorama' ? 3840 : isFirefoxMac() ? 1280 : 1920}/stream.m3u8`);
+    return archiveUrl(`${modeBase}/master.m3u8?full`);
   };
-  const thumbnailPath = (height, camera, key) => `thumbnails/h${height}/${camera}-${key}.jpg`;
+  const thumbnailPath = (height, camera, key) => archiveUrl(`thumbnails/h${height}/${camera}-${key}.jpg`);
   const utcThumbnailKey = (value) => `${new Date(Math.round(value / THUMBNAIL_INTERVAL_MS) * THUMBNAIL_INTERVAL_MS).toISOString().slice(0, 13).replace('T', '-')}Z`;
   const html = (text) => String(text).replace(/[&<>"']/g, (letter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[letter]);
   const zoneParts = (value) => Object.fromEntries(partsFormat.formatToParts(value).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
@@ -162,7 +165,7 @@
     paint() { const rect = this.element.getBoundingClientRect(), x = rect.width * (this.scale - 1) / 2, y = rect.height * (this.scale - 1) / 2, transform = `translate(${clamp(this.panX, -x, x)}px,${clamp(this.panY, -y, y)}px) scale(${this.scale})`; this.panX = clamp(this.panX, -x, x); this.panY = clamp(this.panY, -y, y); this.video.style.transform = transform; this.freeze.style.transform = transform; this.preview.style.transform = transform; this.element.dataset.zoomed = this.scale > 1 ? 'true' : 'false'; }
   }
 
-  fetch('catalog.json').then((response) => { if (!response.ok) throw new Error(`catalog.json: ${response.status}`); return response.json(); }).then(start).catch((error) => { root.innerHTML = renderError(error.message); });
+  fetch(archiveUrl('catalog.json')).then((response) => { if (!response.ok) throw new Error(`catalog.json: ${response.status}`); return response.json(); }).then(start).catch((error) => { root.innerHTML = renderError(error.message); });
 
   function start(catalog) {
     const cameras = catalog.cameras.map((camera) => typeof camera === 'string' ? camera : camera.id).slice(0, 2);
@@ -204,7 +207,7 @@
     const panes = cameras.map((camera) => new Pane(root.querySelector(`.pane[data-camera="${CSS.escape(camera)}"]`), camera, syncTime, syncEnded, renderCameraStatuses, renderStreamInfo, handlePaneTap));
     const outageTrack = document.createElement('track'); outageTrack.kind = 'metadata'; panes[0].video.append(outageTrack); outageTrack.track.mode = 'hidden';
     function renderOutage() { const seconds = choice(slot).frame / FPS, text = dragging ? '' : [...(outageTrack.track.cues || [])].filter((cue) => cue.startTime <= seconds && seconds < cue.endTime).map((cue) => cue.text).join('\n'); outages.forEach((outage) => { outage.textContent = text; outage.hidden = !text; }); }
-    function loadOutages(range) { if (loadedOutageRange === range.id) return; loadedOutageRange = range.id; outages.forEach((outage) => { outage.hidden = true; }); outageTrack.src = `subtitles/${range.id}.vtt`; outageTrack.track.mode = 'hidden'; }
+    function loadOutages(range) { if (loadedOutageRange === range.id) return; loadedOutageRange = range.id; outages.forEach((outage) => { outage.hidden = true; }); outageTrack.src = archiveUrl(`subtitles/${range.id}.vtt`); outageTrack.track.mode = 'hidden'; }
     outageTrack.addEventListener('load', renderOutage);
     function renderCameraStatuses() { const text = { thumbnail: 'thumbnail…', video: 'video…', waiting: 'network…', error: 'failed' }; statuses.innerHTML = panes.filter((pane) => pane.status).map((pane) => `<span class="camera-status ${pane.status}">${html(cameraLabel(pane.camera))}: ${text[pane.status]}${pane.status === 'error' ? ` <button type="button" data-retry="${html(pane.camera)}">Retry</button>` : ''}</span>`).join(''); }
     function renderStreamInfo(pane, stream) { const resolution = stream.width && stream.height ? `${stream.width}×${stream.height}` : '—', text = `${cameraLabel(pane.camera)} · ${stream.codec} · ${resolution}`; streamInfo.filter((entry) => entry.dataset.streamCamera === pane.camera).forEach((entry) => { entry.textContent = text; }); }
