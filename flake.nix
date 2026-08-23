@@ -141,6 +141,9 @@
               timelapse-daily
               timelapse-reap
               ;
+            timelapse-web = super.callPackage ./pkgs/timelapse-web {
+              ffmpeg-headless = final.pkgs-unstable.ffmpeg-headless;
+            };
             mrescue-alpine = super.callPackage ./pkgs/mrescue-alpine.nix { };
 
             mkDebianLive = super.callPackage ./pkgs/mrescue-debian.nix { };
@@ -425,6 +428,7 @@
                 weather
                 gamja
                 chronoctl
+                timelapse-web
                 mrescue-alpine
                 mrescue-debian-xfce
                 mrescue-nixos

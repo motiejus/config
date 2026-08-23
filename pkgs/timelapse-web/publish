@@ -1,0 +1,308 @@
+#!/usr/bin/env bash
+# Publish the camera MKVs into the static tree consumed by the small viewer.
+set -euo pipefail
+shopt -s nullglob
+umask 0022
+
+# Keep the whole publisher (and every ffmpeg/ffprobe child it starts) in one
+# bounded leaf even when it is launched directly.  A single leaf also makes
+# the publisher lock below cover every media writer it owns.
+if [[ ${TIMELAPSE_MEM_LIMITED:-} != 1 ]]; then
+  exec env TIMELAPSE_MEM_LIMITED=1 MEM_POOL_SUB=timelapse-publish \
+    MEM_POOL_SUB_MAX="${TIMELAPSE_MEM_LIMIT_BYTES:-4294967296}" \
+    mem-limit-run "$0" "$@"
+fi
+
+script_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+video_root=$(cd -- "${1:?usage: publish VIDEO_ROOT}" && pwd)
+# A developer invocation still publishes into its checkout-local ./www.  The
+# installed service supplies TIMELAPSE_WEB_ROOT instead, keeping media writes
+# out of the immutable package store.
+www=${TIMELAPSE_WEB_ROOT:-$(pwd -P)/www}
+fps=24
+frame_interval=300
+declare -A month_ranges=()
+declare -A day_ranges=()
+
+for source in "$video_root"/panorama-????-??.mkv; do
+  range=${source##*/panorama-}
+  range=${range%.mkv}
+  [[ -f "$video_root/ptz-$range.mkv" ]] && month_ranges[$range]=1
+done
+for source in "$video_root"/days/panorama-????-??-??.mkv; do
+  range=${source##*/panorama-}
+  range=${range%.mkv}
+  [[ -f "$video_root/days/ptz-$range.mkv" ]] && day_ranges[$range]=1
+done
+
+ranges=()
+for range in "${!month_ranges[@]}"; do ranges+=("$range"); done
+for range in "${!day_ranges[@]}"; do
+  [[ -v "month_ranges[${range:0:7}]" ]] || ranges+=("$range")
+done
+if ((${#ranges[@]})); then
+  mapfile -t ranges < <(printf '%s\n' "${ranges[@]}" | sort)
+fi
+
+mkdir -p "$www" "$www/vendor"
+# Do not let two publishers replace the same single-file HLS object or JPEG at
+# once.  This is deliberately a www-local lock: a different checkout may
+# publish independently, while a Caddy reader is never touched.
+exec {publish_lock}>"$www/.publish.lock"
+flock -n "$publish_lock" || {
+  echo "another publisher owns $www/.publish.lock" >&2
+  exit 1
+}
+install -m 0644 "$script_root/site/index.html" "$script_root/site/app.js" "$script_root/site/app.css" "$www/"
+install -m 0644 "$script_root/vendor/hls.min.js" "$script_root/vendor/LICENSE.hls.js" "$www/vendor/"
+
+source_path() {
+  if [[ $2 == ????-?? ]]; then
+    printf '%s/%s-%s.mkv\n' "$video_root" "$1" "$2"
+  else
+    printf '%s/days/%s-%s.mkv\n' "$video_root" "$1" "$2"
+  fi
+}
+
+epoch_for_range() {
+  local day=$1
+  [[ $day == ????-?? ]] && day+=-01
+  date -u -d "$day 00:00:00" +%s
+}
+
+utc_for_epoch() {
+  date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ
+}
+
+range_end_epoch() {
+  local start_epoch=$1 source=$2 duration frames
+  duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source")
+  frames=$(awk "BEGIN { printf \"%.0f\", $duration * $fps }")
+  printf '%s\n' "$((start_epoch + frames * frame_interval))"
+}
+
+dimensions() {
+  case $1:$2 in
+    panorama:480) printf '480 136 220000\n' ;;
+    panorama:960) printf '960 272 700000\n' ;;
+    panorama:1920) printf '1920 544 2500000\n' ;;
+    panorama:3840) printf '3840 1086 9000000\n' ;;
+    ptz:320) printf '320 180 160000\n' ;;
+    ptz:640) printf '640 360 500000\n' ;;
+    ptz:1280) printf '1280 720 1500000\n' ;;
+    ptz:1920) printf '1920 1080 4500000\n' ;;
+  esac
+}
+
+widths() {
+  case $1 in
+    panorama) printf '%s\n' 480 960 1920 3840 ;;
+    ptz) printf '%s\n' 320 640 1280 1920 ;;
+  esac
+}
+
+write_master() {
+  local camera=$1 base=$2 width height bitrate
+  {
+    printf '%s\n' '#EXTM3U' '#EXT-X-VERSION:7' '#EXT-X-INDEPENDENT-SEGMENTS'
+    while read -r width; do
+      read -r width height bitrate < <(dimensions "$camera" "$width")
+      printf '#EXT-X-STREAM-INF:BANDWIDTH=%s,RESOLUTION=%sx%s\n' "$bitrate" "$width" "$height"
+      printf '%s/stream.m3u8\n' "$width"
+    done < <(widths "$camera")
+  } >"$base/master.m3u8"
+}
+
+publish_video() {
+  local camera=$1 range=$2 source=$3 base width height bitrate rendition
+  base="$www/video/$camera-$range"
+  mkdir -p "$base"
+  while read -r width; do
+    read -r width height bitrate < <(dimensions "$camera" "$width")
+    rendition="$base/$width"
+    mkdir -p "$rendition"
+    [[ -f "$rendition/stream.m3u8" && -f "$rendition/stream.mp4" && ! "$source" -nt "$rendition/stream.m3u8" ]] && continue
+    ffmpeg -nostdin -y -hide_banner -loglevel warning \
+      -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
+      -i "$source" -map 0:v:0 -an \
+      -vf "scale_vaapi=w=$width:h=$height:format=nv12" \
+      -c:v h264_vaapi -profile:v high -g "$fps" -keyint_min "$fps" -bf 0 \
+      -rc_mode VBR -b:v "$bitrate" -maxrate "$bitrate" -bufsize "$((bitrate * 2))" \
+      -force_key_frames 'expr:gte(t,n_forced*1)' \
+      -f hls -hls_time 1 -hls_segment_type fmp4 \
+      -hls_flags independent_segments+single_file -hls_playlist_type vod \
+      -hls_segment_filename "$rendition/stream.mp4" "$rendition/stream.m3u8"
+  done < <(widths "$camera")
+
+  write_master "$camera" "$base"
+}
+
+publish_fast_video() {
+  local camera=$1 range=$2 source=$3 stride=$4
+  local base width height bitrate rendition
+  base="$www/video/$camera-$range/x$stride"
+  while read -r width; do
+    read -r width height bitrate < <(dimensions "$camera" "$width")
+    rendition="$base/$width"
+    mkdir -p "$rendition"
+    [[ -f "$rendition/stream.m3u8" && -f "$rendition/stream.mp4" && ! "$source" -nt "$rendition/stream.m3u8" ]] && continue
+    ffmpeg -nostdin -y -hide_banner -loglevel warning \
+      -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
+      -i "$source" -map 0:v:0 -an \
+      -vf "select=not(mod(n\\,$stride)),setpts=N/(24*TB),scale_vaapi=w=$width:h=$height:format=nv12" \
+      -r "$fps" -c:v h264_vaapi -profile:v high -g "$fps" -keyint_min "$fps" -bf 0 \
+      -rc_mode VBR -b:v "$bitrate" -maxrate "$bitrate" -bufsize "$((bitrate * 2))" \
+      -force_key_frames 'expr:gte(t,n_forced*1)' \
+      -f hls -hls_time 1 -hls_segment_type fmp4 \
+      -hls_flags independent_segments+single_file -hls_playlist_type vod \
+      -hls_segment_filename "$rendition/stream.mp4" "$rendition/stream.m3u8"
+  done < <(widths "$camera")
+
+  # Fast profiles differ only by source-frame selection.  Keep their ABR
+  # ladder byte-for-byte equivalent to the ordinary x1 master.
+  write_master "$camera" "$base"
+}
+
+publish_thumbnails() {
+  local camera=$1 source=$2 start_epoch=$3 end_epoch=$4
+  local utc_day hour_epoch frame_index seconds hour tier output temporary next_day_epoch
+  local -a command=() missing=()
+  utc_day=$(date -u -d "@$start_epoch" +%F)
+  while :; do
+    for hour in 00 06 12 18; do
+      hour_epoch=$(date -u -d "$utc_day $hour:00:00Z" +%s)
+      (( hour_epoch >= start_epoch && hour_epoch < end_epoch )) || continue
+      (( (hour_epoch - start_epoch) % frame_interval == 0 )) || {
+        echo "thumbnail time is not an archive frame: ${utc_day}T${hour}:00Z" >&2
+        exit 1
+      }
+      frame_index=$(((hour_epoch - start_epoch) / frame_interval))
+      seconds=$(awk "BEGIN { printf \"%.6f\", $frame_index / $fps }")
+      missing=()
+      for tier in 90 180 360; do
+        output="$www/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
+        [[ -e $output && ! "$source" -nt "$output" ]] || missing+=("$tier:$output")
+      done
+      if ((${#missing[@]})); then
+        for tier in "${missing[@]}"; do mkdir -p "$(dirname -- "${tier#*:}")"; done
+        temporary=$(mktemp -d "${TMPDIR:-/tmp}/timelapse-jpeg.XXXXXX")
+        # Decode and scale on VAAPI.  JPEG itself is software encoded because
+        # the Radeon exposes no JPEG encoder.  Deliberately keep the ASS
+        # metadata stream out: its NODATA text remains the viewer's VTT
+        # overlay, while the video frame's own held/greyed pixels are exact.
+        command=(ffmpeg -nostdin -n -hide_banner -loglevel warning
+          -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi
+          -ss "$seconds" -i "$source" -an
+          -filter_complex '[0:v]split=3[a][b][c];[a]scale_vaapi=w=-2:h=90:format=nv12,hwdownload,format=nv12[v90];[b]scale_vaapi=w=-2:h=180:format=nv12,hwdownload,format=nv12[v180];[c]scale_vaapi=w=-2:h=360:format=nv12,hwdownload,format=nv12[v360]')
+        for tier in 90 180 360; do
+          command+=(-map "[v$tier]" -frames:v 1 -q:v 3 -update 1 "$temporary/h$tier.jpg")
+        done
+        "${command[@]}"
+        for tier in 90 180 360; do
+          mv -f "$temporary/h$tier.jpg" "$www/thumbnails/h$tier/$camera-$utc_day-${hour}Z.jpg"
+        done
+        rm -rf "$temporary"
+      fi
+    done
+    utc_day=$(date -u -d "$utc_day +1 day" +%F)
+    next_day_epoch=$(date -u -d "$utc_day 00:00:00Z" +%s)
+    (( next_day_epoch < end_epoch )) || break
+  done
+}
+
+remove_legacy_thumbnails() {
+  local camera=$1 tier
+  for tier in 90 180 360; do
+    # These patterns cover only the two superseded contracts: a daily noon
+    # image and a local-time four-per-day image. Neither matches the UTC
+    # contract, whose final timestamp component always ends in a literal Z.
+    rm -f -- "$www/thumbnails/h$tier/$camera"-????-??-??.jpg \
+      "$www/thumbnails/h$tier/$camera"-????-??-??-??.jpg
+  done
+}
+
+publish_subtitles() {
+  # The panorama and PTZ subtitle timelines are aligned, so publish one small
+  # range-level sidecar from panorama rather than duplicating it per camera.
+  local range=$1 source=$2 output temporary
+  output="$www/subtitles/$range.vtt"
+  [[ -f "$output" && ! "$source" -nt "$output" ]] && return
+  mkdir -p "$(dirname -- "$output")"
+  temporary=$(mktemp "$www/subtitles/.$range.XXXXXX")
+  {
+    printf 'WEBVTT\n\n'
+    # ASS's Outage style is the source-of-truth signal for NODATA frames.
+    # Keep its text and centisecond cue boundaries, but omit ordinary Date
+    # labels so consumers only have to process exceptional intervals.
+    ffmpeg -nostdin -v error -i "$source" -map 0:s:0 -c:s copy -f ass - |
+      awk '
+        function timestamp(ass, part) {
+          split(ass, part, /[:.]/)
+          return sprintf("%02d:%02d:%02d.%03d", part[1], part[2], part[3], part[4] * 10)
+        }
+        /^Dialogue: / {
+          line = substr($0, 11)
+          fields = split(line, field, ",")
+          if (field[4] != "Outage") next
+          text = field[10]
+          for (i = 11; i <= fields; i++) text = text "," field[i]
+          gsub(/\{[^}]*\}/, "", text)
+          gsub(/\\\\[Nn]/, "\n", text)
+          printf "%s --> %s\n%s\n\n", timestamp(field[2]), timestamp(field[3]), text
+        }
+      '
+  } >"$temporary"
+  chmod 0644 "$temporary"
+  mv -f "$temporary" "$output"
+}
+
+for month in "${!month_ranges[@]}"; do
+  # Promotion makes the root monthly pair authoritative. Remove only complete,
+  # normal-name daily pairs; partial uploads and unmatched files stay intact.
+  for panorama_daily in "$video_root/days/panorama-$month"-??.mkv; do
+    day=${panorama_daily##*/panorama-}
+    ptz_daily="$video_root/days/ptz-$day"
+    [[ -f "$ptz_daily" ]] && rm -f -- "$panorama_daily" "$ptz_daily"
+  done
+
+  superseded_daily=0
+  for artifact in "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??; do
+    [[ -e $artifact ]] && { superseded_daily=1; break; }
+  done
+  if ((superseded_daily)); then
+    rm -rf "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??
+    rm -f "$www/subtitles/$month"-??.vtt
+    for tier in 90 180 360; do
+      # The local contracts end in .jpg after HH; UTC assets end in HHZ.jpg.
+      rm -f "$www/thumbnails/h$tier/panorama-$month"-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??.jpg \
+        "$www/thumbnails/h$tier/panorama-$month"-??-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??.jpg
+    done
+  fi
+done
+
+catalog=$(mktemp "$www/.catalog.XXXXXX")
+printf '{\n  "cameras": ["panorama", "ptz"],\n  "ranges": [' >"$catalog"
+separator=
+for range in "${ranges[@]}"; do
+  start_epoch=$(epoch_for_range "$range")
+  panorama_source=$(source_path panorama "$range")
+  ptz_source=$(source_path ptz "$range")
+  end_epoch=$(range_end_epoch "$start_epoch" "$panorama_source")
+  printf '%s\n    {"id":"%s","start":"%s","end":"%s"}' "$separator" "$range" "$(utc_for_epoch "$start_epoch")" "$(utc_for_epoch "$end_epoch")" >>"$catalog"
+  separator=,
+  publish_video panorama "$range" "$panorama_source"
+  publish_video ptz "$range" "$ptz_source"
+  publish_fast_video panorama "$range" "$panorama_source" 6
+  publish_fast_video panorama "$range" "$panorama_source" 36
+  publish_fast_video ptz "$range" "$ptz_source" 6
+  publish_fast_video ptz "$range" "$ptz_source" 36
+  publish_subtitles "$range" "$panorama_source"
+  publish_thumbnails panorama "$panorama_source" "$start_epoch" "$end_epoch"
+  publish_thumbnails ptz "$ptz_source" "$start_epoch" "$end_epoch"
+done
+# Remove obsolete pre-UTC thumbnail names after every replacement is ready.
+remove_legacy_thumbnails panorama
+remove_legacy_thumbnails ptz
+printf '\n  ]\n}\n' >>"$catalog"
+chmod 0644 "$catalog"
+mv -f "$catalog" "$www/catalog.json"

@@ -8,6 +8,7 @@
 let
   cfg = config.mj.services.timelapse-r11;
   stateDir = "/var/lib/timelapse-r11";
+  webStateDir = "/var/lib/timelapse-web";
 
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
@@ -34,7 +35,7 @@ let
     '';
   };
 
-  # Shared by the two units below: same user, same state directory, same sandbox.
+  # Shared baseline sandbox for the units below.
   common = {
     StateDirectory = "timelapse-r11";
     StateDirectoryMode = "0750";
@@ -95,13 +96,23 @@ in
         only read, and cannot address a path outside that directory.
       '';
     };
+
+    web.enable = lib.mkEnableOption "publish the timelapse archive as a static web site";
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.web.enable || cfg.archiveFrom != null;
+        message = "mj.services.timelapse-r11.web requires archiveFrom, which drives timelapse-web after a successful archive";
+      }
+    ];
+
     mj.base.unitstatus.units = [
       "timelapse-r11"
     ]
-    ++ lib.optional (cfg.archiveFrom != null) "timelapse-archive";
+    ++ lib.optional (cfg.archiveFrom != null) "timelapse-archive"
+    ++ lib.optional cfg.web.enable "timelapse-web";
 
     users.users.timelapse-r11 = {
       isSystemUser = true;
@@ -128,6 +139,11 @@ in
       timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
+        unitConfig = lib.optionalAttrs cfg.web.enable {
+          # OnSuccess belongs to the producer: systemd starts the static-site
+          # publisher only after a successful archive pass, never the reverse.
+          OnSuccess = [ "timelapse-web.service" ];
+        };
         serviceConfig = common // {
           ExecStart = [
             "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
@@ -166,6 +182,41 @@ in
             "AF_INET"
             "AF_INET6"
           ];
+        };
+      };
+      timelapse-web = lib.mkIf cfg.web.enable {
+        # Keeps the ordering sensible when started manually alongside the
+        # archive. The archive's OnSuccess remains the normal trigger.
+        after = [ "timelapse-archive.service" ];
+        serviceConfig = common // {
+          # Keep the generated tree separate and world-readable for nginx. The
+          # publisher also reaps stale source artifacts, so it needs RW access
+          # to the capture state despite ProtectSystem=strict.
+          StateDirectory = "timelapse-web";
+          StateDirectoryMode = "0755";
+          WorkingDirectory = webStateDir;
+          ReadWritePaths = [ stateDir ];
+          ExecStart = "${lib.getExe pkgs.timelapse-web} ${stateDir}/videos";
+          Type = "oneshot";
+          TimeoutStartSec = "infinity";
+          TimeoutStopSec = "10s";
+          Nice = 19;
+          IOSchedulingClass = "idle";
+          AllowedCPUs = "0-11";
+          MemoryMax = "10G";
+
+          # The publisher uses VAAPI for every HLS rendition and thumbnail.
+          PrivateDevices = false;
+          DeviceAllow = [ "/dev/dri/renderD128 rw" ];
+          SupplementaryGroups = [ "render" ];
+          CacheDirectory = "timelapse-web";
+          Environment = [
+            "TIMELAPSE_WEB_ROOT=${webStateDir}"
+            "XDG_CACHE_HOME=/var/cache/timelapse-web"
+            "LIBVA_DRIVER_NAME=radeonsi"
+          ];
+
+          RestrictAddressFamilies = [ "AF_UNIX" ];
         };
       };
       timelapse-r11 = {

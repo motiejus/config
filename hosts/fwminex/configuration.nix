@@ -243,6 +243,15 @@ in
         addSSL = true;
         sslCertificate = "/run/credentials/nginx.service/jakstys.lt-cert.pem";
         sslCertificateKey = "/run/credentials/nginx.service/jakstys.lt-key.pem";
+        locations = {
+          "= /timelapse".return = "301 /timelapse/";
+          "/timelapse/" = {
+            alias = "/var/lib/timelapse-web/";
+            extraConfig = ''
+              add_header Cache-Control "no-cache" always;
+            '';
+          };
+        };
       };
     };
 
@@ -394,6 +403,7 @@ in
 
       timelapse-r11 = {
         enable = true;
+        web.enable = true;
         onCalendar = "*-*-* *:0/5:00";
         secretsEnv = config.age.secrets.timelapse.path;
         archiveFrom = "timelapse-r11@vno3-nk.jakst.vpn";
