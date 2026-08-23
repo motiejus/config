@@ -7,6 +7,8 @@
 let
   cfg = config.mj.services.mb-type-fonts;
   root = "/var/lib/mb-type";
+  # On disk, so that a later build can read the plaintext by path.
+  zip = "${root}/mb-type-260526.zip";
   blob = pkgs.fetchurl {
     urls = [
       "https://dl.jakstys.lt/mb/mb-type-260526.age"
@@ -41,11 +43,15 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        StateDirectory = "mb-type";
         UMask = "0022";
       };
-      # The archive is streamed straight from age into libarchive, so the
-      # decrypted zip never lands on disk. bsdtar can do that because the
-      # archive carries its sizes in the local headers (no data descriptors).
+      # The plaintext archive is wanted on disk, so age decrypts to the zip
+      # instead of into a pipe. Written as .tmp and moved into place, so a
+      # partial decrypt never takes the final name; and a zip that does not
+      # yield the fonts is deleted along with its generation directory, because
+      # the size test that skips the decrypt cannot tell a truncated or wrong
+      # archive from a good one and would fail identically on every later start.
       #
       # The generation directory is named after a store path, so each format
       # gets a stable name beside it: otf (what fontconfig reads), ttf, woff2.
@@ -57,14 +63,22 @@ in
       script = ''
         set -euo pipefail
 
+        if [ ! -s ${zip} ]; then
+          ${pkgs.age}/bin/age -d -i ${config.age.secrets.mb-type-key.path} ${blob} \
+            >${zip}.tmp
+          mv -T ${zip}.tmp ${zip}
+        fi
+
         new=${root}/$(basename ${blob} .age)
 
         if [ ! -d "$new" ]; then
           rm -rf "$new.tmp"
           mkdir -p "$new.tmp"
-          ${pkgs.age}/bin/age -d -i ${config.age.secrets.mb-type-key.path} ${blob} \
-            | ${pkgs.libarchive}/bin/bsdtar -x -f - -C "$new.tmp" \
-                --no-same-owner --no-same-permissions
+          ${pkgs.libarchive}/bin/bsdtar -x -f ${zip} -C "$new.tmp" \
+            --no-same-owner --no-same-permissions || {
+            rm -rf ${zip} "$new.tmp"
+            exit 1
+          }
           mv -T "$new.tmp" "$new"
         fi
 
@@ -72,6 +86,7 @@ in
           d=$(find "$new" -maxdepth 2 -type d -name "$2" | sort | sed -n 1p)
           [ -n "$d" ] && [ -n "$(find "$d" -name "$3" -print -quit)" ] || {
             echo "no $3 under $new" >&2
+            rm -rf ${zip} "$new"
             exit 1
           }
           ln -sfnT "$d" ${root}/"$1"
@@ -81,6 +96,7 @@ in
         link ttf 'TTF font files*' '*.ttf'
         link woff2 'WOFF2 font files*' '*.woff2'
 
+        rm -f ${zip}.tmp
         find ${root} -maxdepth 1 -name '*-mb-type-*' ! -name "$(basename "$new")" \
           -exec rm -rf {} +
         ${pkgs.fontconfig}/bin/fc-cache -sf
