@@ -11,8 +11,8 @@ let
     + "0123456789"
     + " .,:;!?'\"()[]-–—…/@&*+=%#";
   valkyrieCharsetFile = pkgs.writeText "valkyrie-charset" valkyrieCharset;
-  # Each face lands in $out/_ named {role}-{xxh3-64 of its own bytes}.woff2 and
-  # its URL in $out/{role}.path. Content-addressed, so the immutable
+  # The face lands in $out/_ as valkyrie-caps-{xxh3-64 of its own bytes}.woff2,
+  # with its URL in $out/valkyrie-caps.path. Content-addressed, so the immutable
   # Cache-Control the vhost sets on /_/* is safe. The URL follows the subsetted
   # bytes, which a fonttools or nixpkgs bump need not change: --recalc-timestamp
   # stamps SOURCE_DATE_EPOCH, and nixpkgs pins that to 315532800.
@@ -31,20 +31,15 @@ let
         mkdir -p $out/_
         # --recalc-* restore fontTools' TTFont constructor defaults, which
         # pyftsubset's own option defaults otherwise turn off.
-        subset() {
-          pyftsubset "${config.mj.services.mb-type-fonts.package}/woff2/$1" \
-            --output-file="$2.woff2" --text-file=${valkyrieCharsetFile} \
-            --flavor=woff2 --desubroutinize --layout-features=kern,liga \
-            --recalc-bounds --recalc-timestamp
-          # A non-digest here would serve mutable bytes under an immutable URL.
-          hash=$(xxhsum -H3 "$2.woff2" | sed 's/^XXH3_//; s/ .*//')
-          [[ $hash =~ ^[0-9a-f]{16}$ ]]
-          mv "$2.woff2" "$out/_/$2-$hash.woff2"
-          printf /_/%s-%s.woff2 "$2" "$hash" >"$out/$2.path"
-        }
-
-        subset "Valkyrie A/valkyrie_a_regular.woff2" valkyrie
-        subset "Valkyrie A Caps/valkyrie_a_caps_regular.woff2" valkyrie-caps
+        pyftsubset "${config.mj.services.mb-type-fonts.package}/woff2/Valkyrie A Caps/valkyrie_a_caps_regular.woff2" \
+          --output-file=valkyrie-caps.woff2 --text-file=${valkyrieCharsetFile} \
+          --flavor=woff2 --desubroutinize --layout-features=kern,liga \
+          --recalc-bounds --recalc-timestamp
+        # A non-digest here would serve mutable bytes under an immutable URL.
+        hash=$(xxhsum -H3 valkyrie-caps.woff2 | sed 's/^XXH3_//; s/ .*//')
+        [[ $hash =~ ^[0-9a-f]{16}$ ]]
+        mv valkyrie-caps.woff2 "$out/_/valkyrie-caps-$hash.woff2"
+        printf /_/valkyrie-caps-%s.woff2 "$hash" >$out/valkyrie-caps.path
       '';
 in
 {
@@ -219,7 +214,6 @@ in
                 install -m644 ${../../jakstys.lt/index.html} $out/index.html
                 cp -rT ${valkyrie}/_ $out/_
                 substituteInPlace $out/index.html \
-                  --replace-fail '@valkyrie@' "$(cat ${valkyrie}/valkyrie.path)" \
                   --replace-fail '@valkyrieCaps@' "$(cat ${valkyrie}/valkyrie-caps.path)"
                 cp ${../../jakstys.lt/robots.txt} $out/robots.txt
                 cp ${../../jakstys.lt/robots.txt} $out/googlebfa9b278b6db80a4.html

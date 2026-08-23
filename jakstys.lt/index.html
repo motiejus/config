@@ -5,16 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jakštys</title>
     <link rel="icon" href="data:,">
-    <link rel="preload" as="font" type="font/woff2" href="@valkyrie@" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="@valkyrieCaps@" crossorigin>
     <style>
-        @font-face {
-            font-family: "Valkyrie A";
-            src: url("@valkyrie@") format("woff2");
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-
         @font-face {
             font-family: "Valkyrie A Caps";
             src: url("@valkyrieCaps@") format("woff2");
@@ -87,14 +79,10 @@
 
         .people a {
             color: var(--people);
-            font-family: "Valkyrie A", Charter, "Bitstream Charter", "Iowan Old Style", Constantia, Georgia, serif;
+            font-family: "Valkyrie A Caps", Charter, "Bitstream Charter", "Iowan Old Style", Constantia, Georgia, serif;
             font-size: clamp(2rem, 9vw, 3rem);
             line-height: 1.1;
             padding: 0.25rem 0.5rem;
-        }
-
-        body:target .people a {
-            font-family: "Valkyrie A Caps", Charter, "Bitstream Charter", "Iowan Old Style", Constantia, Georgia, serif;
         }
 
         a:hover, a:focus-visible {
@@ -163,7 +151,7 @@
         }
     </style>
 </head>
-<body id="sc">
+<body>
     <main>
         <nav class="people" aria-label="People">
             <a href="https://jonas.jakstys.lt">Jonas</a>
@@ -196,19 +184,5 @@
             </a>
         </nav>
     </main>
-<script>
-    function toggle() {
-        location.hash = location.hash === "#sc" ? "" : "sc";
-    }
-
-    addEventListener("keydown", function (e) {
-        if (e.key !== "x" || e.altKey || e.ctrlKey || e.metaKey) return;
-        var el = e.target;
-        if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
-        toggle();
-    });
-
-    addEventListener("dblclick", toggle);
-</script>
 </body>
 </html>
