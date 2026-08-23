@@ -262,15 +262,15 @@ seed_legacy_range() {
   local range=$1 panorama_source=$2 ptz_source=$3 camera tier
   local -a images=()
   mkdir -p "$artifact_root/video" "$artifact_root/subtitles"
-  legacy_video_complete panorama "$range" "$panorama_source" && cp -al "$www/video/panorama-$range" "$artifact_root/video/"
-  legacy_video_complete ptz "$range" "$ptz_source" && cp -al "$www/video/ptz-$range" "$artifact_root/video/"
-  [[ ! -f "$www/subtitles/$range.vtt" ]] || cp -al "$www/subtitles/$range.vtt" "$artifact_root/subtitles/"
+  legacy_video_complete panorama "$range" "$panorama_source" && cp -al --no-preserve=ownership "$www/video/panorama-$range" "$artifact_root/video/"
+  legacy_video_complete ptz "$range" "$ptz_source" && cp -al --no-preserve=ownership "$www/video/ptz-$range" "$artifact_root/video/"
+  [[ ! -f "$www/subtitles/$range.vtt" ]] || cp -al --no-preserve=ownership "$www/subtitles/$range.vtt" "$artifact_root/subtitles/"
   for tier in 90 180 360; do
     for camera in panorama ptz; do
       images=("$www/thumbnails/h$tier/$camera-$range"-*Z.jpg)
       if ((${#images[@]})); then
         mkdir -p "$artifact_root/thumbnails/h$tier"
-        cp -al "${images[@]}" "$artifact_root/thumbnails/h$tier/"
+        cp -al --no-preserve=ownership "${images[@]}" "$artifact_root/thumbnails/h$tier/"
       fi
     done
   done
