@@ -8,7 +8,7 @@
 let
   cfg = config.mj.services.timelapse-r11;
   stateDir = "/var/lib/timelapse-r11";
-  webStateDir = "/var/lib/timelapse-web";
+  webRoot = "/var/www/timelapse-web";
 
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
@@ -128,134 +128,137 @@ in
       members = [ "motiejus" ];
     };
 
-    systemd.services = {
+    systemd = {
+      tmpfiles.rules = lib.optional cfg.web.enable "d ${webRoot} 0755 timelapse-r11 timelapse-r11 -";
 
-      # One pass over the whole archive, oldest month first: backfill it from the
-      # other host, encode the days that ended, join the months that are complete.
-      #
-      # Deleting is its own ExecStart on purpose, and it is commented out: the
-      # archive keeps building itself while every photograph stays on disk, which
-      # is where this stays until the pipeline has been watched for a while.
-      timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        unitConfig = lib.optionalAttrs cfg.web.enable {
-          # OnSuccess belongs to the producer: systemd starts the static-site
-          # publisher only after a successful archive pass, never the reverse.
-          OnSuccess = [ "timelapse-web.service" ];
+      services = {
+        # One pass over the whole archive, oldest month first: backfill it from the
+        # other host, encode the days that ended, join the months that are complete.
+        #
+        # Deleting is its own ExecStart on purpose, and it is commented out: the
+        # archive keeps building itself while every photograph stays on disk, which
+        # is where this stays until the pipeline has been watched for a while.
+        timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          unitConfig = lib.optionalAttrs cfg.web.enable {
+            # OnSuccess belongs to the producer: systemd starts the static-site
+            # publisher only after a successful archive pass, never the reverse.
+            OnSuccess = [ "timelapse-web.service" ];
+          };
+          serviceConfig = common // {
+            ExecStart = [
+              "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
+              # (lib.getExe pkgs.timelapse-reap)
+            ];
+            Type = "oneshot";
+            # A day of footage is minutes of encoding per camera and a first run has
+            # the entire backlog to work through, so there is no useful timeout: the
+            # work is idempotent and the next run picks up wherever this one stopped.
+            TimeoutStartSec = "infinity";
+            # The package override fixes natural EOF, but even fixed libsvtav1 cannot
+            # interrupt an active encode promptly; bound SIGKILL escalation separately.
+            TimeoutStopSec = "10s";
+            Nice = 19;
+            IOSchedulingClass = "idle";
+            AllowedCPUs = "0-11";
+            MemoryMax = "10G";
+
+            # The encoder runs on the GPU, so the render node has to be reachable at
+            # all: PrivateDevices replaces /dev with a set that has no render node in
+            # it, and the node is root:render 0660. Nothing else in the sandbox above
+            # is in the way -- traced through a real av1_vaapi encode, mesa maps no
+            # page write+executable and uses no privileged syscall.
+            PrivateDevices = false;
+            DeviceAllow = [ "/dev/dri/renderD128 rw" ];
+            SupplementaryGroups = [ "render" ];
+            # Mesa opens a shader cache at startup even though VCN compiles no
+            # shaders; without a writable one it warns into the journal every night.
+            CacheDirectory = "timelapse-r11";
+            Environment = [ "XDG_CACHE_HOME=/var/cache/timelapse-r11" ];
+
+            # AF_UNIX on top of the capture unit's set: resolving the other host's
+            # name goes through a local socket before any packet is sent.
+            RestrictAddressFamilies = [
+              "AF_UNIX"
+              "AF_INET"
+              "AF_INET6"
+            ];
+          };
         };
-        serviceConfig = common // {
-          ExecStart = [
-            "${lib.getExe pkgs.timelapse-daily} --missing-from=${cfg.archiveFrom}"
-            # (lib.getExe pkgs.timelapse-reap)
-          ];
-          Type = "oneshot";
-          # A day of footage is minutes of encoding per camera and a first run has
-          # the entire backlog to work through, so there is no useful timeout: the
-          # work is idempotent and the next run picks up wherever this one stopped.
-          TimeoutStartSec = "infinity";
-          # The package override fixes natural EOF, but even fixed libsvtav1 cannot
-          # interrupt an active encode promptly; bound SIGKILL escalation separately.
-          TimeoutStopSec = "10s";
-          Nice = 19;
-          IOSchedulingClass = "idle";
-          AllowedCPUs = "0-11";
-          MemoryMax = "10G";
+        timelapse-web = lib.mkIf cfg.web.enable {
+          # Keeps the ordering sensible when started manually alongside the
+          # archive. The archive's OnSuccess remains the normal trigger.
+          after = [ "timelapse-archive.service" ];
+          serviceConfig = common // {
+            # tmpfiles owns the generated, world-readable nginx tree. The
+            # publisher also reaps stale source artifacts, so both it and the
+            # capture state must be writable through ProtectSystem=strict.
+            WorkingDirectory = webRoot;
+            ReadWritePaths = [
+              stateDir
+              webRoot
+            ];
+            ExecStart = "${lib.getExe pkgs.timelapse-web} ${stateDir}/videos";
+            Type = "oneshot";
+            TimeoutStartSec = "infinity";
+            TimeoutStopSec = "10s";
+            Nice = 19;
+            IOSchedulingClass = "idle";
+            AllowedCPUs = "0-11";
+            MemoryMax = "10G";
 
-          # The encoder runs on the GPU, so the render node has to be reachable at
-          # all: PrivateDevices replaces /dev with a set that has no render node in
-          # it, and the node is root:render 0660. Nothing else in the sandbox above
-          # is in the way -- traced through a real av1_vaapi encode, mesa maps no
-          # page write+executable and uses no privileged syscall.
-          PrivateDevices = false;
-          DeviceAllow = [ "/dev/dri/renderD128 rw" ];
-          SupplementaryGroups = [ "render" ];
-          # Mesa opens a shader cache at startup even though VCN compiles no
-          # shaders; without a writable one it warns into the journal every night.
-          CacheDirectory = "timelapse-r11";
-          Environment = [ "XDG_CACHE_HOME=/var/cache/timelapse-r11" ];
+            # The publisher uses VAAPI for every HLS rendition and thumbnail.
+            PrivateDevices = false;
+            DeviceAllow = [ "/dev/dri/renderD128 rw" ];
+            SupplementaryGroups = [ "render" ];
+            CacheDirectory = "timelapse-web";
+            Environment = [
+              "TIMELAPSE_WEB_ROOT=${webRoot}"
+              "XDG_CACHE_HOME=/var/cache/timelapse-web"
+              "LIBVA_DRIVER_NAME=radeonsi"
+            ];
 
-          # AF_UNIX on top of the capture unit's set: resolving the other host's
-          # name goes through a local socket before any packet is sent.
-          RestrictAddressFamilies = [
-            "AF_UNIX"
-            "AF_INET"
-            "AF_INET6"
-          ];
+            RestrictAddressFamilies = [ "AF_UNIX" ];
+          };
+        };
+        timelapse-r11 = {
+          preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
+          serviceConfig = common // {
+            ExecStart = lib.getExe timelapseScript;
+            # This one shells out to bare date, so it needs telling; the archive
+            # tools export TZ themselves.
+            Environment = [ "TZ=UTC" ];
+            EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
+            LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
+            RuntimeDirectory = "timelapse-r11";
+            Type = "simple";
+            RuntimeMaxSec = "55s";
+
+            # The camera is addressed by IP, so this one needs no name resolution.
+            RestrictAddressFamilies = [
+              "AF_INET"
+              "AF_INET6"
+            ];
+          };
         };
       };
-      timelapse-web = lib.mkIf cfg.web.enable {
-        # Keeps the ordering sensible when started manually alongside the
-        # archive. The archive's OnSuccess remains the normal trigger.
-        after = [ "timelapse-archive.service" ];
-        serviceConfig = common // {
-          # Keep the generated tree separate and world-readable for nginx. The
-          # publisher also reaps stale source artifacts, so it needs RW access
-          # to the capture state despite ProtectSystem=strict.
-          StateDirectory = "timelapse-web";
-          StateDirectoryMode = "0755";
-          WorkingDirectory = webStateDir;
-          ReadWritePaths = [ stateDir ];
-          ExecStart = "${lib.getExe pkgs.timelapse-web} ${stateDir}/videos";
-          Type = "oneshot";
-          TimeoutStartSec = "infinity";
-          TimeoutStopSec = "10s";
-          Nice = 19;
-          IOSchedulingClass = "idle";
-          AllowedCPUs = "0-11";
-          MemoryMax = "10G";
 
-          # The publisher uses VAAPI for every HLS rendition and thumbnail.
-          PrivateDevices = false;
-          DeviceAllow = [ "/dev/dri/renderD128 rw" ];
-          SupplementaryGroups = [ "render" ];
-          CacheDirectory = "timelapse-web";
-          Environment = [
-            "TIMELAPSE_WEB_ROOT=${webStateDir}"
-            "XDG_CACHE_HOME=/var/cache/timelapse-web"
-            "LIBVA_DRIVER_NAME=radeonsi"
-          ];
-
-          RestrictAddressFamilies = [ "AF_UNIX" ];
+      timers = {
+        timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
+          timerConfig = {
+            OnCalendar = "*-*-* 04:00:00 UTC";
+            Persistent = true;
+          };
+          wantedBy = [ "timers.target" ];
         };
-      };
-      timelapse-r11 = {
-        preStart = "ln -sf $CREDENTIALS_DIRECTORY/secrets.env /run/timelapse-r11/secrets.env";
-        serviceConfig = common // {
-          ExecStart = lib.getExe timelapseScript;
-          # This one shells out to bare date, so it needs telling; the archive
-          # tools export TZ themselves.
-          Environment = [ "TZ=UTC" ];
-          EnvironmentFile = [ "-/run/timelapse-r11/secrets.env" ];
-          LoadCredential = [ "secrets.env:${cfg.secretsEnv}" ];
-          RuntimeDirectory = "timelapse-r11";
-          Type = "simple";
-          RuntimeMaxSec = "55s";
 
-          # The camera is addressed by IP, so this one needs no name resolution.
-          RestrictAddressFamilies = [
-            "AF_INET"
-            "AF_INET6"
-          ];
+        timelapse-r11 = {
+          timerConfig.OnCalendar = cfg.onCalendar;
+          wantedBy = [ "timers.target" ];
         };
       };
     };
-
-    systemd.timers = {
-      timelapse-archive = lib.mkIf (cfg.archiveFrom != null) {
-        timerConfig = {
-          OnCalendar = "*-*-* 04:00:00 UTC";
-          Persistent = true;
-        };
-        wantedBy = [ "timers.target" ];
-      };
-
-      timelapse-r11 = {
-        timerConfig.OnCalendar = cfg.onCalendar;
-        wantedBy = [ "timers.target" ];
-      };
-    };
-
   };
 
 }
