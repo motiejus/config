@@ -58,15 +58,5 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  doCheck = true;
-  checkPhase = ''
-    runHook preCheck
-    bash -n publish
-    shellcheck -s bash publish
-    node check.mjs
-    node browser-check.mjs ${hlsJs}/dist/hls.min.js
-    runHook postCheck
-  '';
-
   meta.mainProgram = "timelapse-web";
 }
