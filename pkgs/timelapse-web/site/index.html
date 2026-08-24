@@ -9,8 +9,7 @@
 </head>
 <body>
   <main id="app" aria-live="polite"></main>
-  <!-- Optional MSE player: hls.js is preferred, with native HLS as fallback. -->
-  <script async src="vendor/hls.min.js" onload="window.timelapseHlsSettled=1;window.dispatchEvent(new Event('hls-ready'))" onerror="window.timelapseHlsSettled=1;window.dispatchEvent(new Event('hls-ready'))"></script>
+  <script src="vendor/hls.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

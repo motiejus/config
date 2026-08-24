@@ -9,6 +9,7 @@
   gawk,
   shellcheck,
   nodejs,
+  chromium,
   util-linux,
 }:
 let
@@ -26,6 +27,8 @@ stdenvNoCC.mkDerivation {
     makeWrapper
     shellcheck
     nodejs
+    chromium
+    ffmpeg-headless
   ];
 
   dontConfigure = true;
@@ -61,6 +64,7 @@ stdenvNoCC.mkDerivation {
     bash -n publish
     shellcheck -s bash publish
     node check.mjs
+    node browser-check.mjs ${hlsJs}/dist/hls.min.js
     runHook postCheck
   '';
 
