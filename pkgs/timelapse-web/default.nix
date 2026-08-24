@@ -8,8 +8,6 @@
   ffmpeg-headless,
   gawk,
   shellcheck,
-  nodejs,
-  chromium,
   util-linux,
 }:
 let
@@ -26,12 +24,17 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [
     makeWrapper
     shellcheck
-    nodejs
-    chromium
-    ffmpeg-headless
   ];
 
   dontConfigure = true;
+
+  doCheck = true;
+  checkPhase = ''
+    runHook preCheck
+    ${bash}/bin/bash -n publish
+    ${shellcheck}/bin/shellcheck -s bash publish
+    runHook postCheck
+  '';
 
   installPhase = ''
     runHook preInstall
