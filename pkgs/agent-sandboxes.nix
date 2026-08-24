@@ -74,6 +74,7 @@ let
         "--ro-bind /nix/var/nix/db /nix/var/nix/db"
         "--ro-bind /run/wrappers /run/wrappers"
         "--ro-bind /etc/resolv.conf /etc/resolv.conf"
+        "--ro-bind-try /var/lib/mb-type /var/lib/mb-type"
         # Holds the host's `coding-agent` entry for agentUid: tools that look
         # up their own user (node's os.userInfo(), called by qwen-code at
         # import time) abort without one.
