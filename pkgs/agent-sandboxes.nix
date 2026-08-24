@@ -196,11 +196,4 @@ in
     args = [ "--dangerously-bypass-approvals-and-sandbox" ];
     statePaths = [ ".codex" ];
   };
-
-  qwens = mkAgentSandbox {
-    name = "qwens";
-    package = pkgs.pkgs-unstable.qwen-code;
-    args = [ "--yolo" ];
-    statePaths = [ ".qwen" ];
-  };
 }

@@ -5,11 +5,10 @@
 }:
 {
   # Each of these ships its bwrap wrapper plus the naked CLI: `claudes` and
-  # `claude`, `codexs` and `codex`, `qwens` and `qwen`.
+  # `claude`, `codexs` and `codex`.
   environment.systemPackages = with pkgs; [
     claudes
     codexs
-    qwens
   ];
 
   # The identity the sandboxes present inside their user namespace. It never

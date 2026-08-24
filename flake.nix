@@ -127,7 +127,6 @@
             inherit (super.callPackage ./pkgs/agent-sandboxes.nix { inherit mem-limit-run; })
               claudes
               codexs
-              qwens
               ;
             chronoctl = super.callPackage ./pkgs/chronoctl.nix { };
             # Drop once stable ffmpeg-headless links SVT-AV1 v4.0.1+ (or backports
