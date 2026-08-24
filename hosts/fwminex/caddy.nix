@@ -102,7 +102,7 @@ in
       '';
       "r1.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
-        redir https://r1.jakstys.lt:8443
+        redir https://r1.jakstys.lt:8443{uri}
       '';
       "up.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem

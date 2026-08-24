@@ -54,9 +54,6 @@ flock -n "$publish_lock" || {
   echo "another publisher owns $www/.publish.lock" >&2
   exit 1
 }
-install -m 0644 "$script_root/site/index.html" "$script_root/site/app.js" "$script_root/site/app.css" "$www/"
-install -m 0644 "$script_root/vendor/hls.min.js" "$script_root/vendor/LICENSE.hls.js" "$www/vendor/"
-
 source_path() {
   if [[ $2 == ????-?? ]]; then
     printf '%s/%s-%s.mkv\n' "$video_root" "$1" "$2"
@@ -82,86 +79,37 @@ range_end_epoch() {
   printf '%s\n' "$((start_epoch + frames * frame_interval))"
 }
 
-dimensions() {
-  case $1:$2 in
-    panorama:480) printf '480 136 220000\n' ;;
-    panorama:960) printf '960 272 700000\n' ;;
-    panorama:1920) printf '1920 544 2500000\n' ;;
-    panorama:3840) printf '3840 1086 9000000\n' ;;
-    ptz:320) printf '320 180 160000\n' ;;
-    ptz:640) printf '640 360 500000\n' ;;
-    ptz:1280) printf '1280 720 1500000\n' ;;
-    ptz:1920) printf '1920 1080 4500000\n' ;;
-  esac
-}
-
-widths() {
-  case $1 in
-    panorama) printf '%s\n' 480 960 1920 3840 ;;
-    ptz) printf '%s\n' 320 640 1280 1920 ;;
-  esac
-}
-
-write_master() {
-  local camera=$1 base=$2 width height bitrate
-  {
-    printf '%s\n' '#EXTM3U' '#EXT-X-VERSION:7' '#EXT-X-INDEPENDENT-SEGMENTS'
-    while read -r width; do
-      read -r width height bitrate < <(dimensions "$camera" "$width")
-      printf '#EXT-X-STREAM-INF:BANDWIDTH=%s,RESOLUTION=%sx%s\n' "$bitrate" "$width" "$height"
-      printf '%s/stream.m3u8\n' "$width"
-    done < <(widths "$camera")
-  } >"$base/master.m3u8"
-}
-
 publish_video() {
-  local camera=$1 range=$2 source=$3 base width height bitrate rendition
+  local camera=$1 range=$2 source=$3 base
   base="$artifact_root/video/$camera-$range"
   mkdir -p "$base"
-  while read -r width; do
-    read -r width height bitrate < <(dimensions "$camera" "$width")
-    rendition="$base/$width"
-    mkdir -p "$rendition"
-    [[ -f "$rendition/stream.m3u8" && -f "$rendition/stream.mp4" && ! "$source" -nt "$rendition/stream.m3u8" ]] && continue
-    ffmpeg -nostdin -y -hide_banner -loglevel warning \
-      -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
-      -i "$source" -map 0:v:0 -an \
-      -vf "scale_vaapi=w=$width:h=$height:format=nv12" \
-      -c:v h264_vaapi -profile:v high -g "$fps" -keyint_min "$fps" -bf 0 \
-      -rc_mode VBR -b:v "$bitrate" -maxrate "$bitrate" -bufsize "$((bitrate * 2))" \
-      -force_key_frames 'expr:gte(t,n_forced*1)' \
-      -f hls -hls_time 1 -hls_segment_type fmp4 \
-      -hls_flags independent_segments+single_file -hls_playlist_type vod \
-      -hls_segment_filename "$rendition/stream.mp4" "$rendition/stream.m3u8"
-  done < <(widths "$camera")
-
-  [[ -f "$base/master.m3u8" ]] || write_master "$camera" "$base"
+  [[ -f "$base/stream.m3u8" && -f "$base/stream.mp4" && ! "$source" -nt "$base/stream.m3u8" ]] && return
+  # The archive video is already 10-bit AV1. Remux it into fragmented MP4;
+  # never decode, resize, or change its bitstream for ordinary playback.
+  ffmpeg -nostdin -y -hide_banner -loglevel warning \
+    -i "$source" -map 0:v:0 -an -c:v copy -tag:v av01 \
+    -f hls -hls_time 1 -hls_segment_type fmp4 \
+    -hls_flags independent_segments+single_file -hls_playlist_type vod \
+    -hls_segment_filename "$base/stream.mp4" "$base/stream.m3u8"
 }
 
 publish_fast_video() {
   local camera=$1 range=$2 source=$3 stride=$4
-  local base width height bitrate rendition
+  local base
   base="$artifact_root/video/$camera-$range/x$stride"
-  while read -r width; do
-    read -r width height bitrate < <(dimensions "$camera" "$width")
-    rendition="$base/$width"
-    mkdir -p "$rendition"
-    [[ -f "$rendition/stream.m3u8" && -f "$rendition/stream.mp4" && ! "$source" -nt "$rendition/stream.m3u8" ]] && continue
-    ffmpeg -nostdin -y -hide_banner -loglevel warning \
-      -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
-      -i "$source" -map 0:v:0 -an \
-      -vf "select=not(mod(n\\,$stride)),setpts=N/(24*TB),scale_vaapi=w=$width:h=$height:format=nv12" \
-      -r "$fps" -c:v h264_vaapi -profile:v high -g "$fps" -keyint_min "$fps" -bf 0 \
-      -rc_mode VBR -b:v "$bitrate" -maxrate "$bitrate" -bufsize "$((bitrate * 2))" \
-      -force_key_frames 'expr:gte(t,n_forced*1)' \
-      -f hls -hls_time 1 -hls_segment_type fmp4 \
-      -hls_flags independent_segments+single_file -hls_playlist_type vod \
-      -hls_segment_filename "$rendition/stream.mp4" "$rendition/stream.m3u8"
-  done < <(widths "$camera")
-
-  # Fast profiles differ only by source-frame selection.  Keep their ABR
-  # ladder byte-for-byte equivalent to the ordinary x1 master.
-  [[ -f "$base/master.m3u8" ]] || write_master "$camera" "$base"
+  mkdir -p "$base"
+  [[ -f "$base/stream.m3u8" && -f "$base/stream.mp4" && ! "$source" -nt "$base/stream.m3u8" ]] && return
+  # Frame selection makes stream-copy impossible. Keep the source geometry and
+  # 10-bit depth, and package hardware-encoded AV1 for browser MSE playback.
+  ffmpeg -nostdin -y -hide_banner -loglevel warning \
+    -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
+    -i "$source" -map 0:v:0 -an \
+    -vf "select=not(mod(n\\,$stride)),setpts=N/(${fps}*TB),scale_vaapi=format=p010" \
+    -r "$fps" -c:v av1_vaapi -profile:v main -rc_mode CQP -global_quality 121 \
+    -g "$fps" -force_key_frames 'expr:gte(t,n_forced*1)' -tag:v av01 \
+    -f hls -hls_time 1 -hls_segment_type fmp4 \
+    -hls_flags independent_segments+single_file -hls_playlist_type vod \
+    -hls_segment_filename "$base/stream.mp4" "$base/stream.m3u8"
 }
 
 publish_thumbnails() {
@@ -247,37 +195,8 @@ publish_subtitles() {
   mv -f "$temporary" "$output"
 }
 
-legacy_video_complete() {
-  local camera=$1 range=$2 source=$3 base mode width
-  for mode in '' /x6 /x36; do
-    base="$www/video/$camera-$range$mode"
-    [[ -f "$base/master.m3u8" ]] || return 1
-    while read -r width; do
-      [[ -f "$base/$width/stream.m3u8" && -f "$base/$width/stream.mp4" && ! "$source" -nt "$base/$width/stream.m3u8" ]] || return 1
-    done < <(widths "$camera")
-  done
-}
-
-seed_legacy_range() {
-  local range=$1 panorama_source=$2 ptz_source=$3 camera tier
-  local -a images=()
-  mkdir -p "$artifact_root/video" "$artifact_root/subtitles"
-  legacy_video_complete panorama "$range" "$panorama_source" && cp -al --no-preserve=ownership "$www/video/panorama-$range" "$artifact_root/video/"
-  legacy_video_complete ptz "$range" "$ptz_source" && cp -al --no-preserve=ownership "$www/video/ptz-$range" "$artifact_root/video/"
-  [[ ! -f "$www/subtitles/$range.vtt" ]] || cp -al --no-preserve=ownership "$www/subtitles/$range.vtt" "$artifact_root/subtitles/"
-  for tier in 90 180 360; do
-    for camera in panorama ptz; do
-      images=("$www/thumbnails/h$tier/$camera-$range"-*Z.jpg)
-      if ((${#images[@]})); then
-        mkdir -p "$artifact_root/thumbnails/h$tier"
-        cp -al --no-preserve=ownership "${images[@]}" "$artifact_root/thumbnails/h$tier/"
-      fi
-    done
-  done
-}
-
 remove_superseded_daily() {
-  local month=$1 panorama_daily day ptz_daily tier
+  local month=$1 panorama_daily day ptz_daily
   # A completed monthly range supersedes daily inputs and derived assets only
   # after its replacement is already visible through catalog.json.
   for panorama_daily in "$video_root/days/panorama-$month"-??.mkv; do
@@ -286,16 +205,8 @@ remove_superseded_daily() {
     [[ -f "$ptz_daily" ]] && rm -f -- "$panorama_daily" "$ptz_daily"
   done
   rm -rf -- "$www/ranges/$month"-??
-  rm -rf "$www/video/panorama-$month"-?? "$www/video/ptz-$month"-??
-  rm -f "$www/subtitles/$month"-??.vtt
-  for tier in 90 180 360; do
-    rm -f "$www/thumbnails/h$tier/panorama-$month"-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??.jpg \
-      "$www/thumbnails/h$tier/panorama-$month"-??-??.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??.jpg \
-      "$www/thumbnails/h$tier/panorama-$month"-??-??Z.jpg "$www/thumbnails/h$tier/ptz-$month"-??-??Z.jpg
-  done
 }
 
-mkdir -p "$www/ranges"
 declare -A catalog_entries=()
 declare -A desired_ranges=()
 catalog=
@@ -313,7 +224,7 @@ load_catalog() {
     catalog_entries[$id]=$entry
   done < <(
     awk '
-      match($0, /\{"id":"[0-9]{4}-[0-9]{2}(-[0-9]{2})?",("layout":"ranges",)?"start":"[^"]+","end":"[^"]+"\}/) {
+      match($0, /\{"id":"[0-9]{4}-[0-9]{2}(-[0-9]{2})?","start":"[^"]+","end":"[^"]+"\}/) {
         entry = substr($0, RSTART, RLENGTH)
         match(entry, /"id":"([^"]+)"/, value)
         printf "%s\t%s\n", value[1], entry
@@ -340,7 +251,11 @@ publish_catalog() {
   catalog=
 }
 
+mkdir -p "$www/ranges"
 load_catalog
+install -m 0644 "$script_root/site/index.html" "$script_root/site/app.js" "$script_root/site/app.css" "$www/"
+install -m 0644 "$script_root/vendor/hls.min.js" "$script_root/vendor/LICENSE.hls.js" "$www/vendor/"
+
 for range in "${ranges[@]}"; do
   desired_ranges[$range]=1
   start_epoch=$(epoch_for_range "$range")
@@ -357,7 +272,6 @@ for range in "${ranges[@]}"; do
     stage=$(mktemp -d "$www/.range-$range.XXXXXX")
     artifact_root=$stage
     end_epoch=$(range_end_epoch "$start_epoch" "$panorama_source")
-    seed_legacy_range "$range" "$panorama_source" "$ptz_source"
     publish_video panorama "$range" "$panorama_source"
     publish_video ptz "$range" "$ptz_source"
     publish_fast_video panorama "$range" "$panorama_source" 6
@@ -378,7 +292,7 @@ for range in "${ranges[@]}"; do
       [[ $id == "$range"-?? ]] && unset "catalog_entries[$id]"
     done
   fi
-  printf -v entry '{"id":"%s","layout":"ranges","start":"%s","end":"%s"}' "$range" "$(utc_for_epoch "$start_epoch")" "$(utc_for_epoch "$end_epoch")"
+  printf -v entry '{"id":"%s","start":"%s","end":"%s"}' "$range" "$(utc_for_epoch "$start_epoch")" "$(utc_for_epoch "$end_epoch")"
   catalog_entries[$range]=$entry
   publish_catalog
   [[ $range == ????-?? ]] && remove_superseded_daily "$range"
@@ -387,6 +301,3 @@ for id in "${!catalog_entries[@]}"; do
   [[ -v "desired_ranges[$id]" ]] || unset "catalog_entries[$id]"
 done
 publish_catalog
-# Legacy paths can still be needed by entries preserved during a failed run.
-# A fully successful run has replaced or removed every such entry.
-rm -rf -- "$www/video" "$www/subtitles" "$www/thumbnails"

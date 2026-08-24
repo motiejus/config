@@ -235,7 +235,7 @@ in
       recommendedTlsSettings = true;
       virtualHosts."r1.jakstys.lt" = {
         extraConfig = ''
-          error_page 497 301 =307 https://$host:$server_port$request_uri;
+          error_page 497 =307 https://$host:$server_port$request_uri;
           auth_basic secured;
           auth_basic_user_file ${config.age.secrets.r1-htpasswd.path};
         '';
@@ -244,9 +244,9 @@ in
         sslCertificate = "/run/credentials/nginx.service/jakstys.lt-cert.pem";
         sslCertificateKey = "/run/credentials/nginx.service/jakstys.lt-key.pem";
         locations = {
-          "= /timelapse".return = "301 /timelapse/";
+          "= /timelapse".return = "301 /timelapse/$is_args$args";
           "/timelapse/" = {
-            alias = "/var/lib/timelapse-web/";
+            alias = "/var/www/timelapse-web/";
             extraConfig = ''
               add_header Cache-Control "no-cache" always;
             '';

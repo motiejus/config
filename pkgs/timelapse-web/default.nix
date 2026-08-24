@@ -8,6 +8,7 @@
   ffmpeg-headless,
   gawk,
   shellcheck,
+  nodejs,
   util-linux,
 }:
 let
@@ -24,6 +25,7 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [
     makeWrapper
     shellcheck
+    nodejs
   ];
 
   dontConfigure = true;
@@ -58,6 +60,7 @@ stdenvNoCC.mkDerivation {
     runHook preCheck
     bash -n publish
     shellcheck -s bash publish
+    node check.mjs
     runHook postCheck
   '';
 
