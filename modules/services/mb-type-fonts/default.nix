@@ -146,6 +146,10 @@ in
         find ${root} -mindepth 1 -maxdepth 1 \
           ${lib.concatMapStringsSep " " (version: "! -name ${zipName version}") (lib.attrNames versions)} \
           -exec rm -rf {} +
+
+        for format in otf ttf woff2; do
+          ln -sT "${cfg.package}/$format" "${root}/$format"
+        done
       '';
     };
   };
