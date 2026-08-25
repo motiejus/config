@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const FPS = 24, SPEED_FPS = [2, 4, 6, 12, 24, 36, 48, 72, 96, 144, 288, 576, 864, 1152, 1728], NATIVE_SPEED_FPS = new Set([24, 144, 864]), DEFAULT_SPEED_INDEX = SPEED_FPS.indexOf(FPS), FRAME_INTERVAL_SECONDS = 300, THUMBNAIL_INTERVAL_MS = 6 * 60 * 60 * 1000, BUFFER_SECONDS = 10, SEEK_EPSILON = .01, TIME_ZONE = 'Europe/Vilnius';
+  const FPS = 24, SPEED_FPS = [2, 4, 6, 12, 24, 36, 48, 72, 96, 144, 288, 576, 864, 1152, 1728], NATIVE_SPEED_FPS = new Set([24, 144, 864]), DEFAULT_SPEED_INDEX = SPEED_FPS.indexOf(FPS), FRAME_INTERVAL_SECONDS = 300, THUMBNAIL_INTERVAL_MS = 6 * 60 * 60 * 1000, BUFFER_SECONDS = 15, SEEK_EPSILON = .01, TIME_ZONE = 'Europe/Vilnius';
   const DEFAULT_SOURCE_TIME = Date.parse('2025-03-18T06:00:00Z');
   const root = document.querySelector('#app');
   const archiveUrl = (path) => new URL(path, location.origin + location.pathname).href;

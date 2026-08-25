@@ -22,6 +22,19 @@ www=${TIMELAPSE_WEB_ROOT:-$(pwd -P)/www}
 artifact_root=
 fps=24
 frame_interval=300
+declare -A delivery_filter=(
+  [panorama]='scale_vaapi=w=2688:h=768:mode=hq:format=p010'
+  [ptz]='scale_vaapi=w=1920:h=1088:mode=hq:format=p010'
+)
+declare -A delivery_aspect=(
+  [panorama]='336:95'
+  [ptz]='16:9'
+)
+av1_encode=(
+  -c:v av1_vaapi -profile:v main -rc_mode QVBR -global_quality 121
+  -b:v 40M -maxrate:v 40M -bufsize:v 40M
+  -g "$fps" -force_key_frames 'expr:gte(t,n_forced*1)' -tag:v av01
+)
 declare -A month_ranges=()
 declare -A day_ranges=()
 
@@ -84,10 +97,13 @@ publish_video() {
   base="$artifact_root/video/$camera-$range"
   mkdir -p "$base"
   [[ -f "$base/stream.m3u8" && -f "$base/stream.mp4" && ! "$source" -nt "$base/stream.m3u8" ]] && return
-  # The archive video is already 10-bit AV1. Remux it into fragmented MP4;
-  # never decode, resize, or change its bitstream for ordinary playback.
+  # Decode, high-quality-scale, and encode 10-bit AV1 on VAAPI for ordinary
+  # playback, matching the fast renditions' delivery geometry and GOPs.
   ffmpeg -nostdin -y -hide_banner -loglevel warning \
-    -i "$source" -map 0:v:0 -an -c:v copy -tag:v av01 \
+    -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
+    -i "$source" -map 0:v:0 -an \
+    -vf "${delivery_filter[$camera]}" \
+    "${av1_encode[@]}" -aspect:v "${delivery_aspect[$camera]}" \
     -f hls -hls_time 1 -hls_segment_type fmp4 \
     -hls_flags independent_segments+single_file -hls_playlist_type vod \
     -hls_segment_filename "$base/stream.mp4" "$base/stream.m3u8"
@@ -99,14 +115,13 @@ publish_fast_video() {
   base="$artifact_root/video/$camera-$range/x$stride"
   mkdir -p "$base"
   [[ -f "$base/stream.m3u8" && -f "$base/stream.mp4" && ! "$source" -nt "$base/stream.m3u8" ]] && return
-  # Frame selection makes stream-copy impossible. Keep the source geometry and
-  # 10-bit depth, and package hardware-encoded AV1 for browser MSE playback.
+  # Frame selection makes stream-copy impossible.  Use the same high-quality,
+  # 10-bit delivery geometry and hardware AV1 settings as ordinary playback.
   ffmpeg -nostdin -y -hide_banner -loglevel warning \
     -vaapi_device /dev/dri/renderD128 -hwaccel vaapi -hwaccel_output_format vaapi \
     -i "$source" -map 0:v:0 -an \
-    -vf "select=not(mod(n\\,$stride)),setpts=N/(${fps}*TB),scale_vaapi=format=p010" \
-    -r "$fps" -c:v av1_vaapi -profile:v main -rc_mode CQP -global_quality 121 \
-    -g "$fps" -force_key_frames 'expr:gte(t,n_forced*1)' -tag:v av01 \
+    -vf "select=not(mod(n\\,$stride)),setpts=N/(${fps}*TB),${delivery_filter[$camera]}" \
+    -r "$fps" "${av1_encode[@]}" -aspect:v "${delivery_aspect[$camera]}" \
     -f hls -hls_time 1 -hls_segment_type fmp4 \
     -hls_flags independent_segments+single_file -hls_playlist_type vod \
     -hls_segment_filename "$base/stream.mp4" "$base/stream.m3u8"
