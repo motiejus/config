@@ -83,10 +83,10 @@ SSH exec framing cannot preserve whitespace within one Borg argument, so paths,
 patterns, and other arguments containing whitespace do not work. Export a
 broader archive or subtree as tar to stdout, then select or extract locally:
 
-    borg --bypass-lock export-tar ARCHIVE - | tar -x
+    borg --bypass-lock export-tar ::ARCHIVE - | tar -x
 
 For arguments without whitespace, downloads can use
-`borg --bypass-lock extract --stdout ARCHIVE PATH >file`; plain `extract`
+`borg --bypass-lock extract --stdout ::ARCHIVE PATH >file`; plain `extract`
 writes only to the reader session's ephemeral remote `/tmp`.
 
 netboot
