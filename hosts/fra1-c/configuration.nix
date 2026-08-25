@@ -137,6 +137,7 @@ in
           enable = true;
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          checkAt = "Sun *-*-* 08:00:00 UTC";
           dirs =
             builtins.concatMap
               (

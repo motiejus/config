@@ -128,6 +128,8 @@ in
           enable = true;
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          # Clear of this host's own backups and of the ones fwminex pushes here.
+          checkAt = "Sun *-*-* 07:00:00 UTC";
           dirs =
             builtins.concatMap
               (
@@ -137,21 +139,20 @@ in
                 in
                 [
                   {
+                    # 41 GB of photographs and video in 1083 files, written
+                    # once and never rewritten, so history here is nearly free:
+                    # on the comparable annex2 repo 593 archives cost 2.8 GB
+                    # between them. The module default would keep four weeks,
+                    # which is how long you have to notice a deletion before
+                    # both copies of it are gone.
                     subvolume = "/data";
                     repo = "${prefix}-data";
                     paths = [ "vno3-shared" ];
+                    prune.keep = {
+                      within = "10y";
+                      last = 3;
+                    };
                     backup_at = "*-*-* 01:00:01 UTC";
-                  }
-                  {
-                    # fwminex builds the videos now; this keeps whatever this
-                    # host holds. Retention is the module default, so anything
-                    # older than four weeks goes. Snapshotted through / rather
-                    # than /var/lib, not a subvolume here.
-                    subvolume = "/";
-                    repo = "${prefix}-timelapse";
-                    paths = [ "var/lib/timelapse-r11/videos" ];
-                    backup_at = "*-*-* 03:20:00 UTC";
-                    compression = "none";
                   }
                 ]
               )

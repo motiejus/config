@@ -22,6 +22,7 @@ in
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
+    borgbackup-password-2.file = ../../secrets/${config.networking.hostName}/borgbackup-password-2.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
     vaultwarden-secrets-env.file = ../../secrets/vaultwarden/secrets.env.age;
     synapse-jakstys-signing-key.file = ../../secrets/synapse/jakstys_lt_signing_key.age;
@@ -494,42 +495,213 @@ in
           enable = true;
           passwordPath = config.age.secrets.borgbackup-password.path;
           sshKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+          # Well clear of the 01:00-03:00 backups, which the check would other-
+          # wise lock out of their own repository.
+          checkAt = "Sun *-*-* 06:00:00 UTC";
+          # Adding a folder here: pick the repository by HOW THE DATA CHANGES,
+          # not by what it is. Each repo's chunker and retention are tuned for
+          # one kind of change, and a folder in the wrong one costs disk or
+          # index for as long as it lives there.
+          #
+          #   rewritten in place (databases, anything page-structured) -> state
+          #   written once and kept (media, packfiles, uploads)        -> blobs
+          #   bulky, immutable, worth only weeks (metrics, caches)     -> metrics
+          #   already-compressed video                                 -> timelapse
+          #   under /home/motiejus/annex2                              -> annex2
+          #
+          # Three questions, in order:
+          #
+          # 1. Which subvolume is it on? A job snapshots exactly one subvolume
+          #    and names paths relative to it, so a folder outside /home and
+          #    /var/lib cannot join an existing job at all -- it needs its own
+          #    btrfssnapshot entry first, or the preHook finds no snapshot and
+          #    the job fails nightly. /var/www is the live example: a plain
+          #    directory, not a subvolume, so nothing under it is backed up.
+          # 2. Is it rewritten, or only added to? This is the whole basis of the
+          #    split. Rewritten files want the smallest chunks their writes are
+          #    aligned to; write-once files want the largest, because there is no
+          #    deduplication to lose and every chunk is an index entry forever.
+          # 3. Is its history worth keeping? Nearly free for immutable data --
+          #    593 archives of annex2 cost 2.8 GB between them -- and expensive
+          #    for anything rewritten nightly, which is why only state carries a
+          #    ladder and the rest keep everything.
+          #
+          # Adding a folder to an existing repo is free: borg deduplicates it
+          # against what is there and uploads it once. Changing a repo's chunker
+          # is not, because borg cannot re-chunk in place. A folder that fits
+          # none of the rows wants its own repo rather than a compromise -- state
+          # and blobs were one repo until the databases and the blobs turned out
+          # to want opposite chunkers.
           dirs =
-            builtins.concatMap
-              (host: [
-                {
-                  subvolume = "/var/lib";
-                  repo = "${host}:${this}-var_lib";
-                  paths = [
-                    "hass"
-                    "git"
-                    "caddy"
-                    "grafana"
-                    "prometheus2"
-                    "bitwarden_rs"
-                    "matrix-synapse"
-                    "private/soju"
-                    "rita.jakstys.lt"
+            # rsync.net still holds today's two repositories and does not have
+            # room for the replacements beside them, so it keeps them until the
+            # split has run here for a few days and the old pair can go. It
+            # picks up the fixes either way: a snapshot path that does not move,
+            # and a retention glob that finally matches its own archives.
+            [
+              {
+                subvolume = "/var/lib";
+                repo = "${rsync-net}:${this}-var_lib";
+                paths = [
+                  "hass"
+                  "git"
+                  "caddy"
+                  "grafana"
+                  "prometheus2"
+                  "bitwarden_rs"
+                  "matrix-synapse"
+                  "private/soju"
+                  "rita.jakstys.lt"
 
-                    # https://immich.app/docs/administration/backup-and-restore/
-                    "immich/library"
-                    "immich/upload"
-                    "immich/profile"
-                    "postgresql"
-                  ];
-                  backup_at = "*-*-* 01:00:01 UTC";
-                }
-                {
-                  subvolume = "/home";
-                  repo = "${host}:${this}-home-motiejus-annex2";
-                  paths = [ "motiejus/annex2" ];
-                  backup_at = "*-*-* 02:30:01 UTC";
-                }
-              ])
-              [
-                rsync-net
-                vno3-nk
-              ];
+                  # https://immich.app/docs/administration/backup-and-restore/
+                  "immich/library"
+                  "immich/upload"
+                  "immich/profile"
+                  "postgresql"
+                ];
+                backup_at = "*-*-* 01:00:01 UTC";
+              }
+              {
+                subvolume = "/home";
+                repo = "${rsync-net}:${this}-home-motiejus-annex2";
+                paths = [ "motiejus/annex2" ];
+                # Four weeks here would delete 563 of 593 archives to reclaim
+                # 2.4 GB, at a hundred million item refcount decrements.
+                prune.keep = {
+                  within = "10y";
+                  last = 3;
+                };
+                backup_at = "*-*-* 02:30:01 UTC";
+              }
+            ]
+            ++ [
+
+              # The files that get rewritten in place: one 6.5 GB SQLite a
+              # night, plus the smaller databases. A page-aligned fixed chunker
+              # stores a night of that in 0.085 GB where 64 KiB content-defined
+              # chunks need 0.356 and 2 MiB need 1.378 -- a sixteenfold spread
+              # on one file, measured over six real nights. The index it buys
+              # that with is 1.8M chunks and 843 MB of RSS for 7.7 GB of data,
+              # which is why nothing else lives here.
+              {
+                subvolume = "/var/lib";
+                repo = "${vno3-nk}:${this}-state";
+                passwordPath = config.age.secrets.borgbackup-password-2.path;
+                paths = [
+                  "hass"
+                  "caddy"
+                  "grafana"
+                  "bitwarden_rs"
+                  "matrix-synapse"
+                  "private/soju"
+                  "rita.jakstys.lt"
+                  "postgresql"
+                ];
+                # Blobs, not pages: media_store belongs with the other blobs.
+                exclude = [ "matrix-synapse/media_store" ];
+                chunkerParams = "fixed,4096";
+                prune.keep = {
+                  last = 3;
+                  daily = 14;
+                  weekly = 8;
+                  monthly = 12;
+                };
+                backup_at = "*-*-* 01:00:01 UTC";
+              }
+              # Written once and never rewritten, so a night costs 0.015 GB and
+              # history is nearly free. 64 KiB measured smallest at thirty
+              # archives, 12.47 GB against 13.42 at 4 MiB; the initial sizes are
+              # within noise of each other and were not what decided it.
+              {
+                subvolume = "/var/lib";
+                repo = "${vno3-nk}:${this}-blobs";
+                passwordPath = config.age.secrets.borgbackup-password-2.path;
+                paths = [
+                  "git"
+                  "matrix-synapse/media_store"
+
+                  # https://immich.app/docs/administration/backup-and-restore/
+                  "immich/library"
+                  "immich/upload"
+                  "immich/profile"
+                ];
+                # A mirror of Linus' tree: 6.5 GB of the 7.0 GB under git/,
+                # and kernel.org keeps a copy.
+                exclude = [ "git/linux.git" ];
+                prune.keep = {
+                  within = "10y";
+                  last = 3;
+                };
+                backup_at = "*-*-* 01:10:01 UTC";
+              }
+              # Two years of metrics, 100 GB of the 129 GB this host stored,
+              # and the only data here worth just four weeks. Its own repo so
+              # that retention can say so; the module default is that policy.
+              # Blocks are immutable and a compaction re-encodes rather than
+              # rewrites -- the night one merged seven blocks cost 0.55-0.59 GB
+              # under every chunker tried -- so nothing deduplicates and the
+              # largest chunker is free: 4 MiB was smaller on every axis than
+              # 64 KiB, down to 2317 unique chunks against 108785. Level 10
+              # earns its CPU here, unlike anywhere else: 3.6%.
+              {
+                subvolume = "/var/lib";
+                repo = "${vno3-nk}:${this}-metrics";
+                passwordPath = config.age.secrets.borgbackup-password-2.path;
+                paths = [ "prometheus2" ];
+                chunkerParams = "buzhash,19,23,22,4095";
+                compression = "auto,zstd,10";
+                backup_at = "*-*-* 01:20:01 UTC";
+              }
+              # One video a camera a month, never rebuilt once finished. The
+              # frames are already compressed, so compression only burns CPU,
+              # and 4 MiB chunks index it in a fortieth of the entries 64 KiB
+              # would need, with no deduplication to give up. Not measured --
+              # there is no copy of this data to measure against -- but it is
+              # the same shape as the immutable prometheus blocks, where the
+              # largest chunker won on every axis.
+              {
+                subvolume = "/var/lib";
+                repo = "${vno3-nk}:${this}-timelapse";
+                passwordPath = config.age.secrets.borgbackup-password-2.path;
+                paths = [ "timelapse-r11/videos" ];
+                # Named by exception rather than by glob: the month videos are
+                # whatever is left, so a change of camera name or container
+                # cannot quietly reduce this job to archiving nothing. days/
+                # holds the per-day videos a month is joined from, and a
+                # ".part.mkv" is a render in flight.
+                exclude = [
+                  "timelapse-r11/videos/days"
+                  "timelapse-r11/videos/.*.part.mkv"
+                ];
+                compression = "none";
+                chunkerParams = "buzhash,19,23,22,4095";
+                prune.keep = {
+                  within = "10y";
+                  last = 3;
+                };
+                backup_at = "*-*-* 03:00:01 UTC";
+              }
+              # 197k files of which one changes a night, so 593 archives cost
+              # 2.8 GB between them. Thinning them to a daily/weekly/monthly
+              # ladder would reclaim 2.4 GB and charge a hundred million item
+              # refcount decrements for it, then a slice of that every night
+              # forever. Keeping everything is both cheaper and better.
+              {
+                subvolume = "/home";
+                # The one repository here that is not new: it keeps its
+                # contents, so it keeps the passphrase they were written under.
+                repo = "${vno3-nk}:${this}-home-motiejus-annex2";
+                paths = [ "motiejus/annex2" ];
+                # The module default chunker, 64 KiB, measured 0.78 GB (5.1%)
+                # smaller here than 4 MiB -- all of it deduplication between
+                # 107k Maildir messages, none of it the photos.
+                prune.keep = {
+                  within = "10y";
+                  last = 3;
+                };
+                backup_at = "*-*-* 02:30:01 UTC";
+              }
+            ];
 
         };
 

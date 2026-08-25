@@ -11,10 +11,20 @@ let
   # need the same name, and a list index changes when a job is added.
   jobName = attrs: lib.strings.sanitizeDerivationName attrs.repo;
 
+  # Borg identifies a lock's owner by this, so the check has to claim the same
+  # identity as the backup or it cannot tell its own stale lock from a stranger's.
+  borgEnv = config': {
+    BORG_RELOCATED_REPO_ACCESS_IS_OK = "yes";
+    BORG_HOST_ID = "${config'.hostName}.${config'.domain}@${config'.hostId}";
+  };
+
   # Every option a dir declares must appear here, and be read below.
   dirOptionsRead = [
     "backup_at" # startAt
+    "chunkerParams"
     "compression"
+    "exclude"
+    "passwordPath"
     "paths"
     "patterns"
     "prune"
@@ -27,6 +37,12 @@ in
     enable = lib.mkEnableOption "backup btrfs snapshots with borg";
 
     passwordPath = lib.mkOption { type = str; };
+    # Segment CRCs only, which borg runs on the repository's own host. Weekly is
+    # plenty for catching bit rot; anything that needs the key is a manual job.
+    checkAt = lib.mkOption {
+      type = nullOr str;
+      default = null;
+    };
     sshKeyPath = lib.mkOption {
       type = nullOr path;
       default = null;
@@ -38,7 +54,20 @@ in
         options = {
           subvolume = lib.mkOption { type = path; };
           repo = lib.mkOption { type = str; };
+          # A repository cannot change its passphrase without being rewritten, so
+          # repositories made at different times may hold different ones. Null
+          # takes the host's.
+          passwordPath = lib.mkOption {
+            type = nullOr str;
+            default = null;
+          };
           paths = lib.mkOption { type = listOf str; };
+          # Subtrees below a path that are not worth storing. Borg does not
+          # descend into an excluded directory. See borg help patterns.
+          exclude = lib.mkOption {
+            type = listOf str;
+            default = [ ];
+          };
           # Include as well as exclude, first match winning; a job with no paths
           # names its roots here with "R" lines. See borg help patterns.
           patterns = lib.mkOption {
@@ -55,9 +84,37 @@ in
             };
           };
           backup_at = lib.mkOption { type = str; };
+          # "auto" tries lz4 first and only reaches for zstd if that shrank the
+          # chunk below 97% (compress.pyx), so already-compressed data costs
+          # little whatever the level. Level 10 over level 3 was measured on this
+          # host's own data: 0.93% smaller on the databases for 69% more CPU,
+          # 0.26% on the photo and mail set for 56% more. It earns its CPU only
+          # on prometheus blocks, at 3.6%, so that job asks for it by name.
           compression = lib.mkOption {
             type = str;
-            default = "auto,zstd,10";
+            default = "auto,zstd,3";
+          };
+          # Small chunks buy deduplication on files rewritten in place and cost
+          # index entries on files only ever appended or replaced whole, so this
+          # follows how a job's data changes rather than what it is. Measured per
+          # night, per data class, on six real consecutive nights:
+          #
+          #                       state(db)   blobs   metrics   annex2
+          #   fixed,4096            0.085       -        -        -
+          #   buzhash,10,23,16      0.356     0.015    0.301    (best)
+          #   buzhash,12,23,18      0.726     0.024    0.276      -
+          #   buzhash,19,23,21      1.314     0.041    0.249      -
+          #   buzhash,19,23,22        -       0.048    0.245    +5.1%
+          #
+          # Rewritten databases want the page-aligned fixed chunker and pay for
+          # it in index size (1.8M chunks, 843 MB RSS for 7.7 GB). Immutable
+          # blocks want the largest chunker, which is cheaper on every axis at
+          # once because there is no deduplication to lose. Nothing can re-chunk
+          # an existing repository: the files cache hands back stored chunk ids
+          # for unchanged files, so a change here only ever reaches new data.
+          chunkerParams = lib.mkOption {
+            type = str;
+            default = "buzhash,10,23,16,4095";
           };
         };
       });
@@ -80,8 +137,65 @@ in
         let
           svcName = "borgbackup-job-${jobName attrs}";
         in
-        lib.nameValuePair svcName { serviceConfig.RuntimeDirectory = svcName; }
+        lib.nameValuePair svcName {
+          serviceConfig = {
+            RuntimeDirectory = svcName;
+            # The preHook bind-mounts the snapshot here; keep that mount inside
+            # the unit rather than leaking it into the host namespace.
+            PrivateMounts = true;
+          };
+        }
       ) cfg.dirs
+      ++ lib.optionals (cfg.checkAt != null) (
+        map (
+          attrs:
+          lib.nameValuePair "borgbackup-check-${jobName attrs}" {
+            description = "Borg repository check for ${attrs.repo}";
+            path = [
+              pkgs.borgbackup
+              pkgs.openssh
+            ];
+            # --repository-only reads every segment and verifies its magic and
+            # CRCs, which is what finds bit rot. It needs no key, so borg runs it
+            # on the repository's own host and nothing but the verdict crosses
+            # the network. Checking the archives needs the key and therefore runs
+            # here, pulling metadata for every archive; that one is worth doing by
+            # hand, on one repository at a time.
+            script = "borg check --remote-path=borg1 --repository-only";
+            startAt = cfg.checkAt;
+            environment =
+              borgEnv config.networking
+              // {
+                BORG_REPO = attrs.repo;
+              }
+              // lib.optionalAttrs (cfg.sshKeyPath != null) { BORG_RSH = ''ssh -i "${cfg.sshKeyPath}"''; };
+            serviceConfig = {
+              Type = "oneshot";
+              CPUSchedulingPolicy = "idle";
+              IOSchedulingClass = "idle";
+              ProtectSystem = "strict";
+              # Borg records where it last saw this repository under ~/.config/borg.
+              ReadWritePaths = [
+                "/root/.config/borg"
+                "/root/.cache/borg"
+              ];
+            };
+          }
+        ) cfg.dirs
+      )
+    );
+
+    # A check holds the repository exclusively, so it must not land on a backup.
+    # Spreading them also keeps eight of them off one destination at once.
+    systemd.timers = lib.mkIf (cfg.checkAt != null) (
+      lib.listToAttrs (
+        map (
+          attrs:
+          lib.nameValuePair "borgbackup-check-${jobName attrs}" {
+            timerConfig.RandomizedDelaySec = "3h";
+          }
+        ) cfg.dirs
+      )
     );
 
     services.borgbackup.jobs = builtins.listToAttrs (
@@ -100,6 +214,7 @@ in
             repo
             paths
             patterns
+            exclude
             compression
             ;
 
@@ -108,18 +223,22 @@ in
           # by one success would prune the history away. Select by the date shape
           # instead, which .failed names do not have. The prefix has to go rather
           # than narrow, because borg takes only one -a.
+          #
+          # One job writes one repo, so the date shape alone is enough. Naming the
+          # job in the glob would orphan every archive written under a previous
+          # name, which is how this repo accumulated 587 unprunable archives.
           prune = attrs.prune // {
             prefix = null;
           };
-          extraPruneArgs = "--glob-archives ${lib.escapeShellArg "${config.networking.hostName}-${jobName attrs}-????-??-??T??:??:??"}";
+          extraPruneArgs = "--glob-archives ${lib.escapeShellArg "*-????-??-??T??:??:??"}";
 
           doInit = true;
           encryption = {
             mode = "repokey-blake2";
-            passCommand = "cat ${cfg.passwordPath}";
+            passCommand = "cat ${if attrs.passwordPath != null then attrs.passwordPath else cfg.passwordPath}";
           };
           extraArgs = "--remote-path=borg1";
-          extraCreateArgs = "--chunker-params buzhash,10,23,16,4095";
+          extraCreateArgs = "--chunker-params ${attrs.chunkerParams}";
           startAt = attrs.backup_at;
           preHook = ''
             set -x
@@ -128,26 +247,34 @@ in
                 ${pkgs.gawk}/bin/awk '{print $9; exit}')
             # Without this, cd "/" succeeds and the live filesystem is archived.
             [ -n "$SNAPSHOT" ]
-            cd "/$SNAPSHOT"
+            # Borg hashes the absolute path of every file into its files cache, and
+            # a snapshot directory is named after the hour it was taken. Reading the
+            # snapshot through its own path therefore misses the cache on every file
+            # on every run, and re-reads the whole subvolume nightly. The bind mount
+            # gives each job one path that does not move.
+            mkdir -p "$RUNTIME_DIRECTORY/snapshot"
+            ${pkgs.util-linux}/bin/mount --bind "/$SNAPSHOT" "$RUNTIME_DIRECTORY/snapshot"
+            cd "$RUNTIME_DIRECTORY/snapshot"
             # An empty path archives cleanly, and the prune then makes that
             # emptiness permanent four weeks later.
             for p in ${lib.escapeShellArgs attrs.paths}; do
               [ -n "$(${pkgs.findutils}/bin/find "$p" -mindepth 1 -print -quit)" ]
             done
           '';
-          environment = {
-            BORG_RELOCATED_REPO_ACCESS_IS_OK = "yes";
-            BORG_HOST_ID =
-              let
-                h = config.networking;
-              in
-              "${h.hostName}.${h.domain}@${h.hostId}";
-          }
-          // lib.optionalAttrs (cfg.sshKeyPath != null) { BORG_RSH = ''ssh -i "${cfg.sshKeyPath}"''; };
+          postHook = ''
+            # umount refuses while this shell still sits inside the mount.
+            cd /
+            ${pkgs.util-linux}/bin/umount "$RUNTIME_DIRECTORY/snapshot" || :
+          '';
+          environment =
+            borgEnv config.networking
+            // lib.optionalAttrs (cfg.sshKeyPath != null) { BORG_RSH = ''ssh -i "${cfg.sshKeyPath}"''; };
         }
       ) cfg.dirs
     );
 
-    mj.base.unitstatus.units = map (attrs: "borgbackup-job-${jobName attrs}") cfg.dirs;
+    mj.base.unitstatus.units =
+      map (attrs: "borgbackup-job-${jobName attrs}") cfg.dirs
+      ++ lib.optionals (cfg.checkAt != null) (map (attrs: "borgbackup-check-${jobName attrs}") cfg.dirs);
   };
 }

@@ -107,6 +107,19 @@ in
     [
       "secrets/fwminex/borgbackup-password.age"
     ]
+//
+  mk
+    (
+      # Not vno3-nk: it stores these repositories but has no business opening
+      # them, and the reader gate it runs would inherit the passphrase with it.
+      [
+        fwminex
+      ]
+      ++ motiejus
+    )
+    [
+      "secrets/fwminex/borgbackup-password-2.age"
+    ]
 // mk (
   [
     fra1-c
