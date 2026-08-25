@@ -47,6 +47,7 @@ in
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
   "secrets/vno1-gdrx/syncthing/cert.pem.age"
+  "secrets/vno1-gdrx/borgreader.key.age"
 
   #"secrets/vno3-nk/borgbackup-password.age"
   #"secrets/fwminex/borgbackup-password.age"
@@ -91,10 +92,21 @@ in
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
   "secrets/fwminex/up.jakstys.lt.env.age"
-  "secrets/fwminex/borgbackup-password.age"
   "secrets/fwminex/grafana-secret-key.age"
   "secrets/fwminex/timelapse-merger-key.age"
 ]
+//
+  mk
+    (
+      [
+        fwminex
+        vno3-nk
+      ]
+      ++ motiejus
+    )
+    [
+      "secrets/fwminex/borgbackup-password.age"
+    ]
 // mk (
   [
     fra1-c

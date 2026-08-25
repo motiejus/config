@@ -6,6 +6,23 @@
   ...
 }:
 let
+  borgReaderSsh = "${pkgs.openssh}/bin/ssh -i /run/agenix/borgreader-key -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=5 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/etc/ssh/ssh_known_hosts";
+
+  borgReader = writeShellApplication {
+    name = "borg";
+    runtimeInputs = [ pkgs.openssh ];
+    text = ''
+      exec ${borgReaderSsh} -o SendEnv=BORG_REPO borgstor@vno3-nk.jakst.vpn borg "$@"
+    '';
+  };
+
+  borgReaderEnvironment = [
+    {
+      name = "BORG_RSH";
+      value = borgReaderSsh;
+    }
+  ];
+
   # The uid/gid the sandbox presents inside its user namespace. Republished as
   # passthru so modules/profiles/coding-agent can declare the matching
   # `coding-agent` entry from this one definition.
@@ -23,6 +40,7 @@ let
       package,
       args ? [ ],
       statePaths,
+      secretPaths ? [ ],
       environment ? [ ],
     }:
     let
@@ -31,6 +49,13 @@ let
       bwrapArgs = [
         "--proc /proc"
         "--dev /dev"
+        # The directory is empty until the exact read-only secret binds below.
+        # Creating it explicitly keeps those binds independent of whatever
+        # base filesystem bubblewrap starts with.
+        "--dir /run"
+        "--dir /run/agenix"
+        "--dir /etc"
+        "--dir /etc/ssh"
         # Expose ONLY the GPU render node so headless chromium/firefox get a
         # hardware WebGL/EGL context (mesa is already visible via /nix/store),
         # needed for MapLibre map rendering in browser tests. Deliberately the
@@ -60,11 +85,14 @@ let
         "--perms 0700 --dir /tmp/xdg"
         "--setenv XDG_RUNTIME_DIR /tmp/xdg"
       ]
-      ++ map (variable: "--setenv ${variable.name} ${variable.value}") environment
+      ++ map (
+        variable: "--setenv ${lib.escapeShellArg variable.name} ${lib.escapeShellArg variable.value}"
+      ) environment
       ++ [
         "--setenv FONTCONFIG_FILE ${fontsConf}"
         ''--symlink "$(readlink -f /run/current-system)" /run/current-system''
         ''--symlink "$(readlink -f /etc/hosts)" /etc/hosts''
+        ''--symlink "$(readlink -f /etc/ssh/ssh_known_hosts)" /etc/ssh/ssh_known_hosts''
         ''--symlink "$(readlink -f /etc/static)" /etc/static''
         ''--symlink "$(readlink -f /etc/static/ssl)" /etc/ssl''
         ''--symlink "$(readlink -f /usr/bin/env)" /usr/bin/env''
@@ -85,6 +113,7 @@ let
         "--bind ${tmpDir}/ ${tmpDir}"
       ]
       ++ map (path: ''--bind "$HOME/${path}" "$HOME/${path}"'') statePaths
+      ++ map (path: "--ro-bind ${path} ${path}") secretPaths
       ++ [
         ''--bind "$HOME/.cache/zig" "$HOME/.cache/zig"''
         ''--bind "$HOME/.config/nvim" "$HOME/.config/nvim"''
@@ -105,6 +134,8 @@ let
         runtimeInputs = [
           mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
           pkgs.nodejs
+          borgReader
+          pkgs.openssh
           pkgs.chromium
           pkgs.firefox-bin
           pkgs.playwright-driver.browsers
@@ -182,7 +213,10 @@ in
       ".claude.json"
       ".claude"
     ];
-    environment = [
+    secretPaths = [
+      "/run/agenix/borgreader-key"
+    ];
+    environment = borgReaderEnvironment ++ [
       {
         name = "CLAUDE_CODE_MAX_OUTPUT_TOKENS";
         value = "100000";
@@ -195,5 +229,9 @@ in
     package = pkgs.pkgs-unstable.codex;
     args = [ "--dangerously-bypass-approvals-and-sandbox" ];
     statePaths = [ ".codex" ];
+    secretPaths = [
+      "/run/agenix/borgreader-key"
+    ];
+    environment = borgReaderEnvironment;
   };
 }

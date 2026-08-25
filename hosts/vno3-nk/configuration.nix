@@ -19,6 +19,11 @@ in
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
+    borgbackup-password-fwminex = {
+      file = ../../secrets/fwminex/borgbackup-password.age;
+      owner = "borgstor";
+      mode = "0400";
+    };
     timelapse.file = ../../secrets/timelapse.age;
     # owned by the capture user, so every timelapse tool runs as that user and
     # nothing in its tree ends up owned by root
@@ -103,6 +108,9 @@ in
           hosts."fra1-c.jakst.vpn".publicKey
           people_pubkeys.motiejus
         ];
+        readerKeys = [ myData.bot_pubkeys.borgreader_agent ];
+        readerSnapshotRoot = "/data/.btrfs";
+        readerPasswordPath = config.age.secrets.borgbackup-password-fwminex.path;
       };
 
       tailscale = {

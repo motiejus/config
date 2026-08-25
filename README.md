@@ -68,7 +68,26 @@ Decode a secret on host (to test things out):
 Borg
 ----
 
-    BORG_PASSCOMMAND="cat /run/agenix/borgbackup-fwminex" borg --remote-path=borg1 list zh2769@zh2769.rsync.net:fwminex.jakst.vpn-home-motiejus-annex2
+On vno1 coding-agent sandboxes, `borg` is a thin SSH transport with only the
+dedicated reader key and strict system host verification; Borg executes on
+vno3, which supplies the fwminex passphrase inside the forced reader gate.
+List the available hourly snapshots, choose one, then use Borg:
+
+    $BORG_RSH borgstor@vno3-nk.jakst.vpn ls
+    export BORG_REPO=/data/.btrfs/btrfs-auto-snap_hourly_YYYY-MM-DD-HH00/borg/fwminex.jakst.vpn-var_lib
+    borg --bypass-lock list
+
+The other repository suffix is `fwminex.jakst.vpn-home-motiejus-annex2`.
+The server exposes only snapshots and enforces read-only access.
+SSH exec framing cannot preserve whitespace within one Borg argument, so paths,
+patterns, and other arguments containing whitespace do not work. Export a
+broader archive or subtree as tar to stdout, then select or extract locally:
+
+    borg --bypass-lock export-tar ARCHIVE - | tar -x
+
+For arguments without whitespace, downloads can use
+`borg --bypass-lock extract --stdout ARCHIVE PATH >file`; plain `extract`
+writes only to the reader session's ephemeral remote `/tmp`.
 
 netboot
 -------
