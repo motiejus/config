@@ -54,9 +54,10 @@ in
         options = {
           subvolume = lib.mkOption { type = path; };
           repo = lib.mkOption { type = str; };
-          # A repository cannot change its passphrase without being rewritten, so
-          # repositories made at different times may hold different ones. Null
-          # takes the host's.
+          # Repositories can be on different passphrases, and are while one is
+          # being moved: "borg key change-passphrase" re-encrypts the stored key
+          # rather than the data, so a repository moves in seconds, but it moves
+          # one at a time. Null takes the host's.
           passwordPath = lib.mkOption {
             type = nullOr str;
             default = null;

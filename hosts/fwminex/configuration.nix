@@ -688,9 +688,11 @@ in
               # forever. Keeping everything is both cheaper and better.
               {
                 subvolume = "/home";
-                # The one repository here that is not new: it keeps its
-                # contents, so it keeps the passphrase they were written under.
+                # Not a new repository -- it keeps the contents it already had
+                # -- but it was rewrapped onto the new passphrase by hand, which
+                # costs nothing: borg re-encrypts the stored key, not the data.
                 repo = "${vno3-nk}:${this}-home-motiejus-annex2";
+                passwordPath = config.age.secrets.borgbackup-password-2.path;
                 paths = [ "motiejus/annex2" ];
                 # The module default chunker, 64 KiB, measured 0.78 GB (5.1%)
                 # smaller here than 4 MiB -- all of it deduplication between
