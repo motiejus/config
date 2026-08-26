@@ -49,7 +49,6 @@ in
   "secrets/vno1-gdrx/syncthing/cert.pem.age"
 
   #"secrets/vno3-nk/borgbackup-password.age"
-  #"secrets/fwminex/borgbackup-password.age"
   #"secrets/fra1-c/borgbackup-password.age"
 ]
 //
@@ -94,18 +93,6 @@ in
   "secrets/fwminex/grafana-secret-key.age"
   "secrets/fwminex/timelapse-merger-key.age"
 ]
-//
-  mk
-    (
-      [
-        fwminex
-        vno3-nk
-      ]
-      ++ motiejus
-    )
-    [
-      "secrets/fwminex/borgbackup-password.age"
-    ]
 //
   mk
     (

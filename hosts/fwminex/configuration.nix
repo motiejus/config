@@ -21,7 +21,6 @@ in
     motiejus-server-passwd-hash.file = ../../secrets/motiejus_server_passwd_hash.age;
     root-server-passwd-hash.file = ../../secrets/root_server_passwd_hash.age;
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
-    borgbackup-password.file = ../../secrets/${config.networking.hostName}/borgbackup-password.age;
     borgbackup-password-2.file = ../../secrets/${config.networking.hostName}/borgbackup-password-2.age;
     letsencrypt-account-key.file = ../../secrets/letsencrypt/account.key.age;
     vaultwarden-secrets-env.file = ../../secrets/vaultwarden/secrets.env.age;
@@ -461,7 +460,7 @@ in
           };
         };
 
-      # BORG_PASSCOMMAND="sudo cat /run/agenix/borgbackup-password" borg info --remote-path=borg1 zh2769@zh2769.rsync.net:fwminex.jakst.vpn-var_lib
+      # BORG_PASSCOMMAND="sudo cat /run/agenix/borgbackup-password-2" borg info --remote-path=borg1 zh2769@zh2769.rsync.net:fwminex.jakst.vpn-state
       # BORG_RSH='ssh -i /etc/ssh/ssh_host_ed25519_key' BORG_PASSCOMMAND="sudo cat /run/agenix/borgbackup-password-2" borg info borgstor@vno3-nk.jakst.vpn:fwminex.jakst.vpn-state
       btrfsborg =
         let
