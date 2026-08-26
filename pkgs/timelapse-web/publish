@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publish the camera MKVs into the static tree consumed by the small viewer.
+# Publish the camera MKVs into the mutable archive consumed by the viewer.
 set -euo pipefail
 shopt -s nullglob
 umask 0022
@@ -13,12 +13,11 @@ if [[ ${TIMELAPSE_MEM_LIMITED:-} != 1 ]]; then
     mem-limit-run "$0" "$@"
 fi
 
-script_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 video_root=$(cd -- "${1:?usage: publish VIDEO_ROOT}" && pwd)
-# A developer invocation still publishes into its checkout-local ./www.  The
-# installed service supplies TIMELAPSE_WEB_ROOT instead, keeping media writes
+# A developer invocation still publishes into its checkout-local ./www. The
+# installed service supplies TIMELAPSE_ARCHIVE_ROOT instead, keeping media writes
 # out of the immutable package store.
-www=${TIMELAPSE_WEB_ROOT:-$(pwd -P)/www}
+archive_root=${TIMELAPSE_ARCHIVE_ROOT:-$(pwd -P)/www}
 artifact_root=
 fps=24
 frame_interval=300
@@ -58,13 +57,13 @@ if ((${#ranges[@]})); then
   mapfile -t ranges < <(printf '%s\n' "${ranges[@]}" | sort)
 fi
 
-mkdir -p "$www" "$www/vendor"
+mkdir -p "$archive_root"
 # Do not let two publishers replace the same single-file HLS object or JPEG at
-# once.  This is deliberately a www-local lock: a different checkout may
+# once. This is deliberately an archive-local lock: a different checkout may
 # publish independently, while a Caddy reader is never touched.
-exec {publish_lock}>"$www/.publish.lock"
+exec {publish_lock}>"$archive_root/.publish.lock"
 flock -n "$publish_lock" || {
-  echo "another publisher owns $www/.publish.lock" >&2
+  echo "another publisher owns $archive_root/.publish.lock" >&2
   exit 1
 }
 source_path() {
@@ -219,7 +218,7 @@ remove_superseded_daily() {
     ptz_daily="$video_root/days/ptz-$day"
     [[ -f "$ptz_daily" ]] && rm -f -- "$panorama_daily" "$ptz_daily"
   done
-  rm -rf -- "$www/ranges/$month"-??
+  rm -rf -- "$archive_root/ranges/$month"-??
 }
 
 declare -A catalog_entries=()
@@ -234,7 +233,7 @@ trap cleanup_catalog_staging EXIT
 
 load_catalog() {
   local id entry
-  [[ -f "$www/catalog.json" ]] || return 0
+  [[ -f "$archive_root/catalog.json" ]] || return 0
   while IFS=$'\t' read -r id entry; do
     catalog_entries[$id]=$entry
   done < <(
@@ -244,7 +243,7 @@ load_catalog() {
         match(entry, /"id":"([^"]+)"/, value)
         printf "%s\t%s\n", value[1], entry
       }
-    ' "$www/catalog.json"
+    ' "$archive_root/catalog.json"
   )
 }
 
@@ -252,7 +251,7 @@ publish_catalog() {
   local id separator=
   local -a ids=("${!catalog_entries[@]}")
   if ((${#ids[@]})); then mapfile -t ids < <(printf '%s\n' "${ids[@]}" | sort); fi
-  catalog=$(mktemp "$www/.catalog.XXXXXX")
+  catalog=$(mktemp "$archive_root/.catalog.XXXXXX")
   {
     printf '{\n  "cameras": ["panorama", "ptz"],\n  "ranges": ['
     for id in "${ids[@]}"; do
@@ -262,21 +261,19 @@ publish_catalog() {
     printf '\n  ]\n}\n'
   } >"$catalog"
   chmod 0644 "$catalog"
-  mv -f "$catalog" "$www/catalog.json"
+  mv -f "$catalog" "$archive_root/catalog.json"
   catalog=
 }
 
-mkdir -p "$www/ranges"
+mkdir -p "$archive_root/ranges"
 load_catalog
-install -m 0644 "$script_root/site/index.html" "$script_root/site/app.js" "$script_root/site/app.css" "$www/"
-install -m 0644 "$script_root/vendor/hls.min.js" "$script_root/vendor/LICENSE.hls.js" "$www/vendor/"
 
 for range in "${ranges[@]}"; do
   desired_ranges[$range]=1
   start_epoch=$(epoch_for_range "$range")
   panorama_source=$(source_path panorama "$range")
   ptz_source=$(source_path ptz "$range")
-  range_dir="$www/ranges/$range"
+  range_dir="$archive_root/ranges/$range"
   if [[ -f "$range_dir/.complete" ]]; then
     read -r end_epoch <"$range_dir/.complete"
   else
@@ -284,7 +281,7 @@ for range in "${ranges[@]}"; do
       echo "incomplete range already exists: $range_dir" >&2
       exit 1
     }
-    stage=$(mktemp -d "$www/.range-$range.XXXXXX")
+    stage=$(mktemp -d "$archive_root/.range-$range.XXXXXX")
     artifact_root=$stage
     end_epoch=$(range_end_epoch "$start_epoch" "$panorama_source")
     publish_video panorama "$range" "$panorama_source"

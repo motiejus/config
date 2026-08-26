@@ -8,7 +8,7 @@
 let
   cfg = config.mj.services.timelapse-r11;
   stateDir = "/var/lib/timelapse-r11";
-  webRoot = "/var/www/timelapse-web";
+  archiveRoot = "/var/www/timelapse-web";
 
   timelapseScript = pkgs.writeShellApplication {
     name = "timelapse-r11";
@@ -129,7 +129,7 @@ in
     };
 
     systemd = {
-      tmpfiles.rules = lib.optional cfg.web.enable "d ${webRoot} 0755 timelapse-r11 timelapse-r11 -";
+      tmpfiles.rules = lib.optional cfg.web.enable "d ${archiveRoot} 0755 timelapse-r11 timelapse-r11 -";
 
       services = {
         # One pass over the whole archive, oldest month first: backfill it from the
@@ -191,13 +191,13 @@ in
           # archive. The archive's OnSuccess remains the normal trigger.
           after = [ "timelapse-archive.service" ];
           serviceConfig = common // {
-            # tmpfiles owns the generated, world-readable nginx tree. The
+            # tmpfiles owns the generated, world-readable archive. The
             # publisher also reaps stale source artifacts, so both it and the
             # capture state must be writable through ProtectSystem=strict.
-            WorkingDirectory = webRoot;
+            WorkingDirectory = archiveRoot;
             ReadWritePaths = [
               stateDir
-              webRoot
+              archiveRoot
             ];
             ExecStart = "${lib.getExe pkgs.timelapse-web} ${stateDir}/videos";
             Type = "oneshot";
@@ -214,7 +214,7 @@ in
             SupplementaryGroups = [ "render" ];
             CacheDirectory = "timelapse-web";
             Environment = [
-              "TIMELAPSE_WEB_ROOT=${webRoot}"
+              "TIMELAPSE_ARCHIVE_ROOT=${archiveRoot}"
               "XDG_CACHE_HOME=/var/cache/timelapse-web"
               "LIBVA_DRIVER_NAME=radeonsi"
             ];

@@ -105,10 +105,23 @@ in
       '';
       "r1.jakstys.lt".extraConfig = r1TLS + ''
         header Alt-Svc "h3=\":443\"; ma=86400"
-        basic_auth {
-          import /run/caddy/r1-auth.caddy
+        route {
+          basic_auth {
+            import /run/caddy/r1-auth.caddy
+          }
+          handle /timelapse {
+            route {
+              rewrite * /timelapse/
+              redir {uri} 308
+            }
+          }
+          handle_path /timelapse/* {
+            import ${pkgs.timelapse-web.caddyfile} ${pkgs.timelapse-web.site} /var/www/timelapse-web
+          }
+          handle {
+            reverse_proxy 127.0.0.1:8081
+          }
         }
-        reverse_proxy 127.0.0.1:8081
       '';
       "r1.jakstys.lt:8443".extraConfig = r1TLS + ''
         redir https://r1.jakstys.lt{uri} 308

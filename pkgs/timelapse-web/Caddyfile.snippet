@@ -1,0 +1,25 @@
+# args[0] is the Nix-owned static site; args[1] is the mutable archive root.
+@catalog path /catalog.json
+handle @catalog {
+	root * {args[1]}
+	header Cache-Control "no-store"
+	file_server
+}
+
+@ranges path /ranges/*
+handle @ranges {
+	root * {args[1]}
+	header Cache-Control "no-cache"
+	# Deliberately identity-only: MP4 byte ranges must not pass through an
+	# encoder, and the generated archive has no precompressed sidecars.
+	file_server
+}
+
+handle {
+	root * {args[0]}
+	header Cache-Control "no-cache"
+	file_server {
+		precompressed br zstd gzip
+		etag_file_extensions .etag
+	}
+}

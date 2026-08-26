@@ -230,17 +230,6 @@ in
         "[::1]"
       ];
       defaultHTTPListenPort = 8081;
-      virtualHosts."r1.jakstys.lt" = {
-        locations = {
-          "= /timelapse".return = "301 /timelapse/$is_args$args";
-          "/timelapse/" = {
-            alias = "/var/www/timelapse-web/";
-            extraConfig = ''
-              add_header Cache-Control "no-cache" always;
-            '';
-          };
-        };
-      };
     };
 
     nsd = {
