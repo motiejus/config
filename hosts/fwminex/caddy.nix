@@ -41,6 +41,9 @@ let
         mv valkyrie-caps.woff2 "$out/_/valkyrie-caps-$hash.woff2"
         printf /_/valkyrie-caps-%s.woff2 "$hash" >$out/valkyrie-caps.path
       '';
+  r1TLS = ''
+    tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
+  '';
 in
 {
   services.caddy = {
@@ -100,9 +103,15 @@ in
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         redir https://jakstys.lt
       '';
-      "r1.jakstys.lt".extraConfig = ''
-        tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
-        redir https://r1.jakstys.lt:8443{uri}
+      "r1.jakstys.lt".extraConfig = r1TLS + ''
+        header Alt-Svc "h3=\":443\"; ma=86400"
+        basic_auth {
+          import /run/caddy/r1-auth.caddy
+        }
+        reverse_proxy 127.0.0.1:8081
+      '';
+      "r1.jakstys.lt:8443".extraConfig = r1TLS + ''
+        redir https://r1.jakstys.lt{uri} 308
       '';
       "up.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem

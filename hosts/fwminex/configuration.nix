@@ -39,10 +39,7 @@ in
       owner = "timelapse-r11";
     };
     plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
-    r1-htpasswd = {
-      file = ../../secrets/r1-htpasswd.age;
-      owner = "nginx";
-    };
+    r1-htpasswd.file = ../../secrets/r1-htpasswd.age;
     grafana-secret-key = {
       file = ../../secrets/fwminex/grafana-secret-key.age;
       owner = "grafana";
@@ -122,19 +119,6 @@ in
         };
       };
 
-      nginx =
-        let
-          wc = config.mj.services.nsd-acme.zones."jakstys.lt";
-        in
-        {
-          serviceConfig.LoadCredential = [
-            "jakstys.lt-cert.pem:${wc.certFile}"
-            "jakstys.lt-key.pem:${wc.keyFile}"
-          ];
-          after = [ "nsd-acme-jakstys.lt.service" ];
-          requires = [ "nsd-acme-jakstys.lt.service" ];
-        };
-
       caddy =
         let
           wc = config.mj.services.nsd-acme.zones."jakstys.lt";
@@ -149,12 +133,19 @@ in
             LoadCredential = [
               "jakstys.lt-cert.pem:${wc.certFile}"
               "jakstys.lt-key.pem:${wc.keyFile}"
+              "r1-auth.caddy:${config.age.secrets.r1-htpasswd.path}"
               "up.jakstys.lt.env:${config.age.secrets.plik.path}"
             ];
             RuntimeDirectory = "caddy";
             EnvironmentFile = [ "-/run/caddy/up.jakstys.lt.env" ];
           };
-          after = [ "nsd-acme-jakstys.lt.service" ];
+          # During the first switch nginx still owns :8443. Restart ordering
+          # makes it release that socket before Caddy binds both public ports.
+          after = [
+            "nginx.service"
+            "nsd-acme-jakstys.lt.service"
+          ];
+          restartTriggers = [ config.age.secrets.r1-htpasswd.file ];
           requires = [ "nsd-acme-jakstys.lt.service" ];
         };
 
@@ -179,7 +170,7 @@ in
         };
 
       cert-watcher = {
-        description = "Restart nginx+caddy+soju when tls keys/certs change";
+        description = "Restart caddy+soju when tls keys/certs change";
         wantedBy = [ "multi-user.target" ];
         unitConfig = {
           StartLimitIntervalSec = 10;
@@ -187,7 +178,7 @@ in
         };
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${pkgs.systemd}/bin/systemctl restart --no-block nginx.service caddy.service soju.service";
+          ExecStart = "${pkgs.systemd}/bin/systemctl restart --no-block caddy.service soju.service";
         };
       };
 
@@ -231,19 +222,15 @@ in
     };
 
     nginx = {
+      # The NixOS Frigate module's auth, websocket and VOD routes rely on
+      # nginx-specific modules. Keep that application frontend private and let
+      # Caddy terminate the public r1.jakstys.lt connection.
+      defaultListenAddresses = [
+        "127.0.0.1"
+        "[::1]"
+      ];
       defaultHTTPListenPort = 8081;
-      defaultSSLListenPort = 8443;
-      recommendedTlsSettings = true;
       virtualHosts."r1.jakstys.lt" = {
-        extraConfig = ''
-          error_page 497 =307 https://$host:$server_port$request_uri;
-          auth_basic secured;
-          auth_basic_user_file ${config.age.secrets.r1-htpasswd.path};
-        '';
-
-        addSSL = true;
-        sslCertificate = "/run/credentials/nginx.service/jakstys.lt-cert.pem";
-        sslCertificateKey = "/run/credentials/nginx.service/jakstys.lt-key.pem";
         locations = {
           "= /timelapse".return = "301 /timelapse/$is_args$args";
           "/timelapse/" = {
