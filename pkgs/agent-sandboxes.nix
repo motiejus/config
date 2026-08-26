@@ -6,22 +6,6 @@
   ...
 }:
 let
-  borgReaderSsh = "${pkgs.openssh}/bin/ssh -i /run/agenix/borgreader-key -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=5 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/etc/ssh/ssh_known_hosts";
-
-  borgReader = writeShellApplication {
-    name = "borg";
-    runtimeInputs = [ pkgs.openssh ];
-    text = ''
-      exec ${borgReaderSsh} -o SendEnv=BORG_REPO borgstor@vno3-nk.jakst.vpn borg "$@"
-    '';
-  };
-
-  borgReaderEnvironment = [
-    {
-      name = "BORG_RSH";
-      value = borgReaderSsh;
-    }
-  ];
 
   # The uid/gid the sandbox presents inside its user namespace. Republished as
   # passthru so modules/profiles/coding-agent can declare the matching
@@ -134,7 +118,6 @@ let
         runtimeInputs = [
           mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
           pkgs.nodejs
-          borgReader
           pkgs.openssh
           pkgs.chromium
           pkgs.firefox-bin
@@ -213,10 +196,7 @@ in
       ".claude.json"
       ".claude"
     ];
-    secretPaths = [
-      "/run/agenix/borgreader-key"
-    ];
-    environment = borgReaderEnvironment ++ [
+    environment = [
       {
         name = "CLAUDE_CODE_MAX_OUTPUT_TOKENS";
         value = "100000";
@@ -229,9 +209,5 @@ in
     package = pkgs.pkgs-unstable.codex;
     args = [ "--dangerously-bypass-approvals-and-sandbox" ];
     statePaths = [ ".codex" ];
-    secretPaths = [
-      "/run/agenix/borgreader-key"
-    ];
-    environment = borgReaderEnvironment;
   };
 }

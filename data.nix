@@ -53,7 +53,6 @@ rec {
     # secrets/<host>/timelapse-merger-key.age
     timelapse_merger_vno3_nk = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJzrMPdpXOC42lB849qONf5fjxjeADrpkr1mVj+dAGj/ timelapse-merger@vno3-nk";
     timelapse_merger_fwminex = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHi2kkUi9Qxjx45qAxPk6QJXSO2WFzuqo4RJQRgPQ4Mp timelapse-merger@fwminex";
-    borgreader_agent = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINceAH5SwzjjBjhNwkGPUrjMha9ZrfmudFNq6aHO98wh borgreader-agent";
   };
 
   people_pubkeys = {

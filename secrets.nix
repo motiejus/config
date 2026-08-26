@@ -47,7 +47,6 @@ in
 // mk ([ vno1-gdrx ] ++ motiejus) [
   "secrets/vno1-gdrx/syncthing/key.pem.age"
   "secrets/vno1-gdrx/syncthing/cert.pem.age"
-  "secrets/vno1-gdrx/borgreader.key.age"
 
   #"secrets/vno3-nk/borgbackup-password.age"
   #"secrets/fwminex/borgbackup-password.age"

@@ -24,11 +24,6 @@ in
     sasl-passwd.file = ../../secrets/postfix_sasl_passwd.age;
     syncthing-key.file = ../../secrets/vno1-gdrx/syncthing/key.pem.age;
     syncthing-cert.file = ../../secrets/vno1-gdrx/syncthing/cert.pem.age;
-    borgreader-key = {
-      file = ../../secrets/vno1-gdrx/borgreader.key.age;
-      owner = config.mj.username;
-      mode = "0400";
-    };
     ssh8022-client = {
       file = ../../secrets/ssh8022.age;
       mode = "444";
