@@ -38,7 +38,10 @@ in
       owner = "timelapse-r11";
     };
     plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
-    r1-htpasswd.file = ../../secrets/r1-htpasswd.age;
+    r1-htpasswd = {
+      file = ../../secrets/r1-htpasswd.age;
+      owner = "caddy";
+    };
     grafana-secret-key = {
       file = ../../secrets/fwminex/grafana-secret-key.age;
       owner = "grafana";
@@ -132,7 +135,6 @@ in
             LoadCredential = [
               "jakstys.lt-cert.pem:${wc.certFile}"
               "jakstys.lt-key.pem:${wc.keyFile}"
-              "r1-auth.caddy:${config.age.secrets.r1-htpasswd.path}"
               "up.jakstys.lt.env:${config.age.secrets.plik.path}"
             ];
             RuntimeDirectory = "caddy";

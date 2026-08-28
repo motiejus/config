@@ -107,7 +107,7 @@ in
         header Alt-Svc "h3=\":443\"; ma=86400"
         route {
           basic_auth {
-            import /run/caddy/r1-auth.caddy
+            import ${config.age.secrets.r1-htpasswd.path}
           }
           handle /timelapse {
             route {
