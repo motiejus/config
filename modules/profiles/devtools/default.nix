@@ -42,7 +42,6 @@
     nixpkgs-review
     git-spice
     git-filter-repo
-    kaitai-struct-compiler
 
     (
       let

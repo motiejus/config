@@ -12,8 +12,9 @@ in
   imports = [
     ../../modules
     ../../modules/profiles/xfce4
-    ../../modules/profiles/physical
     ../../modules/profiles/btrfs
+    ../../modules/profiles/physical
+    ../../modules/profiles/coding-agent
   ];
 
   services.xserver.desktopManager.xfce.enableScreensaver = false;
