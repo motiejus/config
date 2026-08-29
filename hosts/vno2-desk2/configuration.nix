@@ -55,6 +55,12 @@ in
   hardware.cpu.intel.updateMicrocode = true;
   nixpkgs.hostPlatform = "x86_64-linux";
 
+  home-manager.users.${config.mj.username} = {
+    # gpg-agent still handles GPG, while ssh-tpm-agent owns SSH_AUTH_SOCK.
+    services.gpg-agent.enableSshSupport = lib.mkForce false;
+    services.ssh-tpm-agent.enable = true;
+  };
+
   users.users.irena = {
     isNormalUser = true;
     extraGroups = [
@@ -113,23 +119,29 @@ in
     };
   };
 
-  security.polkit.enable = true;
-  security.polkit.extraConfig = ''
-    polkit.addRule(function(action, subject) {
-      if (action.id == "org.freedesktop.login1.power-off" ||
-          action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
-          action.id == "org.freedesktop.login1.reboot" ||
-          action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
+  security = {
+    tpm2.enable = true;
 
-        if (subject.isInGroup("root") || subject.user == "motiejus") {
-          return polkit.Result.YES;
-        }
+    polkit = {
+      enable = true;
+      extraConfig = ''
+        polkit.addRule(function(action, subject) {
+          if (action.id == "org.freedesktop.login1.power-off" ||
+              action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+              action.id == "org.freedesktop.login1.reboot" ||
+              action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
 
-        // Deny for everyone else
-        return polkit.Result.NO;
-      }
-    });
-  '';
+            if (subject.isInGroup("root") || subject.user == "motiejus") {
+              return polkit.Result.YES;
+            }
+
+            // Deny for everyone else
+            return polkit.Result.NO;
+          }
+        });
+      '';
+    };
+  };
 
   mj = {
     profiles.desktop.enableUserServices = true;
@@ -141,7 +153,10 @@ in
       users = {
         enable = true;
         root.hashedPasswordFile = config.age.secrets.root-passwd-hash.path;
-        user.hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+        user = {
+          hashedPasswordFile = config.age.secrets.motiejus-passwd-hash.path;
+          extraGroups = [ config.security.tpm2.tssGroup ];
+        };
       };
     };
 
