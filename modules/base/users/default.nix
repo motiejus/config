@@ -56,6 +56,7 @@ in
               [
                 myData.people_pubkeys.motiejus
                 myData.people_pubkeys.motiejus_work
+                myData.people_pubkeys.motiejus_vno2
                 myData.people_pubkeys.motiejus_macworx
               ]
 
