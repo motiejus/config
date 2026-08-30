@@ -175,6 +175,9 @@ in
               CPUSchedulingPolicy = "idle";
               IOSchedulingClass = "idle";
               ProtectSystem = "strict";
+              # Borg's self-test creates a temporary file. ProtectSystem=strict
+              # makes the host's /tmp read-only, so provide a private writable one.
+              PrivateTmp = true;
               # Borg records where it last saw this repository under ~/.config/borg.
               ReadWritePaths = [
                 "/root/.config/borg"
