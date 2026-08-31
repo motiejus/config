@@ -448,6 +448,9 @@ in
       };
       mb-type-fonts.enable = true;
 
+      # Uncomment once the lt-maps pin exposes legacyPackages and takes mbFontsDir.
+      # lt-maps.mbFontsDir = config.mj.services.mb-type-fonts.package;
+
       nsd-acme =
         let
           accountKey = config.age.secrets.letsencrypt-account-key.path;

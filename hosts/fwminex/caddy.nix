@@ -41,6 +41,7 @@ let
         mv valkyrie-caps.woff2 "$out/_/valkyrie-caps-$hash.woff2"
         printf /_/valkyrie-caps-%s.woff2 "$hash" >$out/valkyrie-caps.path
       '';
+  ltMaps = config.mj.services.lt-maps.package;
   r1TLS = ''
     tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
   '';
@@ -200,7 +201,7 @@ in
         # The compressed derivation includes sidecars; its Caddy snippet serves
         # them by Accept-Encoding while keeping pmtiles on identity encoding
         # for Range requests.
-        import ${pkgs.lt-maps.caddyfile} ${pkgs.lt-maps}
+        import ${ltMaps.caddyfile} ${ltMaps}
       '';
       "m.jakstys.lt".extraConfig = ''
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem

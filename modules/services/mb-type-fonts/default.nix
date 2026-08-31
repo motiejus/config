@@ -69,8 +69,8 @@ let
 
   # The format directories sit below the archive's own dated top-level directory
   # and carry a parenthesised platform hint, so they are matched rather than named.
-  fonts =
-    pkgs.runCommand "mb-type-${activeVersion}"
+  unpacked =
+    pkgs.runCommand "mb-type-${activeVersion}-unpacked"
       {
         nativeBuildInputs = [ pkgs.libarchive ];
       }
@@ -89,6 +89,11 @@ let
         take ttf 'TTF font files*' '*.ttf'
         take woff2 'WOFF2 font files*' '*.woff2'
       '';
+
+  fonts = pkgs.callPackage ./tree.nix {
+    inherit unpacked;
+    version = activeVersion;
+  };
 in
 {
   options.mj.services.mb-type-fonts = {
@@ -104,7 +109,7 @@ in
             mj.services.mb-type-fonts.package was read while
             mj.services.mb-type-fonts.enable is false. Enable the module.
           '';
-      description = "The unpacked MB Type tree. Reading this while the module is disabled is a build error by design.";
+      description = "The unpacked MB Type tree, plus the MapLibre glyph bake under glyphs/. Reading this while the module is disabled is a build error by design.";
     };
   };
 
@@ -113,9 +118,9 @@ in
 
     mj.base.unitstatus.units = [ "mb-type-fonts" ];
 
-    # The otf subdir, not the package root: fontconfig recurses, so the root
-    # would surface every family three times, from otf/, ttf/ and woff2/.
-    fonts.packages = [ "${cfg.package}/otf" ];
+    # fontconfig recurses, so a tree holding otf/, ttf/ and woff2/ alongside
+    # each other would surface every family three times.
+    fonts.packages = [ "${unpacked}/otf" ];
 
     systemd.services.mb-type-fonts = {
       description = "decrypt the MB Type archives to ${root}";
@@ -147,8 +152,8 @@ in
           ${lib.concatMapStringsSep " " (version: "! -name ${zipName version}") (lib.attrNames versions)} \
           -exec rm -rf {} +
 
-        for format in otf ttf woff2; do
-          ln -sT "${cfg.package}/$format" "${root}/$format"
+        for entry in otf ttf woff2 glyphs LICENSE; do
+          ln -sT "${cfg.package}/$entry" "${root}/$entry"
         done
       '';
     };

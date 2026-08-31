@@ -14,6 +14,7 @@
     ./immich
     ./ipxe
     ./jakstpub
+    ./lt-maps
     ./lt-shelters
     ./mb-type-fonts
     ./matrix-synapse
