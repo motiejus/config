@@ -4,6 +4,7 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -40,8 +41,17 @@ def start_martin(martin, otf_dir):
 
 
 def get(url):
-    with urllib.request.urlopen(url) as r:
-        return r.read()
+    # A loaded host can starve actix of the request head (HTTP 408); the bake
+    # must outwait the machine, not fail on it.
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as r:
+                return r.read()
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+            if isinstance(e, urllib.error.HTTPError) and e.code not in (408, 429, 503):
+                raise
+            time.sleep(2 ** attempt)
+    sys.exit(f"{url}: no response in 6 attempts")
 
 
 def check(what, stack, name, start, end, coverage):

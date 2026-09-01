@@ -449,7 +449,7 @@ in
       mb-type-fonts.enable = true;
 
       # Uncomment once the lt-maps pin exposes legacyPackages and takes mbFontsDir.
-      # lt-maps.mbFontsDir = config.mj.services.mb-type-fonts.package;
+      lt-maps.mbFontsDir = config.mj.services.mb-type-fonts.package;
 
       nsd-acme =
         let
