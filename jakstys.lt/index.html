@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jakštys</title>
     <link rel="icon" href="data:,">
-    <link rel="preload" as="font" type="font/woff2" href="@valkyrieCaps@" crossorigin>
     <style>
         @font-face {
             font-family: "Valkyrie A Caps";
-            src: url("@valkyrieCaps@") format("woff2");
+            src: url("@valkyrie-caps@") format("woff2");
             font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "Valkyrie A";
+            src: url("@valkyrie-regular@") format("woff2");
+            font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
@@ -114,6 +121,7 @@
             min-height: 44px;
             padding: 0.35rem 0.6rem;
             font-size: clamp(1.25rem, 5vw, 1.6rem);
+            font-family: "Valkyrie A", Charter, "Bitstream Charter", "Iowan Old Style", Constantia, Georgia, serif;
             font-weight: 500;
         }
 
@@ -153,14 +161,14 @@
 </head>
 <body>
     <main>
-        <nav class="people" aria-label="People">
+        <nav class="people" aria-label="People" data-font="caps">
             <a href="https://jonas.jakstys.lt">Jonas</a>
             <a href="https://m.jakstys.lt">Motiejus</a>
             <a href="https://rita.jakstys.lt">Rita</a>
             <a href="https://rolandas.jakstys.lt">Rolandas</a>
         </nav>
         <hr>
-        <nav class="places" aria-label="Sites">
+        <nav class="places" aria-label="Sites" data-font="regular">
             <a class="git" href="https://git.jakstys.lt">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
                      stroke-linecap="round" stroke-linejoin="round">

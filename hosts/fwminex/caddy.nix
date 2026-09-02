@@ -5,42 +5,6 @@
   ...
 }:
 let
-  valkyrieCharset =
-    "AĄBCČDEĘĖFGHIĮYJKLMNOPRSŠTUŲŪVZŽWXQ"
-    + "aąbcčdeęėfghiįyjklmnoprsštuųūvzžwxq"
-    + "0123456789"
-    + " .,:;!?'\"()[]-–—…/@&*+=%#";
-  valkyrieCharsetFile = pkgs.writeText "valkyrie-charset" valkyrieCharset;
-  # The face lands in $out/_ as valkyrie-caps-{xxh3-64 of its own bytes}.woff2,
-  # with its URL in $out/valkyrie-caps.path. Content-addressed, so the immutable
-  # Cache-Control the vhost sets on /_/* is safe. The URL follows the subsetted
-  # bytes, which a fonttools or nixpkgs bump need not change: --recalc-timestamp
-  # stamps SOURCE_DATE_EPOCH, and nixpkgs pins that to 315532800.
-  valkyrie =
-    pkgs.runCommand "valkyrie-subset"
-      {
-        nativeBuildInputs = [
-          (pkgs.python3.withPackages (ps: [
-            ps.fonttools
-            ps.brotli
-          ]))
-          pkgs.xxhash
-        ];
-      }
-      ''
-        mkdir -p $out/_
-        # --recalc-* restore fontTools' TTFont constructor defaults, which
-        # pyftsubset's own option defaults otherwise turn off.
-        pyftsubset "${config.mj.services.mb-type-fonts.package}/woff2/Valkyrie A Caps/valkyrie_a_caps_regular.woff2" \
-          --output-file=valkyrie-caps.woff2 --text-file=${valkyrieCharsetFile} \
-          --flavor=woff2 --desubroutinize --layout-features=kern,liga \
-          --recalc-bounds --recalc-timestamp
-        # A non-digest here would serve mutable bytes under an immutable URL.
-        hash=$(xxhsum -H3 valkyrie-caps.woff2 | sed 's/^XXH3_//; s/ .*//')
-        [[ $hash =~ ^[0-9a-f]{16}$ ]]
-        mv valkyrie-caps.woff2 "$out/_/valkyrie-caps-$hash.woff2"
-        printf /_/valkyrie-caps-%s.woff2 "$hash" >$out/valkyrie-caps.path
-      '';
   ltMaps = config.mj.services.lt-maps.package;
   r1TLS = ''
     tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
@@ -230,14 +194,20 @@ in
                   zstd
                   brotli
                   zopfli
+                  xxhash
+                  (python3.withPackages (ps: [
+                    ps.fonttools
+                    ps.brotli
+                  ]))
                 ];
               }
               ''
                 mkdir -p $out
-                install -m644 ${../../jakstys.lt/index.html} $out/index.html
-                cp -rT ${valkyrie}/_ $out/_
-                substituteInPlace $out/index.html \
-                  --replace-fail '@valkyrieCaps@' "$(cat ${valkyrie}/valkyrie-caps.path)"
+                python3 ${../../jakstys.lt/embed-fonts.py} \
+                  ${../../jakstys.lt/index.html} \
+                  "${config.mj.services.mb-type-fonts.package}/woff2/Valkyrie A Caps/valkyrie_a_caps_regular.woff2" \
+                  "${config.mj.services.mb-type-fonts.package}/woff2/Valkyrie A/valkyrie_a_regular.woff2" \
+                  $out/index.html
                 cp ${../../jakstys.lt/robots.txt} $out/robots.txt
                 cp ${../../jakstys.lt/robots.txt} $out/googlebfa9b278b6db80a4.html
                 OUTS=(index.html robots.txt googlebfa9b278b6db80a4.html)
@@ -245,6 +215,20 @@ in
                   zstd -k -19 "$out/$outfile"
                   brotli -k "$out/$outfile"
                   zopfli -k "$out/$outfile"
+                  hash=$(xxhsum -H3 "$out/$outfile" | sed 's/^XXH3_//; s/ .*//')
+                  [[ $hash =~ ^[0-9a-f]{16}$ ]]
+                  printf '"%s"' "$hash" > "$out/$outfile.etag"
+                  for ext in br zst gz; do
+                    printf '"%s-%s"' "$hash" "$ext" > "$out/$outfile.$ext.etag"
+                  done
+                done
+                for outfile in "''${OUTS[@]}"; do
+                  hash=$(xxhsum -H3 "$out/$outfile" | sed 's/^XXH3_//; s/ .*//')
+                  test "$(<"$out/$outfile.etag")" = "\"$hash\""
+                  for ext in br zst gz; do
+                    test -s "$out/$outfile.$ext"
+                    test "$(<"$out/$outfile.$ext.etag")" = "\"$hash-$ext\""
+                  done
                 done
               '';
         in
@@ -298,11 +282,10 @@ in
             X-Frame-Options "DENY"
             Alt-Svc "h3=\":443\"; ma=86400"
           }
-          header /_/* Cache-Control "public, max-age=31536000, immutable"
-
           root * ${jakstysLandingPage}
           file_server {
             precompressed br zstd gzip
+            etag_file_extensions .etag
           }
 
           @matrixMatch {
