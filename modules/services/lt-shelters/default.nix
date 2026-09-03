@@ -20,17 +20,11 @@ let
       test "$(git -C "$repo" rev-parse --show-object-format)" = "$object_format"
     }
   '';
-  # Daily timer, weekly work: a failed run retries tomorrow, not next week.
-  # Half a day under a week so a slightly later start still counts as due and
-  # the cadence cannot ratchet to eight days. $2 is the job's own output; a
-  # path no commit ever touched reads as due, which is what :-0 buys -- drop
-  # it and the arithmetic errors to stderr and runs on, gating nothing. Call
-  # only after sync_repo, which fails first on a repo git cannot read.
   refreshGate = ''
     exit_unless_due() {
       local committed_at
       committed_at=$(git -C "$1" log -1 --format=%ct -- "$2")
-      [ $(( $(date +%s) - ''${committed_at:-0} )) -ge $(( 7 * 86400 - 12 * 3600 )) ] ||
+      [ $(( $(date +%s) - ''${committed_at:-0} )) -ge $(( 4 * 86400 - 12 * 3600 )) ] ||
         { echo "$2 is fresh; not querying upstream"; exit 0; }
     }
   '';
@@ -252,13 +246,11 @@ in
         readWritePaths = [ "/var/www/dl/maps" ];
       };
 
-      # Geofabrik publishes the Lithuania extract overnight; run after it
-      # lands, on Geofabrik's own clock so summer time cannot eat the margin.
       timers.lt-shelters = {
-        description = "Daily attempt at a Lithuanian shelter and map data refresh";
+        description = "Weekly attempt at a Lithuanian shelter and map data refresh";
         wantedBy = [ "timers.target" ];
         timerConfig = {
-          OnCalendar = "*-*-* 04:00:00 UTC";
+          OnCalendar = "Mon *-*-* 04:00:00 UTC";
           Persistent = true;
           RandomizedDelaySec = "30m";
         };
