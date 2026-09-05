@@ -52,7 +52,10 @@ let
     # its own (this keeper lives in a child cgroup). systemd also enables this
     # when it sets up the delegated+accounted slice, so tolerate it being done
     # already; the pool/memory.max write below is the real check (set -eu).
+    # cpuset likewise, via this service's Delegate= -- the guarded write also
+    # covers the window before user@.service delegates cpuset at all.
     echo +memory > "$slice/cgroup.subtree_control" 2>/dev/null || true
+    echo +cpuset > "$slice/cgroup.subtree_control" 2>/dev/null || true
 
     # Create the shared pool as a SIBLING of this service, directly under the
     # slice -- NOT inside this service's own cgroup. This is the whole fix: a
@@ -60,6 +63,17 @@ let
     # .../pool untouched (mkdir -p preserves the existing inode), so builds parked
     # in it survive and sandbox bind mounts stay live.
     mkdir -p "$slice/pool"
+
+    # Delegate controllers to the per-job leaves (mem-limit-run requires a
+    # named leaf): memory+pids for caps and attribution, cpuset so a leaf can
+    # pin CPUs -- convention: CPUs 12-15 are RESERVED for timing-sensitive
+    # runs, heavy batch jobs pin themselves to 0-11. Separate writes because a
+    # combined write is atomic: cpuset missing (user manager started before
+    # user@.service delegated it, see modules/profiles/coding-agent) must not
+    # block memory+pids. cgroup v2 cpuset needs no parent seeding -- an empty
+    # cpuset.cpus inherits the parent's effective set.
+    echo +memory +pids > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
+    echo +cpuset > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
 
     # Cap RESIDENT memory of the whole pool (memory.max) and allow a BOUNDED
     # amount of swap past it (memory.swap.max), so brief overshoots spill to swap
@@ -111,6 +125,13 @@ in
       Type = "simple";
       Slice = "agent-mem-pool.slice";
       MemoryAccounting = true;
+      # Delegating cpuset to this service is what makes the user manager
+      # enable it in the slice's subtree_control (controllers are enabled for
+      # the parent and siblings of a delegatee, systemd.resource-control(5)),
+      # putting cpuset into pool/cgroup.controllers -- slices themselves
+      # cannot delegate. Harmless no-op until user@.service delegates cpuset
+      # (modules/profiles/coding-agent) and the user manager is restarted.
+      Delegate = "cpuset";
       ExecStart = "${memPoolScript}";
       Restart = "on-failure";
     };

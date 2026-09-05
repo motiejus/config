@@ -25,6 +25,15 @@
     groups.coding-agent.gid = pkgs.claudes.agentUid;
   };
 
+  # Stock user@.service delegates only "pids memory cpu" to the per-user
+  # manager; add cpuset so the agent mem-pool (shared/home/dev.nix) can offer
+  # it to per-job leaves. Drop-in Delegate= lists ADD to the fragment's list
+  # (only the empty string resets it, systemd.resource-control(5)); the full
+  # list is spelled out anyway. The user manager caches its controller set at
+  # startup and user@ is not restarted on switch, so this takes effect per
+  # user at the next full re-login/reboot.
+  systemd.services."user@".serviceConfig.Delegate = "pids memory cpu cpuset";
+
   # Make the GPU render node world-accessible so the sandboxes get a hardware
   # WebGL/EGL context for browser-based rendering tests. The bwrap userns maps
   # the agent to the host user but drops supplementary groups, so it can never
