@@ -42,6 +42,7 @@ in
           "hdd.jakstys.lt:80".extraConfig = with myData.subnets; ''
             root * ${cfg.dataDir}
             @denied not remote_ip ${vno1.cidr} ${vno3.cidr} ${tailscale.cidr}
+            abort @denied
             file_server browse {
               hide .stfolder
             }
