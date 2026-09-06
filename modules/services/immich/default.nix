@@ -7,6 +7,8 @@
 }:
 let
   cfg = config.mj.services.immich;
+  # TODO(motiejus) use 26-11
+  immich-package = pkgs.pkgs-unstable.immich;
   immich-user = config.services.immich.user;
   immich-group = config.services.immich.group;
   startScript = pkgs.writeShellApplication {
@@ -26,7 +28,7 @@ let
       exec setpriv \
         --ruid ${immich-user} \
         --inh-caps -all \
-        ${lib.getExe pkgs.immich}
+        ${lib.getExe immich-package}
     '';
   };
 in
@@ -41,6 +43,7 @@ in
     services.immich = {
       enable = true;
       port = myData.ports.immich-server;
+      package = immich-package;
 
       database = {
         enable = true;
@@ -59,6 +62,7 @@ in
 
     services.caddy.virtualHosts."photos.jakstys.lt:80".extraConfig = ''
       @denied not remote_ip ${myData.subnets.tailscale.cidr}
+      abort @denied
       reverse_proxy localhost:${toString myData.ports.immich-server}
     '';
 

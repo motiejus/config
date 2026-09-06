@@ -140,11 +140,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788636019,
-        "narHash": "sha256-KuJUzR01PSTM5ybKg3T65coO/mbezprZY3pGOiOnfMU=",
+        "lastModified": 1788701400,
+        "narHash": "sha256-s+UJlR9ys6+Z4u6mguq3xCNz+59VogoEbkjwlWct7t4=",
         "ref": "refs/heads/main",
-        "rev": "ab2e7626af8e51e2914e3cc3b9811ac8fd74c10b",
-        "revCount": 835,
+        "rev": "0998b4936f0391509ef6657ea4d8fb2041890be7",
+        "revCount": 868,
         "shallow": false,
         "type": "git",
         "url": "https://git.jakstys.lt/lt-maps.git"
@@ -235,11 +235,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1788531059,
-        "narHash": "sha256-hLD4l3QOGBQhkVp3mQ2lJ/YbEi99qUgKapb40KovZ88=",
+        "lastModified": 1788614874,
+        "narHash": "sha256-7QYjT2vHLuX9Z1pdxHXDKCbh1CR3D/2rywB9Tx0MPRg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "801bef6abd86b91e51083066b83fb354a11fc640",
+        "rev": "c043004d1c6985732bcc1cbc5a9c9aecbbb4e0f0",
         "type": "github"
       },
       "original": {
