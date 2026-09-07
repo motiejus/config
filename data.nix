@@ -137,6 +137,7 @@ rec {
     };
     "vno1-vinc.jakst.vpn" = rec {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJIwK7et5NBM+vaffiwpKLSAJwKfwMhCZwl1JyXo79uL";
+      jakstIP = "192.168.189.24";
     };
     "mxp1.jakst.vpn" = {
     };

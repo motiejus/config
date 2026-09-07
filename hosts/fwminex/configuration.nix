@@ -299,7 +299,9 @@ in
         }
         {
           job_name = "windows";
-          static_configs = [ { targets = [ "vno1-vj-win.jakst.vpn:9182" ]; } ];
+          static_configs = [
+            { targets = [ "${toString myData.hosts."vno1-vinc.jakst.vpn".jakstIP}:9182" ]; }
+          ];
         }
       ]
       ++
