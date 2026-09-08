@@ -207,9 +207,11 @@ in
       kdePackages.kfourinline
       kdePackages.kiriki
 
-      extremetuxracer
+      josm
+
       supertux
       supertuxkart
+      extremetuxracer
       # frozen-bubble # broken in 25.11 (perl SDL tests segfault)
       neverball
       pingus
