@@ -164,7 +164,7 @@
               config.allowUnfree = true;
               overlays = [
                 (_self: super: {
-                  go = super.go_1_26;
+                  go = super.go_1_27;
                   buildGoModule = super.buildGo126Module;
                   buildGoPackage = super.buildGo126Package;
                 })
