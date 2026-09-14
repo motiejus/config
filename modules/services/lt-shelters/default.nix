@@ -159,7 +159,6 @@ let
       git -C "$lt_maps_repo" config user.email lt-maps@jakstys.lt
       git -C "$lt_maps_repo" add -- nix/data-sources.json
       if ! git -C "$lt_maps_repo" diff --cached --quiet; then
-        (cd "$lt_maps_repo"; nix build --no-warn-dirty --accept-flake-config --no-link .#check)
         git -C "$lt_maps_repo" commit -m "Update Lithuania map data sources"
         GIT_DEFAULT_HASH=sha1 git -C "$lt_maps_repo" push origin main
       fi
