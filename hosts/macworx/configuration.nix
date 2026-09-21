@@ -93,6 +93,7 @@ in
     tailscale
     colima
     docker-client
+    sessionbar
     pkgs.xscreensaver-mac
   ];
 
@@ -106,6 +107,14 @@ in
 
   launchd.user.agents.autoraise = {
     command = "${pkgs.autoraise}/bin/autoraise";
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
+    };
+  };
+
+  launchd.user.agents.sessionbar = {
+    command = "${pkgs.sessionbar}/bin/sessionbar";
     serviceConfig = {
       KeepAlive = true;
       RunAtLoad = true;

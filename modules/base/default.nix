@@ -90,13 +90,13 @@ in
             vimv-rs
             ripgrep
             gettext
+            rtorrent
             exiftool
             usbutils
             pciutils
             parallel
             yamllint
             dos2unix
-            rtorrent
             p7zip-rar
             moreutils
             smartmontools
