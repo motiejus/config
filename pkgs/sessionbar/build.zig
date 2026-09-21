@@ -24,42 +24,58 @@ pub fn build(b: *std.Build) void {
         b.graph.environ_map.get("SDKROOT") orelse
         @panic("no macOS SDK: pass -Dsdk=<MacOSX.sdk> or set SDKROOT");
 
-    const app = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-    app.addOptions("build_options", opts);
-    app.addSystemFrameworkPath(.{ .cwd_relative = b.pathJoin(&.{ sdk, "System/Library/Frameworks" }) });
-    app.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ sdk, "usr/include" }) });
-    // AppKit/Foundation re-export libobjc, which only exists on disk as the SDK
-    // stub; without this search path the link fails resolving libobjc.A.dylib.
-    app.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ sdk, "usr/lib" }) });
-    app.linkSystemLibrary("objc", .{});
-    app.linkFramework("Foundation", .{});
-    app.linkFramework("AppKit", .{});
-    b.installArtifact(b.addExecutable(.{ .name = "sessionbar", .root_module = app }));
+    const Ctx = struct {
+        b: *std.Build,
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+        opts: *std.Build.Step.Options,
+        sdk: []const u8,
 
-    // The CLI is pure libc: no frameworks, so no SDK paths and no rpath.
-    const cli = b.createModule(.{
-        .root_source_file = b.path("src/reauth.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-    cli.addOptions("build_options", opts);
-    b.installArtifact(b.addExecutable(.{ .name = "gcloud-force-reauth", .root_module = cli }));
+        fn module(c: @This(), root: []const u8, appkit: bool) *std.Build.Module {
+            const m = c.b.createModule(.{
+                .root_source_file = c.b.path(root),
+                .target = c.target,
+                .optimize = c.optimize,
+                .link_libc = true,
+            });
+            m.addOptions("build_options", c.opts);
+            if (!appkit) return m;
+
+            m.addSystemFrameworkPath(.{ .cwd_relative = c.b.pathJoin(&.{ c.sdk, "System/Library/Frameworks" }) });
+            m.addSystemIncludePath(.{ .cwd_relative = c.b.pathJoin(&.{ c.sdk, "usr/include" }) });
+            // AppKit/Foundation re-export libobjc, which exists on disk only as
+            // the SDK stub; without this search path the link cannot resolve it.
+            m.addLibraryPath(.{ .cwd_relative = c.b.pathJoin(&.{ c.sdk, "usr/lib" }) });
+            m.linkSystemLibrary("objc", .{});
+            m.linkFramework("CoreFoundation", .{});
+            m.linkFramework("Foundation", .{});
+            m.linkFramework("AppKit", .{});
+            return m;
+        }
+    };
+    const ctx: Ctx = .{ .b = b, .target = target, .optimize = optimize, .opts = opts, .sdk = sdk };
+
+    for ([_]struct { []const u8, []const u8, bool }{
+        .{ "sessionbar", "src/main.zig", true },
+        // The CLI is pure libc: no frameworks, so no SDK paths at all.
+        .{ "gcloud-force-reauth", "src/reauth.zig", false },
+    }) |spec| {
+        const exe = b.addExecutable(.{ .name = spec[0], .root_module = ctx.module(spec[1], spec[2]) });
+        // The SDK -L dir would otherwise become an LC_RPATH, pinning the whole
+        // SDK into the runtime closure; nothing is loaded from it at run time.
+        exe.each_lib_rpath = false;
+        b.installArtifact(exe);
+    }
 
     const test_step = b.step("test", "Run unit tests");
-    for ([_][]const u8{ "src/sys.zig", "src/expiry.zig", "src/reauth.zig" }) |path| {
-        const mod = b.createModule(.{
-            .root_source_file = b.path(path),
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
-        });
-        mod.addOptions("build_options", opts);
-        test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = mod })).step);
+    for ([_]struct { []const u8, bool }{
+        .{ "src/sys.zig", false },
+        .{ "src/expiry.zig", false },
+        .{ "src/reauth.zig", false },
+        .{ "src/main.zig", true },
+    }) |spec| {
+        const t = b.addTest(.{ .root_module = ctx.module(spec[0], spec[1]) });
+        t.each_lib_rpath = false;
+        test_step.dependOn(&b.addRunArtifact(t).step);
     }
 }

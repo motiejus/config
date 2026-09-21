@@ -1,5 +1,17 @@
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
+  alwaysOn = command: {
+    inherit command;
+    serviceConfig = {
+      KeepAlive = true;
+      RunAtLoad = true;
+    };
+  };
   tealWallpaper =
     pkgs.runCommand "teal-wallpaper.png"
       {
@@ -97,26 +109,16 @@ in
     pkgs.xscreensaver-mac
   ];
 
-  launchd.daemons.tailscaled = {
-    command = "${pkgs.tailscale}/bin/tailscaled";
-    serviceConfig = {
-      KeepAlive = true;
-      RunAtLoad = true;
-    };
-  };
+  launchd.daemons.tailscaled = alwaysOn "${pkgs.tailscale}/bin/tailscaled";
 
-  launchd.user.agents.autoraise = {
-    command = "${pkgs.autoraise}/bin/autoraise";
-    serviceConfig = {
-      KeepAlive = true;
-      RunAtLoad = true;
-    };
-  };
+  launchd.user.agents.autoraise = alwaysOn (lib.getExe pkgs.autoraise);
 
   launchd.user.agents.sessionbar = {
-    command = "${pkgs.sessionbar}/bin/sessionbar";
+    command = lib.getExe pkgs.sessionbar;
     serviceConfig = {
-      KeepAlive = true;
+      # Plain `KeepAlive = true` would make the menu's Quit a no-op; this
+      # restarts on crash but honours a clean exit.
+      KeepAlive.SuccessfulExit = false;
       RunAtLoad = true;
     };
   };

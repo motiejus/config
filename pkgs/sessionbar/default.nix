@@ -2,48 +2,42 @@
   lib,
   stdenvNoCC,
   apple-sdk,
-  zigpkgs,
+  zig_0_16,
   google-cloud-sdk,
 }:
 
+let
+  # -Dsdk is explicit so the build never depends on SDKROOT leaking in; the
+  # SDK supplies only framework .tbd stubs, as the app drives the Objective-C
+  # runtime through its C API and needs no headers.
+  commonFlags = [
+    "-Dcpu=baseline"
+    "--release=small"
+    "-Dsdk=${apple-sdk.sdkroot}"
+    "-Dreauth=${placeholder "out"}/bin/gcloud-force-reauth"
+    "-Dgcloud=${lib.getExe google-cloud-sdk}"
+  ];
+in
 stdenvNoCC.mkDerivation {
   pname = "sessionbar";
   version = "0.1.0";
   src = ./.;
 
-  nativeBuildInputs = [ zigpkgs."0.16.0" ];
-  # Only the framework .tbd stubs are used; the app talks to the Objective-C
-  # runtime through its C API, so no SDK headers are needed. The setup hook
-  # exports SDKROOT, which build.zig reads.
+  nativeBuildInputs = [ zig_0_16 ];
   buildInputs = [ apple-sdk ];
 
-  dontConfigure = true;
-
-  buildPhase = ''
-    runHook preBuild
-    export XDG_CACHE_HOME="$TMPDIR/zig-cache"
-    zig build -Doptimize=ReleaseSmall \
-      -Dreauth="$out/bin/gcloud-force-reauth" \
-      -Dgcloud=${lib.getExe google-cloud-sdk}
-    runHook postBuild
-  '';
-
+  # The hook would otherwise append its own --release=safe last, winning.
+  dontSetZigDefaultFlags = true;
+  zigBuildFlags = commonFlags;
+  # zigCheckPhase does not inherit zigBuildFlags; same flags keep the build,
+  # check and install phases on one options hash.
+  zigCheckFlags = commonFlags;
   doCheck = true;
-  checkPhase = ''
-    runHook preCheck
-    zig build test
-    runHook postCheck
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    install -Dm555 -t $out/bin zig-out/bin/sessionbar zig-out/bin/gcloud-force-reauth
-    runHook postInstall
-  '';
 
   meta = {
     description = "Menu bar countdown to the next gcloud reauth";
     mainProgram = "sessionbar";
+    license = lib.licenses.mit0; # repo LICENSE is MIT No Attribution
     platforms = lib.platforms.darwin;
   };
 }

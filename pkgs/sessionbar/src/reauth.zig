@@ -59,6 +59,18 @@ fn parseArgs(argv: []const [:0]const u8) ?Options {
     return o;
 }
 
+/// Index from which bytes must be withheld: the start of a complete or partial
+/// `url_prefix` occurrence, else `buf.len`. Everything before it is safe to
+/// relay immediately, so gcloud's own prompts are never held back.
+fn holdFrom(buf: []const u8) usize {
+    if (std.mem.indexOf(u8, buf, url_prefix)) |i| return i;
+    var n = @min(buf.len, url_prefix.len - 1);
+    while (n > 0) : (n -= 1) {
+        if (std.mem.eql(u8, buf[buf.len - n ..], url_prefix[0..n])) return buf.len - n;
+    }
+    return buf.len;
+}
+
 /// Returns the URL only once its terminating whitespace has arrived, so a
 /// partial read cannot yield a truncated URL.
 fn findUrl(buf: []const u8) ?[]const u8 {
@@ -107,12 +119,6 @@ fn rewriteUrl(gpa: std.mem.Allocator, url: []const u8) ![]u8 {
     return out.toOwnedSlice(gpa);
 }
 
-fn say(io: std.Io, file: std.Io.File, comptime fmt: []const u8, args: anytype) void {
-    var buf: [8192]u8 = undefined;
-    const s = std.fmt.bufPrint(&buf, fmt, args) catch return;
-    file.writeStreamingAll(io, s) catch {};
-}
-
 fn openUrl(gpa: std.mem.Allocator, io: std.Io, opener: []const u8, url: []const u8) void {
     var argv: std.ArrayList([]const u8) = .empty;
     defer argv.deinit(gpa);
@@ -123,40 +129,61 @@ fn openUrl(gpa: std.mem.Allocator, io: std.Io, opener: []const u8, url: []const 
     _ = child.wait(io) catch {};
 }
 
-fn recordAnchor(io: std.Io, started: i64) void {
+fn recordAnchor(io: std.Io, out: *std.Io.Writer, started: i64) !void {
+    var cfg_buf: [std.Io.Dir.max_path_bytes]u8 = undefined;
+    const cfg = sys.configDir(&cfg_buf) orelse return error.NoConfigDir;
     var path_buf: [std.Io.Dir.max_path_bytes]u8 = undefined;
-    const path = sys.anchorPath(&path_buf) orelse return;
-    var stamp_buf: [32]u8 = undefined;
-    const stamp = sys.formatStamp(&stamp_buf, started) catch return;
-    var line_buf: [40]u8 = undefined;
-    const line = std.fmt.bufPrint(&line_buf, "{s}\n", .{stamp}) catch return;
-    std.Io.Dir.cwd().writeFile(io, .{ .sub_path = path, .data = line }) catch return;
+    const path = sys.anchorPath(&path_buf, cfg) orelse return error.NoConfigDir;
 
-    const tm = sys.localParts(started);
-    say(io, std.Io.File.stdout(), "\nSession anchor recorded: {s} {d:0>2}:{d:0>2}\n", .{
-        sys.weekdays[@intCast(@mod(tm.wday, 7))],
-        @as(u32, @intCast(tm.hour)),
-        @as(u32, @intCast(tm.min)),
+    var stamp_buf: [32]u8 = undefined;
+    const stamp = try sys.formatStamp(&stamp_buf, started);
+    var line_buf: [40]u8 = undefined;
+    try std.Io.Dir.cwd().writeFile(io, .{
+        .sub_path = path,
+        .data = try std.fmt.bufPrint(&line_buf, "{s}\n", .{stamp}),
     });
+
+    var when: [32]u8 = undefined;
+    try out.print("\nSession anchor recorded: {s}\n", .{try sys.formatDayTime(&when, started)});
 }
 
 pub fn main(init: std.process.Init) u8 {
     const gpa = init.gpa;
     const io = init.io;
-    const stdout = std.Io.File.stdout();
-    const stderr = std.Io.File.stderr();
 
-    const argv = init.minimal.args.toSlice(init.arena.allocator()) catch return 1;
+    var out_buf: [4096]u8 = undefined;
+    var err_buf: [4096]u8 = undefined;
+    // Streaming, not positional: stdio writers must append, or a shell's
+    // `>file 2>&1` has both of them pwrite from offset 0 over each other.
+    var out = std.Io.File.stdout().writerStreaming(io, &out_buf);
+    var err = std.Io.File.stderr().writerStreaming(io, &err_buf);
+    defer out.interface.flush() catch {};
+    defer err.interface.flush() catch {};
+
+    return run(gpa, io, init, &out.interface, &err.interface) catch |e| {
+        err.interface.print("gcloud-force-reauth: {t}\n", .{e}) catch {};
+        return 1;
+    };
+}
+
+fn run(
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    init: std.process.Init,
+    out: *std.Io.Writer,
+    err: *std.Io.Writer,
+) !u8 {
+    const argv = try init.minimal.args.toSlice(init.arena.allocator());
     const opts = parseArgs(argv) orelse {
-        say(io, stderr, "{s}", .{usage});
+        try err.writeAll(usage);
         return 2;
     };
 
     var cmd: std.ArrayList([]const u8) = .empty;
     defer cmd.deinit(gpa);
-    cmd.appendSlice(gpa, &.{ build_options.gcloud_path, "auth", "login", "--force", "--no-launch-browser" }) catch return 1;
-    if (opts.account) |a| cmd.append(gpa, a) catch return 1;
-    if (opts.update_adc) cmd.append(gpa, "--update-adc") catch return 1;
+    try cmd.appendSlice(gpa, &.{ build_options.gcloud_path, "auth", "login", "--force", "--no-launch-browser" });
+    if (opts.account) |a| try cmd.append(gpa, a);
+    if (opts.update_adc) try cmd.append(gpa, "--update-adc");
 
     const started = sys.now();
 
@@ -168,41 +195,74 @@ pub fn main(init: std.process.Init) u8 {
         .stdin = .inherit,
         .stdout = .inherit,
         .stderr = .pipe,
-    }) catch |err| {
-        say(io, stderr, "cannot run {s}: {t}\n", .{ build_options.gcloud_path, err });
+    }) catch |e| {
+        try err.print("cannot run {s}: {t}\n", .{ build_options.gcloud_path, e });
         return 1;
     };
 
-    var pending: std.ArrayList(u8) = .empty;
-    defer pending.deinit(gpa);
+    // gcloud's own URL still carries prompt=consent, which the SSO cookie would
+    // satisfy without any real re-authentication, so it must never reach the
+    // terminal. Only the URL itself is withheld; everything around it streams
+    // through, or gcloud's prompts would be invisible while it waits on stdin.
+    var held: std.ArrayList(u8) = .empty;
+    defer held.deinit(gpa);
     var rewritten: ?[]u8 = null;
     defer if (rewritten) |u| gpa.free(u);
+    // A relay failure must not leave gcloud running on the user's terminal.
+    errdefer child.kill(io);
 
     var chunk: [4096]u8 = undefined;
     var bufs = [_][]u8{&chunk};
     while (true) {
         const n = child.stderr.?.readStreaming(io, &bufs) catch break;
-        stderr.writeStreamingAll(io, chunk[0..n]) catch {};
-        if (rewritten != null) continue;
+        try held.appendSlice(gpa, chunk[0..n]);
 
-        pending.appendSlice(gpa, chunk[0..n]) catch break;
-        const raw = findUrl(pending.items) orelse continue;
-        rewritten = rewriteUrl(gpa, raw) catch break;
+        if (rewritten != null) {
+            try err.writeAll(held.items);
+            held.clearRetainingCapacity();
+            try err.flush();
+            continue;
+        }
+
+        const raw = findUrl(held.items) orelse {
+            const keep = holdFrom(held.items);
+            try err.writeAll(held.items[0..keep]);
+            std.mem.copyForwards(u8, held.items[0 .. held.items.len - keep], held.items[keep..]);
+            held.shrinkRetainingCapacity(held.items.len - keep);
+            try err.flush();
+            continue;
+        };
+
+        const at = @intFromPtr(raw.ptr) - @intFromPtr(held.items.ptr);
+        const url = try rewriteUrl(gpa, raw);
+        rewritten = url;
+        try err.writeAll(held.items[0..at]);
+        try err.writeAll("[forced re-auth URL substituted]\n");
+        try err.writeAll(held.items[at + raw.len ..]);
+        held.clearRetainingCapacity();
+        try err.flush();
 
         if (opts.dry_run) {
-            say(io, stdout, "\n--- rewritten authorize URL (dry run) ---\n", .{});
-            say(io, stdout, "{s}\n", .{rewritten.?});
+            try out.print("\n--- rewritten authorize URL (dry run) ---\n{s}\n", .{url});
+            try out.flush();
             child.kill(io);
             return 0;
         }
-        say(io, stdout, "\nOpening a full re-authentication prompt in your browser.\n", .{});
-        say(io, stdout, "Sign in completely, then paste the verification code below.\n\n", .{});
-        openUrl(gpa, io, opts.opener, rewritten.?);
+        try out.print("\nOpening a full re-authentication prompt in your browser.\n", .{});
+        try out.print("If it did not open, use this URL (and no other):\n{s}\n", .{url});
+        try out.print("\nSign in completely, then paste the verification code below.\n\n", .{});
+        try out.flush();
+        openUrl(gpa, io, opts.opener, url);
     }
+
+    // Whatever is still held cannot contain a URL we are going to substitute.
+    try err.writeAll(held.items);
+    try err.flush();
 
     const term = child.wait(io) catch return 1;
     if (rewritten == null) {
-        say(io, stderr, "\nNo authorize URL seen -- gcloud may already hold valid credentials.\n", .{});
+        try err.writeAll("\nNo authorize URL seen -- gcloud may already hold valid credentials.\n");
+        try err.flush();
         return 1;
     }
 
@@ -210,7 +270,7 @@ pub fn main(init: std.process.Init) u8 {
         .exited => |c| c,
         else => 1,
     };
-    if (code == 0) recordAnchor(io, started);
+    if (code == 0) try recordAnchor(io, out, started);
     return code;
 }
 
@@ -267,4 +327,16 @@ test "parseArgs handles positional, flags and both opener forms" {
     try std.testing.expectEqualStrings(default_opener, a.opener);
     try std.testing.expectEqualStrings("echo", parseArgs(&.{ "x", "--opener", "echo" }).?.opener);
     try std.testing.expectEqualStrings("echo", parseArgs(&.{ "x", "--opener=echo" }).?.opener);
+}
+
+test "F2: only the URL span is withheld from the relay" {
+    // Text before a potential prefix must stream out; a partial prefix at the
+    // tail is held until the rest arrives.
+    try std.testing.expectEqual(@as(usize, 11), holdFrom("Go to this:\n"[0..11]));
+    try std.testing.expectEqual(@as(usize, 7), holdFrom("Go to: " ++ url_prefix[0..12]));
+    try std.testing.expectEqual(@as(usize, 7), holdFrom("Go to: " ++ sample_url));
+    // A lone "h" at the very end is a one-byte partial prefix.
+    try std.testing.expectEqual(@as(usize, 6), holdFrom("Code: h"));
+    // Nothing prefix-like: everything is releasable.
+    try std.testing.expectEqual(@as(usize, 21), holdFrom("Enter the code below:"[0..21]));
 }

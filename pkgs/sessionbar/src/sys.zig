@@ -2,7 +2,9 @@
 
 const std = @import("std");
 
-pub const Tm = extern struct {
+/// Darwin `struct tm`. Private: callers get `Time`, with the 1900/0-based
+/// offsets already applied and the fields widened to what formatting wants.
+const CTm = extern struct {
     sec: c_int = 0,
     min: c_int = 0,
     hour: c_int = 0,
@@ -16,12 +18,26 @@ pub const Tm = extern struct {
     zone: ?[*:0]const u8 = null,
 };
 
-extern "c" fn mktime(tm: *Tm) c_long;
-extern "c" fn localtime_r(clock: *const c_long, result: *Tm) ?*Tm;
+extern "c" fn mktime(tm: *CTm) c_long;
+extern "c" fn localtime_r(clock: *const c_long, result: *CTm) ?*CTm;
 extern "c" fn getenv(name: [*:0]const u8) ?[*:0]const u8;
 extern "c" fn time(tloc: ?*c_long) c_long;
 
-pub const weekdays = [_][]const u8{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+const weekdays = [_][]const u8{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+pub const Time = struct {
+    year: u16,
+    mon: u8,
+    mday: u8,
+    hour: u8,
+    min: u8,
+    sec: u8,
+    wday: u8,
+
+    pub fn dayName(t: Time) []const u8 {
+        return weekdays[t.wday];
+    }
+};
 
 pub fn env(comptime name: [:0]const u8) ?[]const u8 {
     return std.mem.span(getenv(name.ptr) orelse return null);
@@ -33,7 +49,7 @@ pub fn now() i64 {
 
 /// Local wall-clock time as epoch seconds; `isdst = -1` lets libc resolve DST.
 pub fn localToEpoch(year: u16, mon: u8, mday: u8, hour: u8, min: u8, sec: u8) ?i64 {
-    var tm: Tm = .{
+    var tm: CTm = .{
         .sec = sec,
         .min = min,
         .hour = hour,
@@ -46,15 +62,22 @@ pub fn localToEpoch(year: u16, mon: u8, mday: u8, hour: u8, min: u8, sec: u8) ?i
     return if (t == -1) null else t;
 }
 
-pub fn localParts(epoch: i64) Tm {
+pub fn localParts(epoch: i64) Time {
     const clock: c_long = epoch;
-    var tm: Tm = .{};
+    var tm: CTm = .{};
     _ = localtime_r(&clock, &tm);
-    return tm;
+    return .{
+        .year = @intCast(tm.year + 1900),
+        .mon = @intCast(tm.mon + 1),
+        .mday = @intCast(tm.mday),
+        .hour = @intCast(tm.hour),
+        .min = @intCast(tm.min),
+        .sec = @intCast(tm.sec),
+        .wday = @intCast(tm.wday),
+    };
 }
 
-fn digits(s: []const u8) ?u32 {
-    for (s) |c| if (!std.ascii.isDigit(c)) return null;
+fn num(s: []const u8) ?u32 {
     return std.fmt.parseUnsigned(u32, s, 10) catch null;
 }
 
@@ -64,26 +87,27 @@ pub fn parseStamp(s: []const u8) ?i64 {
     if (s[4] != '-' or s[7] != '-' or s[13] != ':' or s[16] != ':') return null;
     if (s[10] != ' ' and s[10] != 'T') return null;
     return localToEpoch(
-        @intCast(digits(s[0..4]) orelse return null),
-        @intCast(digits(s[5..7]) orelse return null),
-        @intCast(digits(s[8..10]) orelse return null),
-        @intCast(digits(s[11..13]) orelse return null),
-        @intCast(digits(s[14..16]) orelse return null),
-        @intCast(digits(s[17..19]) orelse return null),
+        @intCast(num(s[0..4]) orelse return null),
+        @intCast(num(s[5..7]) orelse return null),
+        @intCast(num(s[8..10]) orelse return null),
+        @intCast(num(s[11..13]) orelse return null),
+        @intCast(num(s[14..16]) orelse return null),
+        @intCast(num(s[17..19]) orelse return null),
     );
 }
 
 /// `YYYY-MM-DDTHH:MM:SS` local, the format the anchor file is exchanged in.
 pub fn formatStamp(buf: []u8, epoch: i64) ![]const u8 {
-    const tm = localParts(epoch);
+    const t = localParts(epoch);
     return std.fmt.bufPrint(buf, "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}", .{
-        @as(u32, @intCast(tm.year)) + 1900,
-        @as(u32, @intCast(tm.mon)) + 1,
-        @as(u32, @intCast(tm.mday)),
-        @as(u32, @intCast(tm.hour)),
-        @as(u32, @intCast(tm.min)),
-        @as(u32, @intCast(tm.sec)),
+        t.year, t.mon, t.mday, t.hour, t.min, t.sec,
     });
+}
+
+/// `EEE HH:MM`, the human-facing form used in menus and CLI output.
+pub fn formatDayTime(buf: []u8, epoch: i64) ![]const u8 {
+    const t = localParts(epoch);
+    return std.fmt.bufPrint(buf, "{s} {d:0>2}:{d:0>2}", .{ t.dayName(), t.hour, t.min });
 }
 
 pub fn configDir(buf: []u8) ?[]const u8 {
@@ -92,21 +116,18 @@ pub fn configDir(buf: []u8) ?[]const u8 {
     return std.fmt.bufPrint(buf, "{s}/.config/gcloud", .{home}) catch null;
 }
 
-pub fn anchorPath(buf: []u8) ?[]const u8 {
-    var cfg_buf: [std.Io.Dir.max_path_bytes]u8 = undefined;
-    const cfg = configDir(&cfg_buf) orelse return null;
+pub fn anchorPath(buf: []u8, cfg: []const u8) ?[]const u8 {
     return std.fmt.bufPrint(buf, "{s}/.reauth_anchor", .{cfg}) catch null;
 }
 
 test "parseStamp round-trips through local time" {
-    const t = parseStamp("2026-09-21 12:13:27,725 DEBUG    root").?;
-    const tm = localParts(t);
-    try std.testing.expectEqual(@as(c_int, 126), tm.year);
-    try std.testing.expectEqual(@as(c_int, 8), tm.mon);
-    try std.testing.expectEqual(@as(c_int, 21), tm.mday);
-    try std.testing.expectEqual(@as(c_int, 12), tm.hour);
-    try std.testing.expectEqual(@as(c_int, 13), tm.min);
-    try std.testing.expectEqual(@as(c_int, 27), tm.sec);
+    const t = localParts(parseStamp("2026-09-21 12:13:27,725 DEBUG    root").?);
+    try std.testing.expectEqual(@as(u16, 2026), t.year);
+    try std.testing.expectEqual(@as(u8, 9), t.mon);
+    try std.testing.expectEqual(@as(u8, 21), t.mday);
+    try std.testing.expectEqual(@as(u8, 12), t.hour);
+    try std.testing.expectEqual(@as(u8, 13), t.min);
+    try std.testing.expectEqual(@as(u8, 27), t.sec);
 }
 
 test "parseStamp accepts the ISO separator and rejects junk" {
@@ -120,4 +141,9 @@ test "formatStamp is the inverse of parseStamp" {
     var buf: [32]u8 = undefined;
     const epoch = parseStamp("2026-09-21T20:14:01").?;
     try std.testing.expectEqualStrings("2026-09-21T20:14:01", try formatStamp(&buf, epoch));
+}
+
+test "formatDayTime renders the weekday" {
+    var buf: [32]u8 = undefined;
+    try std.testing.expectEqualStrings("Mon 20:14", try formatDayTime(&buf, parseStamp("2026-09-21T20:14:01").?));
 }
