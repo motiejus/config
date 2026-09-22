@@ -109,17 +109,16 @@ in
     pkgs.xscreensaver-mac
   ];
 
-  launchd.daemons.tailscaled = alwaysOn "${pkgs.tailscale}/bin/tailscaled";
-
-  launchd.user.agents.autoraise = alwaysOn (lib.getExe pkgs.autoraise);
-
-  launchd.user.agents.sessionbar = {
-    command = lib.getExe pkgs.sessionbar;
-    serviceConfig = {
-      # Plain `KeepAlive = true` would make the menu's Quit a no-op; this
-      # restarts on crash but honours a clean exit.
-      KeepAlive.SuccessfulExit = false;
-      RunAtLoad = true;
+  launchd = {
+    daemons.tailscaled = alwaysOn "${pkgs.tailscale}/bin/tailscaled";
+    user.agents.autoraise = alwaysOn (lib.getExe pkgs.autoraise);
+    user.agents.sessionbar = {
+      command = lib.getExe pkgs.sessionbar;
+      serviceConfig = {
+        # KeepAlive = true would make the menu's Quit a no-op.
+        KeepAlive.SuccessfulExit = false;
+        RunAtLoad = true;
+      };
     };
   };
 

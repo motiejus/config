@@ -26,8 +26,7 @@ pub fn sel(comptime name: [:0]const u8) Sel {
     return sel_registerName(name.ptr);
 }
 
-/// Spelled out per arity because zig 0.16 removed `@Type`, so a function type
-/// can no longer be reified from `std.builtin.Type.Fn`.
+/// Per arity: zig 0.16 removed `@Type`, so fn types cannot be reified.
 fn SendFn(comptime R: type, comptime Args: type) type {
     const f = @typeInfo(Args).@"struct".fields;
     return switch (f.len) {
@@ -41,10 +40,8 @@ fn SendFn(comptime R: type, comptime Args: type) type {
     };
 }
 
-/// Casts objc_msgSend to the signature implied by `args`. Valid on arm64,
-/// where there is no variadic ABI difference and no _stret/_fpret variants.
-/// Arguments must be concretely typed: a comptime_int has no ABI, so write
-/// `@as(isize, 1)` rather than `1`.
+/// Casts objc_msgSend to the signature `args` implies; arm64 only, and
+/// every argument must be concretely typed (`@as(isize, 1)`, never `1`).
 pub fn msg(comptime R: type, obj: Id, s: Sel, args: anytype) R {
     const f: *const SendFn(R, @TypeOf(args)) = @ptrCast(&objc_msgSend);
     return @call(.auto, f, .{ obj, s } ++ args);
@@ -52,6 +49,11 @@ pub fn msg(comptime R: type, obj: Id, s: Sel, args: anytype) R {
 
 pub fn alloc(comptime name: [:0]const u8) Id {
     return msg(Id, class(name), sel("alloc"), .{});
+}
+
+/// Plain `[[C alloc] init]`; an initWith… still goes through `alloc`.
+pub fn new(comptime name: [:0]const u8) Id {
+    return msg(Id, alloc(name), sel("init"), .{});
 }
 
 /// Hands ownership to the run loop's pool; without it every refresh leaks.

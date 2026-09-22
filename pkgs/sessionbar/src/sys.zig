@@ -1,9 +1,11 @@
-//! Local-time and gcloud-config-path helpers shared by the app and the CLI.
+//! Local-time and gcloud-config-path helpers.
 
 const std = @import("std");
 
-/// Darwin `struct tm`. Private: callers get `Time`, with the 1900/0-based
-/// offsets already applied and the fields widened to what formatting wants.
+/// Set once from --debug; read by every module that traces.
+pub var debug = false;
+
+/// Darwin `struct tm`; callers get `Time` with the offsets already applied.
 const CTm = extern struct {
     sec: c_int = 0,
     min: c_int = 0,
@@ -20,7 +22,6 @@ const CTm = extern struct {
 
 extern "c" fn mktime(tm: *CTm) c_long;
 extern "c" fn localtime_r(clock: *const c_long, result: *CTm) ?*CTm;
-extern "c" fn getenv(name: [*:0]const u8) ?[*:0]const u8;
 extern "c" fn time(tloc: ?*c_long) c_long;
 
 const weekdays = [_][]const u8{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
@@ -34,13 +35,13 @@ pub const Time = struct {
     sec: u8,
     wday: u8,
 
-    pub fn dayName(t: Time) []const u8 {
+    fn dayName(t: Time) []const u8 {
         return weekdays[t.wday];
     }
 };
 
-pub fn env(comptime name: [:0]const u8) ?[]const u8 {
-    return std.mem.span(getenv(name.ptr) orelse return null);
+fn env(comptime name: [:0]const u8) ?[]const u8 {
+    return std.mem.span(std.c.getenv(name.ptr) orelse return null);
 }
 
 pub fn now() i64 {
@@ -96,14 +97,6 @@ pub fn parseStamp(s: []const u8) ?i64 {
     );
 }
 
-/// `YYYY-MM-DDTHH:MM:SS` local, the format the anchor file is exchanged in.
-pub fn formatStamp(buf: []u8, epoch: i64) ![]const u8 {
-    const t = localParts(epoch);
-    return std.fmt.bufPrint(buf, "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}", .{
-        t.year, t.mon, t.mday, t.hour, t.min, t.sec,
-    });
-}
-
 /// `EEE HH:MM`, the human-facing form used in menus and CLI output.
 pub fn formatDayTime(buf: []u8, epoch: i64) ![]const u8 {
     const t = localParts(epoch);
@@ -114,10 +107,6 @@ pub fn configDir(buf: []u8) ?[]const u8 {
     if (env("CLOUDSDK_CONFIG")) |v| if (v.len > 0) return v;
     const home = env("HOME") orelse return null;
     return std.fmt.bufPrint(buf, "{s}/.config/gcloud", .{home}) catch null;
-}
-
-pub fn anchorPath(buf: []u8, cfg: []const u8) ?[]const u8 {
-    return std.fmt.bufPrint(buf, "{s}/.reauth_anchor", .{cfg}) catch null;
 }
 
 test "parseStamp round-trips through local time" {
@@ -135,12 +124,6 @@ test "parseStamp accepts the ISO separator and rejects junk" {
     try std.testing.expect(parseStamp("Traceback (most recent call last)") == null);
     try std.testing.expect(parseStamp("2026-09-21") == null);
     try std.testing.expect(parseStamp("20x6-09-21 12:13:27") == null);
-}
-
-test "formatStamp is the inverse of parseStamp" {
-    var buf: [32]u8 = undefined;
-    const epoch = parseStamp("2026-09-21T20:14:01").?;
-    try std.testing.expectEqualStrings("2026-09-21T20:14:01", try formatStamp(&buf, epoch));
 }
 
 test "formatDayTime renders the weekday" {

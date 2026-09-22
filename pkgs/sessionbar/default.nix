@@ -14,8 +14,12 @@ let
     "-Dcpu=baseline"
     "--release=small"
     "-Dsdk=${apple-sdk.sdkroot}"
-    "-Dreauth=${placeholder "out"}/bin/gcloud-force-reauth"
+    # Deliberately the raw gcloud, not pkgs/gcloud-wrapped: the wrapper only
+    # intercepts `config config-helper --format json`, so it would change
+    # nothing here while dragging its Go build into the closure.
     "-Dgcloud=${lib.getExe google-cloud-sdk}"
+    "-Dokta-host=paloaltonetworks.okta.com"
+    "-Dokta-app=exk1tyqe5nFkbXBBj1t7"
   ];
 in
 stdenvNoCC.mkDerivation {
