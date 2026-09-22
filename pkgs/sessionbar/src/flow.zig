@@ -68,7 +68,9 @@ pub fn start() void {
     flow.environ.put("BROWSER", "/usr/bin/true") catch |e|
         return alertErr("Could not prepare the environment", e);
 
-    const argv: []const []const u8 = &.{ build_options.gcloud_path, "auth", "login", "--force" };
+    // --update-adc as well: the ADC file carries its own expiry, and without
+    // it everything reading ADC keeps failing on the old schedule.
+    const argv: []const []const u8 = &.{ build_options.gcloud_path, "auth", "login", "--force", "--update-adc" };
     const child = std.process.spawn(flow.io, .{
         .argv = argv,
         .environ_map = flow.environ,
