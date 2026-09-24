@@ -100,6 +100,14 @@
     let
       myData = import ./data.nix;
 
+      # Systems we build for: the NixOS hosts are all x86_64-linux, macworx is
+      # aarch64-darwin. Notably excludes x86_64-darwin, which some of our
+      # inputs (e.g. pre-commit-hooks.nix) no longer support.
+      mySystems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
+
       baseOverlays = [
         nur.overlays.default
         zig.overlays.default
@@ -375,9 +383,9 @@
             };
           };
         }
-      ) deploy-rs.lib;
+      ) (nixpkgs.lib.getAttrs mySystems deploy-rs.lib);
     }
-    // flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (
+    // flake-utils.lib.eachSystem mySystems (
       system:
       let
         pkgs = import nixpkgs {
@@ -406,37 +414,30 @@
     )
 
     // {
-      packages =
-        nixpkgs.lib.genAttrs
-          [
-            "x86_64-linux"
-            "aarch64-linux"
-            "aarch64-darwin"
-          ]
-          (
-            system:
-            let
-              pkgs = import nixpkgs {
-                inherit system;
-                overlays = baseOverlays;
-              };
-            in
-            {
-              inherit (pkgs) lt-maps;
-            }
-            // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-              inherit (pkgs)
-                lt-shelters
-                weather
-                gamja
-                chronoctl
-                timelapse-web
-                mrescue-alpine
-                mrescue-debian-xfce
-                mrescue-nixos
-                ;
-            }
-          );
+      packages = nixpkgs.lib.genAttrs mySystems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = baseOverlays;
+          };
+        in
+        {
+          inherit (pkgs) lt-maps;
+        }
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          inherit (pkgs)
+            lt-shelters
+            weather
+            gamja
+            chronoctl
+            timelapse-web
+            mrescue-alpine
+            mrescue-debian-xfce
+            mrescue-nixos
+            ;
+        }
+      );
     };
 
 }
