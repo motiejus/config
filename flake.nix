@@ -119,7 +119,6 @@
             lt-shelters = super.callPackage ./pkgs/lt-shelters.nix { };
             weather = super.callPackage ./pkgs/weather { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
-            gcloud-wrapped = super.callPackage ./pkgs/gcloud-wrapped { };
             lt-maps = inputs.lt-maps.packages.${final.stdenv.hostPlatform.system}.compressed;
             # The callPackage set (where `override` lives), forced only by mbFontsDir.
             lt-maps-set = inputs.lt-maps.legacyPackages.${final.stdenv.hostPlatform.system};

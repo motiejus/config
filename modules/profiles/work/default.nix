@@ -12,7 +12,7 @@
     terraform
     github-cli
     docker-compose
-    gcloud-wrapped
+    google-cloud-sdk
     kubectl-node-shell
     ssm-session-manager-plugin
     pkgs.pkgs-unstable.claude-code
