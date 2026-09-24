@@ -129,7 +129,6 @@
             # fish gets SIGKILL in nix sandbox on darwin, breaking direnv tests
             direnv = super.direnv.overrideAttrs { doCheck = false; };
             xscreensaver-mac = super.callPackage ./pkgs/xscreensaver-mac.nix { };
-            sessionbar = final.callPackage ./pkgs/sessionbar { };
           }
           // super.lib.optionalAttrs super.stdenv.isLinux rec {
             stagit-ng = super.callPackage ./pkgs/stagit-ng.nix { };
