@@ -155,6 +155,7 @@ in
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         header Alt-Svc "h3=\":443\"; ma=86400"
         root * /var/www/dl
+        header Access-Control-Allow-Origin "*"
         file_server browse {
           hide .stfolder
         }
