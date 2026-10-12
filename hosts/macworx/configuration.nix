@@ -53,6 +53,7 @@ in
     stateVersion = "25.11";
     timeZone = "GMT";
     username = "mjakstys";
+    profiles.devtools.goPackages = pkgs.pkgs-go;
   };
 
   system.defaults.dock.show-recents = false;

@@ -1,17 +1,31 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }:
+let
+  cfg = config.mj.profiles.devtools;
+in
 {
-  home-manager.users.${config.mj.username} = {
+  options.mj.profiles.devtools = {
+    goPackages = lib.mkOption {
+      type = lib.types.raw;
+      default = pkgs;
+      defaultText = lib.literalExpression "pkgs";
+      example = lib.literalExpression "pkgs.pkgs-go";
+      description = "Package set providing go and the Go dev tools (delve, staticcheck, gopls, vim-go).";
+    };
+  };
+
+  config.home-manager.users.${config.mj.username} = {
     imports = [ ../../../shared/home/dev.nix ];
   };
-  environment.systemPackages = with pkgs; [
+  config.environment.systemPackages = with pkgs; [
     universal-ctags
-    pkgs-go.go
-    pkgs-go.delve
-    pkgs-go.go-tools
+    cfg.goPackages.go
+    cfg.goPackages.delve
+    cfg.goPackages.go-tools
     pkgs.zigpkgs."0.16.0"
     fq
     uv

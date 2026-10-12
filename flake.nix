@@ -170,15 +170,42 @@
               inherit (super.stdenv.hostPlatform) system;
               config.allowUnfree = true;
             };
-            # Go toolchain and Go dev tools, all built with one pinned `go`. Kept
-            # separate from pkgs-unstable: overriding `go` there changes libcap
-            # (Go bindings) and thus rebuilds most of unstable from source.
+            # Go toolchain and Go dev tools, all built with one pinned `go`, for hosts
+            # that set mj.profiles.devtools.goPackages to it. Kept separate from
+            # pkgs-unstable: overriding `go` there changes libcap (Go bindings) and
+            # thus rebuilds most of unstable from source.
             pkgs-go = import nixpkgs-unstable {
               inherit (super.stdenv.hostPlatform) system;
               overlays = [
                 (_self: super: {
                   go = super.go_1_27;
                   buildGoModule = super.buildGo127Module;
+                  # Go 1.27.2 writes export data v5, which needs golang.org/x/tools
+                  # >= v0.50.0. Drop these once nixpkgs has these versions.
+                  go-tools = super.go-tools.overrideAttrs (
+                    finalAttrs: _: {
+                      version = "2026.2.2";
+                      src = super.fetchFromGitHub {
+                        owner = "dominikh";
+                        repo = "go-tools";
+                        tag = finalAttrs.version;
+                        hash = "sha256-nmcXIQf9Mws4CMQDKQ1NUYHLYkm+ggSnh5sDiuvdnK4=";
+                      };
+                      vendorHash = "sha256-YC+DQZ3xjLGzhUXq/KBYhi1PGE63hBFaFor+XUZE1Ng=";
+                    }
+                  );
+                  errcheck = super.errcheck.overrideAttrs (
+                    finalAttrs: _: {
+                      version = "1.30.0";
+                      src = super.fetchFromGitHub {
+                        owner = "kisielk";
+                        repo = "errcheck";
+                        rev = "v${finalAttrs.version}";
+                        hash = "sha256-3oap11vNjA7YZAFEkVTkZgXuJW5PRPvGkSYoAVo//8M=";
+                      };
+                      vendorHash = "sha256-sFcuL18a8Jw/e3qphOzrm/ORu8zJWY5B9refZCrCWeY=";
+                    }
+                  );
                 })
               ];
             };
