@@ -169,11 +169,16 @@
             pkgs-unstable = import nixpkgs-unstable {
               inherit (super.stdenv.hostPlatform) system;
               config.allowUnfree = true;
+            };
+            # Go toolchain and Go dev tools, all built with one pinned `go`. Kept
+            # separate from pkgs-unstable: overriding `go` there changes libcap
+            # (Go bindings) and thus rebuilds most of unstable from source.
+            pkgs-go = import nixpkgs-unstable {
+              inherit (super.stdenv.hostPlatform) system;
               overlays = [
                 (_self: super: {
                   go = super.go_1_27;
-                  buildGoModule = super.buildGo126Module;
-                  buildGoPackage = super.buildGo126Package;
+                  buildGoModule = super.buildGo127Module;
                 })
               ];
             };

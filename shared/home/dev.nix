@@ -158,14 +158,14 @@ in
       pkgs.vimPlugins.vim-gutentags
       pkgs.vimPlugins.nvim-lspconfig
 
-      pkgs.pkgs-unstable.vimPlugins.vim-go
+      pkgs.pkgs-go.vimPlugins.vim-go
       pkgs.pkgs-unstable.vimPlugins.zig-vim
     ];
     initLua =
       builtins.readFile
         (pkgs.replaceVars ./dev.lua {
           inherit (pkgs) ripgrep;
-          inherit (pkgs.pkgs-unstable) gopls;
+          inherit (pkgs.pkgs-go) gopls;
         }).outPath;
   };
 }

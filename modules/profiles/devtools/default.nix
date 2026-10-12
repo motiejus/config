@@ -9,9 +9,9 @@
   };
   environment.systemPackages = with pkgs; [
     universal-ctags
-    pkgs-unstable.go
-    pkgs-unstable.delve
-    pkgs-unstable.go-tools
+    pkgs-go.go
+    pkgs-go.delve
+    pkgs-go.go-tools
     pkgs.zigpkgs."0.16.0"
     fq
     uv
