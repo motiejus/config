@@ -7,11 +7,11 @@
 
 stdenv.mkDerivation rec {
   pname = "xscreensaver-mac";
-  version = "6.16";
+  version = "6.17";
 
   src = fetchurl {
     url = "https://www.jwz.org/xscreensaver/xscreensaver-${version}.dmg";
-    hash = "sha256-fxH2/gcF5T2PBRZyUN8G9IXBSpa6dLud8gzmGaZ9i8Y=";
+    hash = "sha256-uRKNdF99FFJUHgFcxtoFbSRsqfDc0KPesnfCFj7fPjo=";
   };
 
   nativeBuildInputs = [ undmg ];
