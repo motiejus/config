@@ -105,7 +105,6 @@ in
     autoraise
     tailscale
     colima
-    coreutils-prefixed
     docker-client
     pkgs.xscreensaver-mac
   ];

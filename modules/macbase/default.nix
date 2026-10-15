@@ -120,7 +120,10 @@ in
         mdr
         watch
         gnutar
-        (writeShellScriptBin "gtar" ''exec ${gnutar}/bin/tar "$@"'')
+        # GNU tools as gsed, ggrep, gfind, gtar, gls, ... (see pkgs/gnu-prefixed.nix)
+        coreutils-prefixed
+        gnu-prefixed
+        gawk
       ];
     };
 
