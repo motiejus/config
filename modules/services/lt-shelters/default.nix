@@ -106,7 +106,7 @@ let
       shelters_hash=$(nix-hash --type sha256 --sri "$shelters_tree")
 
       geofabrik=https://download.geofabrik.de/europe
-      wget_args=(--progress=dot:giga --tries=5 --timeout=30 --retry-connrefused --retry-on-host-error "--retry-on-http-error=429,500,502,503,504")
+      wget_args=(--progress=dot:giga --tries=5 --timeout=120 --retry-connrefused --retry-on-host-error "--retry-on-http-error=429,500,502,503,504")
       remote_md5_file="$tmp_dir/lithuania-latest.osm.pbf.md5"
       wget "''${wget_args[@]}" --output-document="$remote_md5_file" "$geofabrik/lithuania-latest.osm.pbf.md5"
       read -r remote_md5 _ < "$remote_md5_file"
