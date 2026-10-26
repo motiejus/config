@@ -142,6 +142,7 @@ in
         };
         targets.darwin.copyApps.enable = false;
         targets.darwin.linkApps.enable = true;
+        programs.bash.shellAliases."timeout" = "gtimeout";
         programs.ssh = {
           enable = true;
           enableDefaultConfig = false;
