@@ -26,6 +26,9 @@
       CLAUDE_CODE_USE_VERTEX = "1";
       CLOUD_ML_REGION = "global";
       ANTHROPIC_VERTEX_PROJECT_ID = "chronosphere-claude-code";
+      # regression(?) in 2.1.308
+      CLAUDE_CODE_CERT_STORE = "bundled,system";
+      NODE_EXTRA_CA_CERTS = "/etc/ssl/certs/ca-certificates.crt";
     };
     programs = {
       git.settings = {
