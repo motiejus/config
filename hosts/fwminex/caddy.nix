@@ -180,6 +180,9 @@ in
         # Inside a header block this would parse as <field> <find> <replace>, not
         # as a path matcher.
         header /_/* Cache-Control "public, max-age=31536000, immutable"
+        # Without this, browsers reuse pages heuristically and miss new deploys.
+        @mutable not path /_/*
+        header @mutable Cache-Control "no-cache"
 
         root * /var/www/m.jakstys.lt
         file_server {
