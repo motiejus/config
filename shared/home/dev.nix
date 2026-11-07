@@ -53,10 +53,9 @@ let
     # its own (this keeper lives in a child cgroup). systemd also enables this
     # when it sets up the delegated+accounted slice, so tolerate it being done
     # already; the pool/memory.max write below is the real check (set -eu).
-    # cpuset likewise, via this service's Delegate= -- the guarded write also
-    # covers the window before user@.service delegates cpuset at all.
-    echo +memory > "$slice/cgroup.subtree_control" 2>/dev/null || true
-    echo +cpuset > "$slice/cgroup.subtree_control" 2>/dev/null || true
+    # cpuset and cpu likewise, via this service's Delegate= -- the guarded write
+    # also covers the window before user@.service delegates cpuset at all.
+    for c in memory cpuset cpu; do echo +$c > "$slice/cgroup.subtree_control" 2>/dev/null || true; done
 
     # Create the shared pool as a SIBLING of this service, directly under the
     # slice -- NOT inside this service's own cgroup. This is the whole fix: a
@@ -68,13 +67,17 @@ let
     # Delegate controllers to the per-job leaves (mem-limit-run requires a
     # named leaf): memory+pids for caps and attribution, cpuset so a leaf can
     # pin CPUs -- convention: CPUs 12-15 are RESERVED for timing-sensitive
-    # runs, heavy batch jobs pin themselves to 0-11. Separate writes because a
-    # combined write is atomic: cpuset missing (user manager started before
-    # user@.service delegated it, see modules/profiles/coding-agent) must not
-    # block memory+pids. cgroup v2 cpuset needs no parent seeding -- an empty
-    # cpuset.cpus inherits the parent's effective set.
+    # runs, heavy batch jobs pin themselves to 0-11. cpu splits CPU by weight
+    # per sibling group (MEM_POOL_SUB=<agent>/<job>: one sibling per agent).
+    # Separate writes because a combined write is atomic: cpuset missing (user
+    # manager started before user@.service delegated it, see
+    # modules/profiles/coding-agent) must not block memory+pids. cgroup v2 cpuset
+    # needs no parent seeding -- an empty cpuset.cpus inherits the parent's
+    # effective set. Stock user@.service delegates cpu, so a failure is news.
     echo +memory +pids > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
     echo +cpuset > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
+    echo +cpu > "$slice/pool/cgroup.subtree_control" ||
+      echo "agent-mem-pool: WARNING -- cannot enable cpu for the pool: agents compete per process, not per group." >&2
 
     # Cap RESIDENT memory of the whole pool (memory.max) and allow a BOUNDED
     # amount of swap past it (memory.swap.max), so brief overshoots spill to swap
@@ -112,6 +115,13 @@ in
     };
   };
 
+  # nice and SCHED_IDLE only count inside a cpu group, so with cpu enabled at
+  # this level pkgs/nicer.nix needs an idle slice to stay behind the agents.
+  systemd.user.slices.nicer = {
+    Unit.Description = "Idle-priority jobs started by nicer";
+    Slice.CPUWeight = "idle";
+  };
+
   # Keeper: provisions the pool under the slice and parks a `sleep infinity` so
   # the slice always has an active unit. It creates nothing under its OWN cgroup
   # (the pool is a slice sibling), so it needs no delegation of its own.
@@ -126,13 +136,13 @@ in
       Type = "simple";
       Slice = "agent-mem-pool.slice";
       MemoryAccounting = true;
-      # Delegating cpuset to this service is what makes the user manager
-      # enable it in the slice's subtree_control (controllers are enabled for
+      # Delegating cpuset and cpu to this service is what makes the user manager
+      # enable them in the slice's subtree_control (controllers are enabled for
       # the parent and siblings of a delegatee, systemd.resource-control(5)),
-      # putting cpuset into pool/cgroup.controllers -- slices themselves
-      # cannot delegate. Harmless no-op until user@.service delegates cpuset
+      # putting them into pool/cgroup.controllers -- slices themselves
+      # cannot delegate. Harmless no-op until user@.service delegates them
       # (modules/profiles/coding-agent) and the user manager is restarted.
-      Delegate = "cpuset";
+      Delegate = "cpuset cpu";
       ExecStart = "${memPoolScript}";
       Restart = "on-failure";
     };
