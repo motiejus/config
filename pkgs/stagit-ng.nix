@@ -12,19 +12,19 @@ let
   # big one); caddy serves them via file_server's `precompressed`.
   www = compressDrvWeb (stdenvNoCC.mkDerivation {
     pname = "stagit-ng";
-    version = "0-unstable-2026-11-02";
+    version = "0-unstable-2026-11-08";
 
     src = fetchgit {
       # TODO: flatten to https://git.jakstys.lt/stagit-ng.git once the flat
       # namespace is deployed — this owner-qualified form then only works
       # via the temporary @oldclone redirect and blocks its removal.
       url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "0248c318338e2ed5f85963197cc8a0a2b9ab588b315e9e25685767ed63b9d52b";
+      rev = "b62dd3607acd5345b8236ee2a75a854fc49ca5837db073c3f0aefca793eef2d9";
       # The repo is in sha256 object format; fetchgit's `git init` defaults
       # to sha1 and then rejects the sha256 pack ("pack is corrupted").
       # nixpkgs has no object-format knob, so set git's via preFetch.
       preFetch = "export GIT_DEFAULT_HASH=sha256";
-      hash = "sha256-T3wPZpfndoKFnWyW/fHy9SHUSRcwcFM9hgfPKuLJg7o=";
+      hash = "sha256-aKpOJ7gUAxS4J6LcKp4neup4UbuPKJyFXgaY0oS1lNk=";
     };
 
     nativeBuildInputs = [ zigpkgs."0.17.0" ];
