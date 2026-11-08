@@ -27,7 +27,7 @@ let
       hash = "sha256-aKpOJ7gUAxS4J6LcKp4neup4UbuPKJyFXgaY0oS1lNk=";
     };
 
-    nativeBuildInputs = [ zigpkgs."0.17.0" ];
+    nativeBuildInputs = [ zigpkgs."0.17.1" ];
 
     dontConfigure = true;
     dontInstall = true;

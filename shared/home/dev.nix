@@ -104,49 +104,51 @@ in
   # create the pool leaf and set its limits) and memory-accounted (so the memory
   # controller reaches the slice's children). A slice's cgroup is NOT destroyed
   # when a service inside it restarts -- that is what makes the pool durable.
-  systemd.user.slices."agent-mem-pool" = {
-    Unit = {
-      Description = "Persistent cgroup v2 memory pool for agent-sandbox commands";
-      Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
+  systemd.user = {
+    slices."agent-mem-pool" = {
+      Unit = {
+        Description = "Persistent cgroup v2 memory pool for agent-sandbox commands";
+        Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
+      };
+      Slice = {
+        Delegate = true;
+        MemoryAccounting = true;
+      };
     };
-    Slice = {
-      Delegate = true;
-      MemoryAccounting = true;
-    };
-  };
 
-  # nice and SCHED_IDLE only count inside a cpu group, so with cpu enabled at
-  # this level pkgs/nicer.nix needs an idle slice to stay behind the agents.
-  systemd.user.slices.nicer = {
-    Unit.Description = "Idle-priority jobs started by nicer";
-    Slice.CPUWeight = "idle";
-  };
+    # nice and SCHED_IDLE only count inside a cpu group, so with cpu enabled at
+    # this level pkgs/nicer.nix needs an idle slice to stay behind the agents.
+    slices.nicer = {
+      Unit.Description = "Idle-priority jobs started by nicer";
+      Slice.CPUWeight = "idle";
+    };
 
-  # Keeper: provisions the pool under the slice and parks a `sleep infinity` so
-  # the slice always has an active unit. It creates nothing under its OWN cgroup
-  # (the pool is a slice sibling), so it needs no delegation of its own.
-  systemd.user.services.agent-mem-pool = {
-    Unit = {
-      Description = "Shared cgroup v2 memory pool for agent-sandbox commands";
-      Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
+    # Keeper: provisions the pool under the slice and parks a `sleep infinity` so
+    # the slice always has an active unit. It creates nothing under its OWN cgroup
+    # (the pool is a slice sibling), so it needs no delegation of its own.
+    services.agent-mem-pool = {
+      Unit = {
+        Description = "Shared cgroup v2 memory pool for agent-sandbox commands";
+        Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
+      };
+      Service = {
+        # Long-lived (not oneshot): the ExecStart parks a `sleep infinity` so the
+        # slice keeps an active unit. See script.
+        Type = "simple";
+        Slice = "agent-mem-pool.slice";
+        MemoryAccounting = true;
+        # Delegating cpuset and cpu to this service is what makes the user manager
+        # enable them in the slice's subtree_control (controllers are enabled for
+        # the parent and siblings of a delegatee, systemd.resource-control(5)),
+        # putting them into pool/cgroup.controllers -- slices themselves
+        # cannot delegate. Harmless no-op until user@.service delegates them
+        # (modules/profiles/coding-agent) and the user manager is restarted.
+        Delegate = "cpuset cpu";
+        ExecStart = "${memPoolScript}";
+        Restart = "on-failure";
+      };
+      Install.WantedBy = [ "default.target" ];
     };
-    Service = {
-      # Long-lived (not oneshot): the ExecStart parks a `sleep infinity` so the
-      # slice keeps an active unit. See script.
-      Type = "simple";
-      Slice = "agent-mem-pool.slice";
-      MemoryAccounting = true;
-      # Delegating cpuset and cpu to this service is what makes the user manager
-      # enable them in the slice's subtree_control (controllers are enabled for
-      # the parent and siblings of a delegatee, systemd.resource-control(5)),
-      # putting them into pool/cgroup.controllers -- slices themselves
-      # cannot delegate. Harmless no-op until user@.service delegates them
-      # (modules/profiles/coding-agent) and the user manager is restarted.
-      Delegate = "cpuset cpu";
-      ExecStart = "${memPoolScript}";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = [ "default.target" ];
   };
 
   home.sessionVariables = {
