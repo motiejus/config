@@ -27,6 +27,7 @@ in
     cfg.goPackages.delve
     cfg.goPackages.go-tools
     pkgs.zigpkgs."0.17.1"
+    binaryen
     fq
     uv
     mdr
