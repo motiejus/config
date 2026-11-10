@@ -1,6 +1,7 @@
 {
   lib,
   pkgs,
+  utils,
   config,
   ...
 }:
@@ -26,6 +27,21 @@ in
         mandoc.enable = true;
       };
     };
+
+    # for zig1 testing: run its cross builds on this host. `zig build
+    # test-zig1 -fqemu -fwine --libc-runtimes /etc/zig-libc-runtimes`
+    # (qemu is in linuxdesktop, wine above).
+    boot.binfmt = {
+      # Every Linux system NixOS has a binfmt magic for, except those this
+      # host runs natively. Windows stays with zig's -fwine (wow64 wine).
+      emulatedSystems = lib.filter (
+        s: lib.hasSuffix "-linux" s && !pkgs.stdenv.hostPlatform.canExecute (lib.systems.elaborate s)
+      ) (lib.attrNames utils.binfmtMagics);
+      # Run them locally without nix building for those systems.
+      addEmulatedSystemsToNixSandbox = false;
+    };
+    # <dir>/<glibc triple> as zig's --libc-runtimes reads it (x86-linux-gnu).
+    environment.etc."zig-libc-runtimes/i686-linux-gnu".source = pkgs.pkgsi686Linux.glibc;
 
     services = {
       xserver = {
