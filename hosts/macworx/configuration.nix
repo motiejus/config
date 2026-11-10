@@ -112,6 +112,19 @@ in
   launchd = {
     daemons.tailscaled = alwaysOn "${pkgs.tailscale}/bin/tailscaled";
     user.agents.autoraise = alwaysOn (lib.getExe pkgs.autoraise);
+    # macOS leaves legacyScreenSaver rendering xscreensaver off-screen after dismissal; kill it while the user is active.
+    user.agents.reap-legacy-screensaver.serviceConfig = {
+      StartInterval = 60;
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        ''
+          idle=$(/usr/sbin/ioreg -c IOHIDSystem | /usr/bin/awk '/HIDIdleTime/ {print int($NF/1e9); exit}')
+          [ "$idle" -lt 60 ] && /usr/bin/pkill -x legacyScreenSaver
+          exit 0
+        ''
+      ];
+    };
   };
 
   home-manager.users.${config.mj.username} = {
