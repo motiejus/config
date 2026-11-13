@@ -116,7 +116,7 @@ let
         # Browser and Node versions come from the flake rather than the user's
         # imperative profile. The Nix store is already visible inside bwrap.
         runtimeInputs = [
-          mem-limit-run # `mem-limit-run <cmd>` -> shared cgroup memory pool (AGENTS.md §7)
+          mem-limit-run # codex commands and capped jobs, AGENTS.md §7
           pkgs.nodejs
           pkgs.openssh
           pkgs.chromium
@@ -135,19 +135,17 @@ let
           mkdir -p ${tmpDir}
           sandbox_tmp="$(mktemp -d /tmp/${tool}-sbx.XXXXXX)"
 
-          # Bind the shared agent memory pool (cgroup v2) into the sandbox so
-          # commands routed through ~/code/.mem-limit-run are accounted against ONE
-          # kernel-enforced aggregate RSS cap shared by all agents. The pool is
-          # provisioned by the `agent-mem-pool` user service, which publishes its
-          # resolved path here. Bound read-write: uid 1001 maps to the host user
-          # (1000) that owns the pool, so it can join and size it. The agent
-          # session itself is NOT placed in the pool -- only wrapped commands are.
-          pool_args=()
-          pool_host="$(cat "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mem-pool.cgroup" 2>/dev/null || true)"
-          if [ -n "$pool_host" ] && [ -w "$pool_host/cgroup.procs" ]; then
-            pool_args=(--bind "$pool_host" /sys/fs/cgroup/pool --setenv MEM_POOL /sys/fs/cgroup/pool)
-          else
-            echo "agent-sandbox: WARNING -- memory pool unavailable ('$pool_host'); wrapped commands will refuse to run. Is agent-mem-pool.service active?" >&2
+          # Each sandbox gets its own cgroup in the shared agent memory pool,
+          # bound at /sys/fs/cgroup/pool; its commands run in leaves of it. The
+          # name ends in this pid (bwrap after exec) so the keeper can sweep it.
+          pool_host=""
+          if ! { pool_host="$(<"$XDG_RUNTIME_DIR/mem-pool.cgroup")" &&
+            session="$pool_host/${name}-$$" &&
+            mkdir -p "$session" &&
+            read -r controllers <"$session/cgroup.controllers" &&
+            echo "+''${controllers// / +}" >"$session/cgroup.subtree_control"; }; then
+            echo "agent-sandbox: cannot create a session cgroup in the memory pool ('$pool_host'). Is agent-mem-pool.service active? Refusing to start." >&2
+            exit 1
           fi
 
           # Mesa/libdrm resolve the render node through sysfs
@@ -171,7 +169,7 @@ let
 
           exec ${pkgs.bubblewrap}/bin/bwrap \
             ${lib.concatStringsSep " \\\n          " bwrapArgs} \
-            "''${pool_args[@]}" \
+            --bind "$session" /sys/fs/cgroup/pool \
             "''${gpu_args[@]}" \
             -- ${lib.escapeShellArgs ([ (lib.getExe package) ] ++ args)} "$@"
         '';
@@ -200,6 +198,10 @@ in
       {
         name = "CLAUDE_CODE_MAX_OUTPUT_TOKENS";
         value = "100000";
+      }
+      {
+        name = "CLAUDE_CODE_SHELL_PREFIX";
+        value = lib.getExe mem-limit-run.agent-shell;
       }
     ];
   };

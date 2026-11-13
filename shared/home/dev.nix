@@ -20,90 +20,53 @@ let
   };
   claudeSettingsFile = pkgs.writeText "claude-settings.json" (builtins.toJSON claudeSettings);
 
-  # Shared cgroup v2 memory pool for agent-sandbox commands. All uid-1001
-  # agents route their build/test/tool invocations (via ~/code/.mem-limit-run)
-  # into ONE pool cgroup, so the kernel bounds their AGGREGATE resident memory.
-  # The agent sessions themselves (claude/codex/node) stay OUT of the pool.
-  #
-  # The pool lives in a PERSISTENT slice (agent-mem-pool.slice), NOT inside this
-  # keeper service's own cgroup. That is deliberate: systemd destroys a service's
-  # cgroup subtree on every restart, but leaves the slice -- and thus the pool
-  # cgroup and every build parked in it -- intact. So restarting this keeper
-  # (on-failure, or a home-manager switch that changes only the keeper script) no
-  # longer SIGKILLs in-flight builds, and no longer strands already-running
-  # sandboxes on a deleted cgroup inode (a bind mount pins an inode; recreating
-  # the leaf under the service was what made it dangle). The ONE remaining
-  # destructive case is changing the SLICE unit itself (or logout/reboot): after
-  # such a change, relaunch the agent sandboxes once so they re-bind the freshly
-  # created pool.
+  # Shared cgroup v2 memory pool: each agent sandbox gets a group in it whose
+  # leaves run its commands, under one aggregate memory cap (AGENTS.md §7).
+  # The pool lives in agent-mem-pool.slice, not the keeper's cgroup, so it
+  # survives keeper restarts; changing the slice unit means relaunching agents.
   memPoolMaxBytes = 16 * 1024 * 1024 * 1024; # hard RESIDENT cap for the whole pool
   memPoolSwapBytes = 8 * 1024 * 1024 * 1024; # bounded swap the pool may use past the RSS cap
   memPoolScript = pkgs.writeShellScript "agent-mem-pool-setup" ''
     set -eu
 
-    # This keeper runs inside the delegated slice agent-mem-pool.slice, in its own
-    # service cgroup (.../agent-mem-pool.slice/agent-mem-pool.service). Resolve
-    # that from our /proc entry (0::<path>), then step UP to the slice: the pool
-    # is created at the slice level so it outlives restarts of this service.
+    # The pool is a sibling of this service under the slice, so a keeper
+    # restart keeps its inode (and every sandbox bind mount of it) live.
     cg="/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)"
     slice="$(dirname "$cg")"
-
-    # Make the memory controller available to the slice's children so the pool
-    # leaf gets memory.*. Permitted because the slice has no member processes of
-    # its own (this keeper lives in a child cgroup). systemd also enables this
-    # when it sets up the delegated+accounted slice, so tolerate it being done
-    # already; the pool/memory.max write below is the real check (set -eu).
-    # cpuset and cpu likewise, via this service's Delegate= -- the guarded write
-    # also covers the window before user@.service delegates cpuset at all.
     for c in memory cpuset cpu; do echo +$c > "$slice/cgroup.subtree_control" 2>/dev/null || true; done
-
-    # Create the shared pool as a SIBLING of this service, directly under the
-    # slice -- NOT inside this service's own cgroup. This is the whole fix: a
-    # restart of this service recreates only .../agent-mem-pool.service and leaves
-    # .../pool untouched (mkdir -p preserves the existing inode), so builds parked
-    # in it survive and sandbox bind mounts stay live.
     mkdir -p "$slice/pool"
 
-    # Delegate controllers to the per-job leaves (mem-limit-run requires a
-    # named leaf): memory+pids for caps and attribution, cpuset so a leaf can
-    # pin CPUs -- convention: CPUs 12-15 are RESERVED for timing-sensitive
-    # runs, heavy batch jobs pin themselves to 0-11. cpu splits CPU by weight
-    # per sibling group (MEM_POOL_SUB=<agent>/<job>: one sibling per agent).
-    # Separate writes because a combined write is atomic: cpuset missing (user
-    # manager started before user@.service delegated it, see
-    # modules/profiles/coding-agent) must not block memory+pids. cgroup v2 cpuset
-    # needs no parent seeding -- an empty cpuset.cpus inherits the parent's
-    # effective set. Stock user@.service delegates cpu, so a failure is news.
+    # Separate writes: a combined one is atomic, and cpuset may be missing until
+    # user@.service delegates it (modules/profiles/coding-agent). cpu weighs
+    # sessions equally; by convention batch jobs pin CPUs 0-11, timing runs 12-15.
     echo +memory +pids > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
     echo +cpuset > "$slice/pool/cgroup.subtree_control" 2>/dev/null || true
     echo +cpu > "$slice/pool/cgroup.subtree_control" ||
       echo "agent-mem-pool: WARNING -- cannot enable cpu for the pool: agents compete per process, not per group." >&2
 
-    # Cap RESIDENT memory of the whole pool (memory.max) and allow a BOUNDED
-    # amount of swap past it (memory.swap.max), so brief overshoots spill to swap
-    # instead of an instant kill -- without letting the pool consume all system
-    # swap. No memory.high: on a box whose swap can be full, the high..max band
-    # only stalls; going straight to a clean memory.max OOM yields an
-    # attributable "cap death is a finding" kill (AGENTS.md §7). Re-applied on
-    # every (re)start; harmless when unchanged.
+    # Hard resident cap plus bounded swap; no memory.high, which only stalls
+    # when swap is full. A cap kill is a finding (AGENTS.md §7).
     echo ${toString memPoolMaxBytes}  > "$slice/pool/memory.max"
     echo ${toString memPoolSwapBytes} > "$slice/pool/memory.swap.max"
 
-    # Publish the resolved pool path so each bwrap launcher can bind it.
-    mkdir -p "$XDG_RUNTIME_DIR"
+    # Publish the resolved pool path for the sandbox launchers.
     printf '%s\n' "$slice/pool" > "$XDG_RUNTIME_DIR/mem-pool.cgroup"
 
-    # Stay alive so the slice keeps an active unit. Even across this keeper's own
-    # restart the pool survives: systemd cannot trim the slice cgroup while the
-    # non-empty .../pool child exists.
-    exec ${pkgs.coreutils}/bin/sleep infinity
+    # Keep the slice active; every minute remove the groups of sessions whose
+    # pid (the name suffix) is gone. rmdir only removes empty cgroups.
+    while :; do
+      for g in "$slice"/pool/*/; do
+        pid=''${g%/}
+        pid=''${pid##*-}
+        [ -e "/proc/$pid" ] || rmdir "$g"*/ "$g" 2>/dev/null || true
+      done
+      ${pkgs.coreutils}/bin/sleep 60
+    done
   '';
 in
 {
-  # Persistent home for the shared pool. Delegated (so the keeper below can
-  # create the pool leaf and set its limits) and memory-accounted (so the memory
-  # controller reaches the slice's children). A slice's cgroup is NOT destroyed
-  # when a service inside it restarts -- that is what makes the pool durable.
+  # Persistent home for the pool: delegated so the keeper can create and size
+  # it; its cgroup outlives restarts of the services inside it.
   systemd.user = {
     slices."agent-mem-pool" = {
       Unit = {
@@ -123,26 +86,20 @@ in
       Slice.CPUWeight = "idle";
     };
 
-    # Keeper: provisions the pool under the slice and parks a `sleep infinity` so
-    # the slice always has an active unit. It creates nothing under its OWN cgroup
-    # (the pool is a slice sibling), so it needs no delegation of its own.
+    # Keeper: provisions the pool under the slice, keeps the slice active and
+    # sweeps the groups of ended sessions.
     services.agent-mem-pool = {
       Unit = {
         Description = "Shared cgroup v2 memory pool for agent-sandbox commands";
         Documentation = [ "file://${config.home.homeDirectory}/code/AGENTS.md" ];
       };
       Service = {
-        # Long-lived (not oneshot): the ExecStart parks a `sleep infinity` so the
-        # slice keeps an active unit. See script.
+        # Long-lived (not oneshot) so the slice keeps an active unit. See script.
         Type = "simple";
         Slice = "agent-mem-pool.slice";
         MemoryAccounting = true;
-        # Delegating cpuset and cpu to this service is what makes the user manager
-        # enable them in the slice's subtree_control (controllers are enabled for
-        # the parent and siblings of a delegatee, systemd.resource-control(5)),
-        # putting them into pool/cgroup.controllers -- slices themselves
-        # cannot delegate. Harmless no-op until user@.service delegates them
-        # (modules/profiles/coding-agent) and the user manager is restarted.
+        # Slices cannot delegate: delegating cpuset and cpu to this service makes
+        # the user manager enable them in the slice, so they reach the pool.
         Delegate = "cpuset cpu";
         ExecStart = "${memPoolScript}";
         Restart = "on-failure";

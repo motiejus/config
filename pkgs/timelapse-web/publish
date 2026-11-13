@@ -8,7 +8,7 @@ umask 0022
 # bounded leaf even when it is launched directly.  A single leaf also makes
 # the publisher lock below cover every media writer it owns.
 if [[ ${TIMELAPSE_MEM_LIMITED:-} != 1 ]]; then
-  exec env TIMELAPSE_MEM_LIMITED=1 MEM_POOL_SUB=timelapse-publish \
+  exec env TIMELAPSE_MEM_LIMITED=1 \
     MEM_POOL_SUB_MAX="${TIMELAPSE_MEM_LIMIT_BYTES:-4294967296}" \
     mem-limit-run "$0" "$@"
 fi

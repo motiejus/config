@@ -67,7 +67,6 @@ in
         tracy
         mbpoll # modbus poll
         kicad
-        mem-limit-run
         esptool
         neomutt
         freecad
