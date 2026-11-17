@@ -29,7 +29,6 @@ in
     ../../modules/profiles/devtools
     ../../modules/profiles/work
     ../../modules/services/ssh8022/client.nix
-    ../../modules/services/tailscale-ssh
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
@@ -74,12 +73,11 @@ in
     mode = "444";
   };
 
-  mj.services.tailscale-ssh.enable = true;
-
-  # git.jakstys.lt is fwminex; route via tailscale (no MagicDNS)
-  programs.ssh.extraConfig = ''
-    Host git.jakstys.lt
-      ProxyCommand bash -c 'exec nc $(${pkgs.tailscale}/bin/tailscale ip -4 fwminex) %p'
+  # Reach hosts with public IPs via spiped on :8022. These blocks come before
+  # the ssh8022 client module's, and ssh matches on the name as typed.
+  programs.ssh.extraConfig = lib.mkBefore ''
+    Host jakstys.lt *.jakstys.lt
+      ProxyCommand ${pkgs.spiped}/bin/spipe -t %h:8022 -k ${config.age.secrets.ssh8022-client.path}
   '';
 
   mj.services.ssh8022.client = {
@@ -103,14 +101,12 @@ in
 
   environment.systemPackages = with pkgs; [
     autoraise
-    tailscale
     colima
     docker-client
     pkgs.xscreensaver-mac
   ];
 
   launchd = {
-    daemons.tailscaled = alwaysOn "${pkgs.tailscale}/bin/tailscaled";
     user.agents.autoraise = alwaysOn (lib.getExe pkgs.autoraise);
     # macOS leaves legacyScreenSaver rendering xscreensaver off-screen after dismissal; kill it while the user is active.
     user.agents.reap-legacy-screensaver.serviceConfig = {
