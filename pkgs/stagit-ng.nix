@@ -4,53 +4,62 @@
   stdenvNoCC,
   fetchgit,
   compressDrvWeb,
+  brotli,
   runCommand,
 }:
 
 let
-  # Static assets get precompressed .gz/.br/.zst siblings (the wasm is the
-  # big one); caddy serves them via file_server's `precompressed`.
-  www = compressDrvWeb (stdenvNoCC.mkDerivation {
-    pname = "stagit-ng";
-    version = "0-unstable-2026-11-09";
+  # Static assets get a precompressed .br sibling (the wasm is the big
+  # one) and nothing else; caddy serves it via file_server's `precompressed`.
+  www =
+    compressDrvWeb
+      (stdenvNoCC.mkDerivation {
+        pname = "stagit-ng";
+        version = "0-unstable-2026-11-19";
 
-    src = fetchgit {
-      # TODO: flatten to https://git.jakstys.lt/stagit-ng.git once the flat
-      # namespace is deployed — this owner-qualified form then only works
-      # via the temporary @oldclone redirect and blocks its removal.
-      url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
-      rev = "30dc0be9b22f05216654a4d086203aeff358a2c703e97daa03707de3e4b19920";
-      # The repo is in sha256 object format; fetchgit's `git init` defaults
-      # to sha1 and then rejects the sha256 pack ("pack is corrupted").
-      # nixpkgs has no object-format knob, so set git's via preFetch.
-      preFetch = "export GIT_DEFAULT_HASH=sha256";
-      hash = "sha256-Ls1xvPZfF2j2PGoYIUrhEvmm1sosCplO7XIQU3Z0TlU=";
-    };
+        src = fetchgit {
+          # TODO: flatten to https://git.jakstys.lt/stagit-ng.git once the flat
+          # namespace is deployed — this owner-qualified form then only works
+          # via the temporary @oldclone redirect and blocks its removal.
+          url = "https://git.jakstys.lt/motiejus/stagit-ng.git";
+          rev = "43541a114b472e76d66b00e4bd59d185b37154fe183223d0eec0ce7c66af90a6";
+          # The repo is in sha256 object format; fetchgit's `git init` defaults
+          # to sha1 and then rejects the sha256 pack ("pack is corrupted").
+          # nixpkgs has no object-format knob, so set git's via preFetch.
+          preFetch = "export GIT_DEFAULT_HASH=sha256";
+          hash = "sha256-Cuj2uOZOsKojPoOEypMt6tesf5mXqRdU3DszhBGkF04=";
+        };
 
-    nativeBuildInputs = [ zigpkgs."0.17.1" ];
+        nativeBuildInputs = [ zigpkgs."0.17.1" ];
 
-    dontConfigure = true;
-    dontInstall = true;
+        dontConfigure = true;
+        dontInstall = true;
 
-    buildPhase = ''
-      runHook preBuild
-      export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
-      # stagit-ng is path-routed with no build-time switch; the git vhost
-      # provides the SPA fallback app routes need by importing the routing
-      # contract, deploy/Caddyfile.snippet — shipped here straight from the
-      # source tree (build.zig only builds; it does not install deploy/).
-      zig build --release=fast -p $out
-      cp -r deploy $out/deploy
-      runHook postBuild
-    '';
+        buildPhase = ''
+          runHook preBuild
+          export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
+          # stagit-ng is path-routed with no build-time switch; the git vhost
+          # provides the SPA fallback app routes need by importing the routing
+          # contract, deploy/Caddyfile.snippet — shipped here straight from the
+          # source tree (build.zig only builds; it does not install deploy/).
+          zig build --release=fast -p $out
+          cp -r deploy $out/deploy
+          runHook postBuild
+        '';
 
-    meta = {
-      description = "Client-side git repository browser (wasm) over dumb HTTP";
-      homepage = "https://git.jakstys.lt/stagit-ng";
-      license = lib.licenses.mit;
-      platforms = lib.platforms.all;
-    };
-  }) { extraFormats = [ "wasm" ]; };
+        meta = {
+          description = "Client-side git repository browser (wasm) over dumb HTTP";
+          homepage = "https://git.jakstys.lt/stagit-ng";
+          license = lib.licenses.mit;
+          platforms = lib.platforms.all;
+        };
+      })
+      {
+        extraFormats = [ "wasm" ];
+        compressors = {
+          br = "${lib.getExe brotli} --keep --no-copy-stat {}";
+        };
+      };
 in
 # Content-hash .etag sidecar per served file (compressed variants get
 # their own), used by the git vhost via file_server's
