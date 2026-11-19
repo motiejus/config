@@ -38,6 +38,7 @@ in
       owner = "timelapse-r11";
     };
     plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
+    google-backup.file = ../../secrets/fwminex/google-backup.env.age;
     r1-htpasswd = {
       file = ../../secrets/r1-htpasswd.age;
       owner = "caddy";
@@ -443,6 +444,13 @@ in
       };
 
       rita-jakst-publisher.enable = true;
+
+      google-backup = {
+        enable = true;
+        user = "motiejus";
+        outputDir = "/home/motiejus/annex2/M-Documents/google-backup";
+        secretsEnv = config.age.secrets.google-backup.path;
+      };
 
       dl-mirror.sender = {
         enable = true;

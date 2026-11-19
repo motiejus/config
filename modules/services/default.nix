@@ -8,6 +8,7 @@
     ./dl-mirror
     ./frigate
     ./git
+    ./google-backup
     ./grafana
     ./hass
     ./headscale

@@ -92,6 +92,7 @@ in
   "secrets/fwminex/up.jakstys.lt.env.age"
   "secrets/fwminex/grafana-secret-key.age"
   "secrets/fwminex/timelapse-merger-key.age"
+  "secrets/fwminex/google-backup.env.age"
 ]
 //
   mk
