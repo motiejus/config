@@ -102,6 +102,7 @@ let
         ''--bind "$HOME/.cache/zig" "$HOME/.cache/zig"''
         ''--bind "$HOME/.config/nvim" "$HOME/.config/nvim"''
         ''--bind "$HOME/code" "$HOME/code"''
+        ''--bind "$HOME/stud-cache" "$HOME/stud-cache"''
         ''--setenv HOME "$HOME"''
         ''--setenv USER "$USER"''
         "--die-with-parent"
