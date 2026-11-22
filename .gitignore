@@ -3,3 +3,4 @@
 
 # nix managed
 /.pre-commit-config.yaml
+/pkgs/google-contacts/google-contacts

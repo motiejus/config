@@ -5,21 +5,26 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -38,7 +43,7 @@ func main() {
 	case len(os.Args) > 1 && os.Args[1] == "sync":
 		err = syncCmd(os.Args[2:])
 	default:
-		fmt.Fprintln(os.Stderr, "usage:\n  google-contacts auth -client FILE -out FILE\n  google-contacts sync [-token FILE] -out DIR")
+		fmt.Fprintln(os.Stderr, "usage:\n  google-contacts auth -client FILE -out FILE\n  google-contacts sync [-token FILE] -manifest FILE -out DIR")
 		os.Exit(2)
 	}
 	if err != nil {
@@ -51,9 +56,10 @@ func syncCmd(args []string) error {
 	fs := flag.NewFlagSet("sync", flag.ExitOnError)
 	tokenFile := fs.String("token", "", "authorized_user JSON (default: $GOOGLE_CONTACTS_TOKEN)")
 	out := fs.String("out", "", "output directory")
+	manifest := fs.String("manifest", "", "sha256sum-style list of the vCards written by the previous run; changed or unlisted ones are kept before being overwritten or removed")
 	fs.Parse(args)
-	if *out == "" {
-		return errors.New("sync: -out is required")
+	if *out == "" || *manifest == "" {
+		return errors.New("sync: -out and -manifest are required")
 	}
 	data := []byte(os.Getenv("GOOGLE_CONTACTS_TOKEN"))
 	if *tokenFile != "" {
@@ -64,17 +70,30 @@ func syncCmd(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	creds, err := google.CredentialsFromJSONWithType(ctx, data, google.AuthorizedUser, scope)
 	if err != nil {
 		return fmt.Errorf("token: %w", err)
 	}
-	return syncDir(ctx, oauth2.NewClient(ctx, creds.TokenSource), *out)
+	tok, err := creds.TokenSource.Token()
+	if err != nil {
+		return fmt.Errorf("login: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "contacts: logged in, access token valid until %s\n", tok.Expiry.UTC().Format(time.RFC3339))
+	return syncDir(ctx, oauth2.NewClient(ctx, creds.TokenSource), *out, *manifest)
 }
 
 // syncDir writes one vCard per contact into dir, rewriting only files whose
 // bytes changed and removing vCards of contacts that are gone. A contact whose
 // photo cannot be fetched keeps its file; the error is returned at the end.
-func syncDir(ctx context.Context, c *http.Client, dir string) error {
+// A vCard that is not in manifest, or whose bytes differ from the hash listed
+// there, is first moved to <stem>-kept-<time>.vcf, so Google's version (and
+// photo) is fetched afresh; with no manifest file nothing is kept. The
+// manifest, a hash per vCard this run wrote or confirmed (previous entries
+// for the ones it did not reach), is rewritten on every exit once the vCards
+// are checked. It logs only counts, never contact data.
+func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err error) {
 	people, err := listPeople(ctx, c)
 	if err != nil {
 		return err
@@ -86,45 +105,171 @@ func syncDir(ctx context.Context, c *http.Client, dir string) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	old, err := filepath.Glob(filepath.Join(dir, "*.vcf"))
+	all, err := filepath.Glob(filepath.Join(dir, "*.vcf"))
 	if err != nil {
 		return err
 	}
+	old := slices.DeleteFunc(all, keptSuffix.MatchString)
 	if len(people) == 0 && len(old) > 0 {
 		return fmt.Errorf("Google returned no contacts; keeping the %d in %s", len(old), dir)
+	}
+	fmt.Fprintf(os.Stderr, "contacts: %d in Google (%d groups), %d vCards in %s\n", len(people), len(groups), len(old), dir)
+	written, err := readManifest(manifest)
+	if err != nil {
+		return err
+	}
+	next := map[string]string{}
+	maps.Copy(next, written)
+	defer func() { err = errors.Join(err, writeManifest(manifest, next)) }()
+	keptAt := time.Now().Format("2006-01-02-150405")
+	var added, updated, removed, kept, known int
+	// edited reports whether the vCard name, with the bytes b now on disk, is
+	// not as the previous run left it; moveAside then keeps it.
+	edited := func(name string, b []byte) bool {
+		h, ok := written[name]
+		return written != nil && b != nil && (!ok || h != hash(b))
+	}
+	moveAside := func(name string) error {
+		kept++
+		return os.Rename(filepath.Join(dir, name), filepath.Join(dir, strings.TrimSuffix(name, ".vcf")+"-kept-"+keptAt+".vcf"))
 	}
 	keep := map[string]bool{}
 	var failed []error
 	for _, p := range people {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		name := fileName(p.ResourceName)
 		path := filepath.Join(dir, name)
 		keep[path] = true
 		cur, _ := os.ReadFile(path)
-		ph, err := photoFor(ctx, p, cur)
+		if edited(name, cur) {
+			if err := moveAside(name); err != nil {
+				return err
+			}
+			cur = nil // so the photo is fetched afresh
+		}
+		ph, isKnown, err := photoFor(ctx, p, cur)
+		if isKnown {
+			known++
+		}
 		if err != nil {
 			failed = append(failed, fmt.Errorf("%s: %w", p.ResourceName, err))
 		}
 		card := render(p, groups, ph)
-		if bytes.Equal(cur, card) {
-			continue
-		}
-		// Syncthing does not scan .syncthing.* names.
-		tmp := filepath.Join(dir, ".syncthing."+name+".tmp")
-		if err := os.WriteFile(tmp, card, 0o600); err != nil {
-			return err
-		}
-		if err := os.Rename(tmp, path); err != nil {
-			return err
-		}
-	}
-	for _, path := range old {
-		if !keep[path] {
-			if err := os.Remove(path); err != nil {
+		if !bytes.Equal(cur, card) {
+			if cur == nil {
+				added++
+			} else {
+				updated++
+			}
+			// An edit may have landed while the photo was fetched.
+			if now, _ := os.ReadFile(path); edited(name, now) {
+				if err := moveAside(name); err != nil {
+					return err
+				}
+			}
+			if err := writeFile(dir, name, card); err != nil {
 				return err
 			}
 		}
+		next[name] = hash(card)
+	}
+	for _, path := range old {
+		name := filepath.Base(path)
+		if keep[path] {
+			continue
+		}
+		cur, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if edited(name, cur) {
+			err = moveAside(name)
+		} else {
+			err = os.Remove(path)
+			removed++
+		}
+		if err != nil {
+			return err
+		}
+		delete(next, name)
+	}
+	fmt.Fprintf(os.Stderr, "contacts: done: %d new, %d updated, %d removed, %d unchanged\n",
+		added, updated, removed, len(people)-added-updated)
+	if known > 0 {
+		fmt.Fprintf(os.Stderr, "contacts: %d photo fetches failed again (known failures)\n", known)
+	}
+	if written == nil {
+		fmt.Fprintln(os.Stderr, "contacts: no previous run, nothing kept")
+	} else if kept == 0 {
+		fmt.Fprintln(os.Stderr, "contacts: 0 changed on disk since the last run")
+	} else {
+		fmt.Fprintf(os.Stderr, "contacts: %d changed on disk since the last run, kept as *-kept-%s.vcf\n", kept, keptAt)
 	}
 	return errors.Join(failed...)
+}
+
+// hash is the hex SHA-256 of b.
+func hash(b []byte) string {
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
+// manifestLine is one "sha256sum" line: hash, two spaces, vCard file name.
+var manifestLine = regexp.MustCompile(`^([0-9a-f]{64})  ([A-Za-z0-9_-]+\.vcf)$`)
+
+// readManifest maps vCard file names to hashes. An absent file gives nil; a
+// malformed or truncated one is an error, so a damaged manifest cannot make
+// every vCard look edited.
+func readManifest(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	m := map[string]string{}
+	i := 0
+	for l := range strings.Lines(string(data)) {
+		i++
+		l, complete := strings.CutSuffix(l, "\n")
+		g := manifestLine.FindStringSubmatch(l)
+		if !complete || g == nil {
+			return nil, fmt.Errorf("manifest %s: malformed or truncated line %d", path, i)
+		}
+		if _, dup := m[g[2]]; dup {
+			return nil, fmt.Errorf("manifest %s: duplicate entry on line %d", path, i)
+		}
+		m[g[2]] = g[1]
+	}
+	return m, nil
+}
+
+// writeManifest atomically replaces path with the sorted "sha256sum" lines of m.
+func writeManifest(path string, m map[string]string) error {
+	var b strings.Builder
+	for _, name := range slices.Sorted(maps.Keys(m)) {
+		fmt.Fprintf(&b, "%s  %s\n", m[name], name)
+	}
+	return writeFile(filepath.Dir(path), filepath.Base(path), []byte(b.String()))
+}
+
+// keptSuffix matches the "-kept-YYYY-MM-DD-HHMMSS.vcf" ending of a kept copy.
+var keptSuffix = regexp.MustCompile(`-kept-\d{4}-\d{2}-\d{2}-\d{6}\.vcf$`)
+
+// writeFile atomically replaces dir/name with data.
+func writeFile(dir, name string, data []byte) error {
+	// Syncthing does not scan .syncthing.* names.
+	tmp := filepath.Join(dir, ".syncthing."+name+".tmp")
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, filepath.Join(dir, name))
 }
 
 var unsafeChars = regexp.MustCompile(`[^A-Za-z0-9_-]`)
@@ -279,8 +424,8 @@ func sizedURL(src string) (string, error) {
 // vCard cur when its X-PHOTO-SOURCE is unchanged and downloaded otherwise. On
 // failure it returns cur's old photo, if any, marked Failed with the URL so the
 // rest of the contact is still written. The error is returned only when cur
-// did not already mark that URL failed; a repeat is logged instead.
-func photoFor(ctx context.Context, p person, cur []byte) (*photo, error) {
+// did not already mark that URL failed; a repeat is reported by the bool.
+func photoFor(ctx context.Context, p person, cur []byte) (*photo, bool, error) {
 	var src string
 	for _, ph := range p.Photos {
 		if !ph.Default && ph.URL != "" {
@@ -289,24 +434,23 @@ func photoFor(ctx context.Context, p person, cur []byte) (*photo, error) {
 		}
 	}
 	if src == "" {
-		return nil, nil
+		return nil, false, nil
 	}
 	kept := parsePhoto(cur)
 	if kept.Source == src {
 		kept.Failed = ""
-		return &kept, nil
+		return &kept, false, nil
 	}
 	ph, err := fetchPhoto(ctx, src)
 	if err == nil {
-		return ph, nil
+		return ph, false, nil
 	}
-	repeat := kept.Failed == src
+	known := kept.Failed == src // Already counted on the first night: no error.
 	kept.Failed = src
-	if repeat { // Already counted on the first night: log, do not fail the run.
-		fmt.Fprintf(os.Stderr, "%s: %v (known failure)\n", p.ResourceName, err)
-		return &kept, nil
+	if known {
+		err = nil
 	}
-	return &kept, err
+	return &kept, known, err
 }
 
 func fetchPhoto(ctx context.Context, src string) (*photo, error) {

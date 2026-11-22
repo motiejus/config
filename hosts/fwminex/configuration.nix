@@ -448,7 +448,8 @@ in
       google-backup = {
         enable = true;
         user = "motiejus";
-        outputDir = "/home/motiejus/annex2/M-Documents/google-backup";
+        contactsDir = "/home/motiejus/annex2/M-Documents/google-backup/contacts";
+        driveDir = "/home/motiejus/annex2/M-R/google-backup";
         secretsEnv = config.age.secrets.google-backup.path;
       };
 

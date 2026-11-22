@@ -120,10 +120,15 @@ func contact(id, name string) string {
 
 func run(t *testing.T, api *fakeAPI, dir string) error {
 	t.Helper()
+	return runManifest(t, context.Background(), api, dir, filepath.Join(t.TempDir(), "manifest"))
+}
+
+func runManifest(t *testing.T, ctx context.Context, api *fakeAPI, dir, manifest string) error {
+	t.Helper()
 	srv := httptest.NewServer(api)
 	defer srv.Close()
 	peopleAPI = srv.URL
-	return syncDir(context.Background(), srv.Client(), dir)
+	return syncDir(ctx, srv.Client(), dir, manifest)
 }
 
 // state maps each file in dir to its inode and mtime.
@@ -217,7 +222,7 @@ func TestAPIErrorFails(t *testing.T) {
 	}))
 	defer srv.Close()
 	peopleAPI = srv.URL
-	if err := syncDir(context.Background(), srv.Client(), t.TempDir()); err == nil || !strings.Contains(err.Error(), "nope") {
+	if err := syncDir(context.Background(), srv.Client(), t.TempDir(), filepath.Join(t.TempDir(), "manifest")); err == nil || !strings.Contains(err.Error(), "nope") {
 		t.Fatalf("want an error carrying the API message, got %v", err)
 	}
 }
@@ -460,7 +465,7 @@ func runAuth(t *testing.T, api *fakeAPI, dir string) error {
 	srv := httptest.NewServer(api)
 	defer srv.Close()
 	peopleAPI = srv.URL
-	return syncDir(context.Background(), &http.Client{Transport: bearer{srv.Client().Transport}}, dir)
+	return syncDir(context.Background(), &http.Client{Transport: bearer{srv.Client().Transport}}, dir, filepath.Join(t.TempDir(), "manifest"))
 }
 
 func photoContact(id, name, url string) string {
@@ -776,8 +781,8 @@ func TestPhotoFailedMarker(t *testing.T) {
 	if err != nil || !maps.Equal(state(t, dir), before) || fp.hits.Load()-hits != 1 {
 		t.Errorf("night 2: err=%v unchanged=%v hits=%d", err, maps.Equal(state(t, dir), before), fp.hits.Load()-hits)
 	}
-	if !strings.Contains(logged, "people/c1") || strings.Contains(logged, ps.URL) {
-		t.Errorf("night 2 log: want people/c1 and no URL, got %q", logged)
+	if !strings.Contains(logged, "1 photo fetches failed again") || strings.Contains(logged, "people/c1") || strings.Contains(logged, ps.URL) {
+		t.Errorf("night 2 log: want a count and no name or URL, got %q", logged)
 	}
 
 	// A new failing URL is a new first failure.
@@ -834,5 +839,333 @@ func TestPhotoFailedMarker(t *testing.T) {
 	fp.mu.Unlock()
 	if err := runAuth(t, api, dir); err != nil || strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "FAILED") {
 		t.Errorf("transient recovery: err=%v", err)
+	}
+}
+
+// keptCopies lists the kept copies of stem in dir.
+func keptCopies(t *testing.T, dir, stem string) []string {
+	t.Helper()
+	m, err := filepath.Glob(filepath.Join(dir, stem+"-kept-????-??-??-??????.vcf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return m
+}
+
+func write(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestKeepLocalChanges(t *testing.T) {
+	dir := t.TempDir()
+	manifest := filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), contact("c3", "Three")}}
+	if err := runManifest(t, context.Background(), api, dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+	if got := keptCopies(t, dir, "c1"); len(got) != 0 {
+		t.Fatalf("first run (no manifest) kept %v", got)
+	}
+	if !strings.Contains(read(t, manifest), hash([]byte(read(t, filepath.Join(dir, "c1.vcf"))))+"  c1.vcf\n") {
+		t.Fatalf("manifest lacks c1:\n%s", read(t, manifest))
+	}
+
+	// Same-length edit of c1 with its mtime put back; c3 is edited and then
+	// removed from Google; x9 is added on disk; c2 is untouched.
+	c1 := filepath.Join(dir, "c1.vcf")
+	orig := read(t, c1)
+	fi, _ := os.Stat(c1)
+	write(t, c1, strings.Replace(orig, "One", "Ona", 1))
+	if err := os.Chtimes(c1, fi.ModTime(), fi.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(dir, "x9.vcf"), "ADDED")
+	write(t, filepath.Join(dir, "c3.vcf"), "EDITED3")
+	api.people = []string{contact("c1", "One"), contact("c2", "Two")}
+
+	var err error
+	logs := captureStderr(t, func() { err = runManifest(t, context.Background(), api, dir, manifest) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if read(t, c1) != orig {
+		t.Error("edited c1 not rewritten from Google")
+	}
+	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != strings.Replace(orig, "One", "Ona", 1) {
+		t.Errorf("edited c1: want one kept copy with the edit, got %v", k)
+	}
+	if k := keptCopies(t, dir, "x9"); len(k) != 1 || read(t, k[0]) != "ADDED" {
+		t.Errorf("added x9: want one kept copy with its content, got %v", k)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "x9.vcf")); !os.IsNotExist(err) {
+		t.Error("added x9.vcf not removed after being kept")
+	}
+	if k := keptCopies(t, dir, "c3"); len(k) != 1 || read(t, k[0]) != "EDITED3" {
+		t.Errorf("removed-but-edited c3: want one kept copy, got %v", k)
+	}
+	if k := keptCopies(t, dir, "c2"); len(k) != 0 {
+		t.Errorf("untouched c2 kept %v", k)
+	}
+	if !strings.Contains(logs, "contacts: 3 changed on disk since the last run, kept as *-kept-") {
+		t.Errorf("count line missing:\n%s", logs)
+	}
+	if strings.Contains(logs, "x9") || strings.Contains(logs, "EDITED") {
+		t.Errorf("log names files or contents:\n%s", logs)
+	}
+	if m := read(t, manifest); strings.Contains(m, "-kept-") || strings.Contains(m, "x9") || strings.Contains(m, "c3") {
+		t.Errorf("manifest lists kept copies or gone vCards:\n%s", m)
+	}
+
+	if !strings.Contains(logs, ", 0 removed,") {
+		t.Errorf("vCards moved aside were counted as removed:\n%s", logs)
+	}
+
+	// Kept copies are not vCards: later runs neither remove, re-flag nor count them.
+	before := state(t, dir)
+	logs = captureStderr(t, func() { err = runManifest(t, context.Background(), api, dir, manifest) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := state(t, dir); !maps.Equal(got, before) {
+		t.Errorf("second run changed the files:\n%v\n%v", before, got)
+	}
+	if !strings.Contains(logs, "contacts: 0 changed on disk since the last run\n") || !strings.Contains(logs, "2 vCards in") {
+		t.Errorf("kept copies counted or re-flagged:\n%s", logs)
+	}
+
+	// Only kept copies on disk: an empty address book is no anomaly. A bare date suffix is not a kept copy.
+	only, bare := t.TempDir(), t.TempDir()
+	write(t, filepath.Join(only, "c1-kept-2026-11-22-000000.vcf"), "kept")
+	write(t, filepath.Join(bare, "c1-2026-11-22-000000.vcf"), "real")
+	if err := run(t, &fakeAPI{}, only); err != nil {
+		t.Errorf("kept copy counted by the empty-listing guard: %v", err)
+	}
+	if err := run(t, &fakeAPI{}, bare); err == nil {
+		t.Error("vCard with a bare date suffix was taken for a kept copy")
+	}
+}
+
+func TestNoManifestKeepsNothing(t *testing.T) {
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "c1.vcf"), "stale")
+	write(t, filepath.Join(dir, "x9.vcf"), "stale")
+	api := &fakeAPI{people: []string{contact("c1", "One")}}
+	if err := runManifest(t, context.Background(), api, dir, filepath.Join(t.TempDir(), "manifest")); err != nil {
+		t.Fatal(err)
+	}
+	if k := keptCopies(t, dir, "*"); len(k) != 0 {
+		t.Errorf("no manifest, yet kept %v", k)
+	}
+}
+
+func TestBadManifestFails(t *testing.T) {
+	good := strings.Repeat("a", 64) + "  c1.vcf\n"
+	for name, m := range map[string]string{
+		"truncated line": good[:40],
+		"no newline":     good[:len(good)-1],
+		"junk":           "hello\n",
+		"bad name":       strings.Repeat("a", 64) + "  ../c1.vcf\n",
+		"duplicate":      good + good,
+	} {
+		dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+		write(t, mf, m)
+		write(t, filepath.Join(dir, "c1.vcf"), "local")
+		api := &fakeAPI{people: []string{contact("c1", "One")}}
+		if err := runManifest(t, context.Background(), api, dir, mf); err == nil || !strings.Contains(err.Error(), "manifest") {
+			t.Errorf("%s: want manifest error, got %v", name, err)
+		}
+		if read(t, filepath.Join(dir, "c1.vcf")) != "local" || read(t, mf) != m || len(keptCopies(t, dir, "c1")) != 0 {
+			t.Errorf("%s: failed run touched files", name)
+		}
+	}
+}
+
+func TestManifestWrittenEvenOnPhotoError(t *testing.T) {
+	fastBackoff(t)
+	ps := httptest.NewServer(http.NotFoundHandler())
+	defer ps.Close()
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{photoContact("c1", "One", ps.URL+"/p")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err == nil {
+		t.Fatal("want photo error")
+	}
+	if !strings.Contains(read(t, mf), hash([]byte(read(t, filepath.Join(dir, "c1.vcf"))))+"  c1.vcf\n") {
+		t.Errorf("manifest missing the vCard written despite the photo error:\n%s", read(t, mf))
+	}
+}
+
+// A hard error mid-run records what the run wrote and carries the previous
+// entry of the vCards it did not reach (so a pending edit stays detectable).
+func TestAbortedRunManifest(t *testing.T) {
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), contact("c3", "Three"), contact("c4", "Four")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	c2 := hash([]byte(read(t, filepath.Join(dir, "c2.vcf"))))
+	c3 := hash([]byte(read(t, filepath.Join(dir, "c3.vcf"))))
+	c4 := hash([]byte(read(t, filepath.Join(dir, "c4.vcf"))))
+	write(t, filepath.Join(dir, "c1.vcf"), "EDITED1")
+	write(t, filepath.Join(dir, "c4.vcf"), "EDITED4") // gone from Google; the aborted run never reaches it
+	api.people = []string{contact("c1", "One v2"), contact("c2", "Two v2"), contact("c3", "Three v2")}
+	blocker := filepath.Join(dir, ".syncthing.c2.vcf.tmp") // makes the rewrite of c2 fail
+	if err := os.Mkdir(blocker, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := runManifest(t, context.Background(), api, dir, mf); err == nil {
+		t.Fatal("want a hard error")
+	}
+	c1 := hash([]byte(read(t, filepath.Join(dir, "c1.vcf"))))
+	want := c1 + "  c1.vcf\n" + c2 + "  c2.vcf\n" + c3 + "  c3.vcf\n" + c4 + "  c4.vcf\n"
+	if got := read(t, mf); got != want {
+		t.Fatalf("manifest after abort:\n%s\nwant (c1 rewritten, the rest carried forward):\n%s", got, want)
+	}
+	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "EDITED1" {
+		t.Errorf("edited c1 not kept: %v", k)
+	}
+}
+
+// The manifest lists what the run wrote, never what is on disk afterwards: a
+// vCard changed on disk during the run is flagged by the next one.
+func TestManifestIsNotFromDisk(t *testing.T) {
+	fastBackoff(t)
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	ps := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		write(t, filepath.Join(dir, "c1.vcf"), "RACE") // c1 was handled before c2's photo is fetched
+		http.NotFound(w, r)
+	}))
+	defer ps.Close()
+	api := &fakeAPI{people: []string{contact("c1", "One"), photoContact("c2", "Two", ps.URL+"/p")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err == nil {
+		t.Fatal("want photo error")
+	}
+	if strings.Contains(read(t, mf), hash([]byte("RACE"))) {
+		t.Fatal("manifest blessed a vCard written by someone else")
+	}
+	api.people = []string{contact("c1", "One"), contact("c2", "Two")}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "RACE" {
+		t.Errorf("mid-run edit of c1 not kept next run: %v", k)
+	}
+}
+
+// Cancelling the context (SIGTERM) stops the loop and still writes the manifest.
+func TestCancelWritesManifest(t *testing.T) {
+	fastBackoff(t)
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), contact("c3", "Three"), contact("c4", "Four")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	before := read(t, mf)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cancel()
+		http.NotFound(w, r)
+	}))
+	defer ps.Close()
+	api.people = []string{contact("c1", "One"), photoContact("c2", "Two", ps.URL+"/p"), contact("c3", "Three v2"), contact("c4", "Four")}
+	if err := runManifest(t, ctx, api, dir, mf); err == nil {
+		t.Fatal("want cancellation error")
+	}
+	if strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "Three v2") {
+		t.Error("loop went on after cancellation")
+	}
+	got := strings.Split(strings.TrimSuffix(read(t, mf), "\n"), "\n")
+	if len(got) != 4 || strings.Split(got[2], "  ")[0] != strings.Split(strings.Split(before, "\n")[2], "  ")[0] {
+		t.Errorf("manifest after cancel:\n%s\nbefore:\n%s", read(t, mf), before)
+	}
+	if !strings.Contains(read(t, mf), hash([]byte(read(t, filepath.Join(dir, "c2.vcf"))))+"  c2.vcf") {
+		t.Error("manifest lacks the vCard written before the cancel")
+	}
+}
+
+// An edited vCard's photo is not reused: the card comes back as Google has it.
+func TestEditedCardPhotoRefetched(t *testing.T) {
+	fp := &fakePhotos{bodies: map[string][]byte{"/a": jpeg}}
+	ps := httptest.NewServer(fp)
+	defer ps.Close()
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{photoContact("c1", "One", ps.URL+"/a")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	orig := read(t, filepath.Join(dir, "c1.vcf"))
+	var p person
+	if err := json.Unmarshal([]byte(api.people[0]), &p); err != nil {
+		t.Fatal(err)
+	}
+	other := append(append([]byte{}, jpeg...), "tampered"...)
+	write(t, filepath.Join(dir, "c1.vcf"), string(render(p, nil, &photo{ps.URL + "/a", "JPEG", base64.StdEncoding.EncodeToString(other), ""})))
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, filepath.Join(dir, "c1.vcf")); got != orig {
+		t.Error("tampered photo survived in the rewritten card")
+	}
+	if fp.hits.Load() != 2 {
+		t.Errorf("want the photo fetched again (2 downloads), got %d", fp.hits.Load())
+	}
+	if k := keptCopies(t, dir, "c1"); len(k) != 1 {
+		t.Errorf("edited card not kept: %v", k)
+	}
+}
+
+// A vCard that vanishes between the listing and the read (here a dangling
+// symlink) is skipped, not fatal.
+func TestVanishedVCardSkipped(t *testing.T) {
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{contact("c1", "One")}}
+	if err := run(t, api, dir); err != nil {
+		t.Fatal(err)
+	}
+	write(t, mf, "")
+	if err := os.Symlink(filepath.Join(dir, "nowhere"), filepath.Join(dir, "c9.vcf")); err != nil {
+		t.Fatal(err)
+	}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatalf("vanished vCard failed the run: %v", err)
+	}
+}
+
+// An edit that lands while a photo is fetched is kept, not overwritten: both
+// for a vCard handled later in the run and for the one whose photo is fetched.
+func TestEditDuringRunIsKept(t *testing.T) {
+	for name, victim := range map[string]string{"later vCard": "c2", "own vCard": "c1"} {
+		dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+		api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two")}}
+		if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+			t.Fatal(err)
+		}
+		ps := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f, err := os.OpenFile(filepath.Join(dir, victim+".vcf"), os.O_APPEND|os.O_WRONLY, 0o600)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			f.WriteString("EDIT\r\n")
+			f.Close()
+			w.Write(jpeg)
+		}))
+		api.people = []string{photoContact("c1", "One", ps.URL+"/p"), contact("c2", "Two v2")}
+		if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		ps.Close()
+		if k := keptCopies(t, dir, victim); len(k) != 1 || !strings.Contains(read(t, k[0]), "EDIT") {
+			t.Errorf("%s: edit during the run not kept: %v", name, k)
+		}
+	}
+}
+
+func TestSyncRequiresManifest(t *testing.T) {
+	if err := syncCmd([]string{"-out", t.TempDir()}); err == nil || !strings.Contains(err.Error(), "-manifest") {
+		t.Fatalf("want a -manifest error, got %v", err)
 	}
 }
