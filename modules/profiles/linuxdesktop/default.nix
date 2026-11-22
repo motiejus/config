@@ -173,6 +173,7 @@ in
       motion
       gthumb
       csvkit
+      rclone
       calibre
       gparted
       scribus
