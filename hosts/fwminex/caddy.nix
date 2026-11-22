@@ -91,13 +91,45 @@ in
       "r1.jakstys.lt:8443".extraConfig = r1TLS + ''
         redir https://r1.jakstys.lt{uri} 308
       '';
-      "up.jakstys.lt".extraConfig = ''
+      "up.jakstys.lt".extraConfig =
+        let
+          ns = "[a-z0-9][a-z0-9-]{0,31}";
+          id = "[0-9a-hjkmnp-tv-z]{10}";
+        in
+        ''
+          tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
+          header Alt-Svc "h3=\":443\"; ma=86400"
+          header X-Content-Type-Options nosniff
+          root * /var/www/up
+          # Published uploads are /<ns>/<id>/<name>; only /<ns>/<id>/ lists,
+          # even when the upload is an index.html.
+          @listing path_regexp ^/${ns}/${id}/$
+          @file path_regexp ^/${ns}/${id}/[^/]+$
+          handle @listing {
+            file_server browse {
+              index off
+            }
+          }
+          handle @file {
+            header Content-Security-Policy sandbox
+            # Media, images and text may render inline; everything else downloads.
+            @attach not path_regexp (?i)\.(mp4|webm|mov|m4v|mp3|m4a|ogg|oga|opus|flac|wav|png|jpe?g|gif|webp|avif|txt)$
+            header @attach Content-Disposition attachment
+            file_server
+          }
+          # No request_body limit: tus PATCH bodies stream straight through.
+          handle {
+            reverse_proxy 127.0.0.1:${toString myData.ports.up} {
+              flush_interval -1
+            }
+          }
+        '';
+      "up-admin.jakstys.lt".extraConfig = ''
+        @denied not remote_ip ${myData.subnets.tailscale.cidr}
+        abort @denied
         tls /run/caddy/jakstys.lt-cert.pem /run/caddy/jakstys.lt-key.pem
         header Alt-Svc "h3=\":443\"; ma=86400"
-        basic_auth {
-          {$PLIK_USER} {$PLIK_PASSWORD}
-        }
-        reverse_proxy 127.0.0.1:${toString myData.ports.plik}
+        reverse_proxy 127.0.0.1:${toString myData.ports.up-admin}
       '';
       "irc.jakstys.lt".extraConfig =
         let

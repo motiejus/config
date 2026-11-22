@@ -31,6 +31,7 @@
     ./syncthing-relay
     ./tailscale
     ./timelapse-r11
+    ./up
     ./vaultwarden
     ./wifibackup
   ];

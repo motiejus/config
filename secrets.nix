@@ -89,7 +89,6 @@ in
 
   "secrets/fwminex/syncthing/key.pem.age"
   "secrets/fwminex/syncthing/cert.pem.age"
-  "secrets/fwminex/up.jakstys.lt.env.age"
   "secrets/fwminex/grafana-secret-key.age"
   "secrets/fwminex/timelapse-merger-key.age"
   "secrets/fwminex/google-backup.env.age"

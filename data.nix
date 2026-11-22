@@ -17,6 +17,7 @@ rec {
     lt-shelters = 506;
     lt-maps = 507;
     rita-jakst-publisher = 508;
+    up = 509;
   };
 
   ports = {
@@ -31,7 +32,8 @@ rec {
     ssh8022 = 8022;
     vaultwarden = 8222;
     headscale = 8080;
-    plik = 8099;
+    up-admin = 8099;
+    up = 8100;
     rita-jakst-publisher = 8098;
     hass = 8123;
     prometheus = 9001;
@@ -179,7 +181,7 @@ rec {
     ''
       $ORIGIN jakstys.lt.
       $TTL 3600
-      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026082200 86400 86400 86400 86400)
+      @                       86400   SOA     ns1.jakstys.lt. motiejus.jakstys.lt. (2026112300 86400 86400 86400 86400)
       @                       86400    NS     ns1.jakstys.lt.
       @                       86400    NS     ns2.jakstys.lt.
       @                             HTTPS     1 . alpn="h3,h2" ipv4hint="${vno1}"
@@ -238,6 +240,7 @@ rec {
       grafana                             A     ${hosts."fwminex.jakst.vpn".jakstIP}
       hass                                A     ${hosts."fwminex.jakst.vpn".jakstIP}
       irc                                 A     ${hosts."fwminex.jakst.vpn".jakstIP}
+      up-admin                            A     ${hosts."fwminex.jakst.vpn".jakstIP}
 
       bitwarden                       HTTPS     1 . alpn="h3,h2" ipv4hint="${
         hosts."fwminex.jakst.vpn".jakstIP

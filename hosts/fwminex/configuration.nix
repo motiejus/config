@@ -37,7 +37,6 @@ in
       file = ../../secrets/fwminex/timelapse-merger-key.age;
       owner = "timelapse-r11";
     };
-    plik.file = ../../secrets/fwminex/up.jakstys.lt.env.age;
     google-backup.file = ../../secrets/fwminex/google-backup.env.age;
     r1-htpasswd = {
       file = ../../secrets/r1-htpasswd.age;
@@ -136,10 +135,8 @@ in
             LoadCredential = [
               "jakstys.lt-cert.pem:${wc.certFile}"
               "jakstys.lt-key.pem:${wc.keyFile}"
-              "up.jakstys.lt.env:${config.age.secrets.plik.path}"
             ];
             RuntimeDirectory = "caddy";
-            EnvironmentFile = [ "-/run/caddy/up.jakstys.lt.env" ];
           };
           # During the first switch nginx still owns :8443. Restart ordering
           # makes it release that socket before Caddy binds both public ports.
@@ -204,11 +201,6 @@ in
       HandleLidSwitch = "ignore";
       HandlePowerKey = "suspend";
       HandlePowerKeyLongPress = "poweroff";
-    };
-
-    plikd = {
-      enable = true;
-      settings.ListenPort = myData.ports.plik;
     };
 
     soju = {
@@ -444,6 +436,7 @@ in
       };
 
       rita-jakst-publisher.enable = true;
+      up.enable = true;
 
       google-backup = {
         enable = true;
