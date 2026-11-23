@@ -65,6 +65,7 @@ in
             git
             lz4
             mmv
+            lftp
             htop
             file # file duh
             host # look up host info
