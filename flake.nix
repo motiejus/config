@@ -118,7 +118,7 @@
             gamja = super.callPackage ./pkgs/gamja.nix { };
             lt-shelters = super.callPackage ./pkgs/lt-shelters.nix { };
             weather = super.callPackage ./pkgs/weather { };
-            google-contacts = super.callPackage ./pkgs/google-contacts { };
+            google-backup = super.callPackage ./pkgs/google-backup { };
             tmuxbash = super.callPackage ./pkgs/tmuxbash.nix { };
             lt-maps = inputs.lt-maps.packages.${final.stdenv.hostPlatform.system}.compressed;
             # The callPackage set (where `override` lives), forced only by mbFontsDir.
@@ -462,7 +462,7 @@
           inherit (pkgs)
             lt-shelters
             weather
-            google-contacts
+            google-backup
             gamja
             chronoctl
             timelapse-web

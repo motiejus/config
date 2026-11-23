@@ -443,6 +443,7 @@ in
         user = "motiejus";
         contactsDir = "/home/motiejus/annex2/M-Documents/google-backup/contacts";
         driveDir = "/home/motiejus/annex2/M-R/google-backup";
+        historyCopy = "/home/motiejus/annex2/M-Documents/google-backup/history.tsv";
         secretsEnv = config.age.secrets.google-backup.path;
       };
 

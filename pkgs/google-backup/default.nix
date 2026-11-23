@@ -1,7 +1,7 @@
 { buildGoModule }:
 buildGoModule {
-  name = "google-contacts";
+  name = "google-backup";
   src = ./.;
   vendorHash = "sha256-fTqx4ibPGxevvTvb461rvl99zVcDmncsxPxpiGgpW4w=";
-  meta.mainProgram = "google-contacts";
+  meta.mainProgram = "google-backup";
 }

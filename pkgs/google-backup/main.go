@@ -1,8 +1,10 @@
-// Command google-contacts mirrors Google contacts into a directory of vCards.
+// Command google-backup mirrors Google contacts into a directory of vCards and
+// the Drive files shared with the backup account into another directory.
 package main
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -19,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -36,64 +39,91 @@ const scope = "https://www.googleapis.com/auth/contacts.readonly"
 var peopleAPI = "https://people.googleapis.com/v1"
 
 func main() {
-	var err error
-	switch {
-	case len(os.Args) > 1 && os.Args[1] == "auth":
-		err = authCmd(os.Args[2:])
-	case len(os.Args) > 1 && os.Args[1] == "sync":
-		err = syncCmd(os.Args[2:])
-	default:
-		fmt.Fprintln(os.Stderr, "usage:\n  google-contacts auth -client FILE -out FILE\n  google-contacts sync [-token FILE] -manifest FILE -out DIR")
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	cmds := map[string]func(context.Context, []string) error{
+		"auth": authCmd, "contacts": contactsCmd, "drive": driveCmd, "run": runCmd,
+	}
+	var cmd func(context.Context, []string) error
+	if len(os.Args) > 1 {
+		cmd = cmds[os.Args[1]]
+	}
+	if cmd == nil {
+		fmt.Fprintln(os.Stderr, "usage:\n  google-backup auth -client FILE -out FILE\n"+
+			"  google-backup contacts [-token FILE] -manifest FILE -out DIR\n"+
+			"  google-backup drive -manifest FILE -out DIR\n"+
+			"  google-backup run -state DIR -contacts DIR -drive DIR")
 		os.Exit(2)
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "google-contacts:", err)
+	if err := cmd(ctx, os.Args[2:]); err != nil {
+		fmt.Fprintln(os.Stderr, "google-backup:", err)
 		os.Exit(1)
 	}
 }
 
-func syncCmd(args []string) error {
-	fs := flag.NewFlagSet("sync", flag.ExitOnError)
+// runCmd backs up contacts, then Drive (unless stopped meanwhile), into the
+// manifests kept in the -state directory.
+func runCmd(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("run", flag.ExitOnError)
+	state := fs.String("state", "", "directory of the manifests")
+	contacts := fs.String("contacts", "", "vCard directory")
+	drive := fs.String("drive", "", "Drive mirror directory")
+	fs.Parse(args)
+	if *state == "" || *contacts == "" || *drive == "" {
+		return errors.New("run: -state, -contacts and -drive are required")
+	}
+	err := backupContacts(ctx, "", *contacts, filepath.Join(*state, "contacts.sha256"))
+	if ctx.Err() == nil {
+		err = errors.Join(err, backupDrive(ctx, *drive, filepath.Join(*state, "drive.manifest")))
+	}
+	return errors.Join(err, context.Cause(ctx))
+}
+
+func contactsCmd(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("contacts", flag.ExitOnError)
 	tokenFile := fs.String("token", "", "authorized_user JSON (default: $GOOGLE_CONTACTS_TOKEN)")
 	out := fs.String("out", "", "output directory")
-	manifest := fs.String("manifest", "", "sha256sum-style list of the vCards written by the previous run; changed or unlisted ones are kept before being overwritten or removed")
+	manifest := fs.String("manifest", "", "sha256sum-style list of the vCards written by the previous run; others are kept before being overwritten or removed")
 	fs.Parse(args)
 	if *out == "" || *manifest == "" {
-		return errors.New("sync: -out and -manifest are required")
+		return errors.New("contacts: -out and -manifest are required")
 	}
+	return backupContacts(ctx, *tokenFile, *out, *manifest)
+}
+
+func backupContacts(ctx context.Context, tokenFile, out, manifest string) error {
 	data := []byte(os.Getenv("GOOGLE_CONTACTS_TOKEN"))
-	if *tokenFile != "" {
+	if tokenFile != "" {
 		var err error
-		if data, err = os.ReadFile(*tokenFile); err != nil {
+		if data, err = os.ReadFile(tokenFile); err != nil {
 			return err
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
-	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	creds, err := google.CredentialsFromJSONWithType(ctx, data, google.AuthorizedUser, scope)
 	if err != nil {
-		return fmt.Errorf("token: %w", err)
+		return fmt.Errorf("contacts: token: %w", err)
 	}
 	tok, err := creds.TokenSource.Token()
 	if err != nil {
-		return fmt.Errorf("login: %w", err)
+		return fmt.Errorf("contacts: login: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "contacts: logged in, access token valid until %s\n", tok.Expiry.UTC().Format(time.RFC3339))
-	return syncDir(ctx, oauth2.NewClient(ctx, creds.TokenSource), *out, *manifest)
+	if err := syncDir(ctx, oauth2.NewClient(ctx, creds.TokenSource), out, manifest); err != nil {
+		return fmt.Errorf("contacts: %w", err)
+	}
+	return nil
 }
 
-// syncDir writes one vCard per contact into dir, rewriting only files whose
-// bytes changed and removing vCards of contacts that are gone. A contact whose
-// photo cannot be fetched keeps its file; the error is returned at the end.
-// A vCard that is not in manifest, or whose bytes differ from the hash listed
-// there, is first moved to <stem>-kept-<time>.vcf, so Google's version (and
-// photo) is fetched afresh; with no manifest file nothing is kept. The
-// manifest, a hash per vCard this run wrote or confirmed (previous entries
-// for the ones it did not reach), is rewritten on every exit once the vCards
-// are checked. It logs only counts, never contact data.
+// syncDir mirrors the contacts into dir, one vCard each, keeping a vCard that
+// is not as manifest lists it as <stem>-kept-<time>.vcf before replacing or
+// removing it, and one of a contact gone from Google as
+// <stem>-deleted-<date>.vcf. The manifest is rewritten on every exit; logs
+// carry only counts.
 func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err error) {
+	hist := openHistory(manifest, "contacts")
+	defer func() { err = errors.Join(err, hist.close(ctx, err)) }()
 	people, err := listPeople(ctx, c)
 	if err != nil {
 		return err
@@ -109,7 +139,9 @@ func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err err
 	if err != nil {
 		return err
 	}
-	old := slices.DeleteFunc(all, keptSuffix.MatchString)
+	old := slices.DeleteFunc(all, func(p string) bool {
+		return slices.ContainsFunc(copies, func(g string) bool { m, _ := filepath.Match(g, filepath.Base(p)); return m })
+	})
 	if len(people) == 0 && len(old) > 0 {
 		return fmt.Errorf("Google returned no contacts; keeping the %d in %s", len(old), dir)
 	}
@@ -121,17 +153,44 @@ func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err err
 	next := map[string]string{}
 	maps.Copy(next, written)
 	defer func() { err = errors.Join(err, writeManifest(manifest, next)) }()
-	keptAt := time.Now().Format("2006-01-02-150405")
-	var added, updated, removed, kept, known int
-	// edited reports whether the vCard name, with the bytes b now on disk, is
-	// not as the previous run left it; moveAside then keeps it.
-	edited := func(name string, b []byte) bool {
-		h, ok := written[name]
-		return written != nil && b != nil && (!ok || h != hash(b))
+	keptAt := now().Format(keptTime)
+	var added, updated, same, kept, deleted, known int
+	done := func() tally {
+		return tally{{"new", added}, {"updated", updated}, {"unchanged", same}}
 	}
-	moveAside := func(name string) error {
-		kept++
-		return os.Rename(filepath.Join(dir, name), filepath.Join(dir, strings.TrimSuffix(name, ".vcf")+"-kept-"+keptAt+".vcf"))
+	hist.totals = func() tally { return append(done(), count{"kept", kept}, count{"deleted", deleted}) }
+	// ours reports whether the previous run wrote b, the bytes of vCard name.
+	ours := func(name string, b []byte) bool {
+		h, ok := written[name]
+		return ok && h == hash(b)
+	}
+	// keepAs renames the vCard name, holding b, to the first free one of
+	// names and records it as action, counted in n.
+	keepAs := func(name string, b []byte, n *int, action string, names []string) (bool, error) {
+		for _, to := range names {
+			if _, err := os.Lstat(filepath.Join(dir, to)); errors.Is(err, os.ErrNotExist) {
+				if err := os.Rename(filepath.Join(dir, name), filepath.Join(dir, to)); err != nil {
+					return false, err
+				}
+				hist.add(n, action, "", hash(b), name, to)
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	moveAside := func(name string, b []byte) error {
+		// A vCard edited before the run and again during it is kept twice.
+		ok, err := keepAs(name, b, &kept, "kept", []string{keptName(name, "-kept-"+keptAt), keptName(name, "-kept-"+keptAt+"-2")})
+		if err == nil && !ok {
+			err = fmt.Errorf("no free kept name for a vCard")
+		}
+		return err
+	}
+	keepDeleted := func(name string, b []byte) error {
+		if ok, err := keepAs(name, b, &deleted, "deleted", deletedNames(name, keptAt)); ok || err != nil {
+			return err
+		}
+		return moveAside(name, b)
 	}
 	keep := map[string]bool{}
 	var failed []error
@@ -143,13 +202,18 @@ func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err err
 		path := filepath.Join(dir, name)
 		keep[path] = true
 		cur, _ := os.ReadFile(path)
-		if edited(name, cur) {
-			if err := moveAside(name); err != nil {
+		if _, listed := written[name]; listed && cur != nil && !ours(name, cur) {
+			if err := moveAside(name, cur); err != nil {
 				return err
 			}
-			cur = nil // so the photo is fetched afresh
+			cur = nil
 		}
-		ph, isKnown, err := photoFor(ctx, p, cur)
+		// Only the previous run's vCard lends its photo.
+		from := cur
+		if !ours(name, cur) {
+			from = nil
+		}
+		ph, isKnown, err := photoFor(ctx, p, from)
 		if isKnown {
 			known++
 		}
@@ -158,20 +222,22 @@ func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err err
 		}
 		card := render(p, groups, ph)
 		if !bytes.Equal(cur, card) {
-			if cur == nil {
-				added++
-			} else {
-				updated++
-			}
-			// An edit may have landed while the photo was fetched.
-			if now, _ := os.ReadFile(path); edited(name, now) {
-				if err := moveAside(name); err != nil {
+			// Read again: an edit may have landed while the photo was fetched.
+			if now, _ := os.ReadFile(path); now != nil && !ours(name, now) {
+				if err := moveAside(name, now); err != nil {
 					return err
 				}
 			}
 			if err := writeFile(dir, name, card); err != nil {
 				return err
 			}
+			if cur == nil {
+				hist.add(&added, "new", p.ResourceName, hash(card), name)
+			} else {
+				hist.add(&updated, "updated", p.ResourceName, hash(card), name)
+			}
+		} else {
+			same++
 		}
 		next[name] = hash(card)
 	}
@@ -187,30 +253,123 @@ func syncDir(ctx context.Context, c *http.Client, dir, manifest string) (err err
 		if err != nil {
 			return err
 		}
-		if edited(name, cur) {
-			err = moveAside(name)
+		if ours(name, cur) {
+			err = keepDeleted(name, cur)
 		} else {
-			err = os.Remove(path)
-			removed++
+			err = moveAside(name, cur)
 		}
 		if err != nil {
 			return err
 		}
 		delete(next, name)
 	}
-	fmt.Fprintf(os.Stderr, "contacts: done: %d new, %d updated, %d removed, %d unchanged\n",
-		added, updated, removed, len(people)-added-updated)
+	fmt.Fprintf(os.Stderr, "contacts: done: %s\n", done().format("%d %s", ", "))
 	if known > 0 {
 		fmt.Fprintf(os.Stderr, "contacts: %d photo fetches failed again (known failures)\n", known)
 	}
-	if written == nil {
-		fmt.Fprintln(os.Stderr, "contacts: no previous run, nothing kept")
-	} else if kept == 0 {
+	if kept == 0 {
 		fmt.Fprintln(os.Stderr, "contacts: 0 changed on disk since the last run")
 	} else {
 		fmt.Fprintf(os.Stderr, "contacts: %d changed on disk since the last run, kept as *-kept-%s.vcf\n", kept, keptAt)
 	}
+	if deleted > 0 {
+		fmt.Fprintf(os.Stderr, "contacts: %d deleted in Google, kept as *-deleted-%s*.vcf\n", deleted, keptAt[:len(keptDate)])
+	}
 	return errors.Join(failed...)
+}
+
+// count is one of the totals of a run.
+type count struct {
+	name string
+	n    int
+}
+
+// tally is the totals of a run, in the order they are logged.
+type tally []count
+
+// format is the counts as f formats a number and a name, joined by sep.
+func (t tally) format(f, sep string) string {
+	var s []string
+	for _, c := range t {
+		s = append(s, fmt.Sprintf(f, c.n, c.name))
+	}
+	return strings.Join(s, sep)
+}
+
+// history appends a line per action of one part of a run to history.tsv
+// beside its manifest. Nothing reads it back; failing to write it fails the
+// run but changes nothing else.
+type history struct {
+	f      *os.File
+	part   string
+	totals func() tally // for the run line, once the part has counters
+	err    error
+}
+
+// openHistory opens the history of manifest, ending a line a killed run left
+// partial.
+func openHistory(manifest, part string) *history {
+	h := &history{part: part}
+	h.f, h.err = os.OpenFile(filepath.Join(filepath.Dir(manifest), "history.tsv"), os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o600)
+	last := []byte{'\n'}
+	if fi, err := h.f.Stat(); err == nil && fi.Size() > 0 {
+		_, h.err = h.f.ReadAt(last, fi.Size()-1)
+	}
+	if h.err == nil && last[0] != '\n' {
+		_, h.err = h.f.WriteString("\n")
+	}
+	return h
+}
+
+// add counts an action in n and records it with the Drive or resource ID,
+// the sha256 of the bytes and the names it concerns.
+func (h *history) add(n *int, action, id, hash string, names ...string) {
+	*n++
+	fields := []string{action, quoted(id), cmp.Or(hash, "-")}
+	for _, name := range names {
+		fields = append(fields, quoted(name))
+	}
+	h.line(fields...)
+}
+
+// quoted is s Go-quoted, or "-" for none, as manifests and history write IDs.
+func quoted(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return strconv.Quote(s)
+}
+
+// line writes one line in a single write.
+func (h *history) line(fields ...string) {
+	if h.f == nil {
+		return
+	}
+	_, err := h.f.WriteString(strings.Join(append([]string{time.Now().Format(time.RFC3339), h.part}, fields...), "\t") + "\n")
+	h.err = cmp.Or(h.err, err)
+}
+
+// close records how the part ended, with its totals, and returns the first
+// history error.
+func (h *history) close(ctx context.Context, err error) error {
+	status := "ok"
+	if errors.Is(ctx.Err(), context.Canceled) {
+		status = "stopped"
+	} else if err != nil {
+		status = "failed"
+	}
+	var totals tally
+	if h.totals != nil {
+		totals = h.totals()
+	}
+	h.line("run", status, "-", totals.format("%[2]s=%[1]d", " "))
+	if h.f != nil {
+		h.err = cmp.Or(h.err, h.f.Sync(), h.f.Close())
+	}
+	if h.err != nil {
+		return fmt.Errorf("history: %w", h.err)
+	}
+	return nil
 }
 
 // hash is the hex SHA-256 of b.
@@ -222,51 +381,103 @@ func hash(b []byte) string {
 // manifestLine is one "sha256sum" line: hash, two spaces, vCard file name.
 var manifestLine = regexp.MustCompile(`^([0-9a-f]{64})  ([A-Za-z0-9_-]+\.vcf)$`)
 
-// readManifest maps vCard file names to hashes. An absent file gives nil; a
-// malformed or truncated one is an error, so a damaged manifest cannot make
-// every vCard look edited.
+// readManifest maps vCard file names to hashes. An absent file is an empty
+// manifest; a malformed or truncated one is an error, so a damaged manifest
+// cannot make every vCard look edited.
 func readManifest(path string) (map[string]string, error) {
+	m := map[string]string{}
+	return m, readLines(path, manifestLine, func(g []string) error {
+		if _, dup := m[g[2]]; dup {
+			return errors.New("duplicate entry")
+		}
+		m[g[2]] = g[1]
+		return nil
+	})
+}
+
+// readLines calls add with the submatches of re for each line of path, if it
+// exists. A line that does not match or lacks its newline, or an error from
+// add, fails the whole file.
+func readLines(path string, re *regexp.Regexp, add func([]string) error) error {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
-	m := map[string]string{}
 	i := 0
 	for l := range strings.Lines(string(data)) {
 		i++
 		l, complete := strings.CutSuffix(l, "\n")
-		g := manifestLine.FindStringSubmatch(l)
+		g := re.FindStringSubmatch(l)
 		if !complete || g == nil {
-			return nil, fmt.Errorf("manifest %s: malformed or truncated line %d", path, i)
+			return fmt.Errorf("manifest %s: malformed or truncated line %d", path, i)
 		}
-		if _, dup := m[g[2]]; dup {
-			return nil, fmt.Errorf("manifest %s: duplicate entry on line %d", path, i)
+		if err := add(g); err != nil {
+			return fmt.Errorf("manifest %s: line %d: %w", path, i, err)
 		}
-		m[g[2]] = g[1]
 	}
-	return m, nil
+	return nil
 }
 
 // writeManifest atomically replaces path with the sorted "sha256sum" lines of m.
 func writeManifest(path string, m map[string]string) error {
+	return writeLines(path, m, func(name, h string) string { return h + "  " + name })
+}
+
+// writeLines atomically replaces path with one line per entry of m, by name.
+func writeLines[V any](path string, m map[string]V, line func(string, V) string) error {
 	var b strings.Builder
 	for _, name := range slices.Sorted(maps.Keys(m)) {
-		fmt.Fprintf(&b, "%s  %s\n", m[name], name)
+		b.WriteString(line(name, m[name]) + "\n")
 	}
 	return writeFile(filepath.Dir(path), filepath.Base(path), []byte(b.String()))
 }
 
-// keptSuffix matches the "-kept-YYYY-MM-DD-HHMMSS.vcf" ending of a kept copy.
-var keptSuffix = regexp.MustCompile(`-kept-\d{4}-\d{2}-\d{2}-\d{6}\.vcf$`)
+// now is the clock that names kept copies.
+var now = time.Now
 
-// writeFile atomically replaces dir/name with data.
+// keptDate and keptTime format the date and time of a run in the names of
+// its kept copies.
+const (
+	keptDate = "2006-01-02"
+	keptTime = keptDate + "-150405"
+)
+
+// keptName is where name is kept: its stem, then suffix, then its extension.
+func keptName(name, suffix string) string {
+	stem, ext := splitExt(name)
+	return stem + suffix + ext
+}
+
+// deletedNames are the kept names of name, in order of preference, once
+// Google no longer has it: -deleted-<date of at>, else -deleted-<at>.
+func deletedNames(name, at string) []string {
+	return []string{keptName(name, "-deleted-"+at[:len(keptDate)]), keptName(name, "-deleted-"+at)}
+}
+
+// splitExt splits name at the last dot of its final element, unless that
+// element starts there.
+func splitExt(name string) (stem, ext string) {
+	ext = path.Ext(name)
+	if rest := strings.TrimSuffix(name, ext); rest == "" || strings.HasSuffix(rest, "/") {
+		return name, ""
+	}
+	return strings.TrimSuffix(name, ext), ext
+}
+
+// writeFile atomically and durably replaces dir/name with data.
 func writeFile(dir, name string, data []byte) error {
-	// Syncthing does not scan .syncthing.* names.
+	// Syncthing does not scan .syncthing.*.tmp names.
 	tmp := filepath.Join(dir, ".syncthing."+name+".tmp")
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err = errors.Join(err, f.Sync(), f.Close()); err != nil {
+		os.Remove(tmp)
 		return err
 	}
 	return os.Rename(tmp, filepath.Join(dir, name))
@@ -789,7 +1000,7 @@ func fold(line string) string {
 	return b.String()
 }
 
-func authCmd(args []string) (err error) {
+func authCmd(ctx context.Context, args []string) (err error) {
 	fs := flag.NewFlagSet("auth", flag.ExitOnError)
 	client := fs.String("client", "", "OAuth Desktop client JSON from the Google Cloud console")
 	out := fs.String("out", "", "where to write the authorized_user JSON")
@@ -829,7 +1040,7 @@ func authCmd(args []string) (err error) {
 
 	results := make(chan authResult, 1)
 	go http.Serve(ln, callback(state, results))
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	var code string
 	select {

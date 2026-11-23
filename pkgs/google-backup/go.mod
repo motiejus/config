@@ -1,4 +1,4 @@
-module git.jakstys.lt/motiejus/config/pkgs/google-contacts
+module git.jakstys.lt/motiejus/config/pkgs/google-backup
 
 go 1.26.0
 

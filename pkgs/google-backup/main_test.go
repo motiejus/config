@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -118,9 +119,10 @@ func contact(id, name string) string {
 	return `{"resourceName": "people/` + id + `", "names": [{"displayName": "` + name + `"}]}`
 }
 
+// run syncs dir with the manifest kept beside it.
 func run(t *testing.T, api *fakeAPI, dir string) error {
 	t.Helper()
-	return runManifest(t, context.Background(), api, dir, filepath.Join(t.TempDir(), "manifest"))
+	return runManifest(t, context.Background(), api, dir, dir+".manifest")
 }
 
 func runManifest(t *testing.T, ctx context.Context, api *fakeAPI, dir, manifest string) error {
@@ -128,7 +130,9 @@ func runManifest(t *testing.T, ctx context.Context, api *fakeAPI, dir, manifest 
 	srv := httptest.NewServer(api)
 	defer srv.Close()
 	peopleAPI = srv.URL
-	return syncDir(ctx, srv.Client(), dir, manifest)
+	err := syncDir(ctx, srv.Client(), dir, manifest)
+	checkHistory(t, ctx, manifest, err)
+	return err
 }
 
 // state maps each file in dir to its inode and mtime.
@@ -181,8 +185,8 @@ func TestSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := state(t, dir)
-	if _, ok := got["c3.vcf"]; ok {
-		t.Error("deleted contact c3 still on disk")
+	if _, ok := got["c3.vcf"]; ok || len(copiesIn(t, dir, "-deleted-", "c3")) != 1 {
+		t.Error("deleted contact c3 still on disk or not kept as -deleted-")
 	}
 	if !strings.Contains(read(t, filepath.Join(dir, "c2.vcf")), "FN:Two v2") {
 		t.Error("modified contact c2 not rewritten")
@@ -195,8 +199,8 @@ func TestSync(t *testing.T) {
 			t.Errorf("unchanged %s was rewritten", f)
 		}
 	}
-	if len(got) != 4 {
-		t.Errorf("want exactly 4 files (no temp files left), got %v", got)
+	if len(got) != 5 {
+		t.Errorf("want exactly 4 vCards and c3's copy (no temp files left), got %v", got)
 	}
 }
 
@@ -465,7 +469,7 @@ func runAuth(t *testing.T, api *fakeAPI, dir string) error {
 	srv := httptest.NewServer(api)
 	defer srv.Close()
 	peopleAPI = srv.URL
-	return syncDir(context.Background(), &http.Client{Transport: bearer{srv.Client().Transport}}, dir, filepath.Join(t.TempDir(), "manifest"))
+	return syncDir(context.Background(), &http.Client{Transport: bearer{srv.Client().Transport}}, dir, dir+".manifest")
 }
 
 func photoContact(id, name, url string) string {
@@ -609,7 +613,7 @@ func TestPhotoErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, bad := range []string{"/text", "/big", "/missing"} {
-		api := &fakeAPI{people: []string{photoContact("c1", "One renamed", ps.URL+bad), photoContact("c3", "Three", ps.URL+"/ok")}}
+		api := &fakeAPI{people: []string{photoContact("c1", "One "+bad, ps.URL+bad), photoContact("c3", "Three", ps.URL+"/ok")}}
 		err := runAuth(t, api, dir)
 		if err == nil || !strings.Contains(err.Error(), "people/c1") || strings.Contains(err.Error(), ps.URL) {
 			t.Fatalf("%s: want an error naming c1 but not the URL, got %v", bad, err)
@@ -618,11 +622,10 @@ func TestPhotoErrors(t *testing.T) {
 		if ph, _, src := decodePhotos(t, card); len(ph) != 1 || !bytes.Equal(ph[0], jpeg) || src[0] != ps.URL+"/ok" {
 			t.Errorf("%s: old photo and source must survive a failed fetch", bad)
 		}
-		if !strings.Contains(card, "FN:One renamed") || !strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "FN:Three") {
+		if !strings.Contains(card, "FN:One "+bad) || !strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "FN:Three") {
 			t.Errorf("%s: field change or other contact not written", bad)
 		}
 		os.Remove(filepath.Join(dir, "c3.vcf"))
-		os.WriteFile(filepath.Join(dir, "c1.vcf"), []byte(strings.Replace(card, "One renamed", "One", 1)), 0o600)
 	}
 
 	// A new contact with a permanently failing photo is still written, without it.
@@ -842,14 +845,25 @@ func TestPhotoFailedMarker(t *testing.T) {
 	}
 }
 
-// keptCopies lists the kept copies of stem in dir.
-func keptCopies(t *testing.T, dir, stem string) []string {
+// keptIn lists the -kept- copies of stem ("" for any) under dir.
+func keptIn(t *testing.T, dir, stem string) []string {
+	return copiesIn(t, dir, "-kept-", stem)
+}
+
+// copiesIn lists the copies of stem ("" for any) tagged tag under dir.
+func copiesIn(t *testing.T, dir, tag, stem string) []string {
 	t.Helper()
-	m, err := filepath.Glob(filepath.Join(dir, stem+"-kept-????-??-??-??????.vcf"))
+	var k []string
+	err := filepath.WalkDir(dir, func(p string, e os.DirEntry, err error) error {
+		if err == nil && (strings.HasPrefix(e.Name(), stem+tag) || stem == "" && strings.Contains(e.Name(), tag)) {
+			k = append(k, p)
+		}
+		return err
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return m
+	return k
 }
 
 func write(t *testing.T, path, content string) {
@@ -866,7 +880,7 @@ func TestKeepLocalChanges(t *testing.T) {
 	if err := runManifest(t, context.Background(), api, dir, manifest); err != nil {
 		t.Fatal(err)
 	}
-	if got := keptCopies(t, dir, "c1"); len(got) != 0 {
+	if got := keptIn(t, dir, "c1"); len(got) != 0 {
 		t.Fatalf("first run (no manifest) kept %v", got)
 	}
 	if !strings.Contains(read(t, manifest), hash([]byte(read(t, filepath.Join(dir, "c1.vcf"))))+"  c1.vcf\n") {
@@ -894,19 +908,19 @@ func TestKeepLocalChanges(t *testing.T) {
 	if read(t, c1) != orig {
 		t.Error("edited c1 not rewritten from Google")
 	}
-	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != strings.Replace(orig, "One", "Ona", 1) {
+	if k := keptIn(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != strings.Replace(orig, "One", "Ona", 1) {
 		t.Errorf("edited c1: want one kept copy with the edit, got %v", k)
 	}
-	if k := keptCopies(t, dir, "x9"); len(k) != 1 || read(t, k[0]) != "ADDED" {
+	if k := keptIn(t, dir, "x9"); len(k) != 1 || read(t, k[0]) != "ADDED" {
 		t.Errorf("added x9: want one kept copy with its content, got %v", k)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "x9.vcf")); !os.IsNotExist(err) {
 		t.Error("added x9.vcf not removed after being kept")
 	}
-	if k := keptCopies(t, dir, "c3"); len(k) != 1 || read(t, k[0]) != "EDITED3" {
+	if k := keptIn(t, dir, "c3"); len(k) != 1 || read(t, k[0]) != "EDITED3" {
 		t.Errorf("removed-but-edited c3: want one kept copy, got %v", k)
 	}
-	if k := keptCopies(t, dir, "c2"); len(k) != 0 {
+	if k := keptIn(t, dir, "c2"); len(k) != 0 {
 		t.Errorf("untouched c2 kept %v", k)
 	}
 	if !strings.Contains(logs, "contacts: 3 changed on disk since the last run, kept as *-kept-") {
@@ -917,10 +931,6 @@ func TestKeepLocalChanges(t *testing.T) {
 	}
 	if m := read(t, manifest); strings.Contains(m, "-kept-") || strings.Contains(m, "x9") || strings.Contains(m, "c3") {
 		t.Errorf("manifest lists kept copies or gone vCards:\n%s", m)
-	}
-
-	if !strings.Contains(logs, ", 0 removed,") {
-		t.Errorf("vCards moved aside were counted as removed:\n%s", logs)
 	}
 
 	// Kept copies are not vCards: later runs neither remove, re-flag nor count them.
@@ -948,16 +958,92 @@ func TestKeepLocalChanges(t *testing.T) {
 	}
 }
 
-func TestNoManifestKeepsNothing(t *testing.T) {
+// With no manifest, a vCard as Google has it is just recorded; any other is
+// kept before being replaced or removed, and lends no photo. Older copies are
+// left alone, and the next run changes nothing.
+func TestNoManifest(t *testing.T) {
+	fixedClock(t)
+	fp := &fakePhotos{bodies: map[string][]byte{"/a": jpeg}}
+	ps := httptest.NewServer(fp)
+	defer ps.Close()
 	dir := t.TempDir()
-	write(t, filepath.Join(dir, "c1.vcf"), "stale")
-	write(t, filepath.Join(dir, "x9.vcf"), "stale")
-	api := &fakeAPI{people: []string{contact("c1", "One")}}
-	if err := runManifest(t, context.Background(), api, dir, filepath.Join(t.TempDir(), "manifest")); err != nil {
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), photoContact("c3", "Three", ps.URL+"/a")}}
+	var p3 person
+	if err := json.Unmarshal([]byte(api.people[2]), &p3); err != nil {
 		t.Fatal(err)
 	}
-	if k := keptCopies(t, dir, "*"); len(k) != 0 {
-		t.Errorf("no manifest, yet kept %v", k)
+	tampered := string(render(p3, nil, &photo{ps.URL + "/a", "JPEG", base64.StdEncoding.EncodeToString(append(slices.Clone(jpeg), "tampered"...)), ""}))
+	write(t, filepath.Join(dir, "c1.vcf"), renderJSON(t, api.people[0]))
+	write(t, filepath.Join(dir, "c2.vcf"), "stale")
+	write(t, filepath.Join(dir, "c3.vcf"), tampered)
+	write(t, filepath.Join(dir, "x9.vcf"), "local")
+	write(t, filepath.Join(dir, "c1-kept-2026-11-01-000000.vcf"), "old kept")
+	write(t, filepath.Join(dir, "c2-deleted-2026-11-01.vcf"), "old deleted")
+	before := state(t, dir)
+	var err error
+	logs := captureStderr(t, func() { err = run(t, api, dir) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := state(t, dir)
+	if after["c1.vcf"] != before["c1.vcf"] || read(t, filepath.Join(dir, "c1-kept-2026-11-01-000000.vcf")) != "old kept" || len(keptIn(t, dir, "c1")) != 1 {
+		t.Error("c1, as Google has it, was rewritten or kept")
+	}
+	if read(t, filepath.Join(dir, "c2-deleted-2026-11-01.vcf")) != "old deleted" || len(copiesIn(t, dir, "-deleted-", "")) != 1 {
+		t.Error("older -deleted- copy touched, or a new one made")
+	}
+	for stem, body := range map[string]string{"c2": "stale", "c3": tampered, "x9": "local"} {
+		if k := keptIn(t, dir, stem); len(k) != 1 || read(t, k[0]) != body {
+			t.Errorf("%s: want one kept copy with its bytes, got %v", stem, k)
+		}
+	}
+	if _, err := os.Lstat(filepath.Join(dir, "x9.vcf")); !errors.Is(err, os.ErrNotExist) {
+		t.Error("x9.vcf not moved aside")
+	}
+	if ph, _, _ := decodePhotos(t, read(t, filepath.Join(dir, "c3.vcf"))); len(ph) != 1 || !bytes.Equal(ph[0], jpeg) || fp.hits.Load() != 1 {
+		t.Errorf("c3: photo of an unknown vCard reused (hits=%d)", fp.hits.Load())
+	}
+	if !strings.Contains(logs, "contacts: 3 changed on disk since the last run, kept as") || !strings.Contains(logs, "done: 0 new, 2 updated, 1 unchanged\n") {
+		t.Errorf("logs:\n%s", logs)
+	}
+	var want string
+	for _, c := range []string{"c1", "c2", "c3"} {
+		want += hash([]byte(read(t, filepath.Join(dir, c+".vcf")))) + "  " + c + ".vcf\n"
+	}
+	if got := read(t, dir+".manifest"); got != want {
+		t.Errorf("manifest:\n%s\nwant:\n%s", got, want)
+	}
+	logs = captureStderr(t, func() { err = run(t, api, dir) })
+	if got := state(t, dir); err != nil || !maps.Equal(got, after) || !strings.Contains(logs, "contacts: 0 changed on disk") {
+		t.Errorf("second run changed files (%v):\n%v\n%v\n%s", err, after, got, logs)
+	}
+}
+
+// A manifest lost after normal runs loses nothing: an edited vCard and one of
+// a contact gone from Google are both kept.
+func TestManifestLost(t *testing.T) {
+	fixedClock(t)
+	dir := t.TempDir()
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), contact("c3", "Three")}}
+	for range 2 {
+		if err := run(t, api, dir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c2 := read(t, filepath.Join(dir, "c2.vcf"))
+	write(t, filepath.Join(dir, "c1.vcf"), "EDITED")
+	api.people = []string{contact("c1", "One"), contact("c3", "Three v2")}
+	os.Remove(dir + ".manifest")
+	if err := run(t, api, dir); err != nil {
+		t.Fatal(err)
+	}
+	for stem, body := range map[string]string{"c1": "EDITED", "c2": c2} {
+		if k := keptIn(t, dir, stem); len(k) != 1 || read(t, k[0]) != body {
+			t.Errorf("%s: want one kept copy, got %v", stem, k)
+		}
+	}
+	if !strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "Three v2") {
+		t.Error("c3 not updated")
 	}
 }
 
@@ -977,7 +1063,7 @@ func TestBadManifestFails(t *testing.T) {
 		if err := runManifest(t, context.Background(), api, dir, mf); err == nil || !strings.Contains(err.Error(), "manifest") {
 			t.Errorf("%s: want manifest error, got %v", name, err)
 		}
-		if read(t, filepath.Join(dir, "c1.vcf")) != "local" || read(t, mf) != m || len(keptCopies(t, dir, "c1")) != 0 {
+		if read(t, filepath.Join(dir, "c1.vcf")) != "local" || read(t, mf) != m || len(keptIn(t, dir, "c1")) != 0 {
 			t.Errorf("%s: failed run touched files", name)
 		}
 	}
@@ -1023,7 +1109,7 @@ func TestAbortedRunManifest(t *testing.T) {
 	if got := read(t, mf); got != want {
 		t.Fatalf("manifest after abort:\n%s\nwant (c1 rewritten, the rest carried forward):\n%s", got, want)
 	}
-	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "EDITED1" {
+	if k := keptIn(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "EDITED1" {
 		t.Errorf("edited c1 not kept: %v", k)
 	}
 }
@@ -1049,7 +1135,7 @@ func TestManifestIsNotFromDisk(t *testing.T) {
 	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
 		t.Fatal(err)
 	}
-	if k := keptCopies(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "RACE" {
+	if k := keptIn(t, dir, "c1"); len(k) != 1 || read(t, k[0]) != "RACE" {
 		t.Errorf("mid-run edit of c1 not kept next run: %v", k)
 	}
 }
@@ -1073,6 +1159,9 @@ func TestCancelWritesManifest(t *testing.T) {
 	api.people = []string{contact("c1", "One"), photoContact("c2", "Two", ps.URL+"/p"), contact("c3", "Three v2"), contact("c4", "Four")}
 	if err := runManifest(t, ctx, api, dir, mf); err == nil {
 		t.Fatal("want cancellation error")
+	}
+	if h := historyOf(t, mf); !strings.Contains(h[len(h)-1][5], "unchanged=1") {
+		t.Errorf("stopped run line %q lacks the totals so far", h[len(h)-1])
 	}
 	if strings.Contains(read(t, filepath.Join(dir, "c3.vcf")), "Three v2") {
 		t.Error("loop went on after cancellation")
@@ -1112,7 +1201,7 @@ func TestEditedCardPhotoRefetched(t *testing.T) {
 	if fp.hits.Load() != 2 {
 		t.Errorf("want the photo fetched again (2 downloads), got %d", fp.hits.Load())
 	}
-	if k := keptCopies(t, dir, "c1"); len(k) != 1 {
+	if k := keptIn(t, dir, "c1"); len(k) != 1 {
 		t.Errorf("edited card not kept: %v", k)
 	}
 }
@@ -1158,14 +1247,110 @@ func TestEditDuringRunIsKept(t *testing.T) {
 			t.Fatalf("%s: %v", name, err)
 		}
 		ps.Close()
-		if k := keptCopies(t, dir, victim); len(k) != 1 || !strings.Contains(read(t, k[0]), "EDIT") {
+		if k := keptIn(t, dir, victim); len(k) != 1 || !strings.Contains(read(t, k[0]), "EDIT") {
 			t.Errorf("%s: edit during the run not kept: %v", name, k)
 		}
 	}
 }
 
-func TestSyncRequiresManifest(t *testing.T) {
-	if err := syncCmd([]string{"-out", t.TempDir()}); err == nil || !strings.Contains(err.Error(), "-manifest") {
+func TestContactsRequiresManifest(t *testing.T) {
+	if err := contactsCmd(context.Background(), []string{"-out", t.TempDir()}); err == nil || !strings.Contains(err.Error(), "-manifest") {
 		t.Fatalf("want a -manifest error, got %v", err)
+	}
+}
+
+// A contact gone from Google is kept as -deleted-<date>, or -deleted-<time>
+// when that is taken; an edited one as -kept-. Copies are left alone after.
+func TestContactsDeleted(t *testing.T) {
+	fixedClock(t)
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	api := &fakeAPI{people: []string{contact("c1", "One"), contact("c2", "Two"), contact("c3", "Three"), contact("c4", "Four"), contact("c5", "Five")}}
+	if err := runManifest(t, context.Background(), api, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	c5 := read(t, filepath.Join(dir, "c5.vcf"))
+	write(t, filepath.Join(dir, "c5-deleted-2026-11-23.vcf"), "taken")
+	write(t, filepath.Join(dir, "c5-deleted-2026-11-23-001502.vcf"), "taken")
+	c2, c4 := read(t, filepath.Join(dir, "c2.vcf")), read(t, filepath.Join(dir, "c4.vcf"))
+	write(t, filepath.Join(dir, "c3.vcf"), "EDITED3")
+	write(t, filepath.Join(dir, "c4-deleted-2026-11-23.vcf"), "taken")
+	api.people = []string{contact("c1", "One")}
+	var err error
+	logs := captureStderr(t, func() { err = runManifest(t, context.Background(), api, dir, mf) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"c2-deleted-2026-11-23.vcf": c2, "c4-deleted-2026-11-23.vcf": "taken",
+		"c4-deleted-2026-11-23-001502.vcf": c4, "c3-kept-2026-11-23-001502.vcf": "EDITED3",
+		"c5-kept-2026-11-23-001502.vcf": c5,
+	} {
+		if got := read(t, filepath.Join(dir, name)); got != want {
+			t.Errorf("%s: got %q, want %q", name, got, want)
+		}
+	}
+	if got := state(t, dir); len(got) != 8 {
+		t.Errorf("want c1 and 7 copies, got %v", got)
+	}
+	if !strings.Contains(logs, "contacts: 2 deleted in Google, kept as *-deleted-2026-11-23*.vcf\n") || !strings.Contains(logs, "contacts: 2 changed on disk") || strings.Contains(logs, "c2") {
+		t.Errorf("logs:\n%s", logs)
+	}
+	hist := historyOf(t, mf)
+	hasHistory(t, hist, "contacts", "deleted", "-", hash([]byte(c2)), `"c2.vcf"`, `"c2-deleted-2026-11-23.vcf"`)
+	hasHistory(t, hist, "contacts", "deleted", "-", hash([]byte(c4)), `"c4.vcf"`, `"c4-deleted-2026-11-23-001502.vcf"`)
+	hasHistory(t, hist, "contacts", "kept", "-", hash([]byte("EDITED3")), `"c3.vcf"`, `"c3-kept-2026-11-23-001502.vcf"`)
+	hasHistory(t, hist, "contacts", "new", `"people/c1"`, hash([]byte(read(t, filepath.Join(dir, "c1.vcf")))), `"c1.vcf"`)
+	runTotals(t, hist, "contacts", logs)
+	if m := read(t, mf); strings.Count(m, "\n") != 1 || !strings.Contains(m, "c1.vcf") {
+		t.Errorf("manifest:\n%s", m)
+	}
+	before := state(t, dir)
+	logs = captureStderr(t, func() { err = runManifest(t, context.Background(), api, dir, mf) })
+	if err != nil || !maps.Equal(state(t, dir), before) || strings.Contains(logs, "deleted in Google") || !strings.Contains(logs, " 1 vCards in") {
+		t.Errorf("copies touched or counted: %v\n%s", err, logs)
+	}
+}
+
+// fixedClock makes each run of the test start a second after the last, from
+// 2026-11-23 00:15:00 local.
+func fixedClock(t *testing.T) {
+	old := now
+	t.Cleanup(func() { now = old })
+	clock := time.Date(2026, 11, 23, 0, 15, 0, 0, time.Local)
+	now = func() time.Time { clock = clock.Add(time.Second); return clock }
+}
+
+// A vCard edited before the run and again during its photo fetch is kept
+// twice.
+func TestContactsEditedTwice(t *testing.T) {
+	fixedClock(t)
+	dir, mf := t.TempDir(), filepath.Join(t.TempDir(), "manifest")
+	if err := runManifest(t, context.Background(), &fakeAPI{people: []string{contact("c1", "One")}}, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(dir, "c1.vcf"), "EDIT BEFORE")
+	ps := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		os.WriteFile(filepath.Join(dir, "c1.vcf"), []byte("EDIT DURING"), 0o600)
+		w.Write(jpeg)
+	}))
+	defer ps.Close()
+	if err := runManifest(t, context.Background(), &fakeAPI{people: []string{photoContact("c1", "One", ps.URL+"/p")}}, dir, mf); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, k := range keptIn(t, dir, "c1") {
+		got = append(got, read(t, k))
+	}
+	if slices.Sort(got); !slices.Equal(got, []string{"EDIT BEFORE", "EDIT DURING"}) {
+		t.Errorf("kept copies %q", got)
+	}
+}
+
+// A run out of time failed; only a signal stops one.
+func TestDeadlineIsFailure(t *testing.T) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer cancel()
+	if err := runManifest(t, ctx, &fakeAPI{}, t.TempDir(), filepath.Join(t.TempDir(), "manifest")); err == nil {
+		t.Error("run out of time succeeded")
 	}
 }
