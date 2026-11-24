@@ -20,7 +20,6 @@ let
     "-tus-dir=${tusDir}"
     "-db=/var/lib/up/up.db"
     "-base-url=https://up.jakstys.lt"
-    "-admin-url=https://up-admin.jakstys.lt"
   ];
   unit = cmd: {
     User = "up";
