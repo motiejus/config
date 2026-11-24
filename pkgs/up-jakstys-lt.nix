@@ -7,14 +7,14 @@
 }:
 buildGoModule (finalAttrs: {
   pname = "up";
-  version = "0-unstable-2026-11-24";
+  version = "0-unstable-2026-11-25";
 
   src = fetchgit {
     url = "https://git.jakstys.lt/up.jakstys.lt.git";
-    rev = "c46d60491d2e4d03495318e74ba45240e602a5f5b82c3f61973879ed84776ad3";
+    rev = "cf1e257d21e2c427d3e147496e3fa87f31918563ded1b8170ca45181149d7be0";
     # The repo is in sha256 object format; see pkgs/stagit-ng.nix.
     preFetch = "export GIT_DEFAULT_HASH=sha256";
-    hash = "sha256-8dN5KkG3t063tDwlD/B+M/u9+BiYj6pAaO2eQkB/ZVc=";
+    hash = "sha256-nx3V5buhz3xqRrBvJNYmYKE9gOUfdxsGFMp4d+0AdkQ=";
   };
 
   # go-sqlite3 compiles its bundled SQLite amalgamation; cgo is on by default.
