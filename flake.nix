@@ -124,6 +124,7 @@
             # The callPackage set (where `override` lives), forced only by mbFontsDir.
             lt-maps-set = inputs.lt-maps.legacyPackages.${final.stdenv.hostPlatform.system};
             rita-jakst-publisher = final.callPackage ./pkgs/rita-jakst-publisher.nix { };
+            compressDrvWebEtag = final.callPackage ./pkgs/compress-drv-web-etag.nix { };
             up-jakstys-lt = final.callPackage ./pkgs/up-jakstys-lt.nix { };
           }
           // super.lib.optionalAttrs super.stdenv.isDarwin {

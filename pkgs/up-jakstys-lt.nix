@@ -3,8 +3,7 @@
   buildGoModule,
   fetchgit,
   runCommand,
-  compressDrvWeb,
-  brotli,
+  compressDrvWebEtag,
 }:
 buildGoModule (finalAttrs: {
   pname = "up";
@@ -34,30 +33,9 @@ buildGoModule (finalAttrs: {
   # Caddy serves ui/ and routes both sites by the repo's deploy/ snippets;
   # the binary only answers /api/ and /files/.
   passthru = {
-    # A precompressed .br sibling per file (file_server's `precompressed br`)
-    # and a content-hash .etag sidecar per file and variant
-    # (`etag_file_extensions .etag`), as in pkgs/stagit-ng.nix: caddy derives
-    # no etag from nix-store epoch mtimes, so a no-cache page could never 304.
-    www =
-      let
-        br =
-          compressDrvWeb
-            (runCommand "up-www" { } ''
-              cp -r ${finalAttrs.src}/ui $out
-            '')
-            {
-              compressors = {
-                br = "${lib.getExe brotli} --keep --no-copy-stat {}";
-              };
-            };
-      in
-      runCommand "${br.name}-etag" { } ''
-        cp -rL --no-preserve=mode ${br} $out
-        find $out -type f ! -name '*.etag' | while read -r f; do
-          h=$(sha256sum "$f") # separate assignment: a failure aborts the build
-          printf '"%s"' "''${h:0:32}" > "$f.etag"
-        done
-      '';
+    www = compressDrvWebEtag (runCommand "up-www" { } ''
+      cp -r ${finalAttrs.src}/ui $out
+    '') { };
     caddySnippet = "${finalAttrs.src}/deploy/Caddyfile.snippet";
     caddyAdminSnippet = "${finalAttrs.src}/deploy/Caddyfile.admin.snippet";
   };
